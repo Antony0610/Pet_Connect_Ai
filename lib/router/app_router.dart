@@ -12,6 +12,12 @@ import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/welcome_success_screen.dart';
 import '../features/pet_owner/presentation/screens/activate_lost_mode_screen.dart';
 import '../features/pet_owner/presentation/screens/add_pet_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_assistant_chat_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_health_insights_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_history_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_hub_dashboard_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_recommendations_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_reports_screen.dart';
 import '../features/pet_owner/presentation/screens/delete_pet_confirmation_screen.dart';
 import '../features/pet_owner/presentation/screens/edit_pet_profile_screen.dart';
 import '../features/pet_owner/presentation/screens/growth_weight_analytics_screen.dart';
@@ -26,6 +32,12 @@ import '../features/pet_owner/presentation/screens/pet_profile_detail_screen.dar
 import '../features/pet_owner/presentation/screens/pet_settings_screen.dart';
 import '../features/pet_owner/presentation/screens/profile_screen.dart';
 import '../features/pet_owner/presentation/screens/settings_screen.dart';
+import '../features/pet_owner/presentation/screens/smart_collar_activity_screen.dart';
+import '../features/pet_owner/presentation/screens/smart_collar_dashboard_screen.dart';
+import '../features/pet_owner/presentation/screens/smart_collar_diagnostics_screen.dart';
+import '../features/pet_owner/presentation/screens/smart_collar_geofence_screen.dart';
+import '../features/pet_owner/presentation/screens/smart_collar_settings_screen.dart';
+import '../features/pet_owner/presentation/screens/smart_collar_tracking_screen.dart';
 import '../features/pet_owner/presentation/screens/vaccination_overview_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
@@ -196,14 +208,67 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'ai',
             name: RouteNames.ownerAiAssistant,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'AI Assistant'),
+            builder: (context, state) => const AiHubDashboardScreen(),
+            routes: [
+              GoRoute(
+                path: 'chat',
+                name: RouteNames.ownerAiChat,
+                builder: (context, state) => const AiAssistantChatScreen(),
+              ),
+              GoRoute(
+                path: 'insights',
+                name: RouteNames.ownerAiInsights,
+                builder: (context, state) => const AiHealthInsightsScreen(),
+              ),
+              GoRoute(
+                path: 'recommendations',
+                name: RouteNames.ownerAiRecommendations,
+                builder: (context, state) => const AiRecommendationsScreen(),
+              ),
+              GoRoute(
+                path: 'reports',
+                name: RouteNames.ownerAiReports,
+                builder: (context, state) => const AiReportsScreen(),
+              ),
+              GoRoute(
+                path: 'history',
+                name: RouteNames.ownerAiHistory,
+                builder: (context, state) => const AiHistoryScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: 'collar',
             name: RouteNames.ownerCollar,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Smart Collar'),
+            builder: (context, state) => const SmartCollarDashboardScreen(),
+            routes: [
+              GoRoute(
+                path: 'tracking',
+                name: RouteNames.ownerCollarTracking,
+                builder: (context, state) => const SmartCollarTrackingScreen(),
+              ),
+              GoRoute(
+                path: 'activity',
+                name: RouteNames.ownerCollarActivity,
+                builder: (context, state) => const SmartCollarActivityScreen(),
+              ),
+              GoRoute(
+                path: 'geofence',
+                name: RouteNames.ownerCollarGeofence,
+                builder: (context, state) => const SmartCollarGeofenceScreen(),
+              ),
+              GoRoute(
+                path: 'diagnostics',
+                name: RouteNames.ownerCollarDiagnostics,
+                builder: (context, state) =>
+                    const SmartCollarDiagnosticsScreen(),
+              ),
+              GoRoute(
+                path: 'settings',
+                name: RouteNames.ownerCollarSettings,
+                builder: (context, state) => const SmartCollarSettingsScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: 'lost-mode',
