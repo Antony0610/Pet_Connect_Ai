@@ -14,11 +14,16 @@ import '../features/pet_owner/presentation/screens/activate_lost_mode_screen.dar
 import '../features/pet_owner/presentation/screens/add_pet_screen.dart';
 import '../features/pet_owner/presentation/screens/delete_pet_confirmation_screen.dart';
 import '../features/pet_owner/presentation/screens/edit_pet_profile_screen.dart';
+import '../features/pet_owner/presentation/screens/growth_weight_analytics_screen.dart';
+import '../features/pet_owner/presentation/screens/health_passport_dashboard_screen.dart';
+import '../features/pet_owner/presentation/screens/health_passport_timeline_screen.dart';
 import '../features/pet_owner/presentation/screens/home_dashboard_screen.dart';
+import '../features/pet_owner/presentation/screens/medical_history_record_screen.dart';
 import '../features/pet_owner/presentation/screens/my_pets_list_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_media_gallery_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_profile_detail_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_settings_screen.dart';
+import '../features/pet_owner/presentation/screens/vaccination_overview_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
 import 'route_observer.dart';
@@ -158,8 +163,33 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'health',
             name: RouteNames.ownerHealth,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Health'),
+            builder: (context, state) => const HealthPassportDashboardScreen(),
+            routes: [
+              GoRoute(
+                path: 'medical',
+                name: RouteNames.ownerHealthMedical,
+                builder: (context, state) =>
+                    const MedicalHistoryRecordScreen(),
+              ),
+              GoRoute(
+                path: 'vaccinations',
+                name: RouteNames.ownerHealthVaccinations,
+                builder: (context, state) =>
+                    const VaccinationOverviewScreen(),
+              ),
+              GoRoute(
+                path: 'timeline',
+                name: RouteNames.ownerHealthTimeline,
+                builder: (context, state) =>
+                    const HealthPassportTimelineScreen(),
+              ),
+              GoRoute(
+                path: 'growth',
+                name: RouteNames.ownerHealthGrowth,
+                builder: (context, state) =>
+                    const GrowthWeightAnalyticsScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: 'ai',

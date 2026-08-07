@@ -32,6 +32,10 @@ abstract final class RoutePaths {
   static const String ownerPetDelete = '/owner/pets/:petId/delete';
   static const String ownerPetGallery = '/owner/pets/:petId/gallery';
   static const String ownerHealth = '/owner/health';
+  static const String ownerHealthMedical = '/owner/health/medical';
+  static const String ownerHealthVaccinations = '/owner/health/vaccinations';
+  static const String ownerHealthTimeline = '/owner/health/timeline';
+  static const String ownerHealthGrowth = '/owner/health/growth';
   static const String ownerAiAssistant = '/owner/ai';
   static const String ownerCollar = '/owner/collar';
   static const String ownerLostMode = '/owner/lost-mode';
@@ -89,6 +93,10 @@ abstract final class RouteNames {
   static const String ownerPetDelete = 'ownerPetDelete';
   static const String ownerPetGallery = 'ownerPetGallery';
   static const String ownerHealth = 'ownerHealth';
+  static const String ownerHealthMedical = 'ownerHealthMedical';
+  static const String ownerHealthVaccinations = 'ownerHealthVaccinations';
+  static const String ownerHealthTimeline = 'ownerHealthTimeline';
+  static const String ownerHealthGrowth = 'ownerHealthGrowth';
   static const String ownerAiAssistant = 'ownerAiAssistant';
   static const String ownerCollar = 'ownerCollar';
   static const String ownerLostMode = 'ownerLostMode';
