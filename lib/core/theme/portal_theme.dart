@@ -66,6 +66,43 @@ class PortalPalette {
     AppPortal.volunteerRescue => AppColors.volunteerRescueAccent,
     AppPortal.administrator => AppColors.administratorAccent,
   };
+
+  /// The tinted "container" surface behind accent chips / badges / pills for
+  /// this portal, resolved for [brightness].
+  ///
+  /// Light values are exact where Stitch provides them (Pet Owner
+  /// `emerald-accent-container`); other portals and the dark variants are
+  /// derived as hue-tinted tonal surfaces from [accent] so no screen invents
+  /// a color. Consume via [context]-driven brightness, never hard-coded.
+  Color accentContainer(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    if (portal == AppPortal.petOwner) {
+      return isDark
+          ? AppColors.petOwnerAccentContainerDark
+          : AppColors.petOwnerAccentContainerLight;
+    }
+    return isDark
+        ? Color.alphaBlend(
+            accent.withValues(alpha: 0.26),
+            AppColors.darkSurfaceContainer,
+          )
+        : Color.alphaBlend(
+            accent.withValues(alpha: 0.14),
+            AppColors.white,
+          );
+  }
+
+  /// The foreground (icon/text) color that reads on [accentContainer] for the
+  /// given [brightness].
+  Color onAccentContainer(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    if (portal == AppPortal.petOwner) {
+      return isDark ? AppColors.petOwnerOnAccentContainerDark : accent;
+    }
+    return isDark
+        ? Color.alphaBlend(accent.withValues(alpha: 0.85), AppColors.white)
+        : accent;
+  }
 }
 
 /// Central registry of portal palettes.

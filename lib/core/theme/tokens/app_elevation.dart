@@ -70,9 +70,43 @@ abstract final class AppElevation {
     ),
   ];
 
+  /// Soft ambient shadow used by glass / elevated content cards — the
+  /// design's `shadow-soft: 0 4px 20px rgba(0,0,0,0.05)`.
+  static const List<BoxShadow> shadowSoft = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x0D000000), // 5% black
+      blurRadius: 20,
+      offset: Offset(0, 4),
+    ),
+  ];
+
+  /// Dark-mode counterpart of [shadowSoft] — deeper opacity so soft cards
+  /// still read against tonal dark surfaces.
+  static const List<BoxShadow> shadowSoftDark = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x33000000), // 20% black
+      blurRadius: 20,
+      offset: Offset(0, 4),
+    ),
+  ];
+
+  /// Colored "glow" cast beneath the floating primary action — the design's
+  /// `shadow-glow: 0 8px 30px rgba(103,80,164,0.3)` (seed-primary tinted).
+  static const List<BoxShadow> shadowGlow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x4D6750A4), // 30% seed primary
+      blurRadius: 30,
+      offset: Offset(0, 8),
+    ),
+  ];
+
   /// Returns the correct card shadow for the given [brightness].
   static List<BoxShadow> card(Brightness brightness) =>
       brightness == Brightness.dark ? shadowCardDark : shadowCard;
+
+  /// Returns the correct soft ambient shadow for the given [brightness].
+  static List<BoxShadow> soft(Brightness brightness) =>
+      brightness == Brightness.dark ? shadowSoftDark : shadowSoft;
 
   /// Surface tint used for M3 tonal elevation (light).
   static const Color surfaceTintLight = AppColors.lightSurfaceTint;

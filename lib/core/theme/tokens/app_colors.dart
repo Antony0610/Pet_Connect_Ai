@@ -198,6 +198,20 @@ abstract final class AppColors {
   static const Color volunteerRescueAccent = Color(0xFFF97316); // Orange
   static const Color administratorAccent = Color(0xFF4F378A); // Purple
 
+  /// Accent "container" surfaces — the soft tinted background used behind
+  /// accent-colored chips, badges and status pills (e.g. the Pet Owner
+  /// "Health: Optimal" pill sits on `emerald-accent-container` with
+  /// `emerald-accent` text).
+  ///
+  /// Light values are transcribed verbatim from the frozen Stitch design
+  /// (`emerald-accent-container: #d1fae5`). Dark values are derived as deep,
+  /// hue-tinted tonal surfaces per the Dark "Tonal Elevation" strategy —
+  /// never a flat light tint on dark, and paired with a lightened accent so
+  /// text keeps contrast. Consume through [PortalPalette.accentContainer].
+  static const Color petOwnerAccentContainerLight = Color(0xFFD1FAE5);
+  static const Color petOwnerAccentContainerDark = Color(0xFF0B3B2E);
+  static const Color petOwnerOnAccentContainerDark = Color(0xFF6EE7B7);
+
   // ═══════════════════════════════════════════════════════════════
   // Semantic status colors (shared across portals)
   // ═══════════════════════════════════════════════════════════════
