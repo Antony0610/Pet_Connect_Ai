@@ -120,6 +120,7 @@ class OwnerAppBarAction extends StatelessWidget {
     required this.onPressed,
     this.tooltip,
     this.showBadge = false,
+    this.color,
     super.key,
   });
 
@@ -128,6 +129,9 @@ class OwnerAppBarAction extends StatelessWidget {
   final String? tooltip;
   final bool showBadge;
 
+  /// Icon tint; defaults to [ColorScheme.onSurfaceVariant] when null.
+  final Color? color;
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
@@ -135,7 +139,7 @@ class OwnerAppBarAction extends StatelessWidget {
       onPressed: onPressed,
       tooltip: tooltip,
       icon: Icon(icon),
-      color: scheme.onSurfaceVariant,
+      color: color ?? scheme.onSurfaceVariant,
       iconSize: AppIconSizes.md,
     );
 
