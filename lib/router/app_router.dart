@@ -10,6 +10,7 @@ import '../features/auth/presentation/screens/otp_verification_screen.dart';
 import '../features/auth/presentation/screens/role_selection_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/welcome_success_screen.dart';
+import '../features/pet_owner/presentation/screens/home_dashboard_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
 import 'route_observer.dart';
@@ -92,9 +93,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.ownerHome,
         name: RouteNames.ownerHome,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Pet Owner Home'),
+        builder: (context, state) => const HomeDashboardScreen(),
         routes: [
+          GoRoute(
+            path: 'notifications',
+            name: RouteNames.ownerNotifications,
+            builder: (context, state) =>
+                const PlaceholderScreen(title: 'Notifications'),
+          ),
+          GoRoute(
+            path: 'search',
+            name: RouteNames.ownerSearch,
+            builder: (context, state) =>
+                const PlaceholderScreen(title: 'Search'),
+          ),
           GoRoute(
             path: 'pets',
             name: RouteNames.ownerPets,
