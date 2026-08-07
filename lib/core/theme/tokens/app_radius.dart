@@ -26,6 +26,9 @@ abstract final class AppRadius {
   /// 24px — large content sections (`rounded-xl`).
   static const double xxl = 24;
 
+  /// 32px — modal sheets / confirmation surfaces (`rounded-[32px]`).
+  static const double xxxl = 32;
+
   /// Fully rounded (pill) — avatars & chips.
   static const double full = 9999;
 
@@ -35,6 +38,7 @@ abstract final class AppRadius {
   static const Radius rLg = Radius.circular(lg);
   static const Radius rXl = Radius.circular(xl);
   static const Radius rXxl = Radius.circular(xxl);
+  static const Radius rXxxl = Radius.circular(xxxl);
 
   // ── Convenience BorderRadius ───────────────────────────────────
   static const BorderRadius brSm = BorderRadius.all(rSm);
@@ -52,4 +56,12 @@ abstract final class AppRadius {
 
   /// Top-only radius for bottom sheets — 24px.
   static const BorderRadius brBottomSheet = BorderRadius.vertical(top: rXxl);
+
+  /// Full 32px radius — floating modal sheets / confirmation surfaces
+  /// (`rounded-[32px]`).
+  static const BorderRadius brModal = BorderRadius.all(rXxxl);
+
+  /// Top-only 32px radius — modal sheets docked to the bottom on mobile
+  /// (`rounded-t-[32px]`).
+  static const BorderRadius brModalTop = BorderRadius.vertical(top: rXxxl);
 }

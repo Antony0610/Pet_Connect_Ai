@@ -811,6 +811,7 @@ class _QuickActions extends StatelessWidget {
     _QuickActionSpec(
       icon: Icons.campaign,
       label: 'Lost',
+      routeName: RouteNames.ownerLostMode,
       isDanger: true,
     ),
     _QuickActionSpec(icon: Icons.volunteer_activism, label: 'Rescue'),

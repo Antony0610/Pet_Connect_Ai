@@ -29,6 +29,7 @@ abstract final class RoutePaths {
   static const String ownerHealth = '/owner/health';
   static const String ownerAiAssistant = '/owner/ai';
   static const String ownerCollar = '/owner/collar';
+  static const String ownerLostMode = '/owner/lost-mode';
   static const String ownerCommunity = '/owner/community';
   static const String ownerNotifications = '/owner/notifications';
   static const String ownerSearch = '/owner/search';
@@ -80,6 +81,7 @@ abstract final class RouteNames {
   static const String ownerHealth = 'ownerHealth';
   static const String ownerAiAssistant = 'ownerAiAssistant';
   static const String ownerCollar = 'ownerCollar';
+  static const String ownerLostMode = 'ownerLostMode';
   static const String ownerCommunity = 'ownerCommunity';
   static const String ownerNotifications = 'ownerNotifications';
   static const String ownerSearch = 'ownerSearch';
