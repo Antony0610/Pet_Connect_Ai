@@ -7,6 +7,7 @@ library;
 export 'avatar/user_avatar.dart';
 export 'buttons/app_button.dart';
 export 'cards/app_card.dart';
+export 'cards/glass_card.dart';
 export 'chips/app_chip.dart';
 export 'inputs/app_text_field.dart';
 export 'layout/section_header.dart';
