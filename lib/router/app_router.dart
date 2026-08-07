@@ -11,6 +11,7 @@ import '../features/auth/presentation/screens/role_selection_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/welcome_success_screen.dart';
 import '../features/pet_owner/presentation/screens/home_dashboard_screen.dart';
+import '../features/pet_owner/presentation/screens/my_pets_list_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
 import 'route_observer.dart';
@@ -110,8 +111,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'pets',
             name: RouteNames.ownerPets,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'My Pets'),
+            builder: (context, state) => const MyPetsListScreen(),
             routes: [
               GoRoute(
                 path: ':petId',
