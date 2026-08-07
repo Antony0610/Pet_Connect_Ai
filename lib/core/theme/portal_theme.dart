@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+
+import 'app_color_scheme.dart';
+import 'app_theme.dart';
+import 'tokens/app_colors.dart';
+
+/// The four product portals of PetConnect AI. Each portal shares the "Core"
+/// design system (layout, type, spacing, components) but carries its own
+/// accent identity layered over the shared M3 seed.
+enum AppPortal {
+  petOwner,
+  veterinarian,
+  volunteerRescue,
+  administrator,
+}
+
+/// A per-portal accent palette.
+///
+/// NOTE ON PROVENANCE: the frozen `DESIGN.md` defines the shared "PetConnect
+/// AI Core" palette exactly (see [AppColors]) but does **not** enumerate exact
+/// per-portal accent hexes. Until each portal's screens are built and its
+/// exact accent is read from Stitch, every portal defaults to the shared
+/// authoritative primary. The structure below lets us swap in exact per-portal
+/// seeds later **without touching any screen code** — only this file changes.
+@immutable
+class PortalPalette {
+  const PortalPalette({
+    required this.portal,
+    required this.seed,
+    required this.light,
+    required this.dark,
+  });
+
+  final AppPortal portal;
+  final Color seed;
+  final ColorScheme light;
+  final ColorScheme dark;
+
+  /// Builds a portal palette from a seed by generating tonal schemes.
+  ///
+  /// When [seed] equals [AppColors.seed] the palettes fall back to the exact
+  /// authoritative [AppColorScheme] rather than a generated approximation, so
+  /// the default portal is pixel-faithful to the frozen spec.
+  factory PortalPalette.fromSeed(AppPortal portal, Color seed) {
+    if (seed == AppColors.seed) {
+      return PortalPalette(
+        portal: portal,
+        seed: seed,
+        light: AppColorScheme.light,
+        dark: AppColorScheme.dark,
+      );
+    }
+    return PortalPalette(
+      portal: portal,
+      seed: seed,
+      light: ColorScheme.fromSeed(
+        seedColor: seed,
+      ),
+      dark: ColorScheme.fromSeed(
+        seedColor: seed,
+        brightness: Brightness.dark,
+      ),
+    );
+  }
+}
+
+/// Central registry of portal palettes.
+///
+/// All portals currently resolve to the shared authoritative palette. Replace
+/// the seed for a portal here (or supply an exact [ColorScheme]) once its
+/// design accent is confirmed from Stitch — no screen code changes required.
+abstract final class PortalPalettes {
+  const PortalPalettes._();
+
+  // TODO(design): replace with exact per-portal seeds once confirmed from
+  // Stitch during each portal's screen phase. Until then, shared seed.
+  static final PortalPalette petOwner =
+      PortalPalette.fromSeed(AppPortal.petOwner, AppColors.seed);
+  static final PortalPalette veterinarian =
+      PortalPalette.fromSeed(AppPortal.veterinarian, AppColors.seed);
+  static final PortalPalette volunteerRescue =
+      PortalPalette.fromSeed(AppPortal.volunteerRescue, AppColors.seed);
+  static final PortalPalette administrator =
+      PortalPalette.fromSeed(AppPortal.administrator, AppColors.seed);
+
+  static PortalPalette of(AppPortal portal) => switch (portal) {
+        AppPortal.petOwner => petOwner,
+        AppPortal.veterinarian => veterinarian,
+        AppPortal.volunteerRescue => volunteerRescue,
+        AppPortal.administrator => administrator,
+      };
+}
+
+/// Builds portal-scoped [ThemeData] by overlaying the portal's accent
+/// [ColorScheme] onto the shared "Core" theme structure.
+abstract final class PortalTheme {
+  const PortalTheme._();
+
+  static ThemeData light(AppPortal portal) {
+    final palette = PortalPalettes.of(portal);
+    if (palette.seed == AppColors.seed) return AppTheme.light;
+    return AppTheme.light.copyWith(colorScheme: palette.light);
+  }
+
+  static ThemeData dark(AppPortal portal) {
+    final palette = PortalPalettes.of(portal);
+    if (palette.seed == AppColors.seed) return AppTheme.dark;
+    return AppTheme.dark.copyWith(colorScheme: palette.dark);
+  }
+}

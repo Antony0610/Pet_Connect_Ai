@@ -1,0 +1,15 @@
+# Localization configuration for `flutter gen-l10n`.
+#
+# This file is prepared but INERT until localization is enabled. To turn it on:
+#   1. Add `flutter_localizations:` (sdk: flutter) under `dependencies` in
+#      pubspec.yaml.
+#   2. Set `generate: true` under the `flutter:` section in pubspec.yaml.
+#   3. Run `flutter pub get` — the generated `AppLocalizations` class will
+#      appear and can be wired into `MaterialApp.localizationsDelegates`.
+#
+# See lib/l10n/README.md for the full checklist.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

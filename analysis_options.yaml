@@ -1,0 +1,66 @@
+# PetConnect AI — static analysis configuration.
+# Strict analyzer + flutter_lints, extended for a production codebase.
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    # Treat these as build-breaking to keep the codebase clean.
+    invalid_annotation_target: ignore # required by freezed/json_serializable
+    missing_required_param: error
+    missing_return: error
+    todo: ignore
+    deprecated_member_use_from_same_package: warning
+    unused_import: error
+    unused_local_variable: error
+    dead_code: error
+
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.gr.dart"
+    - "**/*.config.dart"
+    - "lib/l10n/**"
+    - "build/**"
+
+linter:
+  rules:
+    # Style
+    always_declare_return_types: true
+    prefer_single_quotes: true
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_final_locals: true
+    prefer_final_in_for_each: true
+    unnecessary_late: true
+    unnecessary_this: true
+
+    # Correctness / safety
+    avoid_dynamic_calls: true
+    avoid_returning_null_for_future: true
+    avoid_slow_async_io: true
+    cancel_subscriptions: true
+    close_sinks: true
+    throw_in_finally: true
+    unawaited_futures: true
+    use_build_context_synchronously: true
+
+    # Design / architecture
+    always_use_package_imports: true
+    avoid_print: true # use AppLogger instead
+    directives_ordering: true
+    require_trailing_commas: true
+    sort_child_properties_last: true
+    sort_pub_dependencies: false
+    use_key_in_widget_constructors: true
+
+    # Documentation
+    public_member_api_docs: false # enabled per-package later if desired
+    slash_for_doc_comments: true

@@ -1,0 +1,3 @@
+# Keeps the assets/images/ directory in version control.
+# Flutter requires directories declared under `flutter: assets:` in pubspec.yaml
+# to exist at build time. Place raster graphics (PNG/JPG/WebP) here.

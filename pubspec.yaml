@@ -1,0 +1,86 @@
+name: petconnect_ai
+description: "PetConnect AI - Production-grade AI-powered pet care ecosystem"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.12.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  flutter_hooks: ^0.20.5
+  hooks_riverpod: ^2.6.1
+
+  # Routing
+  go_router: ^14.6.2
+
+  # Backend & Database
+  supabase_flutter: ^2.9.0
+
+  # Code Generation
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # HTTP Client (for non-Supabase REST APIs)
+  dio: ^5.7.0
+
+  # UI & Theming
+  google_fonts: ^6.2.1
+
+  # Secure Storage
+  flutter_secure_storage: ^9.2.2
+
+  # Push Notifications
+  firebase_messaging: ^15.1.5
+  firebase_core: ^3.8.1
+  flutter_local_notifications: ^18.0.1
+
+  # Maps
+  google_maps_flutter: ^2.10.0
+
+  # Media & Permissions
+  image_picker: ^1.1.2
+  permission_handler: ^11.3.1
+
+  # Connectivity
+  connectivity_plus: ^6.1.2
+
+  # Environment Config
+  flutter_dotenv: ^5.2.1
+
+  # Utilities
+  intl: ^0.19.0
+  uuid: ^4.5.1
+  logger: ^2.4.0
+  dartz: ^0.10.1
+  equatable: ^2.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # Code Generation
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.2
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
+
+  # Testing
+  mocktail: ^1.0.4
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
+    - assets/illustrations/

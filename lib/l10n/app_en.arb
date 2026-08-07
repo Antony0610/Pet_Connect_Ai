@@ -1,0 +1,27 @@
+{
+  "@@locale": "en",
+  "appTitle": "PetConnect AI",
+  "@appTitle": {
+    "description": "The application name shown in the app bar and OS task switcher."
+  },
+  "commonRetry": "Try again",
+  "@commonRetry": {
+    "description": "Label for the retry button on error states."
+  },
+  "commonCancel": "Cancel",
+  "@commonCancel": {
+    "description": "Generic cancel action label."
+  },
+  "commonSave": "Save",
+  "@commonSave": {
+    "description": "Generic save action label."
+  },
+  "commonSomethingWentWrong": "Something went wrong",
+  "@commonSomethingWentWrong": {
+    "description": "Generic error headline."
+  },
+  "navHome": "Home",
+  "@navHome": {
+    "description": "Bottom navigation label for the home tab."
+  }
+}
