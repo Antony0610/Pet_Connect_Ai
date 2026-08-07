@@ -20,9 +20,12 @@ import '../features/pet_owner/presentation/screens/health_passport_timeline_scre
 import '../features/pet_owner/presentation/screens/home_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/medical_history_record_screen.dart';
 import '../features/pet_owner/presentation/screens/my_pets_list_screen.dart';
+import '../features/pet_owner/presentation/screens/notifications_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_media_gallery_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_profile_detail_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_settings_screen.dart';
+import '../features/pet_owner/presentation/screens/profile_screen.dart';
+import '../features/pet_owner/presentation/screens/settings_screen.dart';
 import '../features/pet_owner/presentation/screens/vaccination_overview_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
@@ -111,8 +114,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'notifications',
             name: RouteNames.ownerNotifications,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Notifications'),
+            builder: (context, state) => const NotificationsScreen(),
           ),
           GoRoute(
             path: 'search',
@@ -217,14 +219,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'profile',
             name: RouteNames.ownerProfile,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Profile'),
+            builder: (context, state) => const ProfileScreen(),
           ),
           GoRoute(
             path: 'settings',
             name: RouteNames.ownerSettings,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Settings'),
+            builder: (context, state) => const SettingsScreen(),
           ),
         ],
       ),
