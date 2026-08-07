@@ -183,6 +183,22 @@ abstract final class AppColors {
   static Color glassDark = darkSurface.withValues(alpha: 0.60);
 
   // ═══════════════════════════════════════════════════════════════
+  // Portal identity accents
+  // ═══════════════════════════════════════════════════════════════
+  // Transcribed verbatim from the frozen Light Theme screen designs
+  // (Role Selection). Each product portal carries a fixed brand accent
+  // layered over the shared "Core" palette; these tones stay constant
+  // across Light and Dark (brand identity, not a tonal role) and read
+  // with sufficient contrast on both surface families.
+  //
+  // NEVER reference these directly inside widgets — consume through
+  // [PortalPalette.accent] so portal identity has a single home.
+  static const Color petOwnerAccent = Color(0xFF10B981); // Emerald Green
+  static const Color veterinarianAccent = Color(0xFF2563EB); // Royal Blue
+  static const Color volunteerRescueAccent = Color(0xFFF97316); // Orange
+  static const Color administratorAccent = Color(0xFF4F378A); // Purple
+
+  // ═══════════════════════════════════════════════════════════════
   // Semantic status colors (shared across portals)
   // ═══════════════════════════════════════════════════════════════
   static const Color success = Color(0xFF2E7D32);

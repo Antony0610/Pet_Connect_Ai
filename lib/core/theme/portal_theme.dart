@@ -22,12 +22,14 @@ class PortalPalette {
   const PortalPalette({
     required this.portal,
     required this.seed,
+    required this.accent,
     required this.light,
     required this.dark,
   });
 
   final AppPortal portal;
   final Color seed;
+  final Color accent;
   final ColorScheme light;
   final ColorScheme dark;
 
@@ -37,10 +39,12 @@ class PortalPalette {
   /// authoritative [AppColorScheme] rather than a generated approximation, so
   /// the default portal is pixel-faithful to the frozen spec.
   factory PortalPalette.fromSeed(AppPortal portal, Color seed) {
+    final accent = accentFor(portal);
     if (seed == AppColors.seed) {
       return PortalPalette(
         portal: portal,
         seed: seed,
+        accent: accent,
         light: AppColorScheme.light,
         dark: AppColorScheme.dark,
       );
@@ -48,10 +52,20 @@ class PortalPalette {
     return PortalPalette(
       portal: portal,
       seed: seed,
+      accent: accent,
       light: ColorScheme.fromSeed(seedColor: seed),
       dark: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
     );
   }
+
+  /// The fixed brand accent for [portal], transcribed from the frozen Light
+  /// Theme screen designs. Brand identity — constant across Light and Dark.
+  static Color accentFor(AppPortal portal) => switch (portal) {
+    AppPortal.petOwner => AppColors.petOwnerAccent,
+    AppPortal.veterinarian => AppColors.veterinarianAccent,
+    AppPortal.volunteerRescue => AppColors.volunteerRescueAccent,
+    AppPortal.administrator => AppColors.administratorAccent,
+  };
 }
 
 /// Central registry of portal palettes.

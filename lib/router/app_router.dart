@@ -2,8 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers/core_providers.dart';
+import '../features/auth/presentation/screens/create_account_screen.dart';
+import '../features/auth/presentation/screens/initial_pet_setup_screen.dart';
+import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/onboarding_screen.dart';
+import '../features/auth/presentation/screens/otp_verification_screen.dart';
+import '../features/auth/presentation/screens/role_selection_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
+import '../features/auth/presentation/screens/welcome_success_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
 import 'route_observer.dart';
@@ -48,12 +54,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.login,
         name: RouteNames.login,
-        builder: (context, state) => const PlaceholderScreen(title: 'Login'),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: RoutePaths.register,
         name: RouteNames.register,
-        builder: (context, state) => const PlaceholderScreen(title: 'Register'),
+        builder: (context, state) => const CreateAccountScreen(),
       ),
       GoRoute(
         path: RoutePaths.forgotPassword,
@@ -64,8 +70,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.roleSelection,
         name: RouteNames.roleSelection,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Role Selection'),
+        builder: (context, state) => const RoleSelectionScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.otpVerification,
+        name: RouteNames.otpVerification,
+        builder: (context, state) => const OtpVerificationScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.welcomeSuccess,
+        name: RouteNames.welcomeSuccess,
+        builder: (context, state) => const WelcomeSuccessScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.initialPetSetup,
+        name: RouteNames.initialPetSetup,
+        builder: (context, state) => const InitialPetSetupScreen(),
       ),
 
       // ── Pet Owner portal ───────────────────────────────────────

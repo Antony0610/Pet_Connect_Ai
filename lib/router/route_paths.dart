@@ -18,6 +18,9 @@ abstract final class RoutePaths {
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
   static const String roleSelection = '/role-selection';
+  static const String otpVerification = '/verify-otp';
+  static const String welcomeSuccess = '/welcome';
+  static const String initialPetSetup = '/pet-setup';
 
   // ── Pet Owner portal (primary) ─────────────────────────────────
   static const String ownerHome = '/owner';
@@ -65,6 +68,9 @@ abstract final class RouteNames {
   static const String register = 'register';
   static const String forgotPassword = 'forgotPassword';
   static const String roleSelection = 'roleSelection';
+  static const String otpVerification = 'otpVerification';
+  static const String welcomeSuccess = 'welcomeSuccess';
+  static const String initialPetSetup = 'initialPetSetup';
 
   static const String ownerHome = 'ownerHome';
   static const String ownerPets = 'ownerPets';

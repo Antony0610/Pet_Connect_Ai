@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/core_providers.dart';
+import '../../../../core/theme/portal_theme.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../../../router/route_paths.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
@@ -10,8 +11,12 @@ import '../../data/repositories/onboarding_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/onboarding_repository.dart';
 import '../../domain/usecases/complete_onboarding.dart';
+import '../../domain/usecases/create_account.dart';
 import '../../domain/usecases/get_current_session.dart';
 import '../../domain/usecases/is_onboarding_complete.dart';
+import '../../domain/usecases/resend_email_otp.dart';
+import '../../domain/usecases/sign_in_with_password.dart';
+import '../../domain/usecases/verify_email_otp.dart';
 
 // ──────────────────────────────────────────────────────────────────
 // Data sources
@@ -54,9 +59,39 @@ final completeOnboardingProvider = Provider<CompleteOnboarding>(
   (ref) => CompleteOnboarding(ref.watch(onboardingRepositoryProvider)),
 );
 
+final signInWithPasswordProvider = Provider<SignInWithPassword>(
+  (ref) => SignInWithPassword(ref.watch(authRepositoryProvider)),
+);
+
+final createAccountProvider = Provider<CreateAccount>(
+  (ref) => CreateAccount(ref.watch(authRepositoryProvider)),
+);
+
+final verifyEmailOtpProvider = Provider<VerifyEmailOtp>(
+  (ref) => VerifyEmailOtp(ref.watch(authRepositoryProvider)),
+);
+
+final resendEmailOtpProvider = Provider<ResendEmailOtp>(
+  (ref) => ResendEmailOtp(ref.watch(authRepositoryProvider)),
+);
+
+/// The email currently being verified, carried from Create Account into the
+/// OTP screen. Transient signup state — cleared once verification completes.
+final pendingVerificationEmailProvider = StateProvider<String?>((ref) => null);
+
 // ──────────────────────────────────────────────────────────────────
 // Presentation logic
 // ──────────────────────────────────────────────────────────────────
+
+/// The portal the user picks on the Role Selection screen.
+///
+/// Transient signup state — defaults to [AppPortal.petOwner] (the design's
+/// default-selected card) and drives which portal identity the subsequent
+/// auth screens carry. Not persisted; the durable role is written server-side
+/// once the account is created.
+final selectedPortalProvider = StateProvider<AppPortal>(
+  (ref) => AppPortal.petOwner,
+);
 
 /// Resolves the Splash screen's destination.
 ///

@@ -21,6 +21,8 @@ class AppButton extends StatelessWidget {
     this.variant = AppButtonVariant.filled,
     this.size = AppButtonSize.medium,
     this.icon,
+    this.iconAlignment = IconAlignment.start,
+    this.borderRadius,
     this.isLoading = false,
     this.isFullWidth = false,
     super.key,
@@ -32,6 +34,8 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.size = AppButtonSize.medium,
     this.icon,
+    this.iconAlignment = IconAlignment.start,
+    this.borderRadius,
     this.isLoading = false,
     this.isFullWidth = false,
     super.key,
@@ -43,6 +47,8 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.size = AppButtonSize.medium,
     this.icon,
+    this.iconAlignment = IconAlignment.start,
+    this.borderRadius,
     this.isLoading = false,
     this.isFullWidth = false,
     super.key,
@@ -54,6 +60,8 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.size = AppButtonSize.medium,
     this.icon,
+    this.iconAlignment = IconAlignment.start,
+    this.borderRadius,
     this.isLoading = false,
     this.isFullWidth = false,
     super.key,
@@ -64,6 +72,14 @@ class AppButton extends StatelessWidget {
   final AppButtonVariant variant;
   final AppButtonSize size;
   final IconData? icon;
+
+  /// Whether [icon] sits before ([IconAlignment.start]) or after
+  /// ([IconAlignment.end]) the label.
+  final IconAlignment iconAlignment;
+
+  /// Optional shape override. When null the shape comes from the button theme
+  /// (8px). Pass [AppRadius.brPill] for a fully-rounded pill CTA.
+  final BorderRadius? borderRadius;
   final bool isLoading;
   final bool isFullWidth;
 
@@ -120,6 +136,11 @@ class AppButton extends StatelessWidget {
     return ButtonStyle(
       padding: WidgetStatePropertyAll(padding),
       minimumSize: WidgetStatePropertyAll(Size(0, height)),
+      shape: borderRadius == null
+          ? null
+          : WidgetStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: borderRadius!),
+            ),
     );
   }
 
@@ -143,14 +164,12 @@ class AppButton extends StatelessWidget {
         AppButtonSize.medium => ButtonTokens.iconSizeMedium,
         AppButtonSize.large => ButtonTokens.iconSizeLarge,
       };
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: iconSize),
-          const SizedBox(width: ButtonTokens.iconGap),
-          Text(label),
-        ],
-      );
+      final iconWidget = Icon(icon, size: iconSize);
+      const gap = SizedBox(width: ButtonTokens.iconGap);
+      final children = iconAlignment == IconAlignment.end
+          ? [Text(label), gap, iconWidget]
+          : [iconWidget, gap, Text(label)];
+      return Row(mainAxisSize: MainAxisSize.min, children: children);
     }
 
     return Text(label);

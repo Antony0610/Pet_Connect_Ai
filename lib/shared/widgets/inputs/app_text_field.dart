@@ -20,6 +20,7 @@ class AppTextField extends StatefulWidget {
     this.errorText,
     this.prefixIcon,
     this.suffixIcon,
+    this.onSuffixIconTap,
     this.obscureText = false,
     this.enabled = true,
     this.readOnly = false,
@@ -43,6 +44,10 @@ class AppTextField extends StatefulWidget {
   final String? errorText;
   final IconData? prefixIcon;
   final IconData? suffixIcon;
+
+  /// Invoked when [suffixIcon] is tapped. When null the suffix icon is
+  /// decorative (no tap target). Ignored while the clear affordance is active.
+  final VoidCallback? onSuffixIconTap;
   final bool obscureText;
   final bool enabled;
   final bool readOnly;
@@ -105,7 +110,10 @@ class _AppTextFieldState extends State<AppTextField> {
         onPressed: _clear,
       );
     } else if (widget.suffixIcon != null) {
-      suffixIcon = Icon(widget.suffixIcon, size: InputTokens.iconSize);
+      final iconWidget = Icon(widget.suffixIcon, size: InputTokens.iconSize);
+      suffixIcon = widget.onSuffixIconTap != null
+          ? IconButton(icon: iconWidget, onPressed: widget.onSuffixIconTap)
+          : iconWidget;
     }
 
     return SizedBox(
