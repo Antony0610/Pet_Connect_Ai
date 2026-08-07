@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -63,6 +64,10 @@ Future<void> bootstrap() async {
   try {
     await Supabase.initialize(
       url: config.supabaseUrl,
+      // The project's .env supplies a legacy anon key (JWT format). Migrating
+      // to `publishableKey` requires rotating to the new `sb_publishable_…`
+      // key format first; tracked for a later backend task.
+      // ignore: deprecated_member_use
       anonKey: config.supabaseAnonKey,
       debug: config.isDebuggable,
     );
@@ -73,6 +78,17 @@ Future<void> bootstrap() async {
     return;
   }
 
+  // ── Local key/value storage ────────────────────────────────────
+  final SharedPreferences prefs;
+  try {
+    prefs = await SharedPreferences.getInstance();
+    logger.info('✓ SharedPreferences ready');
+  } catch (e, stack) {
+    logger.error('✗ SharedPreferences initialization failed', e, stack);
+    _showFatalError('Failed to initialize local storage.\n\n$e');
+    return;
+  }
+
   // ── Run app ────────────────────────────────────────────────────
   runApp(
     ProviderScope(
@@ -80,6 +96,7 @@ Future<void> bootstrap() async {
         // Override the stub providers with the real initialized instances.
         appConfigProvider.overrideWithValue(config),
         supabaseClientProvider.overrideWithValue(Supabase.instance.client),
+        sharedPreferencesProvider.overrideWithValue(prefs),
       ],
       child: const App(),
     ),

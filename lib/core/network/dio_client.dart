@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-import '../config/app_config.dart';
 import '../error/exceptions.dart';
 import '../utils/logger.dart';
 import 'network_info.dart';
@@ -13,13 +12,9 @@ import 'network_info.dart';
 ///
 /// Access via Riverpod (`dioClientProvider`).
 class DioClient {
-  DioClient({
-    required AppConfig config,
-    required AppLogger logger,
-    required NetworkInfo networkInfo,
-  }) : _config = config,
-       _logger = logger,
-       _networkInfo = networkInfo {
+  DioClient({required AppLogger logger, required NetworkInfo networkInfo})
+    : _logger = logger,
+      _networkInfo = networkInfo {
     _dio = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 30),
@@ -34,11 +29,10 @@ class DioClient {
 
     _dio.interceptors.addAll([
       _LoggingInterceptor(_logger),
-      _ErrorInterceptor(_logger),
+      _ErrorInterceptor(),
     ]);
   }
 
-  final AppConfig _config;
   final AppLogger _logger;
   final NetworkInfo _networkInfo;
   late final Dio _dio;
@@ -133,7 +127,10 @@ class _LoggingInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     _logger.debug('← ${response.statusCode} ${response.requestOptions.uri}');
     super.onResponse(response, handler);
   }
@@ -149,9 +146,7 @@ class _LoggingInterceptor extends Interceptor {
 }
 
 class _ErrorInterceptor extends Interceptor {
-  _ErrorInterceptor(this._logger);
-
-  final AppLogger _logger;
+  _ErrorInterceptor();
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -179,7 +174,7 @@ class _ErrorInterceptor extends Interceptor {
   }
 
   AppException _mapStatusCode(DioException err) {
-    final statusCode = err.response?.statusCode;
+    final statusCode = err.response?.statusCode ?? 0;
     final message = _extractMessage(err.response);
 
     return switch (statusCode) {
@@ -192,7 +187,7 @@ class _ErrorInterceptor extends Interceptor {
     };
   }
 
-  String _extractMessage(Response? response) {
+  String _extractMessage(Response<dynamic>? response) {
     if (response?.data is Map) {
       final data = response!.data as Map<String, dynamic>;
       return data['message'] as String? ??

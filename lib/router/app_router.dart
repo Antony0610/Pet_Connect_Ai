@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers/core_providers.dart';
+import '../features/auth/presentation/screens/onboarding_screen.dart';
+import '../features/auth/presentation/screens/splash_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
 import 'route_observer.dart';
@@ -35,13 +36,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.splash,
         name: RouteNames.splash,
-        builder: (context, state) => const PlaceholderScreen(title: 'Splash'),
+        builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
         path: RoutePaths.onboarding,
         name: RouteNames.onboarding,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Onboarding'),
+        builder: (context, state) => const OnboardingScreen(),
       ),
 
       // ── Auth ───────────────────────────────────────────────────

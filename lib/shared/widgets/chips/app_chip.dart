@@ -34,7 +34,7 @@ class AppChip extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     if (variant == AppChipVariant.outlined) {
-      return ChoiceChip(
+      return RawChip(
         label: Text(label),
         selected: isSelected,
         onSelected: onTap != null ? (_) => onTap!() : null,

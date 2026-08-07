@@ -1,7 +1,7 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import 'app_color_scheme.dart';
-import 'tokens/app_durations.dart';
 import 'tokens/app_elevation.dart';
 import 'tokens/app_radius.dart';
 import 'tokens/app_spacing.dart';

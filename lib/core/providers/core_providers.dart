@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/app_config.dart';
@@ -25,6 +26,16 @@ final appConfigProvider = Provider<AppConfig>(
   ),
 );
 
+/// The app's [SharedPreferences] instance for simple local key/value state
+/// (e.g. the onboarding-seen flag). Resolved once in `bootstrap.dart` and
+/// **overridden** at the root `ProviderScope`, so reads are synchronous
+/// everywhere downstream.
+final sharedPreferencesProvider = Provider<SharedPreferences>(
+  (ref) => throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in the root ProviderScope',
+  ),
+);
+
 /// App-wide logger, verbosity keyed to the active flavor.
 final loggerProvider = Provider<AppLogger>(
   (ref) => AppLogger(isDebuggable: ref.watch(appConfigProvider).isDebuggable),
@@ -46,7 +57,6 @@ final connectivityStatusProvider = StreamProvider<bool>(
 /// Configured Dio client for non-Supabase HTTP (Edge Functions, n8n, etc.).
 final dioClientProvider = Provider<DioClient>(
   (ref) => DioClient(
-    config: ref.watch(appConfigProvider),
     logger: ref.watch(loggerProvider),
     networkInfo: ref.watch(networkInfoProvider),
   ),

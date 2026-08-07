@@ -21,6 +21,12 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Create .env for build
+        # `.env` is a required asset (see pubspec.yaml) but is gitignored, so it
+        # never exists on the runner. Seed it from the committed template with
+        # placeholder values — analysis and tests don't hit a real backend.
+        run: cp .env.example .env
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -28,7 +34,10 @@ jobs:
         run: dart format --set-exit-if-changed .
 
       - name: Analyze code
-        run: flutter analyze
+        # Errors and warnings fail the build; info-level lints do not. The
+        # codebase deliberately uses relative imports within lib/, which trips
+        # `always_use_package_imports` (info only) — intentional, so not fatal.
+        run: flutter analyze --no-fatal-infos
 
       - name: Run tests
         run: flutter test
