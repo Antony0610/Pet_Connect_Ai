@@ -136,21 +136,21 @@ And respect the Dependency Rule (see `ARCHITECTURE.md`): `presentation` and
 
 ---
 
-## 6. When to Use Hooks
+## 6. Widget-Local State and Disposable Controllers
 
-The project uses `flutter_hooks` and `hooks_riverpod`.
+The project uses **plain Riverpod** — `flutter_hooks`/`hooks_riverpod` are
+intentionally **not** a dependency.
 
-- Use **hooks** (`HookConsumerWidget`, `useState`, `useTextEditingController`,
-  `useAnimationController`, etc.) for **ephemeral, widget-local UI state and
-  disposable controllers** — text fields, animations, focus nodes, scroll
-  controllers. Hooks remove `StatefulWidget` boilerplate and dispose resources
-  automatically.
+- Use a **`ConsumerStatefulWidget`** with `initState`/`dispose` for **ephemeral,
+  widget-local UI state and disposable controllers** — text fields, animation
+  controllers, focus nodes, scroll controllers. Dispose every controller you
+  create.
 - Use **Riverpod providers/controllers** for **shared or business-facing state**
   that outlives a single widget or is consumed in more than one place.
 
 Rule of thumb: *if the state matters to the domain or is shared, it belongs in a
-provider; if it is throwaway UI plumbing for one widget, use a hook.* See
-`STATE_MANAGEMENT.md`.
+provider; if it is throwaway UI plumbing for one widget, keep it in the widget's
+`State`.* See `STATE_MANAGEMENT.md`.
 
 ---
 

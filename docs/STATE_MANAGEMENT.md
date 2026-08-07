@@ -3,12 +3,11 @@
 PetConnect AI uses **Riverpod** for both state management and dependency
 injection. This document defines which provider type to reach for, the
 controller pattern each feature screen follows, how providers are organized and
-disposed, how they are tested, and how `flutter_hooks` fits in.
+disposed, and how they are tested.
 
 Stack: `flutter_riverpod`, `riverpod_annotation` + `riverpod_generator`
-(codegen), `hooks_riverpod`, and `flutter_hooks`. Providers are written with the
-`@riverpod` annotation and code generation; hand-written `StateNotifierProvider`
-is not used in new code.
+(codegen). Providers are written with the `@riverpod` annotation and code
+generation; hand-written `StateNotifierProvider` is not used in new code.
 
 ---
 
@@ -241,40 +240,50 @@ Test folders: `test/unit` (controllers/use cases), `test/widget`,
 
 ---
 
-## 9. hooks_riverpod + flutter_hooks
+## 9. Widget-local state & disposable controllers
 
-Use hooks for **ephemeral, widget-local UI state and disposable controllers**;
-use Riverpod for **shared/business state**. `HookConsumerWidget` gives you both
-`ref` and hooks in one widget.
+The project does **not** use `flutter_hooks`/`hooks_riverpod`. For ephemeral,
+widget-local UI state and disposable controllers (text controllers, animation
+controllers, focus nodes, scroll controllers), use a `ConsumerStatefulWidget`
+and manage lifecycle in `initState`/`dispose`. Use Riverpod for
+**shared/business state** — transient flags like "submitting" come from the
+controller's own `AsyncValue`, not a local boolean.
 
 ```dart
-class AddPetScreen extends HookConsumerWidget {
+class AddPetScreen extends ConsumerStatefulWidget {
   const AddPetScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nameCtrl = useTextEditingController();   // hook: auto-disposed
-    final isSubmitting = useState(false);          // hook: local UI flag
+  ConsumerState<AddPetScreen> createState() => _AddPetScreenState();
+}
 
+class _AddPetScreenState extends ConsumerState<AddPetScreen> {
+  final _nameCtrl = TextEditingController();       // disposable controller
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final controller = ref.read(petListControllerProvider.notifier);
+    final state = ref.watch(petListControllerProvider);
 
     return PrimaryButton(
-      loading: isSubmitting.value,
-      onPressed: () async {
-        isSubmitting.value = true;
-        await controller.addPet(
-          AddPetParams(name: nameCtrl.text),        // action → use case
-        );
-        isSubmitting.value = false;
-      },
+      loading: state.isLoading,                     // submitting → provider state
+      onPressed: () => controller.addPet(
+        AddPetParams(name: _nameCtrl.text),         // action → use case
+      ),
     );
   }
 }
 ```
 
 Rule of thumb: **text controllers, animation controllers, focus nodes, and
-one-widget flags → hooks. Anything shared or domain-facing → a Riverpod
-provider.**
+one-widget flags → `ConsumerStatefulWidget` + `dispose`. Anything shared or
+domain-facing → a Riverpod provider.**
 
 ---
 
@@ -287,4 +296,5 @@ provider.**
 - `watch` to react, `read` for actions, `listen` for side effects, `select` to
   narrow rebuilds.
 - Auto-dispose by default; `keepAlive` only for app-wide state.
-- Override providers to test; use hooks for throwaway widget-local state.
+- Override providers to test; use `ConsumerStatefulWidget` + `dispose` for
+  throwaway widget-local state and disposable controllers.
