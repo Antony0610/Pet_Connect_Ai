@@ -31,9 +31,7 @@ final loggerProvider = Provider<AppLogger>(
 );
 
 /// The `connectivity_plus` singleton.
-final connectivityProvider = Provider<Connectivity>(
-  (ref) => Connectivity(),
-);
+final connectivityProvider = Provider<Connectivity>((ref) => Connectivity());
 
 /// Connectivity abstraction used by repositories.
 final networkInfoProvider = Provider<NetworkInfo>(

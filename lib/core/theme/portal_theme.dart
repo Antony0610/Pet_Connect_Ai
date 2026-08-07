@@ -7,12 +7,7 @@ import 'tokens/app_colors.dart';
 /// The four product portals of PetConnect AI. Each portal shares the "Core"
 /// design system (layout, type, spacing, components) but carries its own
 /// accent identity layered over the shared M3 seed.
-enum AppPortal {
-  petOwner,
-  veterinarian,
-  volunteerRescue,
-  administrator,
-}
+enum AppPortal { petOwner, veterinarian, volunteerRescue, administrator }
 
 /// A per-portal accent palette.
 ///
@@ -53,13 +48,8 @@ class PortalPalette {
     return PortalPalette(
       portal: portal,
       seed: seed,
-      light: ColorScheme.fromSeed(
-        seedColor: seed,
-      ),
-      dark: ColorScheme.fromSeed(
-        seedColor: seed,
-        brightness: Brightness.dark,
-      ),
+      light: ColorScheme.fromSeed(seedColor: seed),
+      dark: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
     );
   }
 }
@@ -74,21 +64,29 @@ abstract final class PortalPalettes {
 
   // TODO(design): replace with exact per-portal seeds once confirmed from
   // Stitch during each portal's screen phase. Until then, shared seed.
-  static final PortalPalette petOwner =
-      PortalPalette.fromSeed(AppPortal.petOwner, AppColors.seed);
-  static final PortalPalette veterinarian =
-      PortalPalette.fromSeed(AppPortal.veterinarian, AppColors.seed);
-  static final PortalPalette volunteerRescue =
-      PortalPalette.fromSeed(AppPortal.volunteerRescue, AppColors.seed);
-  static final PortalPalette administrator =
-      PortalPalette.fromSeed(AppPortal.administrator, AppColors.seed);
+  static final PortalPalette petOwner = PortalPalette.fromSeed(
+    AppPortal.petOwner,
+    AppColors.seed,
+  );
+  static final PortalPalette veterinarian = PortalPalette.fromSeed(
+    AppPortal.veterinarian,
+    AppColors.seed,
+  );
+  static final PortalPalette volunteerRescue = PortalPalette.fromSeed(
+    AppPortal.volunteerRescue,
+    AppColors.seed,
+  );
+  static final PortalPalette administrator = PortalPalette.fromSeed(
+    AppPortal.administrator,
+    AppColors.seed,
+  );
 
   static PortalPalette of(AppPortal portal) => switch (portal) {
-        AppPortal.petOwner => petOwner,
-        AppPortal.veterinarian => veterinarian,
-        AppPortal.volunteerRescue => volunteerRescue,
-        AppPortal.administrator => administrator,
-      };
+    AppPortal.petOwner => petOwner,
+    AppPortal.veterinarian => veterinarian,
+    AppPortal.volunteerRescue => volunteerRescue,
+    AppPortal.administrator => administrator,
+  };
 }
 
 /// Builds portal-scoped [ThemeData] by overlaying the portal's accent

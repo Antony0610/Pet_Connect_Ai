@@ -35,8 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.splash,
         name: RouteNames.splash,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Splash'),
+        builder: (context, state) => const PlaceholderScreen(title: 'Splash'),
       ),
       GoRoute(
         path: RoutePaths.onboarding,
@@ -54,8 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.register,
         name: RouteNames.register,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Register'),
+        builder: (context, state) => const PlaceholderScreen(title: 'Register'),
       ),
       GoRoute(
         path: RoutePaths.forgotPassword,
@@ -136,8 +134,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.vetHome,
         name: RouteNames.vetHome,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Vet Home'),
+        builder: (context, state) => const PlaceholderScreen(title: 'Vet Home'),
         routes: [
           GoRoute(
             path: 'appointments',

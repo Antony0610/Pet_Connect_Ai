@@ -67,7 +67,8 @@ class _AppTextFieldState extends State<AppTextField> {
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
+    _controller =
+        widget.controller ?? TextEditingController(text: widget.initialValue);
     _hasText = _controller.text.isNotEmpty;
     _controller.addListener(_onTextChanged);
   }

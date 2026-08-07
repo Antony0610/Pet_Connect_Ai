@@ -63,11 +63,7 @@ class UserAvatar extends StatelessWidget {
 
 /// A rounded-square avatar for pets, displaying an image or a paw icon.
 class PetAvatar extends StatelessWidget {
-  const PetAvatar({
-    this.imageUrl,
-    this.size = 48,
-    super.key,
-  });
+  const PetAvatar({this.imageUrl, this.size = 48, super.key});
 
   final String? imageUrl;
   final double size;

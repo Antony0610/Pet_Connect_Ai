@@ -9,11 +9,7 @@ import '../../core/utils/extensions/context_extensions.dart';
 /// exists. As each feature phase lands, its routes swap this out for the real
 /// screen — the route contract in `route_paths.dart` never changes.
 class PlaceholderScreen extends StatelessWidget {
-  const PlaceholderScreen({
-    required this.title,
-    this.subtitle,
-    super.key,
-  });
+  const PlaceholderScreen({required this.title, this.subtitle, super.key});
 
   final String title;
   final String? subtitle;

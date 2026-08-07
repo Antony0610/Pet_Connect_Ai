@@ -39,9 +39,13 @@ class AppChip extends StatelessWidget {
         selected: isSelected,
         onSelected: onTap != null ? (_) => onTap!() : null,
         avatar: _buildLeading(),
-        deleteIcon: onDeleted != null ? const Icon(Icons.close, size: ChipTokens.iconSize) : null,
+        deleteIcon: onDeleted != null
+            ? const Icon(Icons.close, size: ChipTokens.iconSize)
+            : null,
         onDeleted: onDeleted,
-        side: BorderSide(color: isSelected ? colorScheme.primary : colorScheme.outline),
+        side: BorderSide(
+          color: isSelected ? colorScheme.primary : colorScheme.outline,
+        ),
       );
     }
 
@@ -50,7 +54,9 @@ class AppChip extends StatelessWidget {
       selected: isSelected,
       onSelected: onTap != null ? (_) => onTap!() : null,
       avatar: _buildLeading(),
-      deleteIcon: onDeleted != null ? const Icon(Icons.close, size: ChipTokens.iconSize) : null,
+      deleteIcon: onDeleted != null
+          ? const Icon(Icons.close, size: ChipTokens.iconSize)
+          : null,
       onDeleted: onDeleted,
     );
   }

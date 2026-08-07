@@ -21,15 +21,15 @@ abstract final class AppTheme {
 
   /// Light theme (master reference).
   static ThemeData get light => _buildTheme(
-        colorScheme: AppColorScheme.light,
-        brightness: Brightness.light,
-      );
+    colorScheme: AppColorScheme.light,
+    brightness: Brightness.light,
+  );
 
   /// Dark theme (tonal elevation, preserved accents).
   static ThemeData get dark => _buildTheme(
-        colorScheme: AppColorScheme.dark,
-        brightness: Brightness.dark,
-      );
+    colorScheme: AppColorScheme.dark,
+    brightness: Brightness.dark,
+  );
 
   static ThemeData _buildTheme({
     required ColorScheme colorScheme,
@@ -58,9 +58,7 @@ abstract final class AppTheme {
         surfaceTintColor: isDark
             ? AppElevation.surfaceTintDark
             : AppElevation.surfaceTintLight,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.brCard,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brCard),
         margin: EdgeInsets.zero,
       ),
 
@@ -77,9 +75,7 @@ abstract final class AppTheme {
       // FloatingActionButton
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         elevation: AppElevation.level3,
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.brCard,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
       ),
 
       // Button
@@ -90,9 +86,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.brMd,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
       ),
@@ -102,9 +96,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.brMd,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
       ),
@@ -114,9 +106,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.brMd,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           side: BorderSide(color: colorScheme.outline),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
@@ -127,9 +117,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.brMd,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
       ),
@@ -152,32 +140,22 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.brMd,
-          borderSide: BorderSide(
-            color: colorScheme.primary,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppRadius.brMd,
-          borderSide: BorderSide(
-            color: colorScheme.error,
-          ),
+          borderSide: BorderSide(color: colorScheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: AppRadius.brMd,
-          borderSide: BorderSide(
-            color: colorScheme.error,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
       ),
 
       // Chip
       chipTheme: ChipThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.brPill,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brPill),
         side: BorderSide(color: colorScheme.outline),
         labelStyle: AppTypography.textTheme.labelMedium,
         padding: const EdgeInsets.symmetric(
@@ -189,9 +167,7 @@ abstract final class AppTheme {
       // Dialog
       dialogTheme: DialogThemeData(
         elevation: AppElevation.level5,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.brSection,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brSection),
         backgroundColor: colorScheme.surface,
         surfaceTintColor: colorScheme.surfaceTint,
       ),
@@ -220,9 +196,7 @@ abstract final class AppTheme {
           horizontal: AppSpacing.md,
           vertical: AppSpacing.xs,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.brMd,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
       ),
 
       // Navigation Bar
@@ -248,9 +222,7 @@ abstract final class AppTheme {
       // Snackbar
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.brMd,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         backgroundColor: colorScheme.inverseSurface,
         contentTextStyle: AppTypography.textTheme.bodyMedium?.copyWith(
           color: colorScheme.onInverseSurface,

@@ -19,10 +19,10 @@ class SkeletonLoader extends StatefulWidget {
 
   /// A circular skeleton (e.g. avatar placeholder).
   const SkeletonLoader.circle({required double size, super.key})
-      : width = size,
-        height = size,
-        borderRadius = null,
-        isCircle = true;
+    : width = size,
+      height = size,
+      borderRadius = null,
+      isCircle = true;
 
   final double? width;
   final double height;
@@ -70,8 +70,9 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
           decoration: BoxDecoration(
             color: color,
             shape: widget.isCircle ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius:
-                widget.isCircle ? null : (widget.borderRadius ?? AppRadius.brMd),
+            borderRadius: widget.isCircle
+                ? null
+                : (widget.borderRadius ?? AppRadius.brMd),
           ),
         );
       },

@@ -89,25 +89,47 @@ abstract final class AppColors {
   // Strategy per DESIGN.md: "Tonal Elevation" — deep hue-tinted
   // surfaces, never pure black.
   // ═══════════════════════════════════════════════════════════════
-  static const Color darkPrimary = Color(0xFFCFBCFF); // == light inversePrimary / primaryFixedDim
+  static const Color darkPrimary = Color(
+    0xFFCFBCFF,
+  ); // == light inversePrimary / primaryFixedDim
   static const Color darkOnPrimary = Color(0xFF381E72);
-  static const Color darkPrimaryContainer = Color(0xFF4F378A); // == light primary
-  static const Color darkOnPrimaryContainer = Color(0xFFE9DDFF); // == light primaryFixed
+  static const Color darkPrimaryContainer = Color(
+    0xFF4F378A,
+  ); // == light primary
+  static const Color darkOnPrimaryContainer = Color(
+    0xFFE9DDFF,
+  ); // == light primaryFixed
 
-  static const Color darkSecondary = Color(0xFFCDC0E9); // == light secondaryFixedDim
+  static const Color darkSecondary = Color(
+    0xFFCDC0E9,
+  ); // == light secondaryFixedDim
   static const Color darkOnSecondary = Color(0xFF342B48);
-  static const Color darkSecondaryContainer = Color(0xFF4B4263); // == light onSecondaryFixedVariant
-  static const Color darkOnSecondaryContainer = Color(0xFFE9DDFF); // == light secondaryFixed
+  static const Color darkSecondaryContainer = Color(
+    0xFF4B4263,
+  ); // == light onSecondaryFixedVariant
+  static const Color darkOnSecondaryContainer = Color(
+    0xFFE9DDFF,
+  ); // == light secondaryFixed
 
-  static const Color darkTertiary = Color(0xFFE7C365); // == light tertiaryFixedDim
+  static const Color darkTertiary = Color(
+    0xFFE7C365,
+  ); // == light tertiaryFixedDim
   static const Color darkOnTertiary = Color(0xFF3E2E00);
-  static const Color darkTertiaryContainer = Color(0xFF594400); // == light onTertiaryFixedVariant
-  static const Color darkOnTertiaryContainer = Color(0xFFFFDF93); // == light tertiaryFixed
+  static const Color darkTertiaryContainer = Color(
+    0xFF594400,
+  ); // == light onTertiaryFixedVariant
+  static const Color darkOnTertiaryContainer = Color(
+    0xFFFFDF93,
+  ); // == light tertiaryFixed
 
   static const Color darkError = Color(0xFFFFB4AB);
   static const Color darkOnError = Color(0xFF690005);
-  static const Color darkErrorContainer = Color(0xFF93000A); // == light onErrorContainer
-  static const Color darkOnErrorContainer = Color(0xFFFFDAD6); // == light errorContainer
+  static const Color darkErrorContainer = Color(
+    0xFF93000A,
+  ); // == light onErrorContainer
+  static const Color darkOnErrorContainer = Color(
+    0xFFFFDAD6,
+  ); // == light errorContainer
 
   static const Color darkBackground = Color(0xFF141218);
   static const Color darkOnBackground = Color(0xFFE6E0E9);
@@ -115,7 +137,9 @@ abstract final class AppColors {
   static const Color darkSurface = Color(0xFF141218);
   static const Color darkOnSurface = Color(0xFFE6E0E9);
   static const Color darkSurfaceVariant = Color(0xFF49454F);
-  static const Color darkOnSurfaceVariant = Color(0xFFCBC4D2); // == light outlineVariant tone family
+  static const Color darkOnSurfaceVariant = Color(
+    0xFFCBC4D2,
+  ); // == light outlineVariant tone family
 
   static const Color darkSurfaceDim = Color(0xFF141218);
   static const Color darkSurfaceBright = Color(0xFF3B383E);
@@ -126,7 +150,9 @@ abstract final class AppColors {
   static const Color darkSurfaceContainerHighest = Color(0xFF36343B);
 
   static const Color darkOutline = Color(0xFF958E99);
-  static const Color darkOutlineVariant = Color(0xFF494551); // == light onSurfaceVariant tone
+  static const Color darkOutlineVariant = Color(
+    0xFF494551,
+  ); // == light onSurfaceVariant tone
   static const Color darkSurfaceTint = Color(0xFFCFBCFF);
   static const Color darkInverseSurface = Color(0xFFE6E0E9);
   static const Color darkInverseOnSurface = Color(0xFF322F35);

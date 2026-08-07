@@ -45,11 +45,7 @@ class NoParams extends Equatable {
 
 /// Common parameters for paginated queries.
 class PaginationParams extends Equatable {
-  const PaginationParams({
-    this.page = 1,
-    this.pageSize = 20,
-    this.search,
-  });
+  const PaginationParams({this.page = 1, this.pageSize = 20, this.search});
 
   final int page;
   final int pageSize;

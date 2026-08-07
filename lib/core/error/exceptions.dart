@@ -15,8 +15,9 @@ sealed class AppException implements Exception {
   final Object? cause;
 
   @override
-  String toString() => '$runtimeType($message${statusCode != null ? ', '
-      'status: $statusCode' : ''})';
+  String toString() =>
+      '$runtimeType($message${statusCode != null ? ', '
+                'status: $statusCode' : ''})';
 }
 
 /// A server / backend error (HTTP or Supabase RPC returned an error).
@@ -41,11 +42,7 @@ class AuthException extends AppException {
 
 /// Authorization error — authenticated but not permitted (RLS / role).
 class PermissionException extends AppException {
-  const PermissionException(
-    super.message, {
-    super.statusCode,
-    super.cause,
-  });
+  const PermissionException(super.message, {super.statusCode, super.cause});
 }
 
 /// Input / payload validation error.
@@ -70,8 +67,9 @@ class RequestTimeoutException extends AppException {
 
 /// Fallback for anything not otherwise categorized.
 class UnknownException extends AppException {
-  const UnknownException([super.message = 'An unexpected error occurred',
-      // ignore: unused_element_parameter
-      Object? cause])
-      : super(cause: cause);
+  const UnknownException([
+    super.message = 'An unexpected error occurred',
+    // ignore: unused_element_parameter
+    Object? cause,
+  ]) : super(cause: cause);
 }

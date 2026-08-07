@@ -30,17 +30,12 @@ class AppCard extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     final effectivePadding = padding ?? CardTokens.padding;
 
-    final content = Padding(
-      padding: effectivePadding,
-      child: child,
-    );
+    final content = Padding(padding: effectivePadding, child: child);
 
     final decoration = BoxDecoration(
       color: backgroundColor ?? colorScheme.surfaceContainerLow,
       borderRadius: CardTokens.radius,
-      border: isOutlined
-          ? Border.all(color: colorScheme.outlineVariant)
-          : null,
+      border: isOutlined ? Border.all(color: colorScheme.outlineVariant) : null,
       boxShadow: isOutlined ? null : AppElevation.card(brightness),
     );
 
@@ -50,17 +45,11 @@ class AppCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: CardTokens.radius,
-          child: Ink(
-            decoration: decoration,
-            child: content,
-          ),
+          child: Ink(decoration: decoration, child: content),
         ),
       );
     }
 
-    return DecoratedBox(
-      decoration: decoration,
-      child: content,
-    );
+    return DecoratedBox(decoration: decoration, child: content);
   }
 }

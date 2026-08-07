@@ -17,9 +17,9 @@ class DioClient {
     required AppConfig config,
     required AppLogger logger,
     required NetworkInfo networkInfo,
-  })  : _config = config,
-        _logger = logger,
-        _networkInfo = networkInfo {
+  }) : _config = config,
+       _logger = logger,
+       _networkInfo = networkInfo {
     _dio = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 30),
@@ -140,8 +140,10 @@ class _LoggingInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    _logger.error('✗ ${err.requestOptions.method} ${err.requestOptions.uri}',
-        err);
+    _logger.error(
+      '✗ ${err.requestOptions.method} ${err.requestOptions.uri}',
+      err,
+    );
     super.onError(err, handler);
   }
 }
@@ -168,8 +170,7 @@ class _ErrorInterceptor extends Interceptor {
     return switch (err.type) {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
-      DioExceptionType.receiveTimeout =>
-        const RequestTimeoutException(),
+      DioExceptionType.receiveTimeout => const RequestTimeoutException(),
       DioExceptionType.connectionError => const NetworkException(),
       DioExceptionType.badResponse => _mapStatusCode(err),
       DioExceptionType.cancel => const UnknownException('Request cancelled'),

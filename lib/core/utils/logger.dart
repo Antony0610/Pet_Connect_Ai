@@ -9,20 +9,20 @@ import '../config/app_config.dart';
 /// everything; prod is quiet). Access via Riverpod (`loggerProvider`).
 class AppLogger {
   AppLogger({required bool isDebuggable})
-      : _logger = Logger(
-          filter: isDebuggable
-              ? DevelopmentFilter()
-              : ProductionFilter(), // prod: error+ only
-          printer: PrettyPrinter(
-            methodCount: isDebuggable ? 2 : 0,
-            errorMethodCount: 5,
-            lineLength: 80,
-            colors: true,
-            printEmojis: true,
-            dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
-          ),
-          output: ConsoleOutput(),
-        );
+    : _logger = Logger(
+        filter: isDebuggable
+            ? DevelopmentFilter()
+            : ProductionFilter(), // prod: error+ only
+        printer: PrettyPrinter(
+          methodCount: isDebuggable ? 2 : 0,
+          errorMethodCount: 5,
+          lineLength: 80,
+          colors: true,
+          printEmojis: true,
+          dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+        ),
+        output: ConsoleOutput(),
+      );
 
   final Logger _logger;
 

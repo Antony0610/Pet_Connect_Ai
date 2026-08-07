@@ -23,18 +23,18 @@ class AppConfig {
 
   /// Assembles config from the loaded environment.
   factory AppConfig.fromEnv() => AppConfig(
-        flavor: Flavor.fromName(Env.appEnv),
-        appName: Env.appName,
-        supabaseUrl: Env.supabaseUrl,
-        supabaseAnonKey: Env.supabaseAnonKey,
-        googleMapsApiKey: Env.googleMapsApiKey,
-        aiEdgeFunctionUrl: Env.aiEdgeFunctionUrl,
-        fcmSenderId: Env.fcmSenderId,
-        collarIngestUrl: Env.collarIngestUrl,
-        n8nWebhookBaseUrl: Env.n8nWebhookBaseUrl,
-        featureSmartCollar: Env.featureSmartCollar,
-        featureAiAssistant: Env.featureAiAssistant,
-      );
+    flavor: Flavor.fromName(Env.appEnv),
+    appName: Env.appName,
+    supabaseUrl: Env.supabaseUrl,
+    supabaseAnonKey: Env.supabaseAnonKey,
+    googleMapsApiKey: Env.googleMapsApiKey,
+    aiEdgeFunctionUrl: Env.aiEdgeFunctionUrl,
+    fcmSenderId: Env.fcmSenderId,
+    collarIngestUrl: Env.collarIngestUrl,
+    n8nWebhookBaseUrl: Env.n8nWebhookBaseUrl,
+    featureSmartCollar: Env.featureSmartCollar,
+    featureAiAssistant: Env.featureAiAssistant,
+  );
 
   final Flavor flavor;
   final String appName;
@@ -59,7 +59,7 @@ class AppConfig {
   /// Fields that must be present for the app to function, with human-readable
   /// names — used by the bootstrapper to fail fast with a clear message.
   List<String> get missingRequiredKeys => <String>[
-        if (supabaseUrl.isEmpty) 'SUPABASE_URL',
-        if (supabaseAnonKey.isEmpty) 'SUPABASE_ANON_KEY',
-      ];
+    if (supabaseUrl.isEmpty) 'SUPABASE_URL',
+    if (supabaseAnonKey.isEmpty) 'SUPABASE_ANON_KEY',
+  ];
 }

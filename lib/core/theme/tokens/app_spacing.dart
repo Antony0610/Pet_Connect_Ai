@@ -42,12 +42,15 @@ abstract final class AppSpacing {
   static const double marginTablet = 32;
 
   // ── Convenience EdgeInsets ─────────────────────────────────────
-  static const EdgeInsets screenPaddingMobile =
-      EdgeInsets.symmetric(horizontal: marginMobile);
+  static const EdgeInsets screenPaddingMobile = EdgeInsets.symmetric(
+    horizontal: marginMobile,
+  );
   static const EdgeInsets cardPadding = EdgeInsets.all(md);
   static const EdgeInsets cardPaddingPremium = EdgeInsets.all(lg);
-  static const EdgeInsets listItemPadding =
-      EdgeInsets.symmetric(vertical: md, horizontal: md);
+  static const EdgeInsets listItemPadding = EdgeInsets.symmetric(
+    vertical: md,
+    horizontal: md,
+  );
 
   // ── Common SizedBox gaps ───────────────────────────────────────
   static const SizedBox gapXs = SizedBox(height: xs, width: xs);

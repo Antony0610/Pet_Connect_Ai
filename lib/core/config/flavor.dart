@@ -9,10 +9,10 @@ enum Flavor {
   prod;
 
   static Flavor fromName(String? name) => switch (name?.toLowerCase().trim()) {
-        'prod' || 'production' => Flavor.prod,
-        'staging' || 'stage' => Flavor.staging,
-        _ => Flavor.dev,
-      };
+    'prod' || 'production' => Flavor.prod,
+    'staging' || 'stage' => Flavor.staging,
+    _ => Flavor.dev,
+  };
 
   bool get isDev => this == Flavor.dev;
   bool get isStaging => this == Flavor.staging;

@@ -74,20 +74,26 @@ class AppButton extends StatelessWidget {
     final style = _style();
 
     final button = switch (variant) {
-      AppButtonVariant.filled =>
-        FilledButton(onPressed: effectiveOnPressed, style: style, child: child),
+      AppButtonVariant.filled => FilledButton(
+        onPressed: effectiveOnPressed,
+        style: style,
+        child: child,
+      ),
       AppButtonVariant.tonal => FilledButton.tonal(
-          onPressed: effectiveOnPressed,
-          style: style,
-          child: child,
-        ),
+        onPressed: effectiveOnPressed,
+        style: style,
+        child: child,
+      ),
       AppButtonVariant.outlined => OutlinedButton(
-          onPressed: effectiveOnPressed,
-          style: style,
-          child: child,
-        ),
-      AppButtonVariant.text =>
-        TextButton(onPressed: effectiveOnPressed, style: style, child: child),
+        onPressed: effectiveOnPressed,
+        style: style,
+        child: child,
+      ),
+      AppButtonVariant.text => TextButton(
+        onPressed: effectiveOnPressed,
+        style: style,
+        child: child,
+      ),
     };
 
     if (isFullWidth) {
@@ -98,9 +104,18 @@ class AppButton extends StatelessWidget {
 
   ButtonStyle _style() {
     final (padding, height) = switch (size) {
-      AppButtonSize.small => (ButtonTokens.paddingSmall, ButtonTokens.heightSmall),
-      AppButtonSize.medium => (ButtonTokens.paddingMedium, ButtonTokens.heightMedium),
-      AppButtonSize.large => (ButtonTokens.paddingLarge, ButtonTokens.heightLarge),
+      AppButtonSize.small => (
+        ButtonTokens.paddingSmall,
+        ButtonTokens.heightSmall,
+      ),
+      AppButtonSize.medium => (
+        ButtonTokens.paddingMedium,
+        ButtonTokens.heightMedium,
+      ),
+      AppButtonSize.large => (
+        ButtonTokens.paddingLarge,
+        ButtonTokens.heightLarge,
+      ),
     };
     return ButtonStyle(
       padding: WidgetStatePropertyAll(padding),

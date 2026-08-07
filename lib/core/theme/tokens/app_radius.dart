@@ -51,6 +51,5 @@ abstract final class AppRadius {
   static const BorderRadius brPill = BorderRadius.all(Radius.circular(full));
 
   /// Top-only radius for bottom sheets — 24px.
-  static const BorderRadius brBottomSheet =
-      BorderRadius.vertical(top: rXxl);
+  static const BorderRadius brBottomSheet = BorderRadius.vertical(top: rXxl);
 }

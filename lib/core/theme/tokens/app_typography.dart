@@ -35,21 +35,9 @@ abstract final class AppTypography {
       letterSpacing: -0.25,
       fontWeight: bold,
     ),
-    displayMedium: TextStyle(
-      fontSize: 45,
-      height: 52 / 45,
-      fontWeight: bold,
-    ),
-    displaySmall: TextStyle(
-      fontSize: 36,
-      height: 44 / 36,
-      fontWeight: bold,
-    ),
-    headlineLarge: TextStyle(
-      fontSize: 32,
-      height: 40 / 32,
-      fontWeight: bold,
-    ),
+    displayMedium: TextStyle(fontSize: 45, height: 52 / 45, fontWeight: bold),
+    displaySmall: TextStyle(fontSize: 36, height: 44 / 36, fontWeight: bold),
+    headlineLarge: TextStyle(fontSize: 32, height: 40 / 32, fontWeight: bold),
     headlineMedium: TextStyle(
       fontSize: 28,
       height: 36 / 28,
@@ -60,11 +48,7 @@ abstract final class AppTypography {
       height: 32 / 24,
       fontWeight: semiBold,
     ),
-    titleLarge: TextStyle(
-      fontSize: 22,
-      height: 28 / 22,
-      fontWeight: semiBold,
-    ),
+    titleLarge: TextStyle(fontSize: 22, height: 28 / 22, fontWeight: semiBold),
     titleMedium: TextStyle(
       fontSize: 16,
       height: 24 / 16,

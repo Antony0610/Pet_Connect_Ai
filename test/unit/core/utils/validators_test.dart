@@ -20,7 +20,10 @@ void main() {
     });
 
     test('uses custom field name', () {
-      expect(Validators.required(null, field: 'Username'), 'Username is required');
+      expect(
+        Validators.required(null, field: 'Username'),
+        'Username is required',
+      );
     });
   });
 
@@ -51,11 +54,17 @@ void main() {
     });
 
     test('returns error when too short', () {
-      expect(Validators.password('Short1'), 'Password must be at least 8 characters');
+      expect(
+        Validators.password('Short1'),
+        'Password must be at least 8 characters',
+      );
     });
 
     test('returns error when missing uppercase', () {
-      expect(Validators.password('lowercase123'), 'Include at least one uppercase letter');
+      expect(
+        Validators.password('lowercase123'),
+        'Include at least one uppercase letter',
+      );
     });
 
     test('returns error when missing number', () {
@@ -69,17 +78,26 @@ void main() {
 
     test('respects custom minLength', () {
       expect(Validators.password('Ab1', minLength: 3), null);
-      expect(Validators.password('Ab1', minLength: 4), 'Password must be at least 4 characters');
+      expect(
+        Validators.password('Ab1', minLength: 4),
+        'Password must be at least 4 characters',
+      );
     });
   });
 
   group('Validators.confirmPassword', () {
     test('returns error when value is null', () {
-      expect(Validators.confirmPassword(null, 'original'), 'Please confirm your password');
+      expect(
+        Validators.confirmPassword(null, 'original'),
+        'Please confirm your password',
+      );
     });
 
     test('returns error when passwords do not match', () {
-      expect(Validators.confirmPassword('different', 'original'), 'Passwords do not match');
+      expect(
+        Validators.confirmPassword('different', 'original'),
+        'Passwords do not match',
+      );
     });
 
     test('returns null when passwords match', () {
@@ -97,12 +115,18 @@ void main() {
     });
 
     test('returns error when too long', () {
-      expect(Validators.phone('12345678901234567890'), 'Enter a valid phone number');
+      expect(
+        Validators.phone('12345678901234567890'),
+        'Enter a valid phone number',
+      );
     });
 
     test('returns null for valid phone numbers', () {
       expect(Validators.phone('1234567890'), null);
-      expect(Validators.phone('+1 (555) 123-4567'), null); // formats with 10-15 digits
+      expect(
+        Validators.phone('+1 (555) 123-4567'),
+        null,
+      ); // formats with 10-15 digits
       expect(Validators.phone('555-1234-5678'), null);
     });
   });
@@ -113,7 +137,10 @@ void main() {
     });
 
     test('returns error when value is too short', () {
-      expect(Validators.minLength('abc', 5), 'This field must be at least 5 characters');
+      expect(
+        Validators.minLength('abc', 5),
+        'This field must be at least 5 characters',
+      );
     });
 
     test('returns null when value meets minimum', () {
@@ -122,7 +149,10 @@ void main() {
     });
 
     test('uses custom field name', () {
-      expect(Validators.minLength('ab', 3, field: 'Username'), 'Username must be at least 3 characters');
+      expect(
+        Validators.minLength('ab', 3, field: 'Username'),
+        'Username must be at least 3 characters',
+      );
     });
   });
 
