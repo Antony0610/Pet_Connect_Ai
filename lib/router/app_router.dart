@@ -11,8 +11,14 @@ import '../features/auth/presentation/screens/role_selection_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/welcome_success_screen.dart';
 import '../features/pet_owner/presentation/screens/activate_lost_mode_screen.dart';
+import '../features/pet_owner/presentation/screens/add_pet_screen.dart';
+import '../features/pet_owner/presentation/screens/delete_pet_confirmation_screen.dart';
+import '../features/pet_owner/presentation/screens/edit_pet_profile_screen.dart';
 import '../features/pet_owner/presentation/screens/home_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/my_pets_list_screen.dart';
+import '../features/pet_owner/presentation/screens/pet_media_gallery_screen.dart';
+import '../features/pet_owner/presentation/screens/pet_profile_detail_screen.dart';
+import '../features/pet_owner/presentation/screens/pet_settings_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
 import 'route_observer.dart';
@@ -115,12 +121,37 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const MyPetsListScreen(),
             routes: [
               GoRoute(
+                path: 'add',
+                name: RouteNames.ownerPetAdd,
+                builder: (context, state) => const AddPetScreen(),
+              ),
+              GoRoute(
                 path: ':petId',
                 name: RouteNames.ownerPetDetail,
-                builder: (context, state) => PlaceholderScreen(
-                  title: 'Pet Detail',
-                  subtitle: 'petId: ${state.pathParameters['petId']}',
-                ),
+                builder: (context, state) => const PetProfileDetailScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    name: RouteNames.ownerPetEdit,
+                    builder: (context, state) => const EditPetProfileScreen(),
+                  ),
+                  GoRoute(
+                    path: 'settings',
+                    name: RouteNames.ownerPetSettings,
+                    builder: (context, state) => const PetSettingsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'delete',
+                    name: RouteNames.ownerPetDelete,
+                    builder: (context, state) =>
+                        const DeletePetConfirmationScreen(),
+                  ),
+                  GoRoute(
+                    path: 'gallery',
+                    name: RouteNames.ownerPetGallery,
+                    builder: (context, state) => const PetMediaGalleryScreen(),
+                  ),
+                ],
               ),
             ],
           ),

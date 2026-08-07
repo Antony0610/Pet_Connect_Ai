@@ -25,7 +25,12 @@ abstract final class RoutePaths {
   // ── Pet Owner portal (primary) ─────────────────────────────────
   static const String ownerHome = '/owner';
   static const String ownerPets = '/owner/pets';
+  static const String ownerPetAdd = '/owner/pets/add';
   static const String ownerPetDetail = '/owner/pets/:petId';
+  static const String ownerPetEdit = '/owner/pets/:petId/edit';
+  static const String ownerPetSettings = '/owner/pets/:petId/settings';
+  static const String ownerPetDelete = '/owner/pets/:petId/delete';
+  static const String ownerPetGallery = '/owner/pets/:petId/gallery';
   static const String ownerHealth = '/owner/health';
   static const String ownerAiAssistant = '/owner/ai';
   static const String ownerCollar = '/owner/collar';
@@ -77,7 +82,12 @@ abstract final class RouteNames {
 
   static const String ownerHome = 'ownerHome';
   static const String ownerPets = 'ownerPets';
+  static const String ownerPetAdd = 'ownerPetAdd';
   static const String ownerPetDetail = 'ownerPetDetail';
+  static const String ownerPetEdit = 'ownerPetEdit';
+  static const String ownerPetSettings = 'ownerPetSettings';
+  static const String ownerPetDelete = 'ownerPetDelete';
+  static const String ownerPetGallery = 'ownerPetGallery';
   static const String ownerHealth = 'ownerHealth';
   static const String ownerAiAssistant = 'ownerAiAssistant';
   static const String ownerCollar = 'ownerCollar';

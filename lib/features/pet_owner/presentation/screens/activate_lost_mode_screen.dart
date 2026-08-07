@@ -216,7 +216,7 @@ class _ConfirmationSheet extends StatelessWidget {
                   onActivate: () => context.showSnackbar(
                     'Lost Mode activation is coming soon.',
                   ),
-                  onCancel: () => context.pop(),
+                  onCancel: () => context.pop<void>(),
                 ),
               ],
             ),
