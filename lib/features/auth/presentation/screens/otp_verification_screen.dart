@@ -23,7 +23,7 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
-  static const int _codeLength = 4;
+  static const int _codeLength = 6;
   static const int _resendDelaySeconds = 30;
   static const String _illustrationUrl =
       'https://lh3.googleusercontent.com/aida-public/'
@@ -72,11 +72,44 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   }
 
   void _handleChanged(int index, String value) {
+    // A multi-character value means the code was pasted or autofilled into a
+    // single box — spread the digits across the fields instead of truncating.
+    if (value.length > 1) {
+      _distribute(value, from: index);
+      return;
+    }
     if (value.isNotEmpty && index < _codeLength - 1) {
       _focusNodes[index + 1].requestFocus();
     }
     if (_controllers.every((controller) => controller.text.isNotEmpty)) {
       _focusNodes[index].unfocus();
+    }
+    setState(() {});
+  }
+
+  /// Fills the boxes from [from] with the digits in [value], then parks focus
+  /// on the next empty box (or blurs when the code is complete). Pasting a full
+  /// code into the first box fills every field.
+  void _distribute(String value, {required int from}) {
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      _controllers[from].clear();
+      setState(() {});
+      return;
+    }
+    var lastFilled = from;
+    for (var i = 0; from + i < _codeLength && i < digits.length; i++) {
+      final target = from + i;
+      _controllers[target].value = TextEditingValue(
+        text: digits[i],
+        selection: const TextSelection.collapsed(offset: 1),
+      );
+      lastFilled = target;
+    }
+    if (lastFilled >= _codeLength - 1) {
+      _focusNodes[lastFilled].unfocus();
+    } else {
+      _focusNodes[lastFilled + 1].requestFocus();
     }
     setState(() {});
   }
@@ -215,7 +248,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                     AppSpacing.vGapXs,
                     Text.rich(
                       TextSpan(
-                        text: "We've sent a 4-digit code to\n",
+                        text: "We've sent a 6-digit code to\n",
                         children: [
                           TextSpan(
                             text: email ?? 'your email address',
@@ -350,60 +383,60 @@ class _OtpFields extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(controllers.length, (index) {
-        return Padding(
-          padding: EdgeInsets.only(
-            right: index == controllers.length - 1 ? 0 : AppSpacing.sm,
-          ),
-          child: SizedBox(
-            width: 64,
-            height: 80,
-            child: Focus(
-              onKeyEvent: (_, event) => onKeyEvent(index, event),
-              child: TextField(
-                controller: controllers[index],
-                focusNode: focusNodes[index],
-                autofocus: index == 0,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                textInputAction: index == controllers.length - 1
-                    ? TextInputAction.done
-                    : TextInputAction.next,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(1),
-                ],
-                style: context.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: scheme.surfaceContainer,
-                  contentPadding: EdgeInsets.zero,
-                  border: OutlineInputBorder(
-                    borderRadius: AppRadius.brLg,
-                    borderSide: BorderSide(
-                      width: 2,
-                      color: scheme.outlineVariant.withValues(alpha: 0.3),
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: index == controllers.length - 1 ? 0 : AppSpacing.sm,
+            ),
+            child: SizedBox(
+              height: 80,
+              child: Focus(
+                onKeyEvent: (_, event) => onKeyEvent(index, event),
+                child: TextField(
+                  controller: controllers[index],
+                  focusNode: focusNodes[index],
+                  autofocus: index == 0,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  textInputAction: index == controllers.length - 1
+                      ? TextInputAction.done
+                      : TextInputAction.next,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(controllers.length),
+                  ],
+                  style: context.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: scheme.surfaceContainer,
+                    contentPadding: EdgeInsets.zero,
+                    border: OutlineInputBorder(
+                      borderRadius: AppRadius.brLg,
+                      borderSide: BorderSide(
+                        width: 2,
+                        color: scheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: AppRadius.brLg,
+                      borderSide: BorderSide(
+                        width: 2,
+                        color: scheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: AppRadius.brLg,
+                      borderSide: BorderSide(width: 2, color: scheme.primary),
                     ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: AppRadius.brLg,
-                    borderSide: BorderSide(
-                      width: 2,
-                      color: scheme.outlineVariant.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: AppRadius.brLg,
-                    borderSide: BorderSide(width: 2, color: scheme.primary),
-                  ),
+                  onChanged: (value) => onChanged(index, value),
+                  onSubmitted: index == controllers.length - 1
+                      ? (_) => FocusScope.of(context).unfocus()
+                      : null,
                 ),
-                onChanged: (value) => onChanged(index, value),
-                onSubmitted: index == controllers.length - 1
-                    ? (_) => FocusScope.of(context).unfocus()
-                    : null,
               ),
             ),
           ),
