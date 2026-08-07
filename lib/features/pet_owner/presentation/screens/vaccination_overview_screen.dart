@@ -201,7 +201,7 @@ class _UpcomingCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           HealthCardHeader(
-            icon: Icons.event_upcoming_rounded,
+            icon: Icons.event_rounded,
             iconBackground: container,
             iconColor: onContainer,
             title: 'Upcoming Next',

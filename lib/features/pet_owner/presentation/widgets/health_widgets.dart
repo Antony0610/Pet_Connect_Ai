@@ -1,3 +1,13 @@
+/// Shared building blocks for the Pet Owner **Health Passport** module.
+///
+/// These render the recurring pieces of the frozen Stitch health screens —
+/// the glass top bar, the "Buddy" pet avatar, colored record rows, category
+/// chips, card headers and empty-state boxes — so the five health screens
+/// compose them instead of duplicating layout. Every color, radius, spacing
+/// and type value comes from the design tokens / theme, so one widget tree
+/// serves both Light and Dark.
+library;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,16 +18,6 @@ import '../../../../core/theme/tokens/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../router/route_paths.dart';
 import 'owner_app_bar.dart';
-
-/// Shared building blocks for the Pet Owner **Health Passport** module.
-///
-/// These render the recurring pieces of the frozen Stitch health screens —
-/// the glass top bar, the "Buddy" pet avatar, colored record rows, category
-/// chips, card headers and empty-state boxes — so the five health screens
-/// compose them instead of duplicating layout. Every color, radius, spacing
-/// and type value comes from the design tokens / theme, so one widget tree
-/// serves both Light and Dark.
-library;
 
 /// The featured pet across the frozen health comps ("Buddy").
 const String kHealthPetPhotoUrl =

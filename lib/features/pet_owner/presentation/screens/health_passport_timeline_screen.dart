@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/portal_theme.dart';
 import '../../../../core/theme/tokens/app_breakpoints.dart';
 import '../../../../core/theme/tokens/app_icon_sizes.dart';
 import '../../../../core/theme/tokens/app_radius.dart';

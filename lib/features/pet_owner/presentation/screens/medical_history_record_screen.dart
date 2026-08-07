@@ -157,7 +157,7 @@ class _MedicalCards extends StatelessWidget {
         ),
         AppSpacing.vGapMd,
         card(
-          icon: Icons.ecg_rounded,
+          icon: Icons.monitor_heart_rounded,
           iconBg: scheme.tertiaryContainer,
           iconFg: scheme.onTertiaryContainer,
           title: 'Chronic Conditions',
