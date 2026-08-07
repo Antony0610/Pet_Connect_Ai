@@ -38,7 +38,7 @@ Variables, parameters, functions, and named constants all use
 Widget class names are `PascalCase` and describe what they render, not how:
 `PetCard`, `AppointmentTile`, `PrimaryButton`. Feature-local widgets live in the
 feature's `presentation/widgets`; reusable design-system widgets live in
-`shared/presentation/widgets`.
+`shared/widgets`.
 
 ---
 

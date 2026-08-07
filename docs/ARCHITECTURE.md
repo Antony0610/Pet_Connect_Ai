@@ -33,8 +33,8 @@ depend on `domain`; they never depend on each other.
 
 - **Independent portals, shared core.** Pet Owner, Veterinarian, Volunteer &
   Rescue, and Administrator are effectively four apps that share entities,
-  services, and design tokens. Feature-first slicing lets each portal evolve on
-  its own cadence without cross-contamination, while `core/`, `services/`, and
+  infrastructure, and design tokens. Feature-first slicing lets each portal evolve on
+  its own cadence without cross-contamination, while `core/`, `router/`, and
   `shared/` provide the common ground.
 - **Role-specific business rules.** Access, permissions, and workflows differ
   per role. Encoding those rules as framework-free use cases in `domain` keeps
@@ -165,8 +165,8 @@ module's `data/datasources`. This keeps SDK details in one place per concern and
 fully mockable, without pre-scaffolding empty folders.
 
 ### `shared/`
-Reusable UI and cross-feature domain/data: `shared/presentation/widgets`
-(buttons, cards, inputs, chips, feedback, navigation, data_display, layout),
+Reusable UI and cross-feature domain/data: `shared/widgets`
+(buttons, cards, inputs, chips, loading, states, layout, avatar),
 plus `shared/domain/entities` and `shared/data/models` for types used by more
 than one feature.
 
@@ -256,13 +256,13 @@ PetConnect AI uses **Riverpod providers as its DI mechanism** — there is no
 `get_it` service locator. Dependencies are declared as providers and resolved
 through `ref`.
 
-- **Root/shared providers** live in `core/di/providers.dart` (e.g. the Supabase
-  client, service wrappers, repository implementations, and use cases).
+- **Root/shared providers** live in `core/providers/core_providers.dart` (e.g. the Supabase
+  client, Dio client, connectivity, logger) and `core/providers/theme_providers.dart`.
 - **Presentation controllers** live in each feature's
   `presentation/controllers` and `watch`/`read` the providers they need.
 
 ```dart
-// core/di/providers.dart
+// core/providers/core_providers.dart (or a feature-scoped provider file)
 @riverpod
 PetRemoteDataSource petRemoteDataSource(Ref ref) =>
     PetRemoteDataSourceImpl(ref.watch(supabaseClientProvider));
@@ -309,7 +309,7 @@ device or network required.
 ## 8. Summary
 
 - Feature-first slicing keeps four portals independent while sharing `core/`,
-  `services/`, and `shared/`.
+  `router/`, and `shared/`.
 - The Dependency Rule points everything inward at a framework-free `domain`.
 - Data flows UI → controller → use case → repository → datasource → Supabase and
   back, transforming model → entity → `Either` → `AsyncValue`.

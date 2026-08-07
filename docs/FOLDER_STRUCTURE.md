@@ -23,13 +23,9 @@ petconnect_ai/
 │   │
 │   ├── core/                         # App-wide, framework wiring (no feature logic)
 │   │   ├── config/                   # Env config, flavors, app-level settings
-│   │   ├── constants/                # App constants, keys, durations, enums
-│   │   ├── di/                       # Riverpod DI — providers.dart (root providers)
 │   │   ├── error/                    # Failures (sealed) + Exceptions
-│   │   ├── logging/                  # logger setup, log helpers
 │   │   ├── network/                  # Dio client, interceptors, connectivity checks
-│   │   ├── providers/                # Riverpod DI: app-wide clients (Supabase, Dio, logger)
-│   │   ├── router/                   # go_router config, routes, guards, redirects
+│   │   ├── providers/                # Riverpod DI: app-wide clients (Supabase, Dio, logger, connectivity)
 │   │   ├── theme/                    # Design system entry (Material 3 + glassmorphic)
 │   │   │   ├── tokens/               # Color, type, spacing, radius, elevation tokens
 │   │   │   └── component_tokens/     # Per-component token maps (buttons, cards, …)
@@ -37,21 +33,20 @@ petconnect_ai/
 │   │   │   └── extensions/           # Dart/Flutter extension methods
 │   │   └── usecase/                  # Base UseCase<Type, Params> + NoParams
 │   │
+│   ├── router/                       # go_router: paths, names, guard, observer (top-level)
+│   │
 │   ├── shared/                       # Reusable across features
-│   │   ├── domain/
-│   │   │   └── entities/             # Cross-feature domain entities
-│   │   ├── data/
-│   │   │   └── models/               # Cross-feature data models
-│   │   └── presentation/
-│   │       └── widgets/              # Design-system widgets (token-driven)
-│   │           ├── buttons/
-│   │           ├── cards/
-│   │           ├── inputs/
-│   │           ├── chips/
-│   │           ├── feedback/         # Snackbars, dialogs, loaders, empty/error states
-│   │           ├── navigation/       # Nav bars, tabs, app bars
-│   │           ├── data_display/     # Lists, tiles, tables, stats
-│   │           └── layout/           # Scaffolds, spacers, responsive layout
+│   │   ├── domain/                   # entity.dart (base Entity + Paginated), repository.dart (marker)
+│   │   ├── data/                     # model.dart (Model contract), datasource.dart (markers)
+│   │   └── widgets/                  # Design-system widgets (token-driven)
+│   │       ├── buttons/              # AppButton
+│   │       ├── cards/                # AppCard
+│   │       ├── inputs/               # AppTextField
+│   │       ├── chips/                # AppChip
+│   │       ├── loading/              # LoadingOverlay
+│   │       ├── states/               # EmptyState, ErrorView, SkeletonLoader
+│   │       ├── layout/               # SectionHeader
+│   │       └── avatar/               # UserAvatar
 │   │
 │   └── features/                     # One folder per feature/portal
 │       ├── auth/
@@ -117,15 +112,16 @@ App-wide framework wiring that is **not** tied to any single feature. If it is a
 cross-cutting concern (routing, theming, DI, error types, logging, network,
 config), it lives here.
 
-- `config/` — environment configuration and flavors.
-- `constants/` — shared constants and enums.
-- `di/` — Riverpod dependency injection; `providers.dart` holds the root
-  providers (services, repositories, use cases).
-- `error/` — the sealed `Failure` hierarchy and typed `Exception`s.
-- `logging/` — `logger` configuration and helpers.
+- `config/` — environment configuration and flavors (`flavor.dart`, `env.dart`,
+  `app_config.dart`).
+- `error/` — the sealed `Failure` hierarchy, typed `Exception`s, and the
+  `FailureMapper` that translates one to the other at the repository boundary.
 - `network/` — the Dio client (non-Supabase HTTP only), interceptors, and
   `connectivity_plus` checks.
-- `router/` — `go_router` configuration, route definitions, and auth guards.
+- `providers/` — Riverpod dependency injection; `core_providers.dart` holds the
+  app-wide providers (Supabase client, Dio client, connectivity, logger) and
+  `theme_providers.dart` the theme-mode controller. Feature-scoped providers
+  live in their own feature module.
 - `theme/` — the "PetConnect AI Core" design system entry point.
   - `tokens/` — primitive design tokens (color, typography, spacing, radius,
     elevation). **All design values are centralized here; never hardcode them in
@@ -135,27 +131,26 @@ config), it lives here.
   extension methods.
 - `usecase/` — the base `UseCase<Type, Params>` contract and `NoParams`.
 
-### `lib/services/`
-Injectable wrappers around external systems, each exposed through a Riverpod
-provider so datasources depend on the wrapper, not the raw SDK.
+### `lib/router/`
+`go_router` configuration, kept top-level (a sibling of `core/`) because routing
+spans every feature: `route_paths.dart` (paths + names for all four portals),
+`route_guard.dart` (the redirect seam, permissive until Auth lands),
+`route_observer.dart` (navigation logging), and `app_router.dart` (the graph).
 
-- `supabase/` — the Supabase client and access to Auth, Postgres, Storage,
-  Realtime, and Edge Functions.
-- `auth/` — session and auth-state service on top of Supabase Auth.
-- `notifications/` — `firebase_messaging` + `flutter_local_notifications`.
-- `location/` — `google_maps_flutter`, geolocation, and permissions.
-- `storage/` — media upload/download against Supabase Storage.
-- `ai/` — Gemini API plus RAG (local embeddings + Supabase pgvector).
-- `smart_collar/` — the ESP32 collar: WiFi (default) and BLE (setup), GPS
-  tracking, geofence/safe-zones, lost mode, and activity/battery telemetry.
+External-system access has **no** dedicated `services/` layer. App-wide clients
+(Supabase, Dio) are provided through `core/providers`; cross-cutting
+infrastructure wrappers, when built, live under `core/`; feature-owned
+integrations (AI assistant, smart collar) live in their feature module's
+`data/datasources`.
 
 ### `lib/shared/`
 Genuinely reusable building blocks used by more than one feature.
 
-- `domain/entities/` and `data/models/` — cross-feature domain and data types.
-- `presentation/widgets/` — the token-driven design-system widget library,
-  grouped by kind: `buttons`, `cards`, `inputs`, `chips`, `feedback`,
-  `navigation`, `data_display`, `layout`.
+- `domain/` (`entity.dart`, `repository.dart`) and `data/` (`model.dart`,
+  `datasource.dart`) — cross-feature base contracts.
+- `widgets/` — the token-driven design-system widget library, grouped by kind:
+  `buttons`, `cards`, `inputs`, `chips`, `loading`, `states`, `layout`,
+  `avatar`.
 
 ### `lib/features/`
 One folder per feature/portal. Each is a self-contained vertical slice with its
@@ -221,5 +216,5 @@ Inside any `features/<name>/` folder the three layers appear in full:
 
 Placement rule of thumb: if it is specific to one feature, it goes under that
 feature; if it is reused across features, it goes in `shared/`; if it is
-framework wiring, it goes in `core/` or `services/`. See `CODING_STANDARDS.md`
+framework wiring, it goes in `core/`. See `CODING_STANDARDS.md`
 for the full folder-placement rules.

@@ -29,7 +29,7 @@ is not used in new code.
 
 | Provider | Use for | In PetConnect AI |
 |----------|---------|------------------|
-| `Provider` | Stateless dependencies / derived values | DI: services, repositories, use cases (in `core/di`) |
+| `Provider` | Stateless dependencies / derived values | DI: services, repositories, use cases (in `core/providers`) |
 | `NotifierProvider` (`@riverpod class`) | Mutable synchronous state | Simple UI/view state that isn't async |
 | `AsyncNotifierProvider` (`@riverpod class`) | Async state with user actions | **Screen controllers** — the default for feature screens |
 | `FutureProvider` (`@riverpod` fn) | One-shot async reads with no mutations | Fetch-and-display data (e.g. pet profile) |
@@ -141,16 +141,16 @@ final session = ref.watch(authSessionProvider);
 ## 5. Where Providers Live
 
 - **DI providers** — services, repositories, and use cases — live in
-  **`core/di/providers.dart`** (and feature-local DI files where scoped to one
+  **`core/providers/core_providers.dart`** (and feature-local DI files where scoped to one
   feature). These are plain `@riverpod` functions returning a dependency.
 - **State/controllers** — live in each feature's
   **`presentation/controllers`**.
 
-This keeps the dependency graph in `core/di` and screen state next to the
+This keeps the dependency graph in `core/providers` and screen state next to the
 screens it serves.
 
 ```dart
-// core/di/providers.dart
+// core/providers/core_providers.dart
 @riverpod
 GetPets getPets(Ref ref) => GetPets(ref.watch(petRepositoryProvider));
 
@@ -280,7 +280,7 @@ provider.**
 
 ## 10. Summary
 
-- `Provider` for DI (`core/di`); `AsyncNotifier` controllers for screen state
+- `Provider` for DI (`core/providers`); `AsyncNotifier` controllers for screen state
   (`presentation/controllers`); `FutureProvider` for read-only fetches;
   `StreamProvider` for Supabase Realtime and collar telemetry.
 - Controllers call use cases and fold `Either<Failure, T>` into `AsyncValue`.
