@@ -60,7 +60,12 @@ import '../features/pet_owner/presentation/screens/smart_collar_settings_screen.
 import '../features/pet_owner/presentation/screens/smart_collar_tracking_screen.dart';
 import '../features/pet_owner/presentation/screens/treatment_plan_screen.dart';
 import '../features/pet_owner/presentation/screens/vaccination_overview_screen.dart';
+import '../features/veterinarian/presentation/screens/appointment_management_screen.dart';
+import '../features/veterinarian/presentation/screens/consultation_workspace_screen.dart';
+import '../features/veterinarian/presentation/screens/patient_medical_record_screen.dart';
 import '../features/veterinarian/presentation/screens/patient_queue_screen.dart';
+import '../features/veterinarian/presentation/screens/patient_registry_screen.dart';
+import '../features/veterinarian/presentation/screens/todays_appointments_screen.dart';
 import '../features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
@@ -431,24 +436,36 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'appointments',
             name: RouteNames.vetAppointments,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Appointments'),
+            builder: (context, state) => const TodaysAppointmentsScreen(),
+            routes: [
+              GoRoute(
+                path: 'schedule',
+                name: RouteNames.vetAppointmentSchedule,
+                builder: (context, state) =>
+                    const AppointmentManagementScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: 'patients',
             name: RouteNames.vetPatients,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Patients'),
+            builder: (context, state) => const PatientRegistryScreen(),
             routes: [
               GoRoute(
                 path: ':patientId',
                 name: RouteNames.vetPatientDetail,
-                builder: (context, state) => PlaceholderScreen(
-                  title: 'Patient Detail',
-                  subtitle: 'patientId: ${state.pathParameters['patientId']}',
+                builder: (context, state) => PatientMedicalRecordScreen(
+                  patientId: state.pathParameters['patientId'] ?? 'p1',
                 ),
               ),
             ],
+          ),
+          GoRoute(
+            path: 'consultation/:appointmentId',
+            name: RouteNames.vetConsultation,
+            builder: (context, state) => ConsultationWorkspaceScreen(
+              appointmentId: state.pathParameters['appointmentId'] ?? 'c1',
+            ),
           ),
           GoRoute(
             path: 'profile',
