@@ -26,8 +26,8 @@
 
 | # | Stitch ID | Exact Live Stitch Title | Type | Theme | Flutter File | Proposed Route Name & Path | Status | Workflow Connection |
 |---|---|---|---|:---:|---|---|:---:|---|
-| 1 | `f9b7a1daf69345b49b7d652fd9a2e25f` | Clinical Dashboard | BASE | LIGHT | `vet_dashboard_screen.dart` | `vetHome`<br>`/vet` | ⚠️ **PLACEHOLDER** | Vet App Launch / Bottom Nav → Overview & Queue |
-| 2 | `36788143bfd84d0786b58b94890b40ef` | Patient Queue | BASE | LIGHT | `patient_queue_screen.dart` | `vetQueue`<br>`/vet/queue` | 🔴 **MISSING** | Clinical Dashboard → Patient Queue → Start Visit |
+| 1 | `f9b7a1daf69345b49b7d652fd9a2e25f` | Clinical Dashboard | BASE | LIGHT | `vet_dashboard_screen.dart` | `vetHome`<br>`/vet` | ✅ **IMPLEMENTED** | Vet App Launch / Bottom Nav → Overview & Queue |
+| 2 | `36788143bfd84d0786b58b94890b40ef` | Patient Queue | BASE | LIGHT | `patient_queue_screen.dart` | `vetQueue`<br>`/vet/queue` | ✅ **IMPLEMENTED** | Clinical Dashboard → Patient Queue → Start Visit |
 | 3 | `deeec11808c241aeb2b13d4bf84a81fa` | Today's Appointments | BASE | LIGHT | `todays_appointments_screen.dart` | `vetAppointments`<br>`/vet/appointments` | ⚠️ **PLACEHOLDER** | Clinical Dashboard → Appointments → Start Visit |
 | 4 | `68d90af8db644b13a16c7b193cbb1499` | Appointment Management | BASE | LIGHT | `appointment_management_screen.dart` | `vetAppointmentSchedule`<br>`/vet/appointments/schedule` | 🔴 **MISSING** | Appointments → Calendar / Booking Schedule |
 | 5 | `06be11a7de9f413fba235de6adcb923c` | Patient Registry | BASE | LIGHT | `patient_registry_screen.dart` | `vetPatients`<br>`/vet/patients` | ⚠️ **PLACEHOLDER** | Vet Dashboard → Patients List → Medical Record |

@@ -60,6 +60,8 @@ import '../features/pet_owner/presentation/screens/smart_collar_settings_screen.
 import '../features/pet_owner/presentation/screens/smart_collar_tracking_screen.dart';
 import '../features/pet_owner/presentation/screens/treatment_plan_screen.dart';
 import '../features/pet_owner/presentation/screens/vaccination_overview_screen.dart';
+import '../features/veterinarian/presentation/screens/patient_queue_screen.dart';
+import '../features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
 import 'route_observer.dart';
@@ -419,8 +421,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.vetHome,
         name: RouteNames.vetHome,
-        builder: (context, state) => const PlaceholderScreen(title: 'Vet Home'),
+        builder: (context, state) => const VetDashboardScreen(),
         routes: [
+          GoRoute(
+            path: 'queue',
+            name: RouteNames.vetQueue,
+            builder: (context, state) => const PatientQueueScreen(),
+          ),
           GoRoute(
             path: 'appointments',
             name: RouteNames.vetAppointments,

@@ -76,6 +76,7 @@ abstract final class RoutePaths {
 
   // ── Veterinarian portal ────────────────────────────────────────
   static const String vetHome = '/vet';
+  static const String vetQueue = '/vet/queue';
   static const String vetAppointments = '/vet/appointments';
   static const String vetPatients = '/vet/patients';
   static const String vetPatientDetail = '/vet/patients/:patientId';
@@ -165,6 +166,7 @@ abstract final class RouteNames {
   static const String ownerSettings = 'ownerSettings';
 
   static const String vetHome = 'vetHome';
+  static const String vetQueue = 'vetQueue';
   static const String vetAppointments = 'vetAppointments';
   static const String vetPatients = 'vetPatients';
   static const String vetPatientDetail = 'vetPatientDetail';
