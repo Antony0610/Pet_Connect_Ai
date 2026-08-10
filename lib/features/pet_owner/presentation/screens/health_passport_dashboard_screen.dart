@@ -183,7 +183,8 @@ class _WellnessCard extends StatelessWidget {
             icon: Icons.share_rounded,
             accent: accent,
             onAccent: onAccent,
-            onPressed: () => context.showSnackbar('Sharing wellness milestone…'),
+            onPressed: () =>
+                context.showSnackbar('Sharing wellness milestone…'),
           ),
         ],
       ),
@@ -344,13 +345,13 @@ class _QuickActionRail extends StatelessWidget {
       ),
       _QuickAction(
         Icons.medication_rounded,
-        'Meds',
-        () => context.goNamed(RouteNames.ownerHealthMedical),
+        'Treatment Plan',
+        () => context.goNamed(RouteNames.ownerHealthTreatment),
       ),
       _QuickAction(
-        Icons.biotech_rounded,
-        'Lab Reports',
-        () => context.goNamed(RouteNames.ownerHealthMedical),
+        Icons.folder_shared_rounded,
+        'Doc Vault',
+        () => context.goNamed(RouteNames.ownerHealthVault),
       ),
     ];
 

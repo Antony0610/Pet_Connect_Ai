@@ -36,6 +36,8 @@ abstract final class RoutePaths {
   static const String ownerHealthVaccinations = '/owner/health/vaccinations';
   static const String ownerHealthTimeline = '/owner/health/timeline';
   static const String ownerHealthGrowth = '/owner/health/growth';
+  static const String ownerHealthVault = '/owner/health/vault';
+  static const String ownerHealthTreatment = '/owner/health/treatment';
   static const String ownerAiAssistant = '/owner/ai';
   static const String ownerAiChat = '/owner/ai/chat';
   static const String ownerAiInsights = '/owner/ai/insights';
@@ -122,6 +124,8 @@ abstract final class RouteNames {
   static const String ownerHealthVaccinations = 'ownerHealthVaccinations';
   static const String ownerHealthTimeline = 'ownerHealthTimeline';
   static const String ownerHealthGrowth = 'ownerHealthGrowth';
+  static const String ownerHealthVault = 'ownerHealthVault';
+  static const String ownerHealthTreatment = 'ownerHealthTreatment';
   static const String ownerAiAssistant = 'ownerAiAssistant';
   static const String ownerAiChat = 'ownerAiChat';
   static const String ownerAiInsights = 'ownerAiInsights';

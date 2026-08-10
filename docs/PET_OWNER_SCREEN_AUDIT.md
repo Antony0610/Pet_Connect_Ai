@@ -26,8 +26,8 @@
 | 14 | `54eeca35` | Vaccination Overview | Health Passport | `vaccination_overview_screen.dart` | `ownerHealthVaccinations` | ✅ **IMPLEMENTED** | Health Hub → Vaccine | Vaccine Reminders |
 | 15 | `9b779eca` | Health Passport Timeline | Health Passport | `health_passport_timeline_screen.dart` | `ownerHealthTimeline` | ✅ **IMPLEMENTED** | Health Hub → Timeline | Chronological Events |
 | 16 | `5b11739d` | Growth & Weight Analytics | Health Passport | `growth_weight_analytics_screen.dart` | `ownerHealthGrowth` | ✅ **IMPLEMENTED** | Health Hub → Growth | Weight Chart |
-| 17 | `ab7d2d74` | Pet Documents Vault | Health Passport | `pet_documents_vault_screen.dart` | `ownerHealthVault` | 🔴 **MISSING** | Health Hub → Vault | PDF & Document Storage |
-| 18 | `83735460` | Treatment Plan | Health Passport | `treatment_plan_screen.dart` | `ownerHealthTreatment` | 🔴 **MISSING** | Health Hub → Treatment | Active Recovery Plan |
+| 17 | `ab7d2d74a7ae4eb3b1c6d3df399c51eb` | Pet Documents Vault | Health Passport | `pet_documents_vault_screen.dart` | `ownerHealthVault` | ✅ **IMPLEMENTED** | Health Hub → Vault | PDF & Document Storage |
+| 18 | `8373546021f043e08a462b5358057e93` | Treatment Plan | Health Passport | `treatment_plan_screen.dart` | `ownerHealthTreatment` | ✅ **IMPLEMENTED** | Health Hub → Treatment | Active Recovery Plan |
 | 19 | `bc62bb83` | AI Hub Dashboard | AI Hub | `ai_hub_dashboard_screen.dart` | `ownerAiAssistant` | ✅ **IMPLEMENTED** | Home → AI FAB / Tab | Chat / Insights / Reports |
 | 20 | `d72e3dcf` | AI Assistant Chat | AI Hub | `ai_assistant_chat_screen.dart` | `ownerAiChat` | ✅ **IMPLEMENTED** | AI Hub → Chat | Streamed AI Response |
 | 21 | `ca587b92c5c349c482c261a395ad561a` | AI Health Analysis | AI Hub | `ai_health_analysis_screen.dart` | `ownerAiAnalysis` | ✅ **IMPLEMENTED** | AI Hub → Analyze Photo | Upload Photo → Verdict |
@@ -109,12 +109,12 @@ All 27 implemented Flutter screens are wired to GoRouter and accessible via bott
 ## 3. Mathematical Reconciliation Summary
 
 - **Total Base Pet Owner Light Screens**: **52**
-- **Confirmed Implemented**: **43**
-- **Confirmed Missing**: **5** (Pet Owner Core: 3, Health Passport: 2 — **AI Hub: 100% COMPLETE**, **Community: 100% COMPLETE**)
+- **Confirmed Implemented**: **45**
+- **Confirmed Missing**: **3** (Pet Owner Core: 3 — **Health Passport: 100% COMPLETE**, **AI Hub: 100% COMPLETE**, **Community: 100% COMPLETE**)
 - **Variant / State Representations**: **3**
 - **False Positives Corrected**: **1**
 
-$$\text{43 Implemented} + \text{5 Missing} + \text{3 Variant/State} + \text{1 False Positive} = \mathbf{52\text{ Base Light Screens}}$$
+$$\text{45 Implemented} + \text{3 Missing} + \text{3 Variant/State} + \text{1 False Positive} = \mathbf{52\text{ Base Light Screens}}$$
 
 ---
 

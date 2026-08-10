@@ -42,6 +42,7 @@ import '../features/pet_owner/presentation/screens/medical_history_record_screen
 import '../features/pet_owner/presentation/screens/my_pets_list_screen.dart';
 import '../features/pet_owner/presentation/screens/notifications_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_adoption_screen.dart';
+import '../features/pet_owner/presentation/screens/pet_documents_vault_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_media_gallery_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_profile_detail_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_settings_screen.dart';
@@ -54,6 +55,7 @@ import '../features/pet_owner/presentation/screens/smart_collar_diagnostics_scre
 import '../features/pet_owner/presentation/screens/smart_collar_geofence_screen.dart';
 import '../features/pet_owner/presentation/screens/smart_collar_settings_screen.dart';
 import '../features/pet_owner/presentation/screens/smart_collar_tracking_screen.dart';
+import '../features/pet_owner/presentation/screens/treatment_plan_screen.dart';
 import '../features/pet_owner/presentation/screens/vaccination_overview_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
@@ -216,6 +218,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: RouteNames.ownerHealthGrowth,
                 builder: (context, state) =>
                     const GrowthWeightAnalyticsScreen(),
+              ),
+              GoRoute(
+                path: 'vault',
+                name: RouteNames.ownerHealthVault,
+                builder: (context, state) => const PetDocumentsVaultScreen(),
+              ),
+              GoRoute(
+                path: 'treatment',
+                name: RouteNames.ownerHealthTreatment,
+                builder: (context, state) => const TreatmentPlanScreen(),
               ),
             ],
           ),
