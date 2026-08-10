@@ -51,13 +51,7 @@ class CommunityHubScreen extends StatelessWidget {
               color: scheme.onSurfaceVariant,
             ),
             tooltip: 'Search Community',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Community Search coming in Phase 2'),
-                ),
-              );
-            },
+            onPressed: () => context.goNamed(RouteNames.ownerCommunitySearch),
           ),
           IconButton(
             icon: Icon(

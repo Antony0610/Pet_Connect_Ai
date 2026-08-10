@@ -58,6 +58,10 @@ abstract final class RoutePaths {
   static const String ownerCommunityEvents = '/owner/community/events';
   static const String ownerCommunityAdoption = '/owner/community/adoption';
   static const String ownerCommunityMessages = '/owner/community/messages';
+  static const String ownerCommunitySearch = '/owner/community/search';
+  static const String ownerCommunityBadges = '/owner/community/achievements';
+  static const String ownerCommunitySaved = '/owner/community/saved';
+  static const String ownerCommunityLiveFeed = '/owner/community/live-feed';
   static const String ownerNotifications = '/owner/notifications';
   static const String ownerSearch = '/owner/search';
   static const String ownerProfile = '/owner/profile';
@@ -137,6 +141,10 @@ abstract final class RouteNames {
   static const String ownerCommunityEvents = 'ownerCommunityEvents';
   static const String ownerCommunityAdoption = 'ownerCommunityAdoption';
   static const String ownerCommunityMessages = 'ownerCommunityMessages';
+  static const String ownerCommunitySearch = 'ownerCommunitySearch';
+  static const String ownerCommunityBadges = 'ownerCommunityBadges';
+  static const String ownerCommunitySaved = 'ownerCommunitySaved';
+  static const String ownerCommunityLiveFeed = 'ownerCommunityLiveFeed';
   static const String ownerNotifications = 'ownerNotifications';
   static const String ownerSearch = 'ownerSearch';
   static const String ownerProfile = 'ownerProfile';
