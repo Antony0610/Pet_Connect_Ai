@@ -50,6 +50,9 @@ abstract final class RoutePaths {
   static const String ownerCollarSettings = '/owner/collar/settings';
   static const String ownerLostMode = '/owner/lost-mode';
   static const String ownerCommunity = '/owner/community';
+  static const String ownerCommunityCreatePost = '/owner/community/create-post';
+  static const String ownerCommunityDiscover = '/owner/community/discover';
+  static const String ownerCommunityLocal = '/owner/community/local';
   static const String ownerNotifications = '/owner/notifications';
   static const String ownerSearch = '/owner/search';
   static const String ownerProfile = '/owner/profile';
@@ -121,6 +124,9 @@ abstract final class RouteNames {
   static const String ownerCollarSettings = 'ownerCollarSettings';
   static const String ownerLostMode = 'ownerLostMode';
   static const String ownerCommunity = 'ownerCommunity';
+  static const String ownerCommunityCreatePost = 'ownerCommunityCreatePost';
+  static const String ownerCommunityDiscover = 'ownerCommunityDiscover';
+  static const String ownerCommunityLocal = 'ownerCommunityLocal';
   static const String ownerNotifications = 'ownerNotifications';
   static const String ownerSearch = 'ownerSearch';
   static const String ownerProfile = 'ownerProfile';
