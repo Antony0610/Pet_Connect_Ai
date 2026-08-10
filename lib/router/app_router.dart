@@ -13,11 +13,14 @@ import '../features/auth/presentation/screens/welcome_success_screen.dart';
 import '../features/pet_owner/presentation/screens/activate_lost_mode_screen.dart';
 import '../features/pet_owner/presentation/screens/add_pet_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_assistant_chat_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_diagnostic_center_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_health_analysis_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_health_insights_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_history_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_hub_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_recommendations_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_reports_screen.dart';
+import '../features/pet_owner/presentation/screens/ai_scan_identify_screen.dart';
 import '../features/pet_owner/presentation/screens/community_achievements_screen.dart';
 import '../features/pet_owner/presentation/screens/community_events_screen.dart';
 import '../features/pet_owner/presentation/screens/community_hub_screen.dart';
@@ -245,6 +248,21 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'history',
                 name: RouteNames.ownerAiHistory,
                 builder: (context, state) => const AiHistoryScreen(),
+              ),
+              GoRoute(
+                path: 'analysis',
+                name: RouteNames.ownerAiAnalysis,
+                builder: (context, state) => const AiHealthAnalysisScreen(),
+              ),
+              GoRoute(
+                path: 'diagnostic',
+                name: RouteNames.ownerAiDiagnostic,
+                builder: (context, state) => const AiDiagnosticCenterScreen(),
+              ),
+              GoRoute(
+                path: 'scan',
+                name: RouteNames.ownerAiScan,
+                builder: (context, state) => const AiScanIdentifyScreen(),
               ),
             ],
           ),

@@ -42,6 +42,9 @@ abstract final class RoutePaths {
   static const String ownerAiRecommendations = '/owner/ai/recommendations';
   static const String ownerAiReports = '/owner/ai/reports';
   static const String ownerAiHistory = '/owner/ai/history';
+  static const String ownerAiAnalysis = '/owner/ai/analysis';
+  static const String ownerAiDiagnostic = '/owner/ai/diagnostic';
+  static const String ownerAiScan = '/owner/ai/scan';
   static const String ownerCollar = '/owner/collar';
   static const String ownerCollarTracking = '/owner/collar/tracking';
   static const String ownerCollarActivity = '/owner/collar/activity';
@@ -125,6 +128,9 @@ abstract final class RouteNames {
   static const String ownerAiRecommendations = 'ownerAiRecommendations';
   static const String ownerAiReports = 'ownerAiReports';
   static const String ownerAiHistory = 'ownerAiHistory';
+  static const String ownerAiAnalysis = 'ownerAiAnalysis';
+  static const String ownerAiDiagnostic = 'ownerAiDiagnostic';
+  static const String ownerAiScan = 'ownerAiScan';
   static const String ownerCollar = 'ownerCollar';
   static const String ownerCollarTracking = 'ownerCollarTracking';
   static const String ownerCollarActivity = 'ownerCollarActivity';

@@ -70,6 +70,7 @@ class AiHubDashboardScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 /// The personal greeting: an `h2`-scale name over a muted subtitle.
 class _Greeting extends StatelessWidget {
   const _Greeting();
@@ -143,6 +144,7 @@ class _AssistantHero extends StatelessWidget {
     );
   }
 }
+
 /// "Today's Insight": a High-Confidence badge, a lightbulb glyph, the insight
 /// copy and a footer that taps through to the full insights screen.
 class _InsightCard extends StatelessWidget {
@@ -204,9 +206,7 @@ class _InsightCard extends StatelessWidget {
                     fontWeight: AppTypography.bold,
                   ),
                 ),
-                const TextSpan(
-                  text: ' of active pets in the community!',
-                ),
+                const TextSpan(text: ' of active pets in the community!'),
               ],
             ),
           ),
@@ -226,7 +226,10 @@ class _InsightCard extends StatelessWidget {
                 onPressed: () => context.goNamed(RouteNames.ownerAiInsights),
                 style: TextButton.styleFrom(foregroundColor: scheme.primary),
                 iconAlignment: IconAlignment.end,
-                icon: const Icon(Icons.arrow_forward_rounded, size: AppIconSizes.sm),
+                icon: const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: AppIconSizes.sm,
+                ),
                 label: const Text('View details'),
               ),
             ],
@@ -236,6 +239,7 @@ class _InsightCard extends StatelessWidget {
     );
   }
 }
+
 /// One quick-action: label, glyph, tinted circular icon and a tap target.
 class _Action {
   const _Action(this.icon, this.label, this.onTap, this.tint);
@@ -260,16 +264,42 @@ class _QuickActions extends StatelessWidget {
     final columns = width < AppBreakpoints.tablet ? 2 : 5;
 
     final actions = <_Action>[
-      _Action(Icons.forum_rounded, 'Ask AI',
-          (c) => c.goNamed(RouteNames.ownerAiChat), _Tint.primary),
-      _Action(Icons.image_search_rounded, 'Analyze Image',
-          (c) => c.showSnackbar('Opening image analysis…'), _Tint.secondary),
-      _Action(Icons.assessment_rounded, 'View Reports',
-          (c) => c.goNamed(RouteNames.ownerAiReports), _Tint.tertiary),
-      _Action(Icons.groups_rounded, 'Community Hub',
-          (c) => c.goNamed(RouteNames.ownerCommunity), _Tint.primary),
-      _Action(Icons.monitor_heart_rounded, 'Health Trends',
-          (c) => c.goNamed(RouteNames.ownerHealthGrowth), _Tint.secondary),
+      _Action(
+        Icons.forum_rounded,
+        'Ask AI',
+        (c) => c.goNamed(RouteNames.ownerAiChat),
+        _Tint.primary,
+      ),
+      _Action(
+        Icons.image_search_rounded,
+        'Analyze Image',
+        (c) => c.goNamed(RouteNames.ownerAiAnalysis),
+        _Tint.secondary,
+      ),
+      _Action(
+        Icons.camera_alt_outlined,
+        'AI HUD Scanner',
+        (c) => c.goNamed(RouteNames.ownerAiScan),
+        _Tint.primary,
+      ),
+      _Action(
+        Icons.assessment_rounded,
+        'View Reports',
+        (c) => c.goNamed(RouteNames.ownerAiReports),
+        _Tint.tertiary,
+      ),
+      _Action(
+        Icons.groups_rounded,
+        'Community Hub',
+        (c) => c.goNamed(RouteNames.ownerCommunity),
+        _Tint.primary,
+      ),
+      _Action(
+        Icons.monitor_heart_rounded,
+        'Health Trends',
+        (c) => c.goNamed(RouteNames.ownerHealthGrowth),
+        _Tint.secondary,
+      ),
     ];
 
     return Column(
@@ -289,9 +319,7 @@ class _QuickActions extends StatelessWidget {
           childAspectRatio: 1,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          children: [
-            for (final a in actions) _ActionTile(action: a),
-          ],
+          children: [for (final a in actions) _ActionTile(action: a)],
         ),
       ],
     );
@@ -310,13 +338,10 @@ class _ActionTile extends StatelessWidget {
     final (bg, fg) = switch (action.tint) {
       _Tint.primary => (scheme.primaryContainer, scheme.onPrimaryContainer),
       _Tint.secondary => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-        ),
-      _Tint.tertiary => (
-          scheme.tertiaryContainer,
-          scheme.onTertiaryContainer,
-        ),
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
+      _Tint.tertiary => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
     };
 
     return Material(
@@ -362,6 +387,7 @@ class _ActionTile extends StatelessWidget {
     );
   }
 }
+
 /// A recent AI activity entry, resolved to theme tokens by [tint].
 class _Activity {
   const _Activity(this.icon, this.title, this.subtitle, this.time, this.tint);
@@ -383,15 +409,27 @@ class _RecentActivity extends StatelessWidget {
     final scheme = context.colorScheme;
 
     const items = [
-      _Activity(Icons.set_meal_rounded, 'Dietary Analysis Complete',
-          'Recommended reducing evening portion by 5%.', '2 hrs ago',
-          _Tint.primary),
-      _Activity(Icons.image_search_rounded, 'Rash Image Scanned',
-          'Low risk detected. Apply recommended ointment.', 'Yesterday',
-          _Tint.tertiary),
-      _Activity(Icons.bedtime_rounded, 'Sleep Pattern Logged',
-          'Buddy slept 14 hours. Normal range.', 'Yesterday',
-          _Tint.secondary),
+      _Activity(
+        Icons.set_meal_rounded,
+        'Dietary Analysis Complete',
+        'Recommended reducing evening portion by 5%.',
+        '2 hrs ago',
+        _Tint.primary,
+      ),
+      _Activity(
+        Icons.image_search_rounded,
+        'Rash Image Scanned',
+        'Low risk detected. Apply recommended ointment.',
+        'Yesterday',
+        _Tint.tertiary,
+      ),
+      _Activity(
+        Icons.bedtime_rounded,
+        'Sleep Pattern Logged',
+        'Buddy slept 14 hours. Normal range.',
+        'Yesterday',
+        _Tint.secondary,
+      ),
     ];
 
     return Column(
@@ -445,21 +483,25 @@ class _ActivityRow extends StatelessWidget {
 
     final (bg, fg) = switch (activity.tint) {
       _Tint.primary => (
-          scheme.primaryContainer.withValues(alpha: 0.2),
-          scheme.primary,
-        ),
+        scheme.primaryContainer.withValues(alpha: 0.2),
+        scheme.primary,
+      ),
       _Tint.secondary => (
-          scheme.secondaryContainer.withValues(alpha: 0.2),
-          scheme.secondary,
-        ),
+        scheme.secondaryContainer.withValues(alpha: 0.2),
+        scheme.secondary,
+      ),
       _Tint.tertiary => (
-          scheme.tertiaryContainer.withValues(alpha: 0.2),
-          scheme.tertiary,
-        ),
+        scheme.tertiaryContainer.withValues(alpha: 0.2),
+        scheme.tertiary,
+      ),
     };
 
     return AiListTile(
-      leading: AiCircleIcon(icon: activity.icon, background: bg, foreground: fg),
+      leading: AiCircleIcon(
+        icon: activity.icon,
+        background: bg,
+        foreground: fg,
+      ),
       title: activity.title,
       subtitle: activity.subtitle,
       onTap: () => context.showSnackbar('Opening ${activity.title}…'),
