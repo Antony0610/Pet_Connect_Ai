@@ -48,11 +48,11 @@
 | 36 | `5aa424a6` | Discover Feed | Community | `discover_feed_screen.dart` | `ownerCommunityDiscover` | ✅ **IMPLEMENTED** | Community → Discover | Explore Category Topics |
 | 37 | `8bdfe144` | Local Community | Community | `local_community_screen.dart` | `ownerCommunityLocal` | ✅ **IMPLEMENTED** | Community → Nearby | Local Owners & Alerts |
 | 38 | `910fdec0` | Create Post | Community | `create_post_screen.dart` | `ownerCommunityCreatePost` | ✅ **IMPLEMENTED** | Community → "+ Post" | Attach Media & Publish |
-| 39 | `ebecca45` | Community Events | Community | `community_events_screen.dart` | `ownerCommunityEvents` | 🔴 **MISSING** | Community → Events | Meetups & Playdates |
-| 40 | `45c1a15c` | Community Sightings | Community | `community_sightings_screen.dart` | `ownerCommunitySightings` | 🔴 **MISSING** | Community → Sightings | Lost Pet Map & Sighting |
-| 41 | `cde2db7a` | Lost & Found Community | Community | `lost_found_community_screen.dart` | `ownerCommunityLostFound` | 🔴 **MISSING** | Community → Lost & Found | Stray & Alert Posts |
-| 42 | `9a5cc91d` | Pet Adoption | Community | `pet_adoption_screen.dart` | `ownerCommunityAdoption` | 🔴 **MISSING** | Community → Adoption | Adoption Profiles |
-| 43 | `ec84e328` | Community Messages | Community | `community_messages_screen.dart` | `ownerCommunityMessages` | 🔴 **MISSING** | Community → Messages | Owner Chat |
+| 39 | `ebecca45` | Community Events | Community | `community_events_screen.dart` | `ownerCommunityEvents` | ✅ **IMPLEMENTED** | Community → Events | Meetups & Playdates |
+| 40 | `45c1a15c` | Community Sightings | Community | `community_sightings_screen.dart` | `ownerCommunitySightings` | ✅ **IMPLEMENTED** | Community → Sightings | Lost Pet Map & Sighting |
+| 41 | `cde2db7a` | Lost & Found Community | Community | `lost_found_community_screen.dart` | `ownerCommunityLostFound` | ✅ **IMPLEMENTED** | Community → Lost & Found | Stray & Alert Posts |
+| 42 | `9a5cc91d` | Pet Adoption | Community | `pet_adoption_screen.dart` | `ownerCommunityAdoption` | ✅ **IMPLEMENTED** | Community → Adoption | Adoption Profiles |
+| 43 | `ec84e328` | Community Messages | Community | `community_messages_screen.dart` | `ownerCommunityMessages` | ✅ **IMPLEMENTED** | Community → Messages | Owner Chat |
 | 44 | `92bc9852` | Community Notifications | Community | `notifications_screen.dart` | `ownerNotifications` | ✅ **IMPLEMENTED** | Top Nav → Notifications | Alert Feed |
 | 45 | `815fd160` | Community Search | Community | `community_search_screen.dart` | `ownerCommunitySearch` | 🔴 **MISSING** | Community → Search | Search Forum & Posts |
 | 46 | `7cd02290` | Community Profile | Community | `profile_screen.dart` | `ownerProfile` | ✅ **IMPLEMENTED** | Bottom Nav → Profile | User & Member Profile |
@@ -109,12 +109,12 @@ All 27 implemented Flutter screens are wired to GoRouter and accessible via bott
 ## 3. Mathematical Reconciliation Summary
 
 - **Total Base Pet Owner Light Screens**: **52**
-- **Confirmed Implemented**: **31**
-- **Confirmed Missing**: **17**
+- **Confirmed Implemented**: **36**
+- **Confirmed Missing**: **12**
 - **Variant / State Representations**: **3**
 - **False Positives Corrected**: **1**
 
-$$\text{31 Implemented} + \text{17 Missing} + \text{3 Variant/State} + \text{1 False Positive} = \mathbf{52\text{ Base Light Screens}}$$
+$$\text{36 Implemented} + \text{12 Missing} + \text{3 Variant/State} + \text{1 False Positive} = \mathbf{52\text{ Base Light Screens}}$$
 
 ---
 

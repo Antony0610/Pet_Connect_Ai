@@ -170,7 +170,21 @@ class CommunityHubScreen extends StatelessWidget {
         icon: Icons.campaign_outlined,
         color: scheme.errorContainer,
         onColor: scheme.onErrorContainer,
-        onTap: () => context.goNamed(RouteNames.ownerLostMode),
+        onTap: () => context.goNamed(RouteNames.ownerCommunityLostFound),
+      ),
+      _NavActionData(
+        title: 'Adoption',
+        icon: Icons.favorite_outline,
+        color: scheme.primaryContainer.withValues(alpha: 0.7),
+        onColor: scheme.onPrimaryContainer,
+        onTap: () => context.goNamed(RouteNames.ownerCommunityAdoption),
+      ),
+      _NavActionData(
+        title: 'Events',
+        icon: Icons.event_outlined,
+        color: scheme.secondaryContainer.withValues(alpha: 0.7),
+        onColor: scheme.onSecondaryContainer,
+        onTap: () => context.goNamed(RouteNames.ownerCommunityEvents),
       ),
     ];
 
@@ -178,10 +192,10 @@ class CommunityHubScreen extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+        crossAxisCount: 3,
         mainAxisSpacing: AppSpacing.sm,
         crossAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 0.85,
+        childAspectRatio: 1.1,
       ),
       itemCount: actions.length,
       itemBuilder: (context, index) {

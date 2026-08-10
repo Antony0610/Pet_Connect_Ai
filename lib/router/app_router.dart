@@ -18,7 +18,10 @@ import '../features/pet_owner/presentation/screens/ai_history_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_hub_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_recommendations_screen.dart';
 import '../features/pet_owner/presentation/screens/ai_reports_screen.dart';
+import '../features/pet_owner/presentation/screens/community_events_screen.dart';
 import '../features/pet_owner/presentation/screens/community_hub_screen.dart';
+import '../features/pet_owner/presentation/screens/community_messages_screen.dart';
+import '../features/pet_owner/presentation/screens/community_sightings_screen.dart';
 import '../features/pet_owner/presentation/screens/create_post_screen.dart';
 import '../features/pet_owner/presentation/screens/delete_pet_confirmation_screen.dart';
 import '../features/pet_owner/presentation/screens/discover_feed_screen.dart';
@@ -28,9 +31,11 @@ import '../features/pet_owner/presentation/screens/health_passport_dashboard_scr
 import '../features/pet_owner/presentation/screens/health_passport_timeline_screen.dart';
 import '../features/pet_owner/presentation/screens/home_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/local_community_screen.dart';
+import '../features/pet_owner/presentation/screens/lost_found_community_screen.dart';
 import '../features/pet_owner/presentation/screens/medical_history_record_screen.dart';
 import '../features/pet_owner/presentation/screens/my_pets_list_screen.dart';
 import '../features/pet_owner/presentation/screens/notifications_screen.dart';
+import '../features/pet_owner/presentation/screens/pet_adoption_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_media_gallery_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_profile_detail_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_settings_screen.dart';
@@ -296,6 +301,31 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'local',
                 name: RouteNames.ownerCommunityLocal,
                 builder: (context, state) => const LocalCommunityScreen(),
+              ),
+              GoRoute(
+                path: 'sightings',
+                name: RouteNames.ownerCommunitySightings,
+                builder: (context, state) => const CommunitySightingsScreen(),
+              ),
+              GoRoute(
+                path: 'lost-found',
+                name: RouteNames.ownerCommunityLostFound,
+                builder: (context, state) => const LostFoundCommunityScreen(),
+              ),
+              GoRoute(
+                path: 'events',
+                name: RouteNames.ownerCommunityEvents,
+                builder: (context, state) => const CommunityEventsScreen(),
+              ),
+              GoRoute(
+                path: 'adoption',
+                name: RouteNames.ownerCommunityAdoption,
+                builder: (context, state) => const PetAdoptionScreen(),
+              ),
+              GoRoute(
+                path: 'messages',
+                name: RouteNames.ownerCommunityMessages,
+                builder: (context, state) => const CommunityMessagesScreen(),
               ),
             ],
           ),
