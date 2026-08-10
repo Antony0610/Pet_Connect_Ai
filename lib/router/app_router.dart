@@ -31,6 +31,7 @@ import '../features/pet_owner/presentation/screens/create_post_screen.dart';
 import '../features/pet_owner/presentation/screens/delete_pet_confirmation_screen.dart';
 import '../features/pet_owner/presentation/screens/discover_feed_screen.dart';
 import '../features/pet_owner/presentation/screens/edit_pet_profile_screen.dart';
+import '../features/pet_owner/presentation/screens/global_search_screen.dart';
 import '../features/pet_owner/presentation/screens/growth_weight_analytics_screen.dart';
 import '../features/pet_owner/presentation/screens/health_passport_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/health_passport_timeline_screen.dart';
@@ -38,6 +39,7 @@ import '../features/pet_owner/presentation/screens/home_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/live_activity_feed_screen.dart';
 import '../features/pet_owner/presentation/screens/local_community_screen.dart';
 import '../features/pet_owner/presentation/screens/lost_found_community_screen.dart';
+import '../features/pet_owner/presentation/screens/lost_pet_dashboard_screen.dart';
 import '../features/pet_owner/presentation/screens/medical_history_record_screen.dart';
 import '../features/pet_owner/presentation/screens/my_pets_list_screen.dart';
 import '../features/pet_owner/presentation/screens/notifications_screen.dart';
@@ -46,6 +48,7 @@ import '../features/pet_owner/presentation/screens/pet_documents_vault_screen.da
 import '../features/pet_owner/presentation/screens/pet_media_gallery_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_profile_detail_screen.dart';
 import '../features/pet_owner/presentation/screens/pet_settings_screen.dart';
+import '../features/pet_owner/presentation/screens/pet_sharing_screen.dart';
 import '../features/pet_owner/presentation/screens/profile_screen.dart';
 import '../features/pet_owner/presentation/screens/saved_content_screen.dart';
 import '../features/pet_owner/presentation/screens/settings_screen.dart';
@@ -188,6 +191,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     name: RouteNames.ownerPetGallery,
                     builder: (context, state) => const PetMediaGalleryScreen(),
                   ),
+                  GoRoute(
+                    path: 'sharing',
+                    name: RouteNames.ownerPetSharing,
+                    builder: (context, state) => const PetSharingScreen(),
+                  ),
                 ],
               ),
             ],
@@ -317,6 +325,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ActivateLostModeScreen(),
           ),
           GoRoute(
+            path: 'lost-dashboard',
+            name: RouteNames.ownerLostDashboard,
+            builder: (context, state) => const LostPetDashboardScreen(),
+          ),
+          GoRoute(
             path: 'community',
             name: RouteNames.ownerCommunity,
             builder: (context, state) => const CommunityHubScreen(),
@@ -388,6 +401,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'profile',
             name: RouteNames.ownerProfile,
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: 'search',
+            name: RouteNames.ownerSearch,
+            builder: (context, state) => const GlobalSearchScreen(),
           ),
           GoRoute(
             path: 'settings',
