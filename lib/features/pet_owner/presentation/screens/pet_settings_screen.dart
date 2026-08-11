@@ -139,10 +139,7 @@ class PetSettingsScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       for (var i = 0; i < items.length; i++) ...[
-                        _SettingRow(
-                          data: items[i],
-                          onTap: () {},
-                        ),
+                        _SettingRow(data: items[i], onTap: () {}),
                         if (i != items.length - 1)
                           Divider(
                             height: 1,
@@ -265,9 +262,7 @@ class _DeleteButton extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             borderRadius: AppRadius.brCard,
-            border: Border.all(
-              color: scheme.error.withValues(alpha: 0.20),
-            ),
+            border: Border.all(color: scheme.error.withValues(alpha: 0.20)),
           ),
           child: Row(
             children: [

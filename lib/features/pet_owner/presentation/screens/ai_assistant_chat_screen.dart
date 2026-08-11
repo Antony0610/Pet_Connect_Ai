@@ -46,10 +46,7 @@ class _AiAssistantChatScreenState extends State<AiAssistantChatScreen> {
       'activity and health data — ask me anything about his care.',
       sources: ['PetConnect Health Passport'],
     ),
-    const _ChatMessage(
-      _Role.user,
-      'Is 14 hours of sleep normal for Buddy?',
-    ),
+    const _ChatMessage(_Role.user, 'Is 14 hours of sleep normal for Buddy?'),
     const _ChatMessage(
       _Role.ai,
       'Yes — adult dogs typically sleep 12–14 hours a day, and Golden '
@@ -150,11 +147,7 @@ class _AiAssistantChatScreenState extends State<AiAssistantChatScreen> {
             onTap: _send,
             margin: margin,
           ),
-          _Composer(
-            controller: _composer,
-            onSend: _send,
-            margin: margin,
-          ),
+          _Composer(controller: _composer, onSend: _send, margin: margin),
         ],
       ),
     );
@@ -166,6 +159,7 @@ class _AiAssistantChatScreenState extends State<AiAssistantChatScreen> {
     return AppSpacing.marginDesktop;
   }
 }
+
 /// A single chat bubble. User turns are right-aligned `primary` bubbles; AI
 /// turns are left-aligned and wrapped in the gradient-bordered AI card with a
 /// leading assistant avatar and trailing source chips.
@@ -183,9 +177,7 @@ class _Bubble extends StatelessWidget {
       return Align(
         alignment: Alignment.centerRight,
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: context.screenWidth * 0.78,
-          ),
+          constraints: BoxConstraints(maxWidth: context.screenWidth * 0.78),
           child: Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
@@ -263,6 +255,7 @@ class _Bubble extends StatelessWidget {
     );
   }
 }
+
 /// A horizontally-scrolling row of suggestion chips that seed prompts.
 class _SuggestionBar extends StatelessWidget {
   const _SuggestionBar({

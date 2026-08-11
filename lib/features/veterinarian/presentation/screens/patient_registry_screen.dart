@@ -201,7 +201,7 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      patient['name'],
+                      patient['name'] as String,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -216,7 +216,7 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
                 ),
               ),
               AppChip(
-                label: patient['status'],
+                label: patient['status'] as String,
                 backgroundColor: statusColor.withOpacity(0.15),
                 textColor: statusColor,
               ),

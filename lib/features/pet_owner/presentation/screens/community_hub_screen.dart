@@ -78,7 +78,7 @@ class CommunityHubScreen extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: _maxContentWidth),
                 child: Column(
-                  crossAxisAlignment: CrossAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Header Banner ──────────────────────────────────
                     Text(
@@ -225,7 +225,7 @@ class CommunityHubScreen extends StatelessWidget {
 
     return AiGradientBorderCard(
       child: Column(
-        crossAxisAlignment: CrossAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -287,7 +287,7 @@ class CommunityHubScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         d.title,
@@ -366,7 +366,7 @@ class CommunityHubScreen extends StatelessWidget {
                   AppSpacing.hGapSm,
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(

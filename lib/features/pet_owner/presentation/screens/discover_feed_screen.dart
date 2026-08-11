@@ -71,7 +71,7 @@ class _DiscoverFeedScreenState extends State<DiscoverFeedScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Topic Filter Chips ─────────────────────────────
                 SizedBox(
@@ -106,7 +106,7 @@ class _DiscoverFeedScreenState extends State<DiscoverFeedScreen> {
                 // ── Featured AI Verified Guide ─────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -181,14 +181,14 @@ class _DiscoverFeedScreenState extends State<DiscoverFeedScreen> {
                 // ── User Post Card ─────────────────────────────────
                 AppCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           const UserAvatar(name: 'Sarah & Max', radius: 18),
                           AppSpacing.hGapSm,
                           Column(
-                            crossAxisAlignment: CrossAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Sarah & Max',
@@ -255,7 +255,7 @@ class _DiscoverFeedScreenState extends State<DiscoverFeedScreen> {
                     alpha: 0.3,
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [

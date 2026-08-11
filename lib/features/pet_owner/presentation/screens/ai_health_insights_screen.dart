@@ -138,6 +138,7 @@ class AiHealthInsightsScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 /// The gradient-bordered summary hero: an at-a-glance wellness verdict for the
 /// selected pet, framed as AI-generated content.
 class _SummaryHero extends StatelessWidget {
@@ -207,29 +208,30 @@ class _InsightCard extends StatelessWidget {
     final (iconBg, iconFg) = switch (insight.tint) {
       _Tint.primary => (scheme.primaryContainer, scheme.onPrimaryContainer),
       _Tint.secondary => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-        ),
-      _Tint.tertiary => (
-          scheme.tertiaryContainer,
-          scheme.onTertiaryContainer,
-        ),
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
+      _Tint.tertiary => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
     };
 
-    final (badgeLabel, badgeBg, badgeFg, badgeIcon) =
-        switch (insight.confidence) {
+    final (
+      badgeLabel,
+      badgeBg,
+      badgeFg,
+      badgeIcon,
+    ) = switch (insight.confidence) {
       _Confidence.high => (
-          'High Confidence',
-          palette.accentContainer(brightness),
-          palette.onAccentContainer(brightness),
-          Icons.verified_rounded,
-        ),
+        'High Confidence',
+        palette.accentContainer(brightness),
+        palette.onAccentContainer(brightness),
+        Icons.verified_rounded,
+      ),
       _Confidence.moderate => (
-          'Moderate',
-          scheme.tertiaryContainer,
-          scheme.onTertiaryContainer,
-          Icons.info_rounded,
-        ),
+        'Moderate',
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+        Icons.info_rounded,
+      ),
     };
 
     return AppCard(
@@ -239,7 +241,11 @@ class _InsightCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AiCircleIcon(icon: insight.icon, background: iconBg, foreground: iconFg),
+              AiCircleIcon(
+                icon: insight.icon,
+                background: iconBg,
+                foreground: iconFg,
+              ),
               AppSpacing.hGapMd,
               Expanded(
                 child: Text(
@@ -263,7 +269,7 @@ class _InsightCard extends StatelessWidget {
           Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
+            crossAxisAlignment: WrapCrossAxisAlignment.center,
             children: [
               AiConfidenceBadge(
                 label: badgeLabel,

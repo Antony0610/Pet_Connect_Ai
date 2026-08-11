@@ -95,7 +95,11 @@ class _StatusBanner extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Row(
         children: [
-          Icon(Icons.verified_user_rounded, color: onAccent, size: AppIconSizes.xl),
+          Icon(
+            Icons.verified_user_rounded,
+            color: onAccent,
+            size: AppIconSizes.xl,
+          ),
           AppSpacing.hGapMd,
           Expanded(
             child: Column(
@@ -273,7 +277,8 @@ class _CompletedHistory extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < records.length; i++) ...[
-                if (i > 0) Divider(color: scheme.outlineVariant, height: AppSpacing.lg),
+                if (i > 0)
+                  Divider(color: scheme.outlineVariant, height: AppSpacing.lg),
                 HealthRecordRow(
                   leading: HealthCircleIcon(
                     icon: Icons.check_circle_rounded,
@@ -281,11 +286,15 @@ class _CompletedHistory extends StatelessWidget {
                     foreground: scheme.onSecondaryContainer,
                   ),
                   title: records[i].$1,
-                  meta: [HealthMetaLine(records[i].$2, icon: Icons.event_rounded)],
+                  meta: [
+                    HealthMetaLine(records[i].$2, icon: Icons.event_rounded),
+                  ],
                   trailing: TextButton(
                     onPressed: () =>
                         context.showSnackbar('Opening certificate…'),
-                    style: TextButton.styleFrom(foregroundColor: scheme.primary),
+                    style: TextButton.styleFrom(
+                      foregroundColor: scheme.primary,
+                    ),
                     child: const Text('View Certificate'),
                   ),
                 ),

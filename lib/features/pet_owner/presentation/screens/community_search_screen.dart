@@ -71,7 +71,7 @@ class _CommunitySearchScreenState extends State<CommunitySearchScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Subtitle & Search Input ────────────────────────
                 Text(

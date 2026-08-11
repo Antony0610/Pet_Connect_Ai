@@ -138,20 +138,20 @@ class _RecommendationCard extends StatelessWidget {
 
     final (label, bg, fg) = switch (rec.priority) {
       _Priority.recommended => (
-          'Recommended',
-          palette.accentContainer(brightness),
-          palette.onAccentContainer(brightness),
-        ),
+        'Recommended',
+        palette.accentContainer(brightness),
+        palette.onAccentContainer(brightness),
+      ),
       _Priority.suggested => (
-          'Suggested',
-          scheme.primaryContainer,
-          scheme.onPrimaryContainer,
-        ),
+        'Suggested',
+        scheme.primaryContainer,
+        scheme.onPrimaryContainer,
+      ),
       _Priority.optional => (
-          'Optional',
-          scheme.surfaceContainerHighest,
-          scheme.onSurfaceVariant,
-        ),
+        'Optional',
+        scheme.surfaceContainerHighest,
+        scheme.onSurfaceVariant,
+      ),
     };
 
     return AiGradientBorderCard(

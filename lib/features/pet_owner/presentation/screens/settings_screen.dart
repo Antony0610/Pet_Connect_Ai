@@ -88,14 +88,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: Icons.notifications,
                       label: 'Notifications',
                     ),
-                    _MenuItem(
-                      icon: Icons.language,
-                      label: 'Language & Region',
-                    ),
-                    _MenuItem(
-                      icon: Icons.tune,
-                      label: 'Content Preferences',
-                    ),
+                    _MenuItem(icon: Icons.language, label: 'Language & Region'),
+                    _MenuItem(icon: Icons.tune, label: 'Content Preferences'),
                   ],
                 ),
                 AppSpacing.vGapXl,
@@ -446,4 +440,3 @@ class _NavRow extends StatelessWidget {
     );
   }
 }
-

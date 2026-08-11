@@ -38,8 +38,12 @@ class SmartCollarGeofenceScreen extends StatelessWidget {
     const zones = [
       _Zone(Icons.home_rounded, 'Home', '120 m radius', true),
       _Zone(Icons.park_rounded, 'Centennial Park', '250 m radius', true),
-      _Zone(Icons.local_hospital_rounded, "Dr. Miller's Vet", '80 m radius',
-          false),
+      _Zone(
+        Icons.local_hospital_rounded,
+        "Dr. Miller's Vet",
+        '80 m radius',
+        false,
+      ),
       _Zone(Icons.storefront_rounded, 'Pet Supplies Co.', '60 m radius', false),
     ];
 
@@ -102,8 +106,9 @@ class SmartCollarGeofenceScreen extends StatelessWidget {
                         for (var i = 0; i < zones.length; i++) ...[
                           if (i > 0)
                             Divider(
-                              color:
-                                  scheme.outlineVariant.withValues(alpha: 0.4),
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.4,
+                              ),
                               height: AppSpacing.lg,
                             ),
                           _ZoneRow(zone: zones[i]),
@@ -116,7 +121,8 @@ class SmartCollarGeofenceScreen extends StatelessWidget {
                     label: 'Add Safe Zone',
                     icon: Icons.add_rounded,
                     borderRadius: AppRadius.brPill,
-                    onPressed: () => context.showSnackbar('Add a new safe zone…'),
+                    onPressed: () =>
+                        context.showSnackbar('Add a new safe zone…'),
                   ),
                 ],
               ),
@@ -133,6 +139,7 @@ class SmartCollarGeofenceScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 // __CONT_1__
 /// One safe-zone row: a tinted glyph, the zone name and radius, and a status
 /// pill reading "Inside" (accent) or "Outside" (neutral).
@@ -148,8 +155,10 @@ class _ZoneRow extends StatelessWidget {
     final brightness = context.theme.brightness;
 
     final (pillBg, pillFg) = zone.inside
-        ? (palette.accentContainer(brightness),
-            palette.onAccentContainer(brightness))
+        ? (
+            palette.accentContainer(brightness),
+            palette.onAccentContainer(brightness),
+          )
         : (scheme.surfaceContainerHighest, scheme.onSurfaceVariant);
 
     return Row(

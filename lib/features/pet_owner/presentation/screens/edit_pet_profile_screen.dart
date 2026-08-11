@@ -61,7 +61,8 @@ class _EditPetProfileScreenState extends State<EditPetProfileScreen> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      _birthdayController.text = '${_month(picked.month)} '
+      _birthdayController.text =
+          '${_month(picked.month)} '
           '${picked.day}, ${picked.year}';
     }
   }
@@ -128,9 +129,7 @@ class _EditPetProfileScreenState extends State<EditPetProfileScreen> {
         ),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppBreakpoints.tablet,
-            ),
+            constraints: const BoxConstraints(maxWidth: AppBreakpoints.tablet),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -242,11 +241,7 @@ class _EditPetProfileScreenState extends State<EditPetProfileScreen> {
                           );
                           if (isNarrow) {
                             return Column(
-                              children: [
-                                weight,
-                                AppSpacing.vGapMd,
-                                birthday,
-                              ],
+                              children: [weight, AppSpacing.vGapMd, birthday],
                             );
                           }
                           return Row(

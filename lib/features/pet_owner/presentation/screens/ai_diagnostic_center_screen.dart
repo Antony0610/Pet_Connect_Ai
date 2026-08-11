@@ -63,7 +63,7 @@ class _AiDiagnosticCenterScreenState extends State<AiDiagnosticCenterScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Subtitle & Category Chips ──────────────────────
                 Text(
@@ -105,7 +105,7 @@ class _AiDiagnosticCenterScreenState extends State<AiDiagnosticCenterScreen> {
                 // ── Diagnostic Hero Result Card ────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -209,7 +209,7 @@ class _AiDiagnosticCenterScreenState extends State<AiDiagnosticCenterScreen> {
                       AppSpacing.hGapMd,
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Need Professional Confirmation?',

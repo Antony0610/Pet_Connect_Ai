@@ -191,7 +191,11 @@ class _TimelineNode extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: scheme.surface, width: 3),
                 ),
-                child: Icon(event.icon, color: event.onColor, size: AppIconSizes.sm),
+                child: Icon(
+                  event.icon,
+                  color: event.onColor,
+                  size: AppIconSizes.sm,
+                ),
               ),
               if (!isLast)
                 Expanded(

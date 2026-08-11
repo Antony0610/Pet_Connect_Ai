@@ -66,7 +66,7 @@ class _CommunitySightingsScreenState extends State<CommunitySightingsScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Banner Description ──────────────────────────────
                 Text(
@@ -107,7 +107,7 @@ class _CommunitySightingsScreenState extends State<CommunitySightingsScreen> {
                 // ── AI Cluster Match Banner ────────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -232,7 +232,7 @@ class _CommunitySightingsScreenState extends State<CommunitySightingsScreen> {
     final scheme = context.colorScheme;
     return AppCard(
       child: Column(
-        crossAxisAlignment: CrossAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [

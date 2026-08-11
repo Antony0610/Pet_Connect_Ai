@@ -135,7 +135,11 @@ class HealthAccentButton extends StatelessWidget {
     );
 
     if (icon == null) {
-      return FilledButton(onPressed: onPressed, style: style, child: Text(label));
+      return FilledButton(
+        onPressed: onPressed,
+        style: style,
+        child: Text(label),
+      );
     }
     return FilledButton.icon(
       onPressed: onPressed,

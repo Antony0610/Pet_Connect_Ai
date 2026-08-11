@@ -484,11 +484,7 @@ class _SquareTile extends StatelessWidget {
 
 /// A rounded, bordered gallery image tile with an optional overlay + gradient.
 class _GalleryTile extends StatelessWidget {
-  const _GalleryTile({
-    required this.url,
-    this.overlay,
-    this.gradient = false,
-  });
+  const _GalleryTile({required this.url, this.overlay, this.gradient = false});
 
   final String url;
   final Widget? overlay;
@@ -583,10 +579,7 @@ class _VideoBadge extends StatelessWidget {
         children: [
           const Icon(Icons.play_arrow, size: 14, color: Colors.white),
           AppSpacing.hGapXs,
-          Text(
-            duration,
-            style: text.bodySmall?.copyWith(color: Colors.white),
-          ),
+          Text(duration, style: text.bodySmall?.copyWith(color: Colors.white)),
         ],
       ),
     );

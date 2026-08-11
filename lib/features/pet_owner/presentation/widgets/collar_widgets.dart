@@ -105,6 +105,7 @@ class CollarStatTile extends StatelessWidget {
     );
   }
 }
+
 /// A large circular metric ring (steps, battery, goal progress) with a value
 /// and caption stacked in the middle. Reused by the dashboard's "Today's
 /// Activity" gauge and the activity-monitoring screen.
@@ -191,6 +192,7 @@ class _RingPainter extends CustomPainter {
       old.track != track ||
       old.stroke != stroke;
 }
+
 /// A large tappable quick-action tile: a big icon over a label, on a filled
 /// tonal surface. Matches the collar dashboard's 2×2 action grid (Live
 /// Tracking, Lost Mode, Geofence, Diagnostics).
@@ -314,7 +316,9 @@ class CollarLivePill extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface.withValues(alpha: 0.90),
         borderRadius: AppRadius.brPill,
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.20)),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.20),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -385,5 +389,3 @@ class _MapPin extends StatelessWidget {
     );
   }
 }
-
-

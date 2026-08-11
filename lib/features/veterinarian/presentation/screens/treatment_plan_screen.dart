@@ -146,7 +146,10 @@ class VetTreatmentPlanScreen extends StatelessWidget {
   }
 
   Widget _buildPlanHeader(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       color: colorScheme.primaryContainer.withOpacity(0.35),
@@ -251,7 +254,10 @@ class VetTreatmentPlanScreen extends StatelessWidget {
   }
 
   Widget _buildHomeCareCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -259,8 +265,11 @@ class VetTreatmentPlanScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.home_repair_service_outlined,
-                  color: colorScheme.primary, size: 22),
+              Icon(
+                Icons.home_repair_service_outlined,
+                color: colorScheme.primary,
+                size: 22,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Owner Instructions',
@@ -296,7 +305,10 @@ class VetTreatmentPlanScreen extends StatelessWidget {
   }
 
   Widget _buildAiPrognosisCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -324,20 +336,21 @@ class VetTreatmentPlanScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Pruritus Score (VAS):',
-                  style: theme.textTheme.bodySmall),
-              Text('8/10 → Target 2/10',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.tertiary)),
+              Text('Pruritus Score (VAS):', style: theme.textTheme.bodySmall),
+              Text(
+                '8/10 → Target 2/10',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.tertiary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Erythema Reduction:',
-                  style: theme.textTheme.bodySmall),
+              Text('Erythema Reduction:', style: theme.textTheme.bodySmall),
               AppChip(
                 label: 'In Progress',
                 backgroundColor: colorScheme.tertiaryContainer,

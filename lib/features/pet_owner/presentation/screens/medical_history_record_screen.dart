@@ -185,7 +185,10 @@ class _AiSummaryCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [container.withValues(alpha: 0.6), scheme.surfaceContainerLow],
+          colors: [
+            container.withValues(alpha: 0.6),
+            scheme.surfaceContainerLow,
+          ],
         ),
         border: Border.all(color: palette.accent.withValues(alpha: 0.25)),
       ),
@@ -271,10 +274,7 @@ class _RecordHistory extends StatelessWidget {
           ),
         ),
         for (var i = 0; i < records.length; i++)
-          _TimelineTile(
-            record: records[i],
-            isLast: i == records.length - 1,
-          ),
+          _TimelineTile(record: records[i], isLast: i == records.length - 1),
         AppSpacing.vGapSm,
         Center(
           child: AppButton.outlined(
@@ -327,14 +327,15 @@ class _TimelineTile extends StatelessWidget {
                   color: record.color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(record.icon, color: record.color, size: AppIconSizes.sm),
+                child: Icon(
+                  record.icon,
+                  color: record.color,
+                  size: AppIconSizes.sm,
+                ),
               ),
               if (!isLast)
                 Expanded(
-                  child: Container(
-                    width: 2,
-                    color: scheme.outlineVariant,
-                  ),
+                  child: Container(width: 2, color: scheme.outlineVariant),
                 ),
             ],
           ),

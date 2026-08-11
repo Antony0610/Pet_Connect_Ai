@@ -4,19 +4,16 @@ import '../../../core/theme/component_tokens/card_tokens.dart';
 import '../../../core/theme/tokens/app_elevation.dart';
 
 /// The canonical surface container for PetConnect AI.
-///
-/// A themed card with the design system's radius, padding, and soft elevation.
-/// Supports an optional tap handler (adds ripple) and a flat/outlined style.
-/// All colors come from the active [ColorScheme].
 class AppCard extends StatelessWidget {
   const AppCard({
     required this.child,
     this.padding,
     this.onTap,
     this.isOutlined = false,
-    this.backgroundColor,
+    Color? backgroundColor,
+    Color? color,
     super.key,
-  });
+  }) : backgroundColor = backgroundColor ?? color;
 
   final Widget child;
   final EdgeInsetsGeometry? padding;

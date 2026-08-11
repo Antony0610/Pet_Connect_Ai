@@ -129,7 +129,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Category Filters ───────────────────────────────
                 SingleChildScrollView(
@@ -230,7 +230,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                             AppSpacing.hGapMd,
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [

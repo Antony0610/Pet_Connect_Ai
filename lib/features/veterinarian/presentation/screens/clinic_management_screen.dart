@@ -86,7 +86,10 @@ class ClinicManagementScreen extends StatelessWidget {
   }
 
   Widget _buildOverviewBanner(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       color: colorScheme.primaryContainer.withOpacity(0.35),
@@ -116,7 +119,8 @@ class ClinicManagementScreen extends StatelessWidget {
             children: [
               AppButton(
                 text: '+ Appt',
-                onPressed: () => context.push(RoutePaths.vetAppointmentSchedule),
+                onPressed: () =>
+                    context.push(RoutePaths.vetAppointmentSchedule),
                 backgroundColor: colorScheme.primary,
                 textColor: colorScheme.onPrimary,
                 height: 36,
@@ -137,7 +141,10 @@ class ClinicManagementScreen extends StatelessWidget {
   }
 
   Widget _buildKpiMetricsRow(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -187,8 +194,11 @@ class ClinicManagementScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          color: colorScheme.error, size: 22),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: colorScheme.error,
+                        size: 22,
+                      ),
                       AppChip(
                         label: 'View',
                         backgroundColor: colorScheme.errorContainer,
@@ -220,7 +230,10 @@ class ClinicManagementScreen extends StatelessWidget {
   }
 
   Widget _buildRecentActivityLog(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -233,10 +246,7 @@ class ClinicManagementScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            TextButton(
-              onPressed: () {},
-              child: const Text('View Log'),
-            ),
+            TextButton(onPressed: () {}, child: const Text('View Log')),
           ],
         ),
         const SizedBox(height: 8),
@@ -284,24 +294,36 @@ class ClinicManagementScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600)),
-              Text(subtitle,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: colorScheme.onSurfaceVariant)),
+              Text(
+                title,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),
-        Text(time,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: colorScheme.onSurfaceVariant)),
+        Text(
+          time,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildQuickLinksGrid(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -377,7 +399,10 @@ class ClinicManagementScreen extends StatelessWidget {
   }
 
   Widget _buildBottomNav(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return NavigationBar(
       selectedIndex: 0,
       onDestinationSelected: (index) {

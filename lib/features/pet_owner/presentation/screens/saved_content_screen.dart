@@ -54,7 +54,7 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Filter Tabs Row ────────────────────────────────
                 Row(
@@ -87,7 +87,7 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
                   onTap: () =>
                       context.goNamed(RouteNames.ownerCommunityDiscover),
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -140,7 +140,7 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
                 AppCard(
                   backgroundColor: scheme.errorContainer.withValues(alpha: 0.2),
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -189,7 +189,7 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
                   onTap: () =>
                       context.goNamed(RouteNames.ownerCommunityDiscover),
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [

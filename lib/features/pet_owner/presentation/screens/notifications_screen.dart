@@ -101,8 +101,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       icon: Icons.monitor_heart,
       title: 'Vaccination Reminder',
       timestamp: 'Yesterday',
-      body:
-          "Luna's annual checkup and rabies vaccination are due next week.",
+      body: "Luna's annual checkup and rabies vaccination are due next week.",
       unread: true,
       actionLabel: 'Schedule Appointment',
     ),
@@ -279,9 +278,7 @@ class _FilterChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.brPill,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: AppRadius.brPill,
@@ -334,6 +331,7 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
 /// Resolved token bundle for a notification [_NotifKind].
 class _KindStyle {
   const _KindStyle({
@@ -426,11 +424,7 @@ class _NotificationCard extends StatelessWidget {
               shape: BoxShape.circle,
               color: style.badgeBg,
             ),
-            child: Icon(
-              data.icon,
-              size: AppIconSizes.sm,
-              color: style.badgeFg,
-            ),
+            child: Icon(data.icon, size: AppIconSizes.sm, color: style.badgeFg),
           ),
           AppSpacing.hGapMd,
           Expanded(
@@ -544,4 +538,3 @@ class _PriorityBadge extends StatelessWidget {
     );
   }
 }
-

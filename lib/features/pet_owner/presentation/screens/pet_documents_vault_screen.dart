@@ -117,7 +117,7 @@ class _PetDocumentsVaultScreenState extends State<PetDocumentsVaultScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Subtitle & Search Input ────────────────────────
                 Text(
@@ -184,7 +184,7 @@ class _PetDocumentsVaultScreenState extends State<PetDocumentsVaultScreen> {
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                       child: AppCard(
                         child: Row(
-                          crossAxisAlignment: CrossAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
                               padding: const EdgeInsets.all(AppSpacing.sm),
@@ -203,7 +203,7 @@ class _PetDocumentsVaultScreenState extends State<PetDocumentsVaultScreen> {
                             AppSpacing.hGapMd,
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     doc.title,

@@ -25,7 +25,6 @@ class LostPetDashboardScreen extends StatefulWidget {
 
 class _LostPetDashboardScreenState extends State<LostPetDashboardScreen> {
   static const double _maxContentWidth = 1000;
-  bool _isLostModeActive = true;
 
   @override
   Widget build(BuildContext context) {
@@ -54,12 +53,12 @@ class _LostPetDashboardScreenState extends State<LostPetDashboardScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Active Lost Mode Hero Banner ───────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -204,7 +203,7 @@ class _LostPetDashboardScreenState extends State<LostPetDashboardScreen> {
                       AppSpacing.hGapMd,
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Found your pet?',
@@ -268,7 +267,7 @@ class _LostPetDashboardScreenState extends State<LostPetDashboardScreen> {
           AppSpacing.hGapSm,
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [

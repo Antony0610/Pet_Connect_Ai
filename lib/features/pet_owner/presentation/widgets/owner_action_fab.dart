@@ -64,8 +64,6 @@ class _OwnerActionFabState extends State<OwnerActionFab> {
     );
 
     final tooltip = widget.tooltip;
-    return tooltip == null
-        ? button
-        : Tooltip(message: tooltip, child: button);
+    return tooltip == null ? button : Tooltip(message: tooltip, child: button);
   }
 }

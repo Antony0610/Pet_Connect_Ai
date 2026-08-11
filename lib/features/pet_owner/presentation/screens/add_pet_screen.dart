@@ -88,9 +88,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
         ),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppBreakpoints.tablet,
-            ),
+            constraints: const BoxConstraints(maxWidth: AppBreakpoints.tablet),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

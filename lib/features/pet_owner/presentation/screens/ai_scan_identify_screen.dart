@@ -61,7 +61,7 @@ class _AiScanIdentifyScreenState extends State<AiScanIdentifyScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Mode Selector Chips ────────────────────────────
                 Row(
@@ -198,7 +198,7 @@ class _AiScanIdentifyScreenState extends State<AiScanIdentifyScreen> {
                   AppCard(
                     backgroundColor: scheme.primaryContainer,
                     child: Column(
-                      crossAxisAlignment: CrossAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [

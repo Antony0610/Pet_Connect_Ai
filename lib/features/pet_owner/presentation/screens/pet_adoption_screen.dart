@@ -66,7 +66,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Hero Section / Search Bar ─────────────────────
                 AiGradientBorderCard(
@@ -144,7 +144,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
 
         if (isWide) {
           return Row(
-            crossAxisAlignment: CrossAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 flex: 2,
@@ -221,7 +221,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
     return AppCard(
       padding: EdgeInsets.zero,
       child: Column(
-        crossAxisAlignment: CrossAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             height: 220,
@@ -237,7 +237,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
           Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -316,7 +316,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
           AppSpacing.hGapSm,
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [AiConfidenceBadge(percentage: match)]),
                 Text(

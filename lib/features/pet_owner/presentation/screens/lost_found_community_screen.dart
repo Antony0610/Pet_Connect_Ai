@@ -64,7 +64,7 @@ class _LostFoundCommunityScreenState extends State<LostFoundCommunityScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Header CTA Bar ─────────────────────────────────
                 Row(
@@ -133,7 +133,7 @@ class _LostFoundCommunityScreenState extends State<LostFoundCommunityScreen> {
                 // ── AI Match Suggestion Card ───────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -178,7 +178,7 @@ class _LostFoundCommunityScreenState extends State<LostFoundCommunityScreen> {
                 AppCard(
                   backgroundColor: scheme.errorContainer.withValues(alpha: 0.2),
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [

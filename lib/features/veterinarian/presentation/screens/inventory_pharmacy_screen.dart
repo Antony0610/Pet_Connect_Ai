@@ -63,9 +63,15 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
 
     final filtered = _inventoryItems.where((item) {
       return _searchQuery.isEmpty ||
-          item['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          item['sku'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          item['category'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+          item['name'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          item['sku'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          item['category'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
     }).toList();
 
     return Scaffold(
@@ -176,7 +182,10 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
   }
 
   Widget _buildLowStockAlert(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -226,7 +235,10 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
   }
 
   Widget _buildExpiryInsightBanner(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -291,7 +303,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['name'],
+                      item['name'] as String,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -306,7 +318,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
                 ),
               ),
               AppChip(
-                label: item['status'],
+                label: item['status'] as String,
                 backgroundColor: statusColor.withOpacity(0.15),
                 textColor: statusColor,
               ),
@@ -329,7 +341,10 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    child: const Text('Details', style: TextStyle(fontSize: 12)),
+                    child: const Text(
+                      'Details',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   ElevatedButton(
@@ -337,8 +352,10 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    child: Text(item['isCritical'] ? 'Reorder' : 'Log Use',
-                        style: const TextStyle(fontSize: 12)),
+                    child: Text(
+                      item['isCritical'] ? 'Reorder' : 'Log Use',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
               ),

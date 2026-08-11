@@ -54,7 +54,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Recovery Plan Hero Card ────────────────────────
                 AppCard(
@@ -62,7 +62,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                     alpha: 0.3,
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -188,7 +188,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                       AppSpacing.hGapSm,
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Dr. Emily Carter',
@@ -246,7 +246,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
           AppSpacing.hGapMd,
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,

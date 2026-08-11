@@ -93,6 +93,7 @@ class SmartCollarActivityScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 // __CONT_1__
 /// The daily-goal hero: the step ring beside a short "goal progress" readout.
 class _GoalHero extends StatelessWidget {
@@ -157,9 +158,7 @@ class _GoalHero extends StatelessWidget {
                 Expanded(child: readout),
               ],
             )
-          : Column(
-              children: [ring, AppSpacing.vGapMd, readout],
-            ),
+          : Column(children: [ring, AppSpacing.vGapMd, readout]),
     );
   }
 }
@@ -212,14 +211,34 @@ class _Timeline extends StatelessWidget {
     final scheme = context.colorScheme;
 
     const events = [
-      _Event(Icons.directions_walk_rounded, 'Morning walk',
-          '2.1 km around Centennial Park', '7:30 AM', _Tint.primary),
-      _Event(Icons.restaurant_rounded, 'Breakfast logged',
-          'Portion matched to activity plan', '8:15 AM', _Tint.secondary),
-      _Event(Icons.sports_baseball_rounded, 'Play session',
-          'High activity — 20 active minutes', '11:40 AM', _Tint.tertiary),
-      _Event(Icons.bedtime_rounded, 'Afternoon rest',
-          'Settled nap, steady heart rate', '2:05 PM', _Tint.secondary),
+      _Event(
+        Icons.directions_walk_rounded,
+        'Morning walk',
+        '2.1 km around Centennial Park',
+        '7:30 AM',
+        _Tint.primary,
+      ),
+      _Event(
+        Icons.restaurant_rounded,
+        'Breakfast logged',
+        'Portion matched to activity plan',
+        '8:15 AM',
+        _Tint.secondary,
+      ),
+      _Event(
+        Icons.sports_baseball_rounded,
+        'Play session',
+        'High activity — 20 active minutes',
+        '11:40 AM',
+        _Tint.tertiary,
+      ),
+      _Event(
+        Icons.bedtime_rounded,
+        'Afternoon rest',
+        'Settled nap, steady heart rate',
+        '2:05 PM',
+        _Tint.secondary,
+      ),
     ];
 
     return AppCard(
@@ -251,13 +270,10 @@ class _EventRow extends StatelessWidget {
     final (bg, fg) = switch (event.tint) {
       _Tint.primary => (scheme.primaryContainer, scheme.onPrimaryContainer),
       _Tint.secondary => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-        ),
-      _Tint.tertiary => (
-          scheme.tertiaryContainer,
-          scheme.onTertiaryContainer,
-        ),
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
+      _Tint.tertiary => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
     };
 
     return Row(
@@ -300,4 +316,3 @@ class _EventRow extends StatelessWidget {
     );
   }
 }
-

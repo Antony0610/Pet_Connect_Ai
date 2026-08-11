@@ -38,14 +38,30 @@ class SmartCollarDiagnosticsScreen extends StatelessWidget {
     final margin = _horizontalMargin(width);
 
     const checks = [
-      _Check(Icons.gps_fixed_rounded, 'GPS module',
-          'Strong satellite lock · ±4 m', _Health.ok),
-      _Check(Icons.signal_cellular_alt_rounded, 'Cellular signal',
-          'Strong (5/5) on the LTE-M network', _Health.ok),
-      _Check(Icons.sensors_rounded, 'Motion sensors',
-          'Accelerometer & gyroscope nominal', _Health.ok),
-      _Check(Icons.system_update_rounded, 'Firmware',
-          'v2.4.1 — update available (v2.5.0)', _Health.attention),
+      _Check(
+        Icons.gps_fixed_rounded,
+        'GPS module',
+        'Strong satellite lock · ±4 m',
+        _Health.ok,
+      ),
+      _Check(
+        Icons.signal_cellular_alt_rounded,
+        'Cellular signal',
+        'Strong (5/5) on the LTE-M network',
+        _Health.ok,
+      ),
+      _Check(
+        Icons.sensors_rounded,
+        'Motion sensors',
+        'Accelerometer & gyroscope nominal',
+        _Health.ok,
+      ),
+      _Check(
+        Icons.system_update_rounded,
+        'Firmware',
+        'v2.4.1 — update available (v2.5.0)',
+        _Health.attention,
+      ),
     ];
 
     return Scaffold(
@@ -92,8 +108,9 @@ class SmartCollarDiagnosticsScreen extends StatelessWidget {
                         for (var i = 0; i < checks.length; i++) ...[
                           if (i > 0)
                             Divider(
-                              color:
-                                  scheme.outlineVariant.withValues(alpha: 0.4),
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.4,
+                              ),
                               height: AppSpacing.lg,
                             ),
                           _CheckRow(check: checks[i]),
@@ -132,6 +149,7 @@ class SmartCollarDiagnosticsScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 // __CONT_1__
 /// The battery hero: a charge ring beside the collar's power state and a short
 /// estimated-life readout.
@@ -201,9 +219,7 @@ class _BatteryHero extends StatelessWidget {
                 Expanded(child: readout),
               ],
             )
-          : Column(
-              children: [ring, AppSpacing.vGapMd, readout],
-            ),
+          : Column(children: [ring, AppSpacing.vGapMd, readout]),
     );
   }
 }

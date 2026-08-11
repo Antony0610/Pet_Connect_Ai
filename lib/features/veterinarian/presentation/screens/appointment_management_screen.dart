@@ -309,7 +309,7 @@ class _AppointmentManagementScreenState
                 ],
               ),
               AppChip(
-                label: appt['status'],
+                label: appt['status'] as String,
                 backgroundColor: statusColor.withOpacity(0.15),
                 textColor: statusColor,
               ),
@@ -335,7 +335,7 @@ class _AppointmentManagementScreenState
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      appt['reason'],
+                      appt['reason'] as String,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -358,7 +358,7 @@ class _AppointmentManagementScreenState
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    appt['doctor'],
+                    appt['doctor'] as String,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),

@@ -47,7 +47,7 @@ class CommunityAchievementsScreen extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Subtitle Banner ────────────────────────────────
                 Text(
@@ -61,7 +61,7 @@ class CommunityAchievementsScreen extends StatelessWidget {
                 // ── User Impact Level Hero Card ────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -287,7 +287,7 @@ class CommunityAchievementsScreen extends StatelessWidget {
           AppSpacing.hGapSm,
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(

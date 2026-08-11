@@ -86,10 +86,7 @@ class PortalPalette {
             accent.withValues(alpha: 0.26),
             AppColors.darkSurfaceContainer,
           )
-        : Color.alphaBlend(
-            accent.withValues(alpha: 0.14),
-            AppColors.white,
-          );
+        : Color.alphaBlend(accent.withValues(alpha: 0.14), AppColors.white);
   }
 
   /// The foreground (icon/text) color that reads on [accentContainer] for the

@@ -22,8 +22,7 @@ class SmartCollarSettingsScreen extends StatefulWidget {
       _SmartCollarSettingsScreenState();
 }
 
-class _SmartCollarSettingsScreenState
-    extends State<SmartCollarSettingsScreen> {
+class _SmartCollarSettingsScreenState extends State<SmartCollarSettingsScreen> {
   bool _liveTracking = true;
   bool _ledLight = true;
   bool _soundAlerts = true;
@@ -187,9 +186,9 @@ class _SmartCollarSettingsScreenState
   }
 
   static Widget _rowDivider(ColorScheme scheme) => Divider(
-        color: scheme.outlineVariant.withValues(alpha: 0.4),
-        height: AppSpacing.lg,
-      );
+    color: scheme.outlineVariant.withValues(alpha: 0.4),
+    height: AppSpacing.lg,
+  );
 
   static double _horizontalMargin(double width) {
     if (width < AppBreakpoints.tablet) return AppSpacing.marginMobile;
@@ -197,6 +196,7 @@ class _SmartCollarSettingsScreenState
     return AppSpacing.marginDesktop;
   }
 }
+
 // __CONT_1__
 /// A small section heading above a settings group.
 class _SectionTitle extends StatelessWidget {

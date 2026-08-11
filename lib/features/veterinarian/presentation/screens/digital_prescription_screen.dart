@@ -99,7 +99,9 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Prescription sent to Oakridge Pharmacy!'),
+                            content: Text(
+                              'Prescription sent to Oakridge Pharmacy!',
+                            ),
                           ),
                         );
                         context.push(RoutePaths.vetPharmacy);
@@ -120,7 +122,10 @@ class DigitalPrescriptionScreen extends StatelessWidget {
   }
 
   Widget _buildClinicHeader(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       color: colorScheme.primaryContainer.withOpacity(0.3),
@@ -134,8 +139,11 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                   color: colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.local_hospital_rounded,
-                    color: colorScheme.onPrimary, size: 24),
+                child: Icon(
+                  Icons.local_hospital_rounded,
+                  color: colorScheme.onPrimary,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -189,7 +197,10 @@ class DigitalPrescriptionScreen extends StatelessWidget {
   }
 
   Widget _buildPatientOwnerCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -223,8 +234,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
           const Divider(height: 20),
           Row(
             children: [
-              Icon(Icons.person_outline,
-                  color: colorScheme.primary, size: 20),
+              Icon(Icons.person_outline, color: colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Owner: Sarah Jenkins',
@@ -247,7 +257,10 @@ class DigitalPrescriptionScreen extends StatelessWidget {
   }
 
   Widget _buildMedicationCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -328,8 +341,11 @@ class DigitalPrescriptionScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: colorScheme.error, size: 18),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: colorScheme.error,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -353,14 +369,19 @@ class DigitalPrescriptionScreen extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 2),
-        Text(val,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(
+          val,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
       ],
     );
   }
 
   Widget _buildSignatureCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(14),
       child: Row(

@@ -69,6 +69,7 @@ class AiCircleIcon extends StatelessWidget {
     );
   }
 }
+
 /// A card wrapped in the signature AI **gradient border** (`primary` →
 /// `secondary`, per the frozen `DESIGN.md` rule that AI-generated content is
 /// encased in a subtle gradient-bordered card). The border is painted as a
@@ -128,12 +129,17 @@ class AiGradientBorderCard extends StatelessWidget {
 /// themes without any literal color.
 class AiConfidenceBadge extends StatelessWidget {
   const AiConfidenceBadge({
-    required this.label,
-    required this.background,
-    required this.foreground,
+    String? label,
+    Color? background,
+    Color? foreground,
+    String? percentage,
     this.icon = Icons.verified_rounded,
     super.key,
-  });
+  }) : label =
+           label ??
+           (percentage != null ? '$percentage Match' : 'High Confidence'),
+       background = background ?? const Color(0xFFE8F5E9),
+       foreground = foreground ?? const Color(0xFF2E7D32);
 
   final String label;
   final Color background;
@@ -147,7 +153,10 @@ class AiConfidenceBadge extends StatelessWidget {
         horizontal: AppSpacing.sm,
         vertical: AppSpacing.base,
       ),
-      decoration: BoxDecoration(color: background, borderRadius: AppRadius.brPill),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: AppRadius.brPill,
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -165,6 +174,7 @@ class AiConfidenceBadge extends StatelessWidget {
     );
   }
 }
+
 /// A small "source attribution" chip — an outlined pill with a link glyph and
 /// a source name, used under AI answers so users can trace the citation.
 class AiSourceChip extends StatelessWidget {
@@ -214,11 +224,7 @@ class AiSourceChip extends StatelessWidget {
     );
 
     if (onTap == null) return chip;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadius.brPill,
-      child: chip,
-    );
+    return InkWell(onTap: onTap, borderRadius: AppRadius.brPill, child: chip);
   }
 }
 
@@ -286,5 +292,3 @@ class AiListTile extends StatelessWidget {
     );
   }
 }
-
-

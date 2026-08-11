@@ -55,7 +55,7 @@ class _AiHealthAnalysisScreenState extends State<AiHealthAnalysisScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Header Subtitle ────────────────────────────────
                 Text(
@@ -187,7 +187,7 @@ class _AiHealthAnalysisScreenState extends State<AiHealthAnalysisScreen> {
                   // ── Analysis Result Verdict ────────────────────────
                   AiGradientBorderCard(
                     child: Column(
-                      crossAxisAlignment: CrossAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [

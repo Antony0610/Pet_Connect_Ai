@@ -436,10 +436,7 @@ class _ActivityPost extends StatelessWidget {
             ],
           ),
           AppSpacing.vGapMd,
-          Text(
-            body,
-            style: text.bodyMedium?.copyWith(color: scheme.onSurface),
-          ),
+          Text(body, style: text.bodyMedium?.copyWith(color: scheme.onSurface)),
           if (imageUrl != null) ...[
             AppSpacing.vGapMd,
             ClipRRect(
@@ -751,9 +748,7 @@ class _UpcomingEvents extends StatelessWidget {
           decoration: BoxDecoration(
             color: scheme.surfaceContainerLow,
             borderRadius: AppRadius.brCard,
-            border: Border(
-              left: BorderSide(color: scheme.primary, width: 4),
-            ),
+            border: Border(left: BorderSide(color: scheme.primary, width: 4)),
           ),
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
@@ -848,33 +843,36 @@ class _AttendeeStack extends StatelessWidget {
     final scheme = context.colorScheme;
 
     Widget dot(IconData icon, Color bg, Color fg) => Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: bg,
-            border: Border.all(color: scheme.surface, width: 2),
-          ),
-          child: Icon(icon, size: AppIconSizes.xs - 4, color: fg),
-        );
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: bg,
+        border: Border.all(color: scheme.surface, width: 2),
+      ),
+      child: Icon(icon, size: AppIconSizes.xs - 4, color: fg),
+    );
 
     return SizedBox(
       width: 48,
       height: 28,
       child: Stack(
         children: [
-          dot(Icons.person, scheme.secondaryContainer,
-              scheme.onSecondaryContainer),
+          dot(
+            Icons.person,
+            scheme.secondaryContainer,
+            scheme.onSecondaryContainer,
+          ),
           Positioned(
             left: 20,
-            child: dot(Icons.person, scheme.tertiaryContainer,
-                scheme.onTertiaryContainer),
+            child: dot(
+              Icons.person,
+              scheme.tertiaryContainer,
+              scheme.onTertiaryContainer,
+            ),
           ),
         ],
       ),
     );
   }
 }
-
-
-

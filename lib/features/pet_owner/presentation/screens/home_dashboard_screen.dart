@@ -238,9 +238,7 @@ class _HeroPetCard extends StatelessWidget {
                   ],
                 )
               else
-                Column(
-                  children: [avatar, AppSpacing.vGapLg, info],
-                ),
+                Column(children: [avatar, AppSpacing.vGapLg, info]),
             ],
           ),
         ],
@@ -540,7 +538,11 @@ class _AiInsightCard extends StatelessWidget {
         color: scheme.primaryContainer.withValues(alpha: 0.20),
         shape: BoxShape.circle,
       ),
-      child: Icon(Icons.smart_toy, color: scheme.primary, size: AppIconSizes.md),
+      child: Icon(
+        Icons.smart_toy,
+        color: scheme.primary,
+        size: AppIconSizes.md,
+      ),
     );
 
     final textBlock = Column(
@@ -558,15 +560,11 @@ class _AiInsightCard extends StatelessWidget {
           TextSpan(
             children: [
               const TextSpan(
-                text:
-                    'Activity levels are optimal. New Article: ',
+                text: 'Activity levels are optimal. New Article: ',
               ),
               TextSpan(
                 text: 'Mastering Recall',
-                style: TextStyle(
-                  color: accent,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: accent, fontWeight: FontWeight.w600),
               ),
               const TextSpan(
                 text:
@@ -981,10 +979,7 @@ class _TimelineCard extends StatelessWidget {
           ),
           AppSpacing.vGapMd,
           for (var i = 0; i < events.length; i++)
-            _TimelineTile(
-              event: events[i],
-              isLast: i == events.length - 1,
-            ),
+            _TimelineTile(event: events[i], isLast: i == events.length - 1),
         ],
       ),
     );

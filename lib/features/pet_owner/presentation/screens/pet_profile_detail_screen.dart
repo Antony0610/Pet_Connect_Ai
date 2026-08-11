@@ -93,9 +93,8 @@ class PetProfileDetailScreen extends StatelessWidget {
                           child: Image.network(
                             _heroPhotoUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _HeroFallback(
-                              wide: isWide,
-                            ),
+                            errorBuilder: (_, __, ___) =>
+                                _HeroFallback(wide: isWide),
                           ),
                         ),
                         if (!isWide)
@@ -106,8 +105,9 @@ class PetProfileDetailScreen extends StatelessWidget {
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    context.colorScheme.surface
-                                        .withValues(alpha: 0),
+                                    context.colorScheme.surface.withValues(
+                                      alpha: 0,
+                                    ),
                                     context.colorScheme.surface,
                                   ],
                                 ),
@@ -162,14 +162,9 @@ class PetProfileDetailScreen extends StatelessWidget {
                       ? const Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: _PersonalityActivityColumn(),
-                            ),
+                            Expanded(child: _PersonalityActivityColumn()),
                             AppSpacing.hGapMd,
-                            Expanded(
-                              flex: 2,
-                              child: _TimelinePreviewCard(),
-                            ),
+                            Expanded(flex: 2, child: _TimelinePreviewCard()),
                           ],
                         )
                       : const _PersonalityActivityColumn(),
@@ -268,9 +263,7 @@ class _PetStatBox extends StatelessWidget {
                 color: context.colorScheme.primary,
                 fontWeight: AppTypography.semiBold,
               ),
-              children: [
-                TextSpan(text: value),
-              ],
+              children: [TextSpan(text: value)],
             ),
           ),
           if (value.endsWith('lb'))
@@ -299,8 +292,9 @@ class _QuickActionsGrid extends StatelessWidget {
         label: 'Health',
         icon: Icons.favorite,
         iconFilled: true,
-        background: context.colorScheme.primaryContainer
-            .withValues(alpha: 0.10),
+        background: context.colorScheme.primaryContainer.withValues(
+          alpha: 0.10,
+        ),
         color: context.colorScheme.primary,
         onTap: () => context.goNamed(RouteNames.ownerHealth),
       ),
@@ -331,8 +325,7 @@ class _QuickActionsGrid extends StatelessWidget {
       _QuickAction(
         label: 'Lost',
         icon: Icons.location_on,
-        background: context.colorScheme.errorContainer
-            .withValues(alpha: 0.20),
+        background: context.colorScheme.errorContainer.withValues(alpha: 0.20),
         color: context.colorScheme.error,
         onTap: () => context.goNamed(RouteNames.ownerLostMode),
       ),
@@ -505,11 +498,7 @@ class _ActivityLevelCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.bolt,
-                    size: AppIconSizes.md,
-                    color: tertiary,
-                  ),
+                  Icon(Icons.bolt, size: AppIconSizes.md, color: tertiary),
                   AppSpacing.hGapSm,
                   Text(
                     'Activity Level',
@@ -617,9 +606,7 @@ class _TimelinePreviewCard extends StatelessWidget {
           AppSpacing.vGapSm,
           ...entries.map(
             (entry) => Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppSpacing.xs,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
               child: Row(
                 children: [
                   Container(

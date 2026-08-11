@@ -148,7 +148,11 @@ class _CurrentWeightCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.smart_toy_rounded, color: accent, size: AppIconSizes.sm),
+                Icon(
+                  Icons.smart_toy_rounded,
+                  color: accent,
+                  size: AppIconSizes.sm,
+                ),
                 AppSpacing.hGapSm,
                 Expanded(
                   child: Text(
@@ -447,8 +451,7 @@ class _BodyConditionCard extends StatelessWidget {
             icon: Icons.add_a_photo_rounded,
             variant: AppButtonVariant.tonal,
             isFullWidth: true,
-            onPressed: () =>
-                context.showSnackbar('Opening photo assessment…'),
+            onPressed: () => context.showSnackbar('Opening photo assessment…'),
           ),
         ],
       ),

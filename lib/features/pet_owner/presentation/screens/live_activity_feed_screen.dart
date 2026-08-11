@@ -92,7 +92,7 @@ class _LiveActivityFeedScreenState extends State<LiveActivityFeedScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Filter Chips Row ──────────────────────────────
                 Row(
@@ -124,7 +124,7 @@ class _LiveActivityFeedScreenState extends State<LiveActivityFeedScreen> {
                 // ── Critical Emergency Banner ──────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -177,7 +177,7 @@ class _LiveActivityFeedScreenState extends State<LiveActivityFeedScreen> {
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: AppCard(
                       child: Row(
-                        crossAxisAlignment: CrossAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.xs),
@@ -194,7 +194,7 @@ class _LiveActivityFeedScreenState extends State<LiveActivityFeedScreen> {
                           AppSpacing.hGapMd,
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [

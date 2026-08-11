@@ -42,8 +42,8 @@ class AppTextField extends StatefulWidget {
   final String? hintText;
   final String? helperText;
   final String? errorText;
-  final IconData? prefixIcon;
-  final IconData? suffixIcon;
+  final dynamic prefixIcon;
+  final dynamic suffixIcon;
 
   /// Invoked when [suffixIcon] is tapped. When null the suffix icon is
   /// decorative (no tap target). Ignored while the clear affordance is active.
@@ -75,24 +75,37 @@ class _AppTextFieldState extends State<AppTextField> {
     _controller =
         widget.controller ?? TextEditingController(text: widget.initialValue);
     _hasText = _controller.text.isNotEmpty;
-    _controller.addListener(_onTextChanged);
+    _controller.addListener(_handleTextChange);
   }
 
   @override
   void dispose() {
-    if (widget.controller == null) _controller.dispose();
+    if (widget.controller == null) {
+      _controller.dispose();
+    } else {
+      _controller.removeListener(_handleTextChange);
+    }
     super.dispose();
   }
 
-  void _onTextChanged() {
+  void _handleTextChange() {
     final hasText = _controller.text.isNotEmpty;
-    if (hasText != _hasText) setState(() => _hasText = hasText);
+    if (hasText != _hasText) {
+      setState(() => _hasText = hasText);
+    }
     widget.onChanged?.call(_controller.text);
   }
 
   void _clear() {
     _controller.clear();
     widget.onChanged?.call('');
+  }
+
+  Widget? _buildIconWidget(dynamic icon) {
+    if (icon == null) return null;
+    if (icon is Widget) return icon;
+    if (icon is IconData) return Icon(icon, size: InputTokens.iconSize);
+    return null;
   }
 
   @override
@@ -110,8 +123,8 @@ class _AppTextFieldState extends State<AppTextField> {
         onPressed: _clear,
       );
     } else if (widget.suffixIcon != null) {
-      final iconWidget = Icon(widget.suffixIcon, size: InputTokens.iconSize);
-      suffixIcon = widget.onSuffixIconTap != null
+      final iconWidget = _buildIconWidget(widget.suffixIcon);
+      suffixIcon = widget.onSuffixIconTap != null && iconWidget != null
           ? IconButton(icon: iconWidget, onPressed: widget.onSuffixIconTap)
           : iconWidget;
     }
@@ -134,9 +147,7 @@ class _AppTextFieldState extends State<AppTextField> {
           hintText: widget.hintText,
           helperText: widget.helperText,
           errorText: widget.errorText,
-          prefixIcon: widget.prefixIcon != null
-              ? Icon(widget.prefixIcon, size: InputTokens.iconSize)
-              : null,
+          prefixIcon: _buildIconWidget(widget.prefixIcon),
           suffixIcon: suffixIcon,
         ),
       ),

@@ -86,8 +86,10 @@ class SmartCollarTrackingScreen extends StatelessWidget {
                       IconButton.outlined(
                         onPressed: () =>
                             context.showSnackbar('Location history…'),
-                        icon: const Icon(Icons.history_rounded,
-                            size: AppIconSizes.md),
+                        icon: const Icon(
+                          Icons.history_rounded,
+                          size: AppIconSizes.md,
+                        ),
                         tooltip: 'Location history',
                       ),
                     ],
@@ -107,6 +109,7 @@ class SmartCollarTrackingScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 // __CONT_1__
 /// A reassuring banner confirming Buddy is inside a defined safe zone.
 class _SafeZoneBanner extends StatelessWidget {

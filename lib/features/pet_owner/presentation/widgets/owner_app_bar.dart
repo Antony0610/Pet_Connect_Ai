@@ -60,10 +60,7 @@ class OwnerGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           child: Row(
             children: [
-              if (leading != null) ...[
-                leading!,
-                AppSpacing.hGapSm,
-              ],
+              if (leading != null) ...[leading!, AppSpacing.hGapSm],
               if (title != null) Expanded(child: title!),
               if (title == null) const Spacer(),
               ...actions,
@@ -77,7 +74,11 @@ class OwnerGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 /// The emerald "pets" brand mark + screen title used on the Home header.
 class OwnerAppBarBrand extends StatelessWidget {
-  const OwnerAppBarBrand({required this.title, required this.accent, super.key});
+  const OwnerAppBarBrand({
+    required this.title,
+    required this.accent,
+    super.key,
+  });
 
   final String title;
   final Color accent;

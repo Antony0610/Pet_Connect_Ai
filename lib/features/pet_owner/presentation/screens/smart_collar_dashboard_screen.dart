@@ -98,6 +98,7 @@ class SmartCollarDashboardScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 /// The glass device-status hero: the pet's photo with an online indicator, the
 /// name and connection line, and a Location / Battery / Signal stat grid.
 class _DeviceStatusCard extends StatelessWidget {
@@ -110,8 +111,9 @@ class _DeviceStatusCard extends StatelessWidget {
     final isWide = context.screenWidth >= AppBreakpoints.tablet;
 
     final header = Column(
-      crossAxisAlignment:
-          isWide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      crossAxisAlignment: isWide
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.center,
       children: [
         Text(
           'Buddy',
@@ -310,7 +312,10 @@ class _TodaysActivity extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () =>
                         context.showSnackbar('Joining the step challenge…'),
-                    icon: const Icon(Icons.groups_rounded, size: AppIconSizes.sm),
+                    icon: const Icon(
+                      Icons.groups_rounded,
+                      size: AppIconSizes.sm,
+                    ),
                     label: const Text('Join Challenge'),
                     style: TextButton.styleFrom(
                       foregroundColor: scheme.primary,

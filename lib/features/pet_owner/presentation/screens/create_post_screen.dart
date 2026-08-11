@@ -118,7 +118,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Category Selector Chips ───────────────────────
                 Text(
@@ -267,7 +267,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 // ── AI Writing Assistant Card ──────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [

@@ -41,10 +41,7 @@ class ActivateLostModeScreen extends StatelessWidget {
           const Positioned.fill(child: _MapBackground()),
 
           // ── Central focus marker (pulse) ──────────────────────────
-          const Align(
-            alignment: Alignment(0, -0.4),
-            child: _PulseMarker(),
-          ),
+          const Align(alignment: Alignment(0, -0.4), child: _PulseMarker()),
 
           // ── Bottom sheet / confirmation card ──────────────────────
           Align(
@@ -78,7 +75,8 @@ class _MapBackground extends StatelessWidget {
       child: Image.network(
         _mapUrl,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => ColoredBox(color: scheme.surfaceContainer),
+        errorBuilder: (_, __, ___) =>
+            ColoredBox(color: scheme.surfaceContainer),
       ),
     );
   }
@@ -439,7 +437,10 @@ class _SheetActions extends StatelessWidget {
                 borderRadius: AppRadius.brPill,
               ),
             ),
-            icon: const Icon(Icons.warning_amber_rounded, size: AppIconSizes.sm),
+            icon: const Icon(
+              Icons.warning_amber_rounded,
+              size: AppIconSizes.sm,
+            ),
             label: const Text('Activate Lost Mode'),
           ),
         ),

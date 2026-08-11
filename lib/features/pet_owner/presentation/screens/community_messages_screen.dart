@@ -100,7 +100,7 @@ class _CommunityMessagesScreenState extends State<CommunityMessagesScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Search & Filter Controls ───────────────────────
                 AppTextField(
@@ -137,7 +137,7 @@ class _CommunityMessagesScreenState extends State<CommunityMessagesScreen> {
                 // ── AI Chat Summary Banner ────────────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -244,7 +244,7 @@ class _CommunityMessagesScreenState extends State<CommunityMessagesScreen> {
                                 ),
                               ),
                               child: Column(
-                                crossAxisAlignment: CrossAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     msg.text,

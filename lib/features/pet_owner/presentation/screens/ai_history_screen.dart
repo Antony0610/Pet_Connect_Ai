@@ -55,20 +55,40 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
 
   static const List<_Group> _groups = [
     _Group('Today', [
-      _Entry(_EntryKind.chat, 'Asked about sleep patterns',
-          'Is 14 hours of sleep normal for Buddy?', '2:14 PM'),
-      _Entry(_EntryKind.analysis, 'Rash image scanned',
-          'Low risk detected. Apply recommended ointment.', '11:02 AM'),
+      _Entry(
+        _EntryKind.chat,
+        'Asked about sleep patterns',
+        'Is 14 hours of sleep normal for Buddy?',
+        '2:14 PM',
+      ),
+      _Entry(
+        _EntryKind.analysis,
+        'Rash image scanned',
+        'Low risk detected. Apply recommended ointment.',
+        '11:02 AM',
+      ),
     ]),
     _Group('Yesterday', [
-      _Entry(_EntryKind.report, 'Weekly Wellness generated',
-          'Aug 1 – Aug 7, 2026', '6:30 PM'),
-      _Entry(_EntryKind.insight, 'Activity insight',
-          'Activity up 15% vs. 30-day average.', '9:15 AM'),
+      _Entry(
+        _EntryKind.report,
+        'Weekly Wellness generated',
+        'Aug 1 – Aug 7, 2026',
+        '6:30 PM',
+      ),
+      _Entry(
+        _EntryKind.insight,
+        'Activity insight',
+        'Activity up 15% vs. 30-day average.',
+        '9:15 AM',
+      ),
     ]),
     _Group('Aug 5, 2026', [
-      _Entry(_EntryKind.chat, 'Diet recommendations',
-          'How much should I feed a 30kg Golden?', '4:48 PM'),
+      _Entry(
+        _EntryKind.chat,
+        'Diet recommendations',
+        'How much should I feed a 30kg Golden?',
+        '4:48 PM',
+      ),
     ]),
   ];
 
@@ -129,6 +149,7 @@ class _AiHistoryScreenState extends State<AiHistoryScreen> {
     return AppSpacing.marginDesktop;
   }
 }
+
 /// The filter row: an "All" chip plus one chip per [_EntryKind].
 class _FilterBar extends StatelessWidget {
   const _FilterBar({required this.selected, required this.onChanged});
@@ -260,29 +281,31 @@ class _EntryRow extends StatelessWidget {
     final (bg, fg) = switch (entry.kind) {
       _EntryKind.chat => (scheme.primaryContainer, scheme.onPrimaryContainer),
       _EntryKind.analysis => (
-          scheme.tertiaryContainer,
-          scheme.onTertiaryContainer,
-        ),
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+      ),
       _EntryKind.report => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-        ),
+        scheme.secondaryContainer,
+        scheme.onSecondaryContainer,
+      ),
       _EntryKind.insight => (
-          scheme.primaryContainer,
-          scheme.onPrimaryContainer,
-        ),
+        scheme.primaryContainer,
+        scheme.onPrimaryContainer,
+      ),
     };
 
     return AiListTile(
-      leading: AiCircleIcon(icon: entry.kind.icon, background: bg, foreground: fg),
+      leading: AiCircleIcon(
+        icon: entry.kind.icon,
+        background: bg,
+        foreground: fg,
+      ),
       title: entry.title,
       subtitle: entry.subtitle,
       onTap: () => context.showSnackbar('Opening ${entry.title}…'),
       trailing: Text(
         entry.time,
-        style: context.textTheme.labelMedium?.copyWith(
-          color: scheme.outline,
-        ),
+        style: context.textTheme.labelMedium?.copyWith(color: scheme.outline),
       ),
     );
   }

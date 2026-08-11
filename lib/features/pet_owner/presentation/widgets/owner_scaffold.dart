@@ -54,7 +54,8 @@ class OwnerScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fab = floatingActionButton ??
+    final fab =
+        floatingActionButton ??
         (showAiFab
             ? OwnerAiFab(onPressed: () => _openAiAssistant(context))
             : null);

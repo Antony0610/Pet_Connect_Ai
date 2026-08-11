@@ -36,14 +36,30 @@ class AiReportsScreen extends StatelessWidget {
     final margin = _horizontalMargin(context.screenWidth);
 
     const reports = [
-      _Report(Icons.calendar_view_week_rounded, 'Weekly Wellness',
-          'Aug 1 – Aug 7, 2026', _ReportStatus.ready),
-      _Report(Icons.calendar_month_rounded, 'Monthly Summary',
-          'July 2026', _ReportStatus.ready),
-      _Report(Icons.vaccines_rounded, 'Vaccination Report',
-          'Updated Jun 2026', _ReportStatus.ready),
-      _Report(Icons.insights_rounded, 'Quarterly Trends',
-          'Generating…', _ReportStatus.generating),
+      _Report(
+        Icons.calendar_view_week_rounded,
+        'Weekly Wellness',
+        'Aug 1 – Aug 7, 2026',
+        _ReportStatus.ready,
+      ),
+      _Report(
+        Icons.calendar_month_rounded,
+        'Monthly Summary',
+        'July 2026',
+        _ReportStatus.ready,
+      ),
+      _Report(
+        Icons.vaccines_rounded,
+        'Vaccination Report',
+        'Updated Jun 2026',
+        _ReportStatus.ready,
+      ),
+      _Report(
+        Icons.insights_rounded,
+        'Quarterly Trends',
+        'Generating…',
+        _ReportStatus.generating,
+      ),
     ];
 
     return Scaffold(
@@ -90,7 +106,9 @@ class AiReportsScreen extends StatelessWidget {
                         for (var i = 0; i < reports.length; i++) ...[
                           if (i > 0)
                             Divider(
-                              color: scheme.outlineVariant.withValues(alpha: 0.4),
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.4,
+                              ),
                               height: AppSpacing.lg,
                             ),
                           _ReportRow(report: reports[i]),
@@ -113,6 +131,7 @@ class AiReportsScreen extends StatelessWidget {
     return AppSpacing.marginDesktop;
   }
 }
+
 /// The featured latest report: a gradient-bordered card summarizing the most
 /// recent weekly wellness report with a primary "View report" action.
 class _FeaturedReport extends StatelessWidget {
@@ -185,7 +204,10 @@ class _FeaturedReport extends StatelessWidget {
               AppSpacing.hGapSm,
               IconButton.outlined(
                 onPressed: () => context.showSnackbar('Sharing report…'),
-                icon: const Icon(Icons.ios_share_rounded, size: AppIconSizes.md),
+                icon: const Icon(
+                  Icons.ios_share_rounded,
+                  size: AppIconSizes.md,
+                ),
                 tooltip: 'Share',
               ),
             ],

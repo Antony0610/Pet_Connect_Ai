@@ -71,7 +71,7 @@ class _CommunityEventsScreenState extends State<CommunityEventsScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Subtitle ───────────────────────────────────────
                 Text(
@@ -111,7 +111,7 @@ class _CommunityEventsScreenState extends State<CommunityEventsScreen> {
                 // ── AI Recommended Event Hero Card ────────────────
                 AiGradientBorderCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -223,7 +223,7 @@ class _CommunityEventsScreenState extends State<CommunityEventsScreen> {
     final scheme = context.colorScheme;
     return AppCard(
       child: Row(
-        crossAxisAlignment: CrossAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(
@@ -255,7 +255,7 @@ class _CommunityEventsScreenState extends State<CommunityEventsScreen> {
           AppSpacing.hGapMd,
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [

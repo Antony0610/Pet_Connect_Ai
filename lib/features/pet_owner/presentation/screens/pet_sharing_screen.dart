@@ -85,7 +85,7 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Subtitle ──────────────────────────────────────
                 Text(
@@ -99,7 +99,7 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
                 // ── Invite New Member Card ─────────────────────────
                 AppCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Invite New Co-Owner or Caregiver',
@@ -191,7 +191,7 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
                           AppSpacing.hGapSm,
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
@@ -270,5 +270,5 @@ class _SharingMemberItem {
   final String name;
   final String role;
   final String access;
-  final String isPrimary;
+  final bool isPrimary;
 }

@@ -103,11 +103,8 @@ class OwnerBottomNavBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.xs),
               decoration: BoxDecoration(
-                color:
-                    (isDark
-                            ? scheme.surfaceContainerLowest
-                            : scheme.surface)
-                        .withValues(alpha: 0.80),
+                color: (isDark ? scheme.surfaceContainerLowest : scheme.surface)
+                    .withValues(alpha: 0.80),
                 borderRadius: AppRadius.brPill,
                 border: Border.all(
                   color: scheme.outlineVariant.withValues(alpha: 0.10),

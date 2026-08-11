@@ -88,7 +88,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildAnalyticsHeader(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       color: colorScheme.primaryContainer.withOpacity(0.35),
@@ -126,7 +129,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildKpiRow(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -225,7 +231,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildAiInsightCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -265,7 +274,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildOutcomesChartCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -323,7 +335,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildVaccineTrendsCard(
-      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -349,7 +364,11 @@ class ClinicAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildTrendRow(
-      String label, String count, double factor, Color color) {
+    String label,
+    String count,
+    double factor,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -357,7 +376,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-            Text(count, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(
+              count,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
         const SizedBox(height: 4),

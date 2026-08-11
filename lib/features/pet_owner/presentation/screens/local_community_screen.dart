@@ -73,7 +73,7 @@ class _LocalCommunityScreenState extends State<LocalCommunityScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
             child: Column(
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Hero Banner & Join Button ──────────────────────
                 AppCard(
@@ -84,7 +84,7 @@ class _LocalCommunityScreenState extends State<LocalCommunityScreen> {
                     children: [
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'San Francisco Bay Area',
@@ -166,7 +166,7 @@ class _LocalCommunityScreenState extends State<LocalCommunityScreen> {
                 AppSpacing.vGapSm,
                 AppCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -209,7 +209,7 @@ class _LocalCommunityScreenState extends State<LocalCommunityScreen> {
                 AppSpacing.vGapSm,
                 AppCard(
                   child: Column(
-                    crossAxisAlignment: CrossAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [

@@ -123,11 +123,10 @@ class _SectionIntro extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final headingStyle =
-        (isWide ? context.textTheme.displayMedium : context.textTheme.headlineLarge)
-            ?.copyWith(
-      color: scheme.onSurface,
-      fontWeight: FontWeight.w600,
-    );
+        (isWide
+                ? context.textTheme.displayMedium
+                : context.textTheme.headlineLarge)
+            ?.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w600);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,8 +171,8 @@ class _PetGrid extends StatelessWidget {
     final columns = width >= _threeColumnWidth
         ? 3
         : width >= _twoColumnWidth
-            ? 2
-            : 1;
+        ? 2
+        : 1;
     // gap-md on mobile, md:gap-lg at ≥768px.
     final gap = width >= _twoColumnWidth ? AppSpacing.lg : AppSpacing.md;
 
@@ -258,7 +257,9 @@ class _PetCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.brSection,
-          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.20)),
+          side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.20),
+          ),
         ),
         child: InkWell(
           onTap: onTap,
@@ -441,7 +442,9 @@ class _MoreButton extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         shape: CircleBorder(
-          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.50)),
+          side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.50),
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -620,14 +623,8 @@ const List<_OwnerPet> _pets = [
     imageUrl:
         'https://lh3.googleusercontent.com/aida-public/AB6AXuBAofv0tT8LexPb9Pp8bwTKft13fdhq6ZIsMJHa-R2Bg73z1Sz5OwFQ3JWvnvfojQX26ywI3uN6ELym3cJfWA7a6hAT0rFq3N8Rfv1Xp8F6eTypQuGDp1SM-tN8kIYE4JCEn3CCGBbZqgLhkraT77cd2UAA3ZVO3u9JHIL8auNZMW4MAmH07aulJWQAYP8mtD1RGLi0NGv0bE-7ockYwJun5oI3PztUMoYihVPWsIKGT2bLChIBsrxakA',
     health: _PetHealth.needsReview,
-    primaryStat: _PetStat(
-      icon: Icons.location_off,
-      label: 'Collar Offline',
-    ),
-    secondaryStat: _PetStat(
-      icon: Icons.restaurant,
-      label: 'Diet Plan Active',
-    ),
+    primaryStat: _PetStat(icon: Icons.location_off, label: 'Collar Offline'),
+    secondaryStat: _PetStat(icon: Icons.restaurant, label: 'Diet Plan Active'),
   ),
 ];
 

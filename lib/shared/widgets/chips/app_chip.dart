@@ -18,6 +18,8 @@ class AppChip extends StatelessWidget {
     this.onTap,
     this.onDeleted,
     this.isSelected = false,
+    this.backgroundColor,
+    this.textColor,
     super.key,
   });
 
@@ -28,15 +30,22 @@ class AppChip extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDeleted;
   final bool isSelected;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final labelWidget = Text(
+      label,
+      style: textColor != null ? TextStyle(color: textColor) : null,
+    );
 
     if (variant == AppChipVariant.outlined) {
       return RawChip(
-        label: Text(label),
+        label: labelWidget,
         selected: isSelected,
+        backgroundColor: backgroundColor,
         onSelected: onTap != null ? (_) => onTap!() : null,
         avatar: _buildLeading(),
         deleteIcon: onDeleted != null
@@ -50,8 +59,9 @@ class AppChip extends StatelessWidget {
     }
 
     return FilterChip(
-      label: Text(label),
+      label: labelWidget,
       selected: isSelected,
+      backgroundColor: backgroundColor,
       onSelected: onTap != null ? (_) => onTap!() : null,
       avatar: _buildLeading(),
       deleteIcon: onDeleted != null
