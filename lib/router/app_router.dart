@@ -61,11 +61,16 @@ import '../features/pet_owner/presentation/screens/smart_collar_tracking_screen.
 import '../features/pet_owner/presentation/screens/treatment_plan_screen.dart';
 import '../features/pet_owner/presentation/screens/vaccination_overview_screen.dart';
 import '../features/veterinarian/presentation/screens/appointment_management_screen.dart';
+import '../features/veterinarian/presentation/screens/clinic_analytics_screen.dart';
+import '../features/veterinarian/presentation/screens/clinic_management_screen.dart';
 import '../features/veterinarian/presentation/screens/consultation_workspace_screen.dart';
+import '../features/veterinarian/presentation/screens/digital_prescription_screen.dart';
+import '../features/veterinarian/presentation/screens/inventory_pharmacy_screen.dart';
 import '../features/veterinarian/presentation/screens/patient_medical_record_screen.dart';
 import '../features/veterinarian/presentation/screens/patient_queue_screen.dart';
 import '../features/veterinarian/presentation/screens/patient_registry_screen.dart';
 import '../features/veterinarian/presentation/screens/todays_appointments_screen.dart';
+import '../features/veterinarian/presentation/screens/treatment_plan_screen.dart';
 import '../features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
 import '../shared/widgets/placeholder_screen.dart';
 import 'route_guard.dart';
@@ -466,6 +471,31 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => ConsultationWorkspaceScreen(
               appointmentId: state.pathParameters['appointmentId'] ?? 'c1',
             ),
+          ),
+          GoRoute(
+            path: 'prescription/create',
+            name: RouteNames.vetPrescription,
+            builder: (context, state) => const DigitalPrescriptionScreen(),
+          ),
+          GoRoute(
+            path: 'treatment-plan',
+            name: RouteNames.vetTreatmentPlan,
+            builder: (context, state) => const VetTreatmentPlanScreen(),
+          ),
+          GoRoute(
+            path: 'clinic',
+            name: RouteNames.vetClinicManagement,
+            builder: (context, state) => const ClinicManagementScreen(),
+          ),
+          GoRoute(
+            path: 'pharmacy',
+            name: RouteNames.vetPharmacy,
+            builder: (context, state) => const InventoryPharmacyScreen(),
+          ),
+          GoRoute(
+            path: 'analytics',
+            name: RouteNames.vetAnalytics,
+            builder: (context, state) => const ClinicAnalyticsScreen(),
           ),
           GoRoute(
             path: 'profile',
