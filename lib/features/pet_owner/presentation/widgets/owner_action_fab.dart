@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/tokens/app_durations.dart';
-import '../../../../core/theme/tokens/app_elevation.dart';
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
-import '../../../../core/theme/tokens/app_radius.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 
 /// A floating primary action button used for screen-level "create" actions
 /// (e.g. **Add Pet** on the My Pets list).

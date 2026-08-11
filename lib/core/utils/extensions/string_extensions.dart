@@ -41,6 +41,7 @@ extension NullableStringExtensions on String? {
   bool get isNullOrBlank => this?.isBlank ?? true;
 
   /// The string if not blank, else [fallback].
+
   String orElse(String fallback) =>
       (this != null && this!.isNotBlank) ? this! : fallback;
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../router/route_paths.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'owner_ai_fab.dart';
 import 'owner_bottom_nav_bar.dart';
 

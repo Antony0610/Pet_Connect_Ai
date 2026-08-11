@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../core/utils/logger.dart';
+import 'package:petconnect_ai/core/utils/logger.dart';
 
 /// Logs route changes for debugging / analytics.
 ///

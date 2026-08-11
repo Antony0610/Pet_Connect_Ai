@@ -1,6 +1,6 @@
 import 'package:logger/logger.dart';
 
-import '../config/app_config.dart';
+import 'package:petconnect_ai/core/config/app_config.dart';
 
 /// Centralized logging for PetConnect AI.
 ///

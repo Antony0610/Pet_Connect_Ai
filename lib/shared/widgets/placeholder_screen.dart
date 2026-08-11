@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 
 /// Foundation-stage stand-in for a not-yet-implemented screen.
 ///

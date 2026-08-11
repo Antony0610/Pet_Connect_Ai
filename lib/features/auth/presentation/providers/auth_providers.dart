@@ -1,22 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/providers/core_providers.dart';
-import '../../../../core/theme/portal_theme.dart';
-import '../../../../core/usecase/usecase.dart';
-import '../../../../router/route_paths.dart';
-import '../../data/datasources/auth_remote_datasource.dart';
-import '../../data/datasources/onboarding_local_datasource.dart';
-import '../../data/repositories/auth_repository_impl.dart';
-import '../../data/repositories/onboarding_repository_impl.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../../domain/repositories/onboarding_repository.dart';
-import '../../domain/usecases/complete_onboarding.dart';
-import '../../domain/usecases/create_account.dart';
-import '../../domain/usecases/get_current_session.dart';
-import '../../domain/usecases/is_onboarding_complete.dart';
-import '../../domain/usecases/resend_email_otp.dart';
-import '../../domain/usecases/sign_in_with_password.dart';
-import '../../domain/usecases/verify_email_otp.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:petconnect_ai/features/auth/data/datasources/onboarding_local_datasource.dart';
+import 'package:petconnect_ai/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:petconnect_ai/features/auth/data/repositories/onboarding_repository_impl.dart';
+import 'package:petconnect_ai/features/auth/domain/repositories/auth_repository.dart';
+import 'package:petconnect_ai/features/auth/domain/repositories/onboarding_repository.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/complete_onboarding.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/create_account.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/get_current_session.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/is_onboarding_complete.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/resend_email_otp.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/sign_in_with_password.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/verify_email_otp.dart';
 
 // ──────────────────────────────────────────────────────────────────
 // Data sources

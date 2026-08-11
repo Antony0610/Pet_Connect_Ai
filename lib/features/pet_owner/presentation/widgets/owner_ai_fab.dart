@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/portal_theme.dart';
-import '../../../../core/theme/tokens/app_durations.dart';
-import '../../../../core/theme/tokens/app_elevation.dart';
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 
 /// The floating "AI Assistant" action button anchored above the bottom nav on
 /// every Pet Owner screen.

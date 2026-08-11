@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/tokens/app_breakpoints.dart';
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
-import '../../../../core/theme/tokens/app_radius.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/theme/tokens/app_typography.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
-import '../widgets/widgets.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 
 /// The Pet Owner **Settings** screen (frozen "Community Settings", Light
 /// master).

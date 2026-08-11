@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../tokens/app_radius.dart';
-import '../tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 
 /// Component-level design tokens for chips.
 abstract final class ChipTokens {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/component_tokens/input_tokens.dart';
+import 'package:petconnect_ai/core/theme/component_tokens/input_tokens.dart';
 
 /// Size options for [AppTextField].
 enum AppTextFieldSize { small, medium, large }

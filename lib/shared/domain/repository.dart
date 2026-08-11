@@ -6,4 +6,6 @@
 ///
 /// This is a marker interface for documentation; concrete repositories are
 /// defined per feature.
+library;
+
 abstract interface class Repository {}

@@ -1,8 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/utils/typedefs.dart';
-import '../../../../shared/data/model.dart';
-import '../../domain/entities/auth_session.dart';
+import 'package:petconnect_ai/core/utils/typedefs.dart';
+import 'package:petconnect_ai/shared/data/model.dart';
+import 'package:petconnect_ai/features/auth/domain/entities/auth_session.dart';
 
 /// Data-layer model (DTO) for [AuthSession].
 ///

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/tokens/app_breakpoints.dart';
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
-import '../../../../core/theme/tokens/app_radius.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/theme/tokens/app_typography.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
-import '../widgets/ai_widgets.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 
 /// The author of a chat message.
 enum _Role { user, ai }

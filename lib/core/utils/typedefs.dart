@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 
-import '../error/failures.dart';
+import 'package:petconnect_ai/core/error/failures.dart';
 
 /// Common functional typedefs used across layers.
 ///

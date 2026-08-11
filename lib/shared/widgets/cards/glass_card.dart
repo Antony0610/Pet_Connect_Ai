@@ -2,9 +2,9 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/tokens/app_elevation.dart';
-import '../../../core/theme/tokens/app_radius.dart';
-import '../../../core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 
 /// A glassmorphic ("Premium Expressive") surface container.
 ///
@@ -75,7 +75,7 @@ class GlassCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: surface,
         borderRadius: borderRadius,
-        border: Border.all(color: borderColor, width: 1),
+        border: const Border.all(color: borderColor, width: 1),
       ),
       child: content,
     );

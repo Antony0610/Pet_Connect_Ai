@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/portal_theme.dart';
-import '../../../../core/theme/tokens/app_breakpoints.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/theme/tokens/app_typography.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../shared/widgets/widgets.dart';
-import '../widgets/ai_widgets.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 
 /// A personalized AI recommendation with a priority and a call to action.
 class _Recommendation {

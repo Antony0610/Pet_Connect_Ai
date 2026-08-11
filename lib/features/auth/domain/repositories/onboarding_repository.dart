@@ -1,5 +1,5 @@
-import '../../../../core/utils/typedefs.dart';
-import '../../../../shared/domain/repository.dart';
+import 'package:petconnect_ai/core/utils/typedefs.dart';
+import 'package:petconnect_ai/shared/domain/repository.dart';
 
 /// Domain contract for onboarding state persistence.
 ///

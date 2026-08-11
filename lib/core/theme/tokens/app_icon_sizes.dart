@@ -21,5 +21,6 @@ abstract final class AppIconSizes {
   static const double xl = 40;
 
   /// 48px — empty-state / hero illustrations glyphs.
+
   static const double xxl = 48;
 }

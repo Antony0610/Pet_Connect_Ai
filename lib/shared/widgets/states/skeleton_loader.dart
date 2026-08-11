@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/tokens/app_durations.dart';
-import '../../../core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 
 /// A shimmering skeleton placeholder shown while content loads.
 ///

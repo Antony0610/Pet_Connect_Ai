@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
-import '../error/exceptions.dart';
-import '../utils/logger.dart';
+import 'package:petconnect_ai/core/error/exceptions.dart';
+import 'package:petconnect_ai/core/utils/logger.dart';
 import 'network_info.dart';
 
 /// Configured [Dio] client for HTTP requests.

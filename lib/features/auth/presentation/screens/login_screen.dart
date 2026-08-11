@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/portal_theme.dart';
-import '../../../../core/theme/tokens/app_radius.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../router/route_paths.dart';
-import '../../../../shared/widgets/buttons/app_button.dart';
-import '../../../../shared/widgets/inputs/app_text_field.dart';
-import '../../domain/usecases/sign_in_with_password.dart';
-import '../providers/auth_providers.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/sign_in_with_password.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 
 /// Login screen — email/password sign in for a returning user.
 ///

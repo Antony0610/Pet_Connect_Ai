@@ -1,4 +1,4 @@
-import '../../../../shared/domain/entity.dart';
+import 'package:petconnect_ai/shared/domain/entity.dart';
 
 /// The user's active session (domain entity).
 ///

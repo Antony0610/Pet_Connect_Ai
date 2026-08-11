@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/component_tokens/chip_tokens.dart';
+import 'package:petconnect_ai/core/theme/component_tokens/chip_tokens.dart';
 
 /// Visual variants for [AppChip].
 enum AppChipVariant { filled, outlined }

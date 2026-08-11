@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/component_tokens/card_tokens.dart';
-import '../../../core/theme/tokens/app_elevation.dart';
+import 'package:petconnect_ai/core/theme/component_tokens/card_tokens.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
 
 /// The canonical surface container for PetConnect AI.
 class AppCard extends StatelessWidget {

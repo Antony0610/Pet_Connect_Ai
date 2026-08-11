@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 
 /// A card displaying an error state with a retry action.
 ///

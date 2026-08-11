@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/component_tokens/button_tokens.dart';
+import 'package:petconnect_ai/core/theme/component_tokens/button_tokens.dart';
 
 /// Visual variants for [AppButton], mapped to Material 3 button types.
 enum AppButtonVariant { filled, tonal, outlined, text }

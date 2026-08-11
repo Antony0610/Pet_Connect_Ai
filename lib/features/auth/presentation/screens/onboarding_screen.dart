@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/providers/core_providers.dart';
-import '../../../../core/theme/tokens/app_durations.dart';
-import '../../../../core/theme/tokens/app_radius.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/usecase/usecase.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../router/route_paths.dart';
-import '../../../../shared/widgets/buttons/app_button.dart';
-import '../providers/auth_providers.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 
 /// Immutable content for a single onboarding page.
 class _OnboardingPageData {

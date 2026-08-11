@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../utils/typedefs.dart';
+import 'package:petconnect_ai/core/utils/typedefs.dart';
 
 /// Base contract for a single application use case (interactor).
 ///

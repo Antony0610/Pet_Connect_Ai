@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/portal_theme.dart';
-import '../../../../core/theme/tokens/app_breakpoints.dart';
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
-import '../../../../core/theme/tokens/app_radius.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/theme/tokens/app_typography.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../router/route_paths.dart';
-import '../../../../shared/widgets/cards/app_card.dart';
-import '../../../../shared/widgets/cards/glass_card.dart';
-import '../widgets/widgets.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
+import 'package:petconnect_ai/shared/widgets/cards/glass_card.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 
 /// The Pet Owner **Pet Profile Detail** screen.
 ///

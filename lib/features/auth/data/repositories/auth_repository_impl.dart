@@ -1,11 +1,11 @@
 import 'package:dartz/dartz.dart';
 
-import '../../../../core/error/exceptions.dart';
-import '../../../../core/error/failure_mapper.dart';
-import '../../../../core/utils/typedefs.dart';
-import '../../domain/entities/auth_session.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../datasources/auth_remote_datasource.dart';
+import 'package:petconnect_ai/core/error/exceptions.dart';
+import 'package:petconnect_ai/core/error/failure_mapper.dart';
+import 'package:petconnect_ai/core/utils/typedefs.dart';
+import 'package:petconnect_ai/features/auth/domain/entities/auth_session.dart';
+import 'package:petconnect_ai/features/auth/domain/repositories/auth_repository.dart';
+import 'package:petconnect_ai/features/auth/data/datasources/auth_remote_datasource.dart';
 
 /// Supabase-backed implementation of [AuthRepository].
 class AuthRepositoryImpl implements AuthRepository {

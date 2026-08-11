@@ -1,4 +1,5 @@
-import '../../core/utils/typedefs.dart';
+import 'package:flutter/foundation.dart';
+import 'package:petconnect_ai/core/utils/typedefs.dart';
 
 /// Marker interface for data-layer models (DTOs).
 ///

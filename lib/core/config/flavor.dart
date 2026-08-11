@@ -19,5 +19,6 @@ enum Flavor {
   bool get isProd => this == Flavor.prod;
 
   /// Whether verbose logging / debug affordances should be enabled.
+
   bool get isDebuggable => this != Flavor.prod;
 }

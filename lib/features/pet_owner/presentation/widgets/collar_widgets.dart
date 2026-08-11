@@ -13,11 +13,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
-import '../../../../core/theme/tokens/app_radius.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/theme/tokens/app_typography.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'owner_app_bar.dart';
 
 /// The Golden Retriever ("Buddy") shown across the frozen collar comps.

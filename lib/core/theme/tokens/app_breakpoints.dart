@@ -27,6 +27,7 @@ abstract final class AppBreakpoints {
 }
 
 /// Screen-size classification derived from [AppBreakpoints].
+
 enum ScreenSize {
   mobile,
   tablet,

@@ -1,8 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/error/exceptions.dart' as core_exceptions;
-import '../../../../shared/data/datasource.dart';
-import '../models/auth_session_model.dart';
+import 'package:petconnect_ai/core/error/exceptions.dart' as core_exceptions;
+import 'package:petconnect_ai/shared/data/datasource.dart';
+import 'package:petconnect_ai/features/auth/data/models/auth_session_model.dart';
 
 /// Remote data source for authentication operations via Supabase Auth.
 ///

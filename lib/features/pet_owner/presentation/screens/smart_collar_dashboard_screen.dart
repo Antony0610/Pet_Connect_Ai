@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/portal_theme.dart';
-import '../../../../core/theme/tokens/app_breakpoints.dart';
-import '../../../../core/theme/tokens/app_elevation.dart';
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
-import '../../../../core/theme/tokens/app_spacing.dart';
-import '../../../../core/theme/tokens/app_typography.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../router/route_paths.dart';
-import '../../../../shared/widgets/widgets.dart';
-import '../widgets/collar_widgets.dart';
-import '../widgets/owner_ai_fab.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_ai_fab.dart';
 
 /// **Smart Collar Dashboard** — `/owner/collar`.
 ///
