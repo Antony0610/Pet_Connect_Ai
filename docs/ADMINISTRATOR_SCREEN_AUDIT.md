@@ -28,10 +28,10 @@
 | 3 | `629599ff91824f2baa63fc0fdb6f0c4f` | Security Center | BASE | LIGHT | `admin_security_center_screen.dart` | `adminSecurity`<br>`/admin/security` | VERIFIED | VERIFIED | COMPLETE | Admin Dashboard → Threat & MFA Hardening |
 | 4 | `3ae682bbb9dd49209c20293ad5e59487` | Platform Health & AI Monitoring | BASE | LIGHT | `admin_platform_health_screen.dart` | `adminHealth`<br>`/admin/health` | VERIFIED | VERIFIED | COMPLETE | Admin Dashboard → Infrastructure Telemetry |
 | 5 | `c43f0df0770347459cc95329cc02ca17` | Audit Logs | BASE | LIGHT | `admin_audit_logs_screen.dart` | `adminAuditLogs`<br>`/admin/audit-logs` | VERIFIED | VERIFIED | COMPLETE | Admin Dashboard → Event Timeline & Logs |
-| 6 | `e316a363c8d94e76916ab208963e0f91` | Platform Reports | BASE | LIGHT | `admin_platform_reports_screen.dart` | `adminReports`<br>`/admin/reports` | NOT STARTED | NOT STARTED | NOT STARTED | Admin Dashboard → Platform Analytics & Usage |
-| 7 | `81818ce77fcd4db4874895ddf4938ae7` | Staff Management | BASE | LIGHT | `admin_staff_management_screen.dart` | `adminStaff`<br>`/admin/staff` | NOT STARTED | NOT STARTED | NOT STARTED | Admin Dashboard → Staff Roles & Roster |
-| 8 | `d809643e6f6b48fcbf4c05af7551f919` | Content Management | BASE | LIGHT | `admin_content_management_screen.dart` | `adminContent`<br>`/admin/content` | NOT STARTED | NOT STARTED | NOT STARTED | Admin Dashboard → CMS & Resource Management |
-| 9 | `dc36e9199b4540eea867b5c17e3b5d46` | Platform Settings | BASE | LIGHT | `admin_platform_settings_screen.dart` | `adminSettings`<br>`/admin/settings` | NOT STARTED | NOT STARTED | NOT STARTED | Admin Nav Bar → Global System Settings |
+| 6 | `e316a363c8d94e76916ab208963e0f91` | Platform Reports | BASE | LIGHT | `admin_platform_reports_screen.dart` | `adminReports`<br>`/admin/reports` | VERIFIED | VERIFIED | COMPLETE | Admin Dashboard → Platform Analytics & Usage |
+| 7 | `81818ce77fcd4db4874895ddf4938ae7` | Staff Management | BASE | LIGHT | `admin_staff_management_screen.dart` | `adminStaff`<br>`/admin/staff` | VERIFIED | VERIFIED | COMPLETE | Admin Dashboard → Staff Roles & Roster |
+| 8 | `d809643e6f6b48fcbf4c05af7551f919` | Content Management | BASE | LIGHT | `admin_content_management_screen.dart` | `adminContent`<br>`/admin/content` | VERIFIED | VERIFIED | COMPLETE | Admin Dashboard → CMS & Resource Management |
+| 9 | `dc36e9199b4540eea867b5c17e3b5d46` | Platform Settings | BASE | LIGHT | `admin_platform_settings_screen.dart` | `adminSettings`<br>`/admin/settings` | VERIFIED | VERIFIED | COMPLETE | Admin Nav Bar → Global System Settings |
 | 10 | `76849ff817fc49f89f25233f3cc7c9ef` | Administrator Portal (Dark) | DARK_MODE | DARK | `admin_user_management_screen.dart` | `adminHome` | ⚪ DARK REF | ⚪ DARK REF | ⚪ DARK REF | Explicit Dark Mode reference for Administrator Portal |
 
 ---

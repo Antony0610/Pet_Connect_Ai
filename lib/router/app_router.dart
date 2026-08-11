@@ -3,8 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_audit_logs_screen.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_community_moderation_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_content_management_screen.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_platform_health_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_platform_reports_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_platform_settings_screen.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_security_center_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_staff_management_screen.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_user_management_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/create_account_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/initial_pet_setup_screen.dart';
@@ -647,26 +651,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'reports',
             name: RouteNames.adminReports,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Platform Reports'),
+            builder: (context, state) => const AdminPlatformReportsScreen(),
           ),
           GoRoute(
             path: 'staff',
             name: RouteNames.adminStaff,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Staff Management'),
+            builder: (context, state) => const AdminStaffManagementScreen(),
           ),
           GoRoute(
             path: 'content',
             name: RouteNames.adminContent,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Content Management'),
+            builder: (context, state) => const AdminContentManagementScreen(),
           ),
           GoRoute(
             path: 'settings',
             name: RouteNames.adminSettings,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Platform Settings'),
+            builder: (context, state) => const AdminPlatformSettingsScreen(),
           ),
         ],
       ),
