@@ -1,6 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_audit_logs_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_community_moderation_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_platform_health_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_security_center_screen.dart';
+import 'package:petconnect_ai/features/administrator/presentation/screens/admin_user_management_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/create_account_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/initial_pet_setup_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/login_screen.dart';
@@ -612,26 +617,56 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.adminHome,
         name: RouteNames.adminHome,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Admin Home'),
+        builder: (context, state) => const AdminUserManagementScreen(),
         routes: [
           GoRoute(
             path: 'users',
             name: RouteNames.adminUsers,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'User Management'),
+            builder: (context, state) => const AdminUserManagementScreen(),
           ),
           GoRoute(
             path: 'moderation',
             name: RouteNames.adminModeration,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Moderation'),
+            builder: (context, state) => const AdminCommunityModerationScreen(),
           ),
           GoRoute(
-            path: 'analytics',
-            name: RouteNames.adminAnalytics,
+            path: 'security',
+            name: RouteNames.adminSecurity,
+            builder: (context, state) => const AdminSecurityCenterScreen(),
+          ),
+          GoRoute(
+            path: 'health',
+            name: RouteNames.adminHealth,
+            builder: (context, state) => const AdminPlatformHealthScreen(),
+          ),
+          GoRoute(
+            path: 'audit-logs',
+            name: RouteNames.adminAuditLogs,
+            builder: (context, state) => const AdminAuditLogsScreen(),
+          ),
+          GoRoute(
+            path: 'reports',
+            name: RouteNames.adminReports,
             builder: (context, state) =>
-                const PlaceholderScreen(title: 'Analytics'),
+                const PlaceholderScreen(title: 'Platform Reports'),
+          ),
+          GoRoute(
+            path: 'staff',
+            name: RouteNames.adminStaff,
+            builder: (context, state) =>
+                const PlaceholderScreen(title: 'Staff Management'),
+          ),
+          GoRoute(
+            path: 'content',
+            name: RouteNames.adminContent,
+            builder: (context, state) =>
+                const PlaceholderScreen(title: 'Content Management'),
+          ),
+          GoRoute(
+            path: 'settings',
+            name: RouteNames.adminSettings,
+            builder: (context, state) =>
+                const PlaceholderScreen(title: 'Platform Settings'),
           ),
         ],
       ),

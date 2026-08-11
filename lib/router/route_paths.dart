@@ -112,7 +112,13 @@ abstract final class RoutePaths {
   static const String adminHome = '/admin';
   static const String adminUsers = '/admin/users';
   static const String adminModeration = '/admin/moderation';
-  static const String adminAnalytics = '/admin/analytics';
+  static const String adminSecurity = '/admin/security';
+  static const String adminHealth = '/admin/health';
+  static const String adminAuditLogs = '/admin/audit-logs';
+  static const String adminReports = '/admin/reports';
+  static const String adminStaff = '/admin/staff';
+  static const String adminContent = '/admin/content';
+  static const String adminSettings = '/admin/settings';
 
   // ── Error ──────────────────────────────────────────────────────
   static const String notFound = '/404';
@@ -217,5 +223,11 @@ abstract final class RouteNames {
   static const String adminHome = 'adminHome';
   static const String adminUsers = 'adminUsers';
   static const String adminModeration = 'adminModeration';
-  static const String adminAnalytics = 'adminAnalytics';
+  static const String adminSecurity = 'adminSecurity';
+  static const String adminHealth = 'adminHealth';
+  static const String adminAuditLogs = 'adminAuditLogs';
+  static const String adminReports = 'adminReports';
+  static const String adminStaff = 'adminStaff';
+  static const String adminContent = 'adminContent';
+  static const String adminSettings = 'adminSettings';
 }
