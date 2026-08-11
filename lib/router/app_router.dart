@@ -78,9 +78,14 @@ import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mis
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_dashboard_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_details_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/nearby_rescue_requests_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/pet_sharing_permissions_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/rescue_community_reports_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/rescue_history_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/volunteer_achievements_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/volunteer_assistance_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/volunteer_network_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/volunteer_profile_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/volunteer_settings_screen.dart';
 import 'package:petconnect_ai/router/route_guard.dart';
 import 'package:petconnect_ai/router/route_observer.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -578,8 +583,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'profile',
             name: RouteNames.rescueProfile,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Rescue Profile'),
+            builder: (context, state) => const VolunteerProfileScreen(),
+          ),
+          GoRoute(
+            path: 'achievements',
+            name: RouteNames.rescueAchievements,
+            builder: (context, state) => const VolunteerAchievementsScreen(),
+          ),
+          GoRoute(
+            path: 'assistance',
+            name: RouteNames.rescueAssistance,
+            builder: (context, state) => const VolunteerAssistanceScreen(),
+          ),
+          GoRoute(
+            path: 'sharing',
+            name: RouteNames.rescueSharing,
+            builder: (context, state) => const PetSharingPermissionsScreen(),
+          ),
+          GoRoute(
+            path: 'settings',
+            name: RouteNames.rescueSettings,
+            builder: (context, state) => const VolunteerSettingsScreen(),
           ),
         ],
       ),
