@@ -71,6 +71,11 @@ import 'package:petconnect_ai/features/veterinarian/presentation/screens/patient
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/todays_appointments_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/treatment_plan_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/active_rescue_operations_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/emergency_operations_center_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_dashboard_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/nearby_rescue_requests_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/rescue_community_reports_screen.dart';
 import 'package:petconnect_ai/router/route_guard.dart';
 import 'package:petconnect_ai/router/route_observer.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -509,30 +514,28 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.rescueHome,
         name: RouteNames.rescueHome,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Rescue Home'),
+        builder: (context, state) => const MissionDashboardScreen(),
         routes: [
           GoRoute(
-            path: 'cases',
-            name: RouteNames.rescueCases,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Rescue Cases'),
-            routes: [
-              GoRoute(
-                path: ':caseId',
-                name: RouteNames.rescueCaseDetail,
-                builder: (context, state) => PlaceholderScreen(
-                  title: 'Case Detail',
-                  subtitle: 'caseId: ${state.pathParameters['caseId']}',
-                ),
-              ),
-            ],
+            path: 'operations',
+            name: RouteNames.rescueOperations,
+            builder: (context, state) => const ActiveRescueOperationsScreen(),
           ),
           GoRoute(
-            path: 'map',
-            name: RouteNames.rescueMap,
+            path: 'requests',
+            name: RouteNames.rescueRequests,
+            builder: (context, state) => const NearbyRescueRequestsScreen(),
+          ),
+          GoRoute(
+            path: 'eoc',
+            name: RouteNames.rescueEmergencyOps,
             builder: (context, state) =>
-                const PlaceholderScreen(title: 'Rescue Map'),
+                const EmergencyOperationsCenterScreen(),
+          ),
+          GoRoute(
+            path: 'reports',
+            name: RouteNames.rescueReports,
+            builder: (context, state) => const RescueCommunityReportsScreen(),
           ),
           GoRoute(
             path: 'profile',

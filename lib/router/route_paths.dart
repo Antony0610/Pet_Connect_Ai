@@ -91,10 +91,22 @@ abstract final class RoutePaths {
 
   // ── Volunteer & Rescue portal ──────────────────────────────────
   static const String rescueHome = '/rescue';
-  static const String rescueCases = '/rescue/cases';
-  static const String rescueCaseDetail = '/rescue/cases/:caseId';
-  static const String rescueMap = '/rescue/map';
+  static const String rescueOperations = '/rescue/operations';
+  static const String rescueRequests = '/rescue/requests';
+  static const String rescueEmergencyOps = '/rescue/eoc';
+  static const String rescueReports = '/rescue/reports';
+  static const String rescueMissionDetail = '/rescue/missions/:missionId';
+  static const String rescueMissionAccepted =
+      '/rescue/missions/:missionId/accepted';
+  static const String rescueMissionCompleted =
+      '/rescue/missions/:missionId/completed';
+  static const String rescueHistory = '/rescue/history';
+  static const String rescueNetwork = '/rescue/network';
   static const String rescueProfile = '/rescue/profile';
+  static const String rescueAchievements = '/rescue/achievements';
+  static const String rescueAssistance = '/rescue/assistance';
+  static const String rescueSharing = '/rescue/sharing';
+  static const String rescueSettings = '/rescue/settings';
 
   // ── Administrator portal ───────────────────────────────────────
   static const String adminHome = '/admin';
@@ -187,10 +199,20 @@ abstract final class RouteNames {
   static const String vetProfile = 'vetProfile';
 
   static const String rescueHome = 'rescueHome';
-  static const String rescueCases = 'rescueCases';
-  static const String rescueCaseDetail = 'rescueCaseDetail';
-  static const String rescueMap = 'rescueMap';
+  static const String rescueOperations = 'rescueOperations';
+  static const String rescueRequests = 'rescueRequests';
+  static const String rescueEmergencyOps = 'rescueEmergencyOps';
+  static const String rescueReports = 'rescueReports';
+  static const String rescueMissionDetail = 'rescueMissionDetail';
+  static const String rescueMissionAccepted = 'rescueMissionAccepted';
+  static const String rescueMissionCompleted = 'rescueMissionCompleted';
+  static const String rescueHistory = 'rescueHistory';
+  static const String rescueNetwork = 'rescueNetwork';
   static const String rescueProfile = 'rescueProfile';
+  static const String rescueAchievements = 'rescueAchievements';
+  static const String rescueAssistance = 'rescueAssistance';
+  static const String rescueSharing = 'rescueSharing';
+  static const String rescueSettings = 'rescueSettings';
 
   static const String adminHome = 'adminHome';
   static const String adminUsers = 'adminUsers';
