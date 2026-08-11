@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/tokens/app_icon_sizes.dart';
 import '../../../../core/theme/tokens/app_radius.dart';
 import '../../../../core/theme/tokens/app_spacing.dart';
 import '../../../../core/theme/tokens/app_typography.dart';
@@ -136,8 +135,6 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
   }
 
   Widget _buildBentoGrid(BuildContext context) {
-    final scheme = context.colorScheme;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 700;
@@ -241,7 +238,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
               children: [
                 Row(
                   children: [
-                    AiConfidenceBadge(percentage: match),
+                    AiConfidenceBadge(percentage: '$match%'),
                     AppSpacing.hGapXs,
                     Text(
                       breed,
@@ -318,7 +315,7 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [AiConfidenceBadge(percentage: match)]),
+                Row(children: [AiConfidenceBadge(percentage: '$match%')]),
                 Text(
                   name,
                   style: context.textTheme.titleSmall?.copyWith(

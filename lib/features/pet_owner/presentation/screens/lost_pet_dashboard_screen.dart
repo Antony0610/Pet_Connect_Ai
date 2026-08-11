@@ -25,6 +25,7 @@ class LostPetDashboardScreen extends StatefulWidget {
 
 class _LostPetDashboardScreenState extends State<LostPetDashboardScreen> {
   static const double _maxContentWidth = 1000;
+  bool _isLostModeActive = true;
 
   @override
   Widget build(BuildContext context) {

@@ -151,7 +151,7 @@ class _LostFoundCommunityScreenState extends State<LostFoundCommunityScreen> {
                             ),
                           ),
                           const Spacer(),
-                          const AiConfidenceBadge(percentage: 85),
+                          const AiConfidenceBadge(percentage: '85%'),
                         ],
                       ),
                       AppSpacing.vGapSm,

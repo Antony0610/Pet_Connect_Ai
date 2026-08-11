@@ -463,7 +463,7 @@ class _ResendRow extends StatelessWidget {
     final canResend = secondsRemaining == 0 && !isResending;
     return Wrap(
       alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAxisAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       spacing: AppSpacing.xs,
       children: [
         Text(

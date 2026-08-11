@@ -18,6 +18,7 @@ import '../../../../core/utils/extensions/context_extensions.dart';
 class OwnerGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   const OwnerGlassAppBar({
     this.leading,
+    this.brandIcon,
     this.title,
     this.actions = const <Widget>[],
     this.toolbarHeight = 64,
@@ -25,6 +26,7 @@ class OwnerGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   final Widget? leading;
+  final IconData? brandIcon;
   final Widget? title;
   final List<Widget> actions;
   final double toolbarHeight;
@@ -60,7 +62,13 @@ class OwnerGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           child: Row(
             children: [
-              if (leading != null) ...[leading!, AppSpacing.hGapSm],
+              if (leading != null) ...[
+                leading!,
+                AppSpacing.hGapSm,
+              ] else if (brandIcon != null) ...[
+                Icon(brandIcon, color: scheme.primary, size: AppIconSizes.md),
+                AppSpacing.hGapSm,
+              ],
               if (title != null) Expanded(child: title!),
               if (title == null) const Spacer(),
               ...actions,

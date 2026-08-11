@@ -269,7 +269,7 @@ class _InsightCard extends StatelessWidget {
           Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
-            crossAxisAlignment: WrapCrossAxisAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               AiConfidenceBadge(
                 label: badgeLabel,
