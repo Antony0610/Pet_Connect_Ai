@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
-import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
-import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
+import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
+import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
+import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-/// A faithful Flutter rendering of the frozen Stitch **Global Search - PetConnect**
-/// (Light Theme design authority, ID `00e65b5fa17947ea87edbc875b48e3e4`).
+/// Global Search Screen (Stitch ID: `6bd651abf98f4c039e2898e7357603a6`).
 ///
-/// Universal ecosystem search across pets, medical records, community discussions,
-/// veterinary contacts, and smart collar telemetry.
+/// Ecosystem-wide search engine screen. Searches across pets, medical records,
+/// AI insights, lost pet sightings, community articles, and vet clinics.
 class GlobalSearchScreen extends StatefulWidget {
   const GlobalSearchScreen({super.key});
 
@@ -22,62 +19,45 @@ class GlobalSearchScreen extends StatefulWidget {
 }
 
 class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
-  static const double _maxContentWidth = 1000;
-  final _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
 
-  final List<String> _categories = const [
-    'All',
-    'Pets',
-    'Health',
-    'Community',
-    'Vets',
-    'Collar',
+  final List<String> _recentSearches = [
+    'Golden Retriever nutrition plan',
+    'Pine Ridge lost cat sighting',
+    'Oakridge Veterinary Clinic hours',
+    'Flea & Tick preventative dosage',
   ];
 
-  final List<_SearchResultItem> _allResults = const [
-    _SearchResultItem(
-      title: 'Buddy (Golden Retriever)',
-      category: 'Pets',
-      subtitle: 'Active Collar Online • 65 lbs • Vaccinated',
-      icon: Icons.pets,
-      routeName: RouteNames.ownerPets,
-    ),
-    _SearchResultItem(
-      title: 'Rabies Vaccination Certificate 2024',
-      category: 'Health',
-      subtitle: 'Health Vault • PDF Document • Added May 12',
-      icon: Icons.assignment_outlined,
-      routeName: RouteNames.ownerHealthVault,
-    ),
-    _SearchResultItem(
-      title: 'Post-Surgery Knee Rehab (TPLO)',
-      category: 'Health',
-      subtitle: 'Active Treatment Plan • 65% Completed',
-      icon: Icons.healing,
-      routeName: RouteNames.ownerHealthTreatment,
-    ),
-    _SearchResultItem(
-      title: 'Metro Vet Clinic — Dr. Emily Carter',
-      category: 'Vets',
-      subtitle: 'Orthopedic Specialist • 1.2 miles away',
-      icon: Icons.local_hospital_outlined,
-      routeName: RouteNames.ownerHealth,
-    ),
-    _SearchResultItem(
-      title: 'Weekend Dog Park Playdate Group',
-      category: 'Community',
-      subtitle: 'Local Community • 42 members active nearby',
-      icon: Icons.groups_outlined,
-      routeName: RouteNames.ownerCommunityLocal,
-    ),
-    _SearchResultItem(
-      title: 'Smart Collar Battery & Telemetry',
-      category: 'Collar',
-      subtitle: 'Collar Status: 94% Battery • GPS Online',
-      icon: Icons.watch_outlined,
-      routeName: RouteNames.ownerCollar,
-    ),
+  final List<Map<String, dynamic>> _searchResults = [
+    {
+      'title': 'Nutritional Needs for Senior Cats',
+      'category': 'Care Guide',
+      'icon': Icons.menu_book,
+      'snippet': 'Comprehensive guide on senior feline diet and hydration...',
+      'color': AppColors.info,
+    },
+    {
+      'title': 'Oakridge Veterinary Clinic',
+      'category': 'Vet Clinic',
+      'icon': Icons.local_hospital,
+      'snippet': 'Dr. Emily Watson • 123 Wellness Way • Open Now',
+      'color': AppColors.success,
+    },
+    {
+      'title': 'AI Symptom Diagnostic: Itchy Ears',
+      'category': 'AI Insight',
+      'icon': Icons.psychology,
+      'snippet': 'Potential ear mite infection or food sensitivity alert...',
+      'color': AppColors.warning,
+    },
+    {
+      'title': 'Lost Golden Retriever: Max',
+      'category': 'Lost Pet Sighting',
+      'icon': Icons.location_on,
+      'snippet': 'Last seen near Pine Ridge trailhead at 12:40 PM...',
+      'color': AppColors.lightError,
+    },
   ];
 
   @override
@@ -88,191 +68,101 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    final filteredResults = _allResults.where((item) {
-      final matchesCategory =
-          _selectedCategory == 'All' || item.category == _selectedCategory;
-      final query = _searchController.text.toLowerCase();
-      final matchesQuery =
-          query.isEmpty ||
-          item.title.toLowerCase().contains(query) ||
-          item.subtitle.toLowerCase().contains(query);
-      return matchesCategory && matchesQuery;
-    }).toList();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: OwnerGlassAppBar(
+      appBar: AppBar(
+        title: const Text('Global Ecosystem Search'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back',
-          onPressed: () => GoRouter.of(context).pop(),
-        ),
-        title: AppTextField(
-          controller: _searchController,
-          hintText: 'Search pets, health, community, vets...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => setState(() => _searchController.clear()),
-                )
-              : null,
-          onChanged: (_) => setState(() {}),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: Align(
-          alignment: Alignment.topCenter,
+        child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+            constraints: const BoxConstraints(maxWidth: 1000),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Category Filters ───────────────────────────────
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _categories.map((cat) {
-                      final isSelected = _selectedCategory == cat;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.sm),
-                        child: ChoiceChip(
-                          label: Text(cat),
-                          selected: isSelected,
-                          selectedColor: scheme.primary,
-                          backgroundColor: scheme.surfaceContainerHigh,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? scheme.onPrimary
-                                : scheme.onSurface,
-                            fontWeight: AppTypography.semiBold,
-                          ),
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedCategory = cat);
-                            }
+                // ── Search Input Bar ────────────────────────────────
+                AppTextField(
+                  controller: _searchController,
+                  hintText:
+                      'Search pets, clinics, AI insights, or community posts...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() => _searchController.clear());
                           },
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                        )
+                      : null,
+                  onChanged: (_) => setState(() {}),
                 ),
+
                 AppSpacing.vGapLg,
 
-                // ── Recent Search Tags ─────────────────────────────
+                // ── Category Filter Chips ────────────────────────────
+                _buildCategoryChips(theme, colorScheme),
+
+                AppSpacing.vGapLg,
+
+                // ── Recent Searches Section ──────────────────────────
                 if (_searchController.text.isEmpty) ...[
-                  Text(
-                    'Recent Searches',
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
-                      color: scheme.onSurfaceVariant,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Recent Searches',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: AppTypography.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() => _recentSearches.clear());
+                        },
+                        child: const Text('Clear All'),
+                      ),
+                    ],
                   ),
                   AppSpacing.vGapSm,
                   Wrap(
-                    spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      _buildRecentTag('Rabies Certificate'),
-                      _buildRecentTag('Dr. Emily Carter'),
-                      _buildRecentTag('Apoquel Dosing'),
-                      _buildRecentTag('Lost Retriever'),
-                    ],
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _recentSearches.map((s) {
+                      return ActionChip(
+                        avatar: const Icon(Icons.history, size: 16),
+                        label: Text(s),
+                        onPressed: () {
+                          setState(() => _searchController.text = s);
+                        },
+                      );
+                    }).toList(),
                   ),
-                  AppSpacing.vGapXl,
+                  AppSpacing.vGapLg,
                 ],
 
-                // ── Universal Results List ─────────────────────────
+                // ── Search Results List ─────────────────────────────
                 Text(
-                  'Results (${filteredResults.length})',
-                  style: context.textTheme.titleMedium?.copyWith(
+                  _searchController.text.isEmpty
+                      ? 'Recommended Results'
+                      : 'Search Results for "${_searchController.text}"',
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: AppTypography.bold,
                   ),
                 ),
                 AppSpacing.vGapSm,
 
-                if (filteredResults.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
-                      child: Text(
-                        'No matching records or posts found.',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  ...filteredResults.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: AppCard(
-                        onTap: () => context.goNamed(item.routeName),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.sm),
-                              decoration: BoxDecoration(
-                                color: scheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.sm,
-                                ),
-                              ),
-                              child: Icon(
-                                item.icon,
-                                color: scheme.primary,
-                                size: AppIconSizes.md,
-                              ),
-                            ),
-                            AppSpacing.hGapMd,
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          item.title,
-                                          style: context.textTheme.titleSmall
-                                              ?.copyWith(
-                                                fontWeight: AppTypography.bold,
-                                              ),
-                                        ),
-                                      ),
-                                      Chip(
-                                        label: Text(item.category),
-                                        backgroundColor:
-                                            scheme.surfaceContainerHigh,
-                                        labelStyle: TextStyle(
-                                          color: scheme.onSurfaceVariant,
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    item.subtitle,
-                                    style: context.textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: scheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                ..._searchResults.map(
+                  (res) => _buildResultCard(context, theme, colorScheme, res),
+                ),
+
+                AppSpacing.vGapXl,
               ],
             ),
           ),
@@ -281,29 +171,92 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     );
   }
 
-  Widget _buildRecentTag(String text) {
-    return ActionChip(
-      avatar: const Icon(Icons.history, size: 14),
-      label: Text(text),
-      onPressed: () {
-        setState(() => _searchController.text = text);
-      },
+  Widget _buildCategoryChips(ThemeData theme, ColorScheme colorScheme) {
+    final categories = [
+      'All',
+      'Community',
+      'Knowledge',
+      'Lost Pets',
+      'Events',
+      'AI Insights',
+      'Vet Clinics',
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: categories.map((c) {
+          final isSelected = _selectedCategory == c;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: AppChip(
+              label: c,
+              isSelected: isSelected,
+              onTap: () => setState(() => _selectedCategory = c),
+              backgroundColor: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.surfaceContainerHigh,
+              textColor: isSelected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurface,
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
-}
 
-class _SearchResultItem {
-  const _SearchResultItem({
-    required this.title,
-    required this.category,
-    required this.subtitle,
-    required this.icon,
-    required this.routeName,
-  });
+  Widget _buildResultCard(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    Map<String, dynamic> res,
+  ) {
+    final categoryColor = res['color'] as Color;
 
-  final String title;
-  final String category;
-  final String subtitle;
-  final IconData icon;
-  final String routeName;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: categoryColor.withValues(alpha: 0.15),
+              child: Icon(res['icon'] as IconData, color: categoryColor),
+            ),
+            AppSpacing.hGapSm,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          res['title'] as String,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: AppTypography.bold,
+                          ),
+                        ),
+                      ),
+                      AppChip(
+                        label: res['category'] as String,
+                        backgroundColor: categoryColor.withValues(alpha: 0.15),
+                        textColor: categoryColor,
+                      ),
+                    ],
+                  ),
+                  Text(
+                    res['snippet'] as String,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

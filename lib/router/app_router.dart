@@ -11,6 +11,7 @@ import 'package:petconnect_ai/features/administrator/presentation/screens/admin_
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_staff_management_screen.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_user_management_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/create_account_screen.dart';
+import 'package:petconnect_ai/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/initial_pet_setup_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/login_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/onboarding_screen.dart';
@@ -80,6 +81,7 @@ import 'package:petconnect_ai/features/veterinarian/presentation/screens/patient
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/todays_appointments_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/treatment_plan_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_profile_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/active_rescue_operations_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/emergency_operations_center_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_accepted_screen.dart';
@@ -149,8 +151,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.forgotPassword,
         name: RouteNames.forgotPassword,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Forgot Password'),
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: RoutePaths.roleSelection,
@@ -187,8 +188,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'search',
             name: RouteNames.ownerSearch,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Search'),
+            builder: (context, state) => const GlobalSearchScreen(),
           ),
           GoRoute(
             path: 'pets',
@@ -523,8 +523,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'profile',
             name: RouteNames.vetProfile,
-            builder: (context, state) =>
-                const PlaceholderScreen(title: 'Vet Profile'),
+            builder: (context, state) => const VetProfileScreen(),
           ),
         ],
       ),
