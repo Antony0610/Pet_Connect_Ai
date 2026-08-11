@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 import 'package:petconnect_ai/shared/widgets/layout/section_header.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 
 /// The Pet Owner **Profile** screen (frozen "Community Profile", Light master).
 ///
@@ -31,7 +30,7 @@ class ProfileScreen extends StatelessWidget {
     final text = context.textTheme;
 
     final appBar = OwnerGlassAppBar(
-      leading: UserAvatar(imageUrl: _avatarUrl, size: 40),
+      leading: const UserAvatar(imageUrl: _avatarUrl, size: 40),
       title: Text(
         'PetConnect AI',
         overflow: TextOverflow.ellipsis,
@@ -68,16 +67,16 @@ class ProfileScreen extends StatelessWidget {
             constraints: const BoxConstraints(
               maxWidth: AppBreakpoints.maxContentWidth,
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _ProfileHeaderCard(avatarUrl: _avatarUrl),
                 AppSpacing.vGapLg,
-                const _QuickStats(),
+                _QuickStats(),
                 AppSpacing.vGapXl,
                 SectionHeader(title: 'Recent Activity'),
                 AppSpacing.vGapMd,
-                const _ActivityPost(
+                _ActivityPost(
                   title: 'Best hiking trails for senior dogs?',
                   group: 'Active Pets',
                   time: '2 hours ago',
@@ -89,7 +88,7 @@ class ProfileScreen extends StatelessWidget {
                   comments: 8,
                 ),
                 AppSpacing.vGapMd,
-                const _ActivityPost(
+                _ActivityPost(
                   title: 'Graduation Day! 🎓',
                   group: 'Training Triumphs',
                   time: 'Yesterday',
@@ -103,11 +102,11 @@ class ProfileScreen extends StatelessWidget {
                       'https://lh3.googleusercontent.com/aida-public/AB6AXuDjI16jwSuB84Xzdt7-YtGGD8cXKVStGaG8oZWrTEE2O1-goYOuDRZcqSyPad1CPYiOtNpmKHsFuDGF1XWYq6EKqov84OOWCPHJxPpXKLuqTC6Q477BNMLO-6HiNHsNS4xCTdLYf92lsegzNK54T942Rm3uKfjS8--dRESAdQBH0TVmbgyvaZ_C4SsdIEjuXC5yT77JIkjPqIRey1hLpRcoeWF2RBXnU1DgCs_q6PoFUKKDG2FrJRTLfA',
                 ),
                 AppSpacing.vGapXl,
-                const _TopBadges(),
+                _TopBadges(),
                 AppSpacing.vGapXl,
-                const _JoinedGroups(),
+                _JoinedGroups(),
                 AppSpacing.vGapXl,
-                const _UpcomingEvents(),
+                _UpcomingEvents(),
               ],
             ),
           ),
@@ -210,10 +209,10 @@ class _ProfileHeaderCard extends StatelessWidget {
             style: text.bodyMedium?.copyWith(color: scheme.onSurface),
           ),
           AppSpacing.vGapMd,
-          Wrap(
+          const Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
-            children: const [
+            children: [
               _MetaPill(icon: Icons.location_on, label: 'Seattle, WA'),
               _MetaPill(icon: Icons.calendar_month, label: 'Joined 2021'),
             ],
@@ -624,7 +623,7 @@ class _JoinedGroups extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    final rows = const [
+    const rows = [
       _GroupData(name: 'Positive Reinforcement Pros', members: '1.2k Members'),
       _GroupData(name: 'Seattle Dog Walkers', members: '850 Members'),
     ];
@@ -632,7 +631,7 @@ class _JoinedGroups extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionHeader(title: 'Joined Groups'),
+        const SectionHeader(title: 'Joined Groups'),
         AppSpacing.vGapMd,
         Container(
           decoration: BoxDecoration(
@@ -742,7 +741,7 @@ class _UpcomingEvents extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionHeader(title: 'Upcoming Events'),
+        const SectionHeader(title: 'Upcoming Events'),
         AppSpacing.vGapMd,
         Container(
           decoration: BoxDecoration(

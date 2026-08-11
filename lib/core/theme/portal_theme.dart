@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'app_color_scheme.dart';
-import 'app_theme.dart';
-import 'tokens/app_colors.dart';
+import 'package:petconnect_ai/core/theme/app_color_scheme.dart';
+import 'package:petconnect_ai/core/theme/app_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 
 /// The four product portals of PetConnect AI. Each portal shares the "Core"
 /// design system (layout, type, spacing, components) but carries its own

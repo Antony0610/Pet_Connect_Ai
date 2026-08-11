@@ -1,6 +1,6 @@
 import 'package:petconnect_ai/core/utils/typedefs.dart';
-import 'package:petconnect_ai/shared/domain/repository.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/auth_session.dart';
+import 'package:petconnect_ai/shared/domain/repository.dart';
 
 /// Domain contract for authentication operations.
 ///

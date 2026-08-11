@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Community Hub** (Light
 /// Theme design authority, ID `6ef9f0e7`).
@@ -260,14 +259,14 @@ class CommunityHubScreen extends StatelessWidget {
 
   Widget _buildTrendingDiscussions(BuildContext context) {
     final discussions = [
-      _DiscussionItem(
+      const _DiscussionItem(
         title: 'Best Grain-Free Alternatives?',
         subtitle:
             'Has anyone switched from standard kibble to fresh frozen meals?',
         commentCount: 42,
         author: 'Sarah M.',
       ),
-      _DiscussionItem(
+      const _DiscussionItem(
         title: 'Indoor Enrichment Ideas',
         subtitle:
             'My cat seems bored lately. What interactive puzzle toys do you recommend?',
@@ -329,17 +328,17 @@ class CommunityHubScreen extends StatelessWidget {
   Widget _buildNearbyOwnersList(BuildContext context) {
     final scheme = context.colorScheme;
     final owners = [
-      _OwnerItem(
+      const _OwnerItem(
         name: 'Sarah & Bella',
         distance: '0.5 mi',
         breed: 'Golden Retriever',
       ),
-      _OwnerItem(
+      const _OwnerItem(
         name: 'Mike & Rex',
         distance: '1.2 mi',
         breed: 'German Shepherd',
       ),
-      _OwnerItem(
+      const _OwnerItem(
         name: 'Alex & Garfield',
         distance: '1.8 mi',
         breed: 'Tabby Cat',

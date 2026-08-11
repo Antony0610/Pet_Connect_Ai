@@ -1,5 +1,5 @@
-import 'env.dart';
-import 'flavor.dart';
+import 'package:petconnect_ai/core/config/env.dart';
+import 'package:petconnect_ai/core/config/flavor.dart';
 
 /// Immutable, validated application configuration assembled from [Env].
 ///

@@ -1,5 +1,5 @@
-import 'exceptions.dart';
-import 'failures.dart';
+import 'package:petconnect_ai/core/error/exceptions.dart';
+import 'package:petconnect_ai/core/error/failures.dart';
 
 /// Maps data-layer [AppException]s to domain-layer [Failure]s.
 ///

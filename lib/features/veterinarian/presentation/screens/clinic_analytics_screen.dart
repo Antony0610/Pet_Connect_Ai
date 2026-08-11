@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class ClinicAnalyticsScreen extends StatelessWidget {
   const ClinicAnalyticsScreen({super.key});
@@ -94,7 +94,7 @@ class ClinicAnalyticsScreen extends StatelessWidget {
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
-      color: colorScheme.primaryContainer.withOpacity(0.35),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -203,7 +203,7 @@ class ClinicAnalyticsScreen extends StatelessWidget {
               ),
               AppChip(
                 label: badge,
-                backgroundColor: color.withOpacity(0.15),
+                backgroundColor: color.withValues(alpha: 0.15),
                 textColor: color,
               ),
             ],
@@ -238,9 +238,9 @@ class ClinicAnalyticsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withOpacity(0.35),
+        color: colorScheme.primaryContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.primary.withOpacity(0.3)),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,7 +294,7 @@ class ClinicAnalyticsScreen extends StatelessWidget {
               ),
               AppChip(
                 label: '96% Overall',
-                backgroundColor: Colors.green.withOpacity(0.15),
+                backgroundColor: Colors.green.withValues(alpha: 0.15),
                 textColor: Colors.green,
               ),
             ],
@@ -385,7 +385,7 @@ class ClinicAnalyticsScreen extends StatelessWidget {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: factor,
-          backgroundColor: color.withOpacity(0.15),
+          backgroundColor: color.withValues(alpha: 0.15),
           valueColor: AlwaysStoppedAnimation<Color>(color),
           minHeight: 6,
           borderRadius: BorderRadius.circular(3),

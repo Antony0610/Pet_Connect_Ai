@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/providers/core_providers.dart';
-import 'core/providers/theme_providers.dart';
-import 'core/theme/theme.dart';
-import 'router/app_router.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/providers/theme_providers.dart';
+import 'package:petconnect_ai/core/theme/theme.dart';
+import 'package:petconnect_ai/router/app_router.dart';
 
 /// Root widget.
 ///

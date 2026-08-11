@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Treatment Plan**
 /// (Light Theme design authority, ID `8373546021f043e08a462b5358057e93`).

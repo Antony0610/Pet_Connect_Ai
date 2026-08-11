@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/create_account_screen.dart';
 import 'package:petconnect_ai/features/auth/presentation/screens/initial_pet_setup_screen.dart';
@@ -72,10 +71,10 @@ import 'package:petconnect_ai/features/veterinarian/presentation/screens/patient
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/todays_appointments_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/treatment_plan_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
+import 'package:petconnect_ai/router/route_guard.dart';
+import 'package:petconnect_ai/router/route_observer.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/placeholder_screen.dart';
-import 'route_guard.dart';
-import 'route_observer.dart';
-import 'route_paths.dart';
 
 /// The app's [GoRouter], exposed via Riverpod.
 ///

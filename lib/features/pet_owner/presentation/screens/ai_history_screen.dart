@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// The kind of AI interaction, used to tint the row and filter the log.
 enum _EntryKind {

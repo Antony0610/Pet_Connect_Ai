@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class VetDashboardScreen extends StatelessWidget {
   const VetDashboardScreen({super.key});
@@ -21,7 +21,7 @@ class VetDashboardScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.15),
+                color: colorScheme.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -96,7 +96,7 @@ class VetDashboardScreen extends StatelessWidget {
     ColorScheme colorScheme,
   ) {
     return AppCard(
-      color: colorScheme.primaryContainer.withOpacity(0.4),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.4),
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
@@ -166,7 +166,9 @@ class VetDashboardScreen extends StatelessWidget {
                       ),
                       AppChip(
                         label: 'View',
-                        backgroundColor: colorScheme.primary.withOpacity(0.1),
+                        backgroundColor: colorScheme.primary.withValues(
+                          alpha: 0.1,
+                        ),
                         textColor: colorScheme.primary,
                       ),
                     ],
@@ -242,9 +244,9 @@ class VetDashboardScreen extends StatelessWidget {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withOpacity(0.35),
+        color: colorScheme.errorContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.error.withOpacity(0.4)),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.4)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -579,7 +581,7 @@ class VetDashboardScreen extends StatelessWidget {
               const Divider(height: 16),
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle_outline,
                     color: Colors.green,
                     size: 20,

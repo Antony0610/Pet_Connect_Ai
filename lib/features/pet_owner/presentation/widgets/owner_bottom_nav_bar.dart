@@ -86,9 +86,9 @@ class OwnerBottomNavBar extends StatelessWidget {
         AppSpacing.md,
       ),
       child: DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           borderRadius: AppRadius.brPill,
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: Color(0x1A000000),
               blurRadius: 20,

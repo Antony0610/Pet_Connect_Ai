@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -7,8 +6,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/health_widgets.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Growth & Weight Analytics** — `/owner/health/growth`.
 ///
@@ -528,9 +527,9 @@ class _RecentWeighIns extends StatelessWidget {
     final scheme = context.colorScheme;
 
     final entries = <_WeighIn>[
-      _WeighIn('65.0 lbs', 'Oct 24, 2023', Icons.home_rounded),
-      _WeighIn('65.5 lbs', 'Sep 15, 2023', Icons.local_hospital_rounded),
-      _WeighIn('64.2 lbs', 'Aug 02, 2023', Icons.home_rounded),
+      const _WeighIn('65.0 lbs', 'Oct 24, 2023', Icons.home_rounded),
+      const _WeighIn('65.5 lbs', 'Sep 15, 2023', Icons.local_hospital_rounded),
+      const _WeighIn('64.2 lbs', 'Aug 02, 2023', Icons.home_rounded),
     ];
 
     return Column(

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Create Post** (Light
 /// Theme design authority, ID `910fdec0`).
@@ -147,8 +146,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         fontWeight: AppTypography.semiBold,
                       ),
                       onSelected: (selected) {
-                        if (selected)
+                        if (selected) {
                           setState(() => _selectedCategory = cat.label);
+                        }
                       },
                     );
                   }).toList(),

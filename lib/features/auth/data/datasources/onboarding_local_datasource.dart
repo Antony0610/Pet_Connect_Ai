@@ -1,7 +1,6 @@
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/shared/data/datasource.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Local data source for onboarding state persistence via SharedPreferences.
 ///
@@ -36,7 +35,7 @@ class OnboardingLocalDataSourceImpl implements OnboardingLocalDataSource {
     try {
       final success = await _prefs.setBool(_key, true);
       if (!success) {
-        throw CacheException('Failed to persist onboarding completion');
+        throw const CacheException('Failed to persist onboarding completion');
       }
     } catch (e) {
       throw CacheException('Failed to persist onboarding state', cause: e);

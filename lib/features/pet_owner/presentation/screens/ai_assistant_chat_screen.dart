@@ -348,7 +348,7 @@ class _Composer extends StatelessWidget {
                     horizontal: AppSpacing.md,
                     vertical: AppSpacing.sm,
                   ),
-                  border: OutlineInputBorder(
+                  border: const OutlineInputBorder(
                     borderRadius: AppRadius.brSection,
                     borderSide: BorderSide.none,
                   ),

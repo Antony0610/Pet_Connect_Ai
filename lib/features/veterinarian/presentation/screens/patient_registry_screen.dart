@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class PatientRegistryScreen extends StatefulWidget {
   const PatientRegistryScreen({super.key});
@@ -207,7 +207,7 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
                       ),
                     ),
                     Text(
-                      patient['breed'],
+                      patient['breed'] as String,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -217,7 +217,7 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
               ),
               AppChip(
                 label: patient['status'] as String,
-                backgroundColor: statusColor.withOpacity(0.15),
+                backgroundColor: statusColor.withValues(alpha: 0.15),
                 textColor: statusColor,
               ),
             ],

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Saved Content**
 /// (Light Theme design authority, ID `cb353721`).
@@ -193,7 +192,7 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
                     children: [
                       Row(
                         children: [
-                          UserAvatar(name: 'Alex Johnson', radius: 14),
+                          const UserAvatar(name: 'Alex Johnson', radius: 14),
                           AppSpacing.hGapSm,
                           Text(
                             "Alex Johnson in 'Diet & Nutrition'",

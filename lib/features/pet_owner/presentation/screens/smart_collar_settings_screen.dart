@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Collar Settings** — `/owner/collar/settings`.
 ///
@@ -55,7 +54,7 @@ class _SmartCollarSettingsScreenState extends State<SmartCollarSettingsScreen> {
                 children: [
                   const _DeviceCard(),
                   AppSpacing.vGapLg,
-                  _SectionTitle('Preferences'),
+                  const _SectionTitle('Preferences'),
                   AppSpacing.vGapSm,
                   AppCard(
                     padding: const EdgeInsets.symmetric(
@@ -104,7 +103,7 @@ class _SmartCollarSettingsScreenState extends State<SmartCollarSettingsScreen> {
                     ),
                   ),
                   AppSpacing.vGapLg,
-                  _SectionTitle('Device'),
+                  const _SectionTitle('Device'),
                   AppSpacing.vGapSm,
                   AppCard(
                     child: Column(

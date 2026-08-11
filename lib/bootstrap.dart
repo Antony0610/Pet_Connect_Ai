@@ -4,13 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:petconnect_ai/app.dart';
+import 'package:petconnect_ai/core/config/app_config.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'app.dart';
-import 'core/config/app_config.dart';
-import 'core/providers/core_providers.dart';
-import 'core/utils/logger.dart';
 
 /// Initializes all app dependencies and runs the widget tree.
 ///

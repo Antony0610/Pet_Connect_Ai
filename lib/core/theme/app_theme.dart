@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
-import 'app_color_scheme.dart';
-import 'tokens/app_elevation.dart';
-import 'tokens/app_radius.dart';
-import 'tokens/app_spacing.dart';
-import 'tokens/app_typography.dart';
+import 'package:petconnect_ai/core/theme/app_color_scheme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 
 /// The **PetConnect AI Core** design-system theme.
 ///
@@ -58,7 +58,7 @@ abstract final class AppTheme {
         surfaceTintColor: isDark
             ? AppElevation.surfaceTintDark
             : AppElevation.surfaceTintLight,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.brCard),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
         margin: EdgeInsets.zero,
       ),
 
@@ -73,9 +73,9 @@ abstract final class AppTheme {
       ),
 
       // FloatingActionButton
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
         elevation: AppElevation.level3,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brCard),
       ),
 
       // Button
@@ -86,7 +86,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
       ),
@@ -96,7 +96,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
       ),
@@ -106,7 +106,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
           ),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           side: BorderSide(color: colorScheme.outline),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
@@ -117,7 +117,7 @@ abstract final class AppTheme {
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
           ),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
           textStyle: AppTypography.textTheme.labelLarge,
         ),
       ),
@@ -130,11 +130,11 @@ abstract final class AppTheme {
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,
         ),
-        border: OutlineInputBorder(
+        border: const OutlineInputBorder(
           borderRadius: AppRadius.brMd,
           borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
+        enabledBorder: const OutlineInputBorder(
           borderRadius: AppRadius.brMd,
           borderSide: BorderSide.none,
         ),
@@ -155,7 +155,7 @@ abstract final class AppTheme {
       // Chip
       chipTheme: ChipThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.brPill),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brPill),
         side: BorderSide(color: colorScheme.outline),
         labelStyle: AppTypography.textTheme.labelMedium,
         padding: const EdgeInsets.symmetric(
@@ -167,7 +167,7 @@ abstract final class AppTheme {
       // Dialog
       dialogTheme: DialogThemeData(
         elevation: AppElevation.level5,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.brSection),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brSection),
         backgroundColor: colorScheme.surface,
         surfaceTintColor: colorScheme.surfaceTint,
       ),
@@ -191,8 +191,8 @@ abstract final class AppTheme {
       ),
 
       // List Tile
-      listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.xs,
         ),
@@ -222,7 +222,7 @@ abstract final class AppTheme {
       // Snackbar
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         backgroundColor: colorScheme.inverseSurface,
         contentTextStyle: AppTypography.textTheme.bodyMedium?.copyWith(
           color: colorScheme.onInverseSurface,

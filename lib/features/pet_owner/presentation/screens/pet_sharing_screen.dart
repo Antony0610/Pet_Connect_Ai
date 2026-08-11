@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Pet Sharing & Permissions**
 /// (Light Theme design authority, ID `9b11253106194b159b35b62b1a8d051f`).
@@ -118,7 +117,7 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _selectedRole,
+                              initialValue: _selectedRole,
                               decoration: InputDecoration(
                                 labelText: 'Permission Level',
                                 contentPadding: const EdgeInsets.symmetric(
@@ -150,8 +149,9 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
                                 ),
                               ],
                               onChanged: (val) {
-                                if (val != null)
+                                if (val != null) {
                                   setState(() => _selectedRole = val);
+                                }
                               },
                             ),
                           ),

@@ -18,7 +18,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'owner_app_bar.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 
 /// The Golden Retriever ("Buddy") shown across the frozen collar comps.
 const String kCollarPetPhotoUrl =

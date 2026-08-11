@@ -1,4 +1,4 @@
-import 'extensions/string_extensions.dart';
+import 'package:petconnect_ai/core/utils/extensions/string_extensions.dart';
 
 /// Reusable form-field validators.
 ///

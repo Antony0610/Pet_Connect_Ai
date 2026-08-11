@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 
 /// Elevation & shadow tokens for the **PetConnect AI Core** design system.
 ///

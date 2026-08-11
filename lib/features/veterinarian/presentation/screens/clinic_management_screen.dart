@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class ClinicManagementScreen extends StatelessWidget {
   const ClinicManagementScreen({super.key});
@@ -92,7 +92,7 @@ class ClinicManagementScreen extends StatelessWidget {
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
-      color: colorScheme.primaryContainer.withOpacity(0.35),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
       child: Row(
         children: [
           Expanded(
@@ -159,7 +159,7 @@ class ClinicManagementScreen extends StatelessWidget {
                     Icon(Icons.groups, color: colorScheme.primary, size: 22),
                     AppChip(
                       label: '+12%',
-                      backgroundColor: Colors.green.withOpacity(0.15),
+                      backgroundColor: Colors.green.withValues(alpha: 0.15),
                       textColor: Colors.green,
                     ),
                   ],

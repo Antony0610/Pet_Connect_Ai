@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class TodaysAppointmentsScreen extends StatefulWidget {
   const TodaysAppointmentsScreen({super.key});
@@ -241,7 +241,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
                 ),
               ),
               Text(
-                slot['duration'],
+                slot['duration'] as String,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -276,7 +276,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
                               ),
                             ),
                             Text(
-                              slot['reason'],
+                              slot['reason'] as String,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -286,7 +286,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
                       ),
                       AppChip(
                         label: status,
-                        backgroundColor: statusColor.withOpacity(0.15),
+                        backgroundColor: statusColor.withValues(alpha: 0.15),
                         textColor: statusColor,
                       ),
                     ],

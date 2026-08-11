@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class DigitalPrescriptionScreen extends StatelessWidget {
   const DigitalPrescriptionScreen({super.key});
@@ -128,7 +128,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
-      color: colorScheme.primaryContainer.withOpacity(0.3),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.3),
       child: Column(
         children: [
           Row(
@@ -336,7 +336,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: colorScheme.errorContainer.withOpacity(0.3),
+              color: colorScheme.errorContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(

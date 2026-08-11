@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class VetTreatmentPlanScreen extends StatelessWidget {
   const VetTreatmentPlanScreen({super.key});
@@ -152,7 +152,7 @@ class VetTreatmentPlanScreen extends StatelessWidget {
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
-      color: colorScheme.primaryContainer.withOpacity(0.35),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
       child: Row(
         children: [
           CircleAvatar(
@@ -233,7 +233,7 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                     ),
                     AppChip(
                       label: badge,
-                      backgroundColor: badgeColor.withOpacity(0.15),
+                      backgroundColor: badgeColor.withValues(alpha: 0.15),
                       textColor: badgeColor,
                     ),
                   ],
@@ -312,9 +312,9 @@ class VetTreatmentPlanScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.tertiaryContainer.withOpacity(0.35),
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.tertiary.withOpacity(0.3)),
+        border: Border.all(color: colorScheme.tertiary.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

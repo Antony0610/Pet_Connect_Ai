@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// One AI health insight: an icon, a headline metric, an explanation, a
 /// confidence level and the sources it was derived from.
@@ -179,7 +178,7 @@ class _SummaryHero extends StatelessWidget {
           ),
           AppSpacing.vGapMd,
           Text(
-            "Everything looks great this week. Buddy is more active than usual, "
+            'Everything looks great this week. Buddy is more active than usual, '
             'sleeping well, and maintaining a healthy weight. Keep up the daily '
             'walks!',
             style: context.textTheme.bodyMedium?.copyWith(

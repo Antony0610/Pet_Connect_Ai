@@ -1,10 +1,9 @@
 import 'package:dartz/dartz.dart';
-
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/core/error/failure_mapper.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
-import 'package:petconnect_ai/features/auth/domain/repositories/onboarding_repository.dart';
 import 'package:petconnect_ai/features/auth/data/datasources/onboarding_local_datasource.dart';
+import 'package:petconnect_ai/features/auth/domain/repositories/onboarding_repository.dart';
 
 /// SharedPreferences-backed implementation of [OnboardingRepository].
 class OnboardingRepositoryImpl implements OnboardingRepository {

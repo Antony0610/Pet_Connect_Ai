@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
 class InventoryPharmacyScreen extends StatefulWidget {
   const InventoryPharmacyScreen({super.key});
@@ -189,9 +189,9 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withOpacity(0.35),
+        color: colorScheme.errorContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.error.withOpacity(0.4)),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
@@ -242,9 +242,9 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colorScheme.tertiaryContainer.withOpacity(0.35),
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.tertiary.withOpacity(0.3)),
+        border: Border.all(color: colorScheme.tertiary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -319,7 +319,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
               ),
               AppChip(
                 label: item['status'] as String,
-                backgroundColor: statusColor.withOpacity(0.15),
+                backgroundColor: statusColor.withValues(alpha: 0.15),
                 textColor: statusColor,
               ),
             ],
@@ -353,7 +353,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
                     child: Text(
-                      item['isCritical'] ? 'Reorder' : 'Log Use',
+                      (item['isCritical'] == true) ? 'Reorder' : 'Log Use',
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),

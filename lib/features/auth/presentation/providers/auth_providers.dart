@@ -1,9 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
-import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:petconnect_ai/features/auth/data/datasources/onboarding_local_datasource.dart';
 import 'package:petconnect_ai/features/auth/data/repositories/auth_repository_impl.dart';
@@ -17,6 +15,7 @@ import 'package:petconnect_ai/features/auth/domain/usecases/is_onboarding_comple
 import 'package:petconnect_ai/features/auth/domain/usecases/resend_email_otp.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/sign_in_with_password.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/verify_email_otp.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 
 // ──────────────────────────────────────────────────────────────────
 // Data sources

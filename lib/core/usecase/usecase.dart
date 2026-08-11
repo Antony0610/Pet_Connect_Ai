@@ -16,18 +16,18 @@ import 'package:petconnect_ai/core/utils/typedefs.dart';
 ///   ResultFuture<Pet> call(String petId) => _repo.getPet(petId);
 /// }
 /// ```
-abstract interface class UseCase<Type, Params> {
-  ResultFuture<Type> call(Params params);
+abstract interface class UseCase<T, Params> {
+  ResultFuture<T> call(Params params);
 }
 
 /// Synchronous variant for logic that doesn't touch async boundaries.
-abstract interface class SyncUseCase<Type, Params> {
-  Result<Type> call(Params params);
+abstract interface class SyncUseCase<T, Params> {
+  Result<T> call(Params params);
 }
 
 /// A streaming use case (e.g. realtime subscriptions).
-abstract interface class StreamUseCase<Type, Params> {
-  Stream<Type> call(Params params);
+abstract interface class StreamUseCase<T, Params> {
+  Stream<T> call(Params params);
 }
 
 /// Sentinel for use cases that take no parameters.
