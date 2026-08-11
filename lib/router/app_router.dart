@@ -73,9 +73,14 @@ import 'package:petconnect_ai/features/veterinarian/presentation/screens/treatme
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/active_rescue_operations_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/emergency_operations_center_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_accepted_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_completed_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_dashboard_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_details_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/nearby_rescue_requests_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/rescue_community_reports_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/rescue_history_screen.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/volunteer_network_screen.dart';
 import 'package:petconnect_ai/router/route_guard.dart';
 import 'package:petconnect_ai/router/route_observer.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -536,6 +541,39 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'reports',
             name: RouteNames.rescueReports,
             builder: (context, state) => const RescueCommunityReportsScreen(),
+          ),
+          GoRoute(
+            path: 'missions/:missionId',
+            name: RouteNames.rescueMissionDetail,
+            builder: (context, state) => MissionDetailsScreen(
+              missionId: state.pathParameters['missionId'] ?? 'm1',
+            ),
+            routes: [
+              GoRoute(
+                path: 'accepted',
+                name: RouteNames.rescueMissionAccepted,
+                builder: (context, state) => MissionAcceptedScreen(
+                  missionId: state.pathParameters['missionId'] ?? 'm1',
+                ),
+              ),
+              GoRoute(
+                path: 'completed',
+                name: RouteNames.rescueMissionCompleted,
+                builder: (context, state) => MissionCompletedScreen(
+                  missionId: state.pathParameters['missionId'] ?? 'm1',
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'history',
+            name: RouteNames.rescueHistory,
+            builder: (context, state) => const RescueHistoryScreen(),
+          ),
+          GoRoute(
+            path: 'network',
+            name: RouteNames.rescueNetwork,
+            builder: (context, state) => const VolunteerNetworkScreen(),
           ),
           GoRoute(
             path: 'profile',
