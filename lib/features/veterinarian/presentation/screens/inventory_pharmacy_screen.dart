@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -24,7 +25,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
       'sku': 'PH-1024',
       'stock': '4 units',
       'status': 'Low Stock',
-      'statusColor': Colors.red,
+      'statusColor': AppColors.lightError,
       'isCritical': true,
     },
     {
@@ -33,7 +34,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
       'sku': 'BIO-883',
       'stock': '32 doses',
       'status': 'Exp. Soon',
-      'statusColor': Colors.amber,
+      'statusColor': AppColors.warning,
       'isCritical': false,
     },
     {
@@ -42,7 +43,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
       'sku': 'PRV-092',
       'stock': '12 packs',
       'status': 'Optimal',
-      'statusColor': Colors.green,
+      'statusColor': AppColors.success,
       'isCritical': false,
     },
     {
@@ -51,7 +52,7 @@ class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
       'sku': 'PH-2041',
       'stock': '45 bottles',
       'status': 'Optimal',
-      'statusColor': Colors.green,
+      'statusColor': AppColors.success,
       'isCritical': false,
     },
   ];

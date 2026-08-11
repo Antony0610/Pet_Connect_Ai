@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -25,7 +26,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
       'breed': 'Siberian Husky',
       'duration': '10:30 - 11:00',
       'status': 'Checked-in',
-      'statusColor': Colors.green,
+      'statusColor': AppColors.success,
       'reason': 'Routine Checkup',
       'type': 'General',
     },
@@ -36,7 +37,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
       'breed': 'Labrador Retriever',
       'duration': '11:15 - 11:45',
       'status': 'In Progress',
-      'statusColor': Colors.teal,
+      'statusColor': AppColors.info,
       'reason': 'Vaccination & Microchip',
       'type': 'Vaccine',
     },
@@ -49,7 +50,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
       'breed': 'Persian Cat',
       'duration': '14:00 - 14:45',
       'status': 'Upcoming',
-      'statusColor': Colors.amber,
+      'statusColor': AppColors.warning,
       'reason': 'Dental Check & Cleaning',
       'type': 'Dental',
     },

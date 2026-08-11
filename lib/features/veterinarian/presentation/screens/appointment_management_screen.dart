@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -27,7 +28,7 @@ class _AppointmentManagementScreenState
       'reason': 'General Checkup & Vaccination',
       'doctor': 'Dr. Sarah Jenkins',
       'status': 'Confirmed',
-      'statusColor': Colors.green,
+      'statusColor': AppColors.success,
     },
     {
       'time': '11:15 AM',
@@ -37,7 +38,7 @@ class _AppointmentManagementScreenState
       'reason': 'Vaccination & Microchip',
       'doctor': 'Dr. Miller',
       'status': 'In Progress',
-      'statusColor': Colors.teal,
+      'statusColor': AppColors.info,
     },
     {
       'time': '02:00 PM',
@@ -47,7 +48,7 @@ class _AppointmentManagementScreenState
       'reason': 'Dental Check & Cleaning',
       'doctor': 'Dr. Sarah Jenkins',
       'status': 'Upcoming',
-      'statusColor': Colors.amber,
+      'statusColor': AppColors.warning,
     },
   ];
 

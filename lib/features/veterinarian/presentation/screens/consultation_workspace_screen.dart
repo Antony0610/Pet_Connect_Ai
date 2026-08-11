@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -302,7 +303,7 @@ class _ConsultationWorkspaceScreenState
             desc:
                 'Endemic area; tick preventative lapsed 6 weeks ago. Suggest SNAP 4Dx Plus test.',
             icon: Icons.priority_high,
-            iconColor: Colors.amber,
+            iconColor: AppColors.warning,
           ),
           const SizedBox(height: 8),
           _buildAiSuggestionItem(

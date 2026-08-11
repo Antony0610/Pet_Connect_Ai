@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -423,11 +424,11 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
             ),
           ),
           const SizedBox(height: 10),
-          _buildVaccineItem('Rabies', 'Valid to Oct 2026', Colors.green),
+          _buildVaccineItem('Rabies', 'Valid to Oct 2026', AppColors.success),
           const Divider(height: 12),
-          _buildVaccineItem('DHPP', 'Valid to Oct 2024', Colors.green),
+          _buildVaccineItem('DHPP', 'Valid to Oct 2024', AppColors.success),
           const Divider(height: 12),
-          _buildVaccineItem('Bordetella', 'Due in 2 wks', Colors.amber),
+          _buildVaccineItem('Bordetella', 'Due in 2 wks', AppColors.warning),
         ],
       ),
     );

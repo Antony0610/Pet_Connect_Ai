@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -159,8 +160,10 @@ class ClinicManagementScreen extends StatelessWidget {
                     Icon(Icons.groups, color: colorScheme.primary, size: 22),
                     AppChip(
                       label: '+12%',
-                      backgroundColor: Colors.green.withValues(alpha: 0.15),
-                      textColor: Colors.green,
+                      backgroundColor: AppColors.success.withValues(
+                        alpha: 0.15,
+                      ),
+                      textColor: AppColors.success,
                     ),
                   ],
                 ),

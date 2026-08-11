@@ -300,9 +300,9 @@ class DigitalPrescriptionScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildRxMeta('Quantity', '28 Tablets'),
-              _buildRxMeta('Refills', '2'),
-              _buildRxMeta('Duration', '14 Days'),
+              _buildRxMeta(context, 'Quantity', '28 Tablets'),
+              _buildRxMeta(context, 'Refills', '2'),
+              _buildRxMeta(context, 'Duration', '14 Days'),
             ],
           ),
           const SizedBox(height: 14),
@@ -364,10 +364,14 @@ class DigitalPrescriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRxMeta(String label, String val) {
+  Widget _buildRxMeta(BuildContext context, String label, String val) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+        ),
         const SizedBox(height: 2),
         Text(
           val,

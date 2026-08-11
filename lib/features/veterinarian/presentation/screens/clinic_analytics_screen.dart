@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -166,7 +167,7 @@ class ClinicAnalyticsScreen extends StatelessWidget {
             title: 'Satisfaction',
             value: '4.8 / 5',
             sub: '342 reviews',
-            color: Colors.amber.shade800,
+            color: AppColors.warning,
             badge: 'Top 5%',
           ),
         ),
@@ -294,8 +295,8 @@ class ClinicAnalyticsScreen extends StatelessWidget {
               ),
               AppChip(
                 label: '96% Overall',
-                backgroundColor: Colors.green.withValues(alpha: 0.15),
-                textColor: Colors.green,
+                backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                textColor: AppColors.success,
               ),
             ],
           ),
@@ -305,11 +306,12 @@ class ClinicAnalyticsScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildBar(colorScheme, 'Jan', 0.65),
-              _buildBar(colorScheme, 'Feb', 0.75),
-              _buildBar(colorScheme, 'Mar', 0.85),
-              _buildBar(colorScheme, 'Apr', 0.90),
-              _buildBar(colorScheme, 'May', 0.96),
+              _buildBar(context, colorScheme, 'Jan', 0.6),
+              _buildBar(context, colorScheme, 'Feb', 0.8),
+              _buildBar(context, colorScheme, 'Mar', 0.7),
+              _buildBar(context, colorScheme, 'Apr', 0.95),
+              _buildBar(context, colorScheme, 'May', 0.85),
+              _buildBar(context, colorScheme, 'Jun', 0.9),
             ],
           ),
         ],
@@ -317,7 +319,12 @@ class ClinicAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBar(ColorScheme colorScheme, String month, double factor) {
+  Widget _buildBar(
+    BuildContext context,
+    ColorScheme colorScheme,
+    String month,
+    double factor,
+  ) {
     return Column(
       children: [
         Container(
@@ -329,7 +336,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(month, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(
+          month,
+          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+        ),
       ],
     );
   }
@@ -351,24 +361,44 @@ class ClinicAnalyticsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _buildTrendRow('Rabies', '340 doses', 0.85, colorScheme.primary),
+          _buildTrendRow(
+            context,
+            'Rabies',
+            '340 doses',
+            0.85,
+            colorScheme.primary,
+          ),
           const SizedBox(height: 8),
-          _buildTrendRow('DHPP', '215 doses', 0.60, colorScheme.secondary),
+          _buildTrendRow(
+            context,
+            'DHPP',
+            '215 doses',
+            0.60,
+            colorScheme.secondary,
+          ),
           const SizedBox(height: 8),
-          _buildTrendRow('Bordetella', '180 doses', 0.45, colorScheme.tertiary),
+          _buildTrendRow(
+            context,
+            'Bordetella',
+            '180 doses',
+            0.45,
+            colorScheme.tertiary,
+          ),
           const SizedBox(height: 8),
-          _buildTrendRow('FVRCP', '120 doses', 0.30, Colors.teal),
+          _buildTrendRow(context, 'FVRCP', '120 doses', 0.30, AppColors.info),
         ],
       ),
     );
   }
 
   Widget _buildTrendRow(
+    BuildContext context,
     String label,
     String count,
     double factor,
     Color color,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -378,7 +408,10 @@ class ClinicAnalyticsScreen extends StatelessWidget {
             Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
             Text(
               count,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),

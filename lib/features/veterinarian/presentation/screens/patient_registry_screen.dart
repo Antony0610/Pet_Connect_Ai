@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -22,40 +23,40 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
       'name': 'Buster',
       'breed': 'Golden Retriever',
       'status': 'Stable',
-      'statusColor': Colors.green,
+      'statusColor': AppColors.success,
       'owner': 'Sarah J.',
       'lastVisit': 'Oct 12, 2023',
-      'avatarColor': Colors.amber,
+      'avatarColor': AppColors.warning,
     },
     {
       'id': 'p2',
       'name': 'Luna',
       'breed': 'Siberian Husky',
       'status': 'Monitoring',
-      'statusColor': Colors.amber,
+      'statusColor': AppColors.warning,
       'owner': 'Mike T.',
       'lastVisit': 'Nov 05, 2023',
-      'avatarColor': Colors.purple,
+      'avatarColor': AppColors.info,
     },
     {
       'id': 'p3',
       'name': 'Winston',
       'breed': 'Pug',
       'status': 'Stable',
-      'statusColor': Colors.green,
+      'statusColor': AppColors.success,
       'owner': 'David M.',
       'lastVisit': 'Oct 28, 2023',
-      'avatarColor': Colors.blue,
+      'avatarColor': AppColors.info,
     },
     {
       'id': 'p4',
       'name': 'Buddy',
       'breed': 'Golden Retriever',
       'status': 'Post-Op Alert',
-      'statusColor': Colors.red,
+      'statusColor': AppColors.lightError,
       'owner': 'Sarah J.',
       'lastVisit': 'Today (10:00 AM)',
-      'avatarColor': Colors.teal,
+      'avatarColor': AppColors.info,
     },
   ];
 

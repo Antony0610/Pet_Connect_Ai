@@ -251,8 +251,8 @@ class _PatientQueueScreenState extends State<PatientQueueScreen> {
       priorityColor = colorScheme.error;
       priorityContainer = colorScheme.errorContainer;
     } else if (priority == 'MED') {
-      priorityColor = Colors.amber.shade800;
-      priorityContainer = Colors.amber.shade100;
+      priorityColor = colorScheme.tertiary;
+      priorityContainer = colorScheme.tertiaryContainer;
     } else {
       priorityColor = colorScheme.primary;
       priorityContainer = colorScheme.primaryContainer;
@@ -353,7 +353,11 @@ class _PatientQueueScreenState extends State<PatientQueueScreen> {
                   );
                 },
                 backgroundColor: priorityColor,
-                textColor: Colors.white,
+                textColor: priority == 'HIGH'
+                    ? colorScheme.onError
+                    : (priority == 'MED'
+                          ? colorScheme.onTertiary
+                          : colorScheme.onPrimary),
                 height: 36,
               ),
             ],
