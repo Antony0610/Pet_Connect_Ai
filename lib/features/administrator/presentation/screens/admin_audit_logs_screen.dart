@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
+import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
@@ -11,51 +14,16 @@ import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 ///
 /// System audit trail and security timeline log. Displays detailed actor, event action,
 /// target resource, severity badge (Info, Warning, Critical), and CSV log export.
-class AdminAuditLogsScreen extends StatefulWidget {
+class AdminAuditLogsScreen extends ConsumerStatefulWidget {
   const AdminAuditLogsScreen({super.key});
 
   @override
-  State<AdminAuditLogsScreen> createState() => _AdminAuditLogsScreenState();
+  ConsumerState<AdminAuditLogsScreen> createState() =>
+      _AdminAuditLogsScreenState();
 }
 
-class _AdminAuditLogsScreenState extends State<AdminAuditLogsScreen> {
+class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
   final TextEditingController _searchController = TextEditingController();
-
-  final List<Map<String, dynamic>> _logs = [
-    {
-      'time': '14:22:01 UTC',
-      'actor': 'Admin (Sarah C.)',
-      'action': 'USER_ROLE_UPDATED',
-      'details': 'Updated Dr. Watson role to Senior Vet Examiner',
-      'severity': 'INFO',
-      'severityColor': AppColors.info,
-    },
-    {
-      'time': '13:58:14 UTC',
-      'actor': 'System Sentinel',
-      'action': 'POST_AUTO_MODERATED',
-      'details': 'Flagged duplicate sighting post from User #1048',
-      'severity': 'WARNING',
-      'severityColor': AppColors.warning,
-    },
-    {
-      'time': '11:15:30 UTC',
-      'actor': 'Admin (Alex R.)',
-      'action': 'EMERGENCY_DISPATCH_OVERRIDE',
-      'details': 'Manually reassigned Pine Ridge search mission',
-      'severity': 'INFO',
-      'severityColor': AppColors.info,
-    },
-    {
-      'time': '09:04:12 UTC',
-      'actor': 'Security Guard',
-      'action': 'FAILED_LOGIN_SPIKE',
-      'details':
-          'Blocked 5 invalid authentication attempts from IP 192.168.1.104',
-      'severity': 'CRITICAL',
-      'severityColor': AppColors.lightError,
-    },
-  ];
 
   @override
   void dispose() {
@@ -63,10 +31,23 @@ class _AdminAuditLogsScreenState extends State<AdminAuditLogsScreen> {
     super.dispose();
   }
 
+  Color _severityColor(String severity) {
+    switch (severity.toUpperCase()) {
+      case 'CRITICAL':
+        return AppColors.lightError;
+      case 'WARNING':
+        return AppColors.warning;
+      case 'INFO':
+      default:
+        return AppColors.info;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final auditAsync = ref.watch(adminAuditLogsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -89,40 +70,70 @@ class _AdminAuditLogsScreenState extends State<AdminAuditLogsScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Search & Filter Input ────────────────────────────
-                AppTextField(
-                  controller: _searchController,
-                  hintText:
-                      'Filter log by actor, action type, or event keyword...',
-                  prefixIcon: const Icon(Icons.search),
+      body: auditAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Error loading logs: $err')),
+        data: (logs) => _buildLogList(theme, colorScheme, logs),
+      ),
+    );
+  }
+
+  Widget _buildLogList(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    List<AuditLogEntry> logs,
+  ) {
+    final query = _searchController.text.toLowerCase();
+    final filtered = query.isEmpty
+        ? logs
+        : logs.where((l) {
+            final combined =
+                '${l.action} ${l.resourceType} ${l.severity}'.toLowerCase();
+            return combined.contains(query);
+          }).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Search & Filter Input ────────────────────────────
+              AppTextField(
+                controller: _searchController,
+                hintText:
+                    'Filter log by action type, resource, or severity...',
+                prefixIcon: const Icon(Icons.search),
+                onChanged: (_) => setState(() {}),
+              ),
+
+              AppSpacing.vGapLg,
+
+              // ── Audit Log Roster List ────────────────────────────
+              Text(
+                'Event Timeline Logs (${filtered.length} entries)',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: AppTypography.bold,
                 ),
+              ),
+              AppSpacing.vGapSm,
 
-                AppSpacing.vGapLg,
-
-                // ── Audit Log Roster List ────────────────────────────
-                Text(
-                  'Event Timeline Logs (24 Hours)',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTypography.bold,
+              if (filtered.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                  child: Center(
+                    child: Text('No audit log entries found.'),
                   ),
-                ),
-                AppSpacing.vGapSm,
-
-                ..._logs.map(
+                )
+              else
+                ...filtered.map(
                   (log) => _buildAuditLogCard(theme, colorScheme, log),
                 ),
 
-                AppSpacing.vGapXl,
-              ],
-            ),
+              AppSpacing.vGapXl,
+            ],
           ),
         ),
       ),
@@ -132,9 +143,13 @@ class _AdminAuditLogsScreenState extends State<AdminAuditLogsScreen> {
   Widget _buildAuditLogCard(
     ThemeData theme,
     ColorScheme colorScheme,
-    Map<String, dynamic> log,
+    AuditLogEntry log,
   ) {
-    final severityColor = log['severityColor'] as Color;
+    final severityColor = _severityColor(log.severity);
+    final timestamp =
+        '${log.createdAt.toUtc().hour.toString().padLeft(2, '0')}:'
+        '${log.createdAt.toUtc().minute.toString().padLeft(2, '0')}:'
+        '${log.createdAt.toUtc().second.toString().padLeft(2, '0')} UTC';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -156,22 +171,23 @@ class _AdminAuditLogsScreenState extends State<AdminAuditLogsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${log['action']} • ${log['actor']}',
+                        '${log.action} • ${log.resourceType}',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
                       ),
-                      Text(
-                        log['details'] as String,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                      if (log.resourceId != null)
+                        Text(
+                          'Resource: ${log.resourceId}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
                 AppChip(
-                  label: log['severity'] as String,
+                  label: log.severity,
                   backgroundColor: severityColor.withValues(alpha: 0.15),
                   textColor: severityColor,
                 ),
@@ -179,7 +195,7 @@ class _AdminAuditLogsScreenState extends State<AdminAuditLogsScreen> {
             ),
             AppSpacing.vGapXs,
             Text(
-              'Timestamp: ${log['time']}',
+              'Timestamp: $timestamp',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 10,

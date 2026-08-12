@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
+import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -14,56 +17,18 @@ import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 ///
 /// Central user directory and portal governance hub. Displays user role filters,
 /// global user directory roster, active status chips, and account permission controls.
-class AdminUserManagementScreen extends StatefulWidget {
+class AdminUserManagementScreen extends ConsumerStatefulWidget {
   const AdminUserManagementScreen({super.key});
 
   @override
-  State<AdminUserManagementScreen> createState() =>
+  ConsumerState<AdminUserManagementScreen> createState() =>
       _AdminUserManagementScreenState();
 }
 
-class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
+class _AdminUserManagementScreenState
+    extends ConsumerState<AdminUserManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedRole = 'All';
-
-  final List<Map<String, dynamic>> _users = [
-    {
-      'name': 'Sarah Connor',
-      'email': 'sarah.c@example.com',
-      'role': 'Pet Owner',
-      'portal': 'Pet Owner Portal',
-      'status': 'Active',
-      'statusColor': AppColors.success,
-      'joined': 'Jan 12, 2026',
-    },
-    {
-      'name': 'Dr. Emily Watson',
-      'email': 'dr.watson@petcarevet.com',
-      'role': 'Veterinarian',
-      'portal': 'Vet Portal',
-      'status': 'Active',
-      'statusColor': AppColors.success,
-      'joined': 'Feb 04, 2026',
-    },
-    {
-      'name': 'Alex Rivera',
-      'email': 'alex.r@rescueops.org',
-      'role': 'Rescue Lead',
-      'portal': 'Volunteer Portal',
-      'status': 'Active',
-      'statusColor': AppColors.success,
-      'joined': 'Mar 19, 2026',
-    },
-    {
-      'name': 'Marcus Vance',
-      'email': 'm.vance@flaggeduser.net',
-      'role': 'Pet Owner',
-      'portal': 'Pet Owner Portal',
-      'status': 'Suspended',
-      'statusColor': AppColors.lightError,
-      'joined': 'Apr 01, 2026',
-    },
-  ];
 
   @override
   void dispose() {
@@ -71,11 +36,42 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     super.dispose();
   }
 
+  String _displayRole(String role) {
+    switch (role) {
+      case 'administrator':
+        return 'Administrator';
+      case 'veterinarian':
+        return 'Veterinarian';
+      case 'volunteer':
+        return 'Volunteer';
+      case 'pet_owner':
+      default:
+        return 'Pet Owner';
+    }
+  }
+
+  bool _matchesFilter(AdminUserEntry user) {
+    if (_selectedRole == 'All') return true;
+    switch (_selectedRole) {
+      case 'Pet Owners':
+        return user.role == 'pet_owner';
+      case 'Veterinarians':
+        return user.role == 'veterinarian';
+      case 'Rescuers':
+        return user.role == 'volunteer';
+      case 'Staff':
+        return user.role == 'administrator';
+      default:
+        return true;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final adminAccent = PortalPalette.accentFor(AppPortal.administrator);
+    final usersAsync = ref.watch(adminUserDirectoryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -132,79 +128,124 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Global User Stats Header ────────────────────────
-                _buildUserStatsRow(theme, colorScheme, adminAccent),
+      body: usersAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Error: $err')),
+        data: (users) =>
+            _buildUserDirectoryBody(theme, colorScheme, adminAccent, users),
+      ),
+      bottomNavigationBar: _buildBottomNav(context, theme, colorScheme),
+    );
+  }
 
-                AppSpacing.vGapLg,
+  Widget _buildUserDirectoryBody(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    Color adminAccent,
+    List<AdminUserEntry> allUsers,
+  ) {
+    final query = _searchController.text.toLowerCase();
+    final filtered = allUsers.where((u) {
+      if (!_matchesFilter(u)) return false;
+      if (query.isEmpty) return true;
+      final combined = '${u.fullName} ${u.email ?? ''} ${u.role}'.toLowerCase();
+      return combined.contains(query);
+    }).toList();
 
-                // ── Search Bar & Role Filters ────────────────────────
-                AppTextField(
-                  controller: _searchController,
-                  hintText: 'Search by user name, email, or ID...',
-                  prefixIcon: const Icon(Icons.search),
-                ),
+    // Compute live stats from actual data
+    final totalUsers = allUsers.length;
+    final activeVets =
+        allUsers.where((u) => u.role == 'veterinarian').length;
+    final rescuers = allUsers.where((u) => u.role == 'volunteer').length;
 
-                AppSpacing.vGapMd,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Global User Stats Header ────────────────────────
+              _buildUserStatsRow(
+                theme,
+                colorScheme,
+                adminAccent,
+                totalUsers: totalUsers,
+                activeVets: activeVets,
+                rescuers: rescuers,
+              ),
 
-                _buildRoleFilterChips(theme, colorScheme),
+              AppSpacing.vGapLg,
 
-                AppSpacing.vGapLg,
+              // ── Search Bar & Role Filters ────────────────────────
+              AppTextField(
+                controller: _searchController,
+                hintText: 'Search by user name, email, or ID...',
+                prefixIcon: const Icon(Icons.search),
+                onChanged: (_) => setState(() {}),
+              ),
 
-                // ── Directory Header & User Roster Cards ─────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Global User Directory (45K Total)',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: AppTypography.bold,
-                      ),
+              AppSpacing.vGapMd,
+
+              _buildRoleFilterChips(theme, colorScheme),
+
+              AppSpacing.vGapLg,
+
+              // ── Directory Header & User Roster Cards ─────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Global User Directory ($totalUsers Total)',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: AppTypography.bold,
                     ),
-                    Text(
-                      'Showing 4 accounts',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                  ),
+                  Text(
+                    'Showing ${filtered.length} accounts',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
 
-                AppSpacing.vGapSm,
+              AppSpacing.vGapSm,
 
-                ..._users.map(
+              if (filtered.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                  child: Center(child: Text('No users match the filter.')),
+                )
+              else
+                ...filtered.map(
                   (u) => _buildUserCard(context, theme, colorScheme, u),
                 ),
 
-                AppSpacing.vGapXl,
-              ],
-            ),
+              AppSpacing.vGapXl,
+            ],
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context, theme, colorScheme),
     );
   }
 
   Widget _buildUserStatsRow(
     ThemeData theme,
     ColorScheme colorScheme,
-    Color adminAccent,
-  ) {
+    Color adminAccent, {
+    required int totalUsers,
+    required int activeVets,
+    required int rescuers,
+  }) {
     return Row(
       children: [
         Expanded(
           child: _buildStatTile(
             theme,
             colorScheme,
-            value: '45,210',
+            value: totalUsers.toString(),
             label: 'Total Users',
             icon: Icons.group_outlined,
             color: adminAccent,
@@ -215,7 +256,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           child: _buildStatTile(
             theme,
             colorScheme,
-            value: '1,204',
+            value: activeVets.toString(),
             label: 'Active Vets',
             icon: Icons.local_hospital_outlined,
             color: colorScheme.primary,
@@ -226,7 +267,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           child: _buildStatTile(
             theme,
             colorScheme,
-            value: '1,248',
+            value: rescuers.toString(),
             label: 'Rescuers',
             icon: Icons.shield_outlined,
             color: AppColors.success,
@@ -299,9 +340,10 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
-    Map<String, dynamic> u,
+    AdminUserEntry user,
   ) {
-    final statusColor = u['statusColor'] as Color;
+    final joined =
+        '${_monthName(user.createdAt.month)} ${user.createdAt.day.toString().padLeft(2, '0')}, ${user.createdAt.year}';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -311,7 +353,12 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           children: [
             CircleAvatar(
               backgroundColor: colorScheme.primaryContainer,
-              child: Icon(Icons.person, color: colorScheme.primary),
+              backgroundImage: user.avatarUrl != null
+                  ? NetworkImage(user.avatarUrl!)
+                  : null,
+              child: user.avatarUrl == null
+                  ? Icon(Icons.person, color: colorScheme.primary)
+                  : null,
             ),
             AppSpacing.hGapSm,
             Expanded(
@@ -321,14 +368,14 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                   Row(
                     children: [
                       Text(
-                        u['name'] as String,
+                        user.fullName,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '• ${u['role']}',
+                        '• ${_displayRole(user.role)}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -336,7 +383,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                     ],
                   ),
                   Text(
-                    '${u['email']} • Joined ${u['joined']}',
+                    '${user.email ?? 'No email'} • Joined $joined',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 11,
@@ -349,16 +396,18 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 AppChip(
-                  label: u['status'] as String,
-                  backgroundColor: statusColor.withValues(alpha: 0.15),
-                  textColor: statusColor,
+                  label: 'Active',
+                  backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                  textColor: AppColors.success,
                 ),
                 AppSpacing.vGapXs,
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, size: 18),
                   onSelected: (action) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$action for ${u['name']}')),
+                      SnackBar(
+                        content: Text('$action for ${user.fullName}'),
+                      ),
                     );
                   },
                   itemBuilder: (ctx) => [
@@ -382,6 +431,14 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
         ),
       ),
     );
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return months[month - 1];
   }
 
   void _showAddUserDialog(
