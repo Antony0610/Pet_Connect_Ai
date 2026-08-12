@@ -33,9 +33,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
           .limit(200);
 
       return (response as List)
-          .map(
-            (json) => AuditLogModel.fromJson(json as Map<String, dynamic>),
-          )
+          .map((json) => AuditLogModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on PostgrestException catch (e) {
       throw ServerException(

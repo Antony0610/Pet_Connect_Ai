@@ -97,7 +97,10 @@ void main() {
 
       final json = model.toJson();
       expect(json['setting_key'], 'app_version');
-      expect((json['setting_value'] as Map<String, dynamic>)['current'], '2.1.0');
+      expect(
+        (json['setting_value'] as Map<String, dynamic>)['current'],
+        '2.1.0',
+      );
       expect(json['description'], 'Current app version');
     });
 

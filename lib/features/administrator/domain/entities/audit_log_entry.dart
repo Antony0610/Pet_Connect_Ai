@@ -24,13 +24,13 @@ class AuditLogEntry extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        actorId,
-        action,
-        resourceType,
-        resourceId,
-        severity,
-        metadata,
-        createdAt,
-      ];
+    id,
+    actorId,
+    action,
+    resourceType,
+    resourceId,
+    severity,
+    metadata,
+    createdAt,
+  ];
 }

@@ -154,8 +154,7 @@ class _AdminUserManagementScreenState
 
     // Compute live stats from actual data
     final totalUsers = allUsers.length;
-    final activeVets =
-        allUsers.where((u) => u.role == 'veterinarian').length;
+    final activeVets = allUsers.where((u) => u.role == 'veterinarian').length;
     final rescuers = allUsers.where((u) => u.role == 'volunteer').length;
 
     return SingleChildScrollView(
@@ -405,9 +404,7 @@ class _AdminUserManagementScreenState
                   icon: const Icon(Icons.more_vert, size: 18),
                   onSelected: (action) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$action for ${user.fullName}'),
-                      ),
+                      SnackBar(content: Text('$action for ${user.fullName}')),
                     );
                   },
                   itemBuilder: (ctx) => [
@@ -435,8 +432,18 @@ class _AdminUserManagementScreenState
 
   String _monthName(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return months[month - 1];
   }

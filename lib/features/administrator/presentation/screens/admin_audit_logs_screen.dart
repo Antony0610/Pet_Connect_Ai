@@ -87,8 +87,8 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
     final filtered = query.isEmpty
         ? logs
         : logs.where((l) {
-            final combined =
-                '${l.action} ${l.resourceType} ${l.severity}'.toLowerCase();
+            final combined = '${l.action} ${l.resourceType} ${l.severity}'
+                .toLowerCase();
             return combined.contains(query);
           }).toList();
 
@@ -103,8 +103,7 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
               // ── Search & Filter Input ────────────────────────────
               AppTextField(
                 controller: _searchController,
-                hintText:
-                    'Filter log by action type, resource, or severity...',
+                hintText: 'Filter log by action type, resource, or severity...',
                 prefixIcon: const Icon(Icons.search),
                 onChanged: (_) => setState(() {}),
               ),
@@ -123,9 +122,7 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
               if (filtered.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Center(
-                    child: Text('No audit log entries found.'),
-                  ),
+                  child: Center(child: Text('No audit log entries found.')),
                 )
               else
                 ...filtered.map(

@@ -16,9 +16,7 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepositoryImpl(ref.watch(adminRemoteDataSourceProvider));
 });
 
-final adminAuditLogsProvider = FutureProvider<List<AuditLogEntry>>((
-  ref,
-) async {
+final adminAuditLogsProvider = FutureProvider<List<AuditLogEntry>>((ref) async {
   final repo = ref.watch(adminRepositoryProvider);
   final result = await repo.getAuditLogs();
   return result.fold(

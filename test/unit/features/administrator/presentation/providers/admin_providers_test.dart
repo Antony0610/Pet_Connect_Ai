@@ -73,8 +73,9 @@ void main() {
       ).thenAnswer((_) async => Right([tSetting]));
 
       final container = makeContainer();
-      final settings =
-          await container.read(adminPlatformSettingsProvider.future);
+      final settings = await container.read(
+        adminPlatformSettingsProvider.future,
+      );
 
       expect(settings, [tSetting]);
       verify(() => mockRepo.getPlatformSettings()).called(1);

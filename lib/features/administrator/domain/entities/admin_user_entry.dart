@@ -22,12 +22,12 @@ class AdminUserEntry extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        fullName,
-        email,
-        role,
-        avatarUrl,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    fullName,
+    email,
+    role,
+    avatarUrl,
+    createdAt,
+    updatedAt,
+  ];
 }

@@ -22,12 +22,12 @@ class PlatformSetting extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        settingKey,
-        settingValue,
-        description,
-        updatedBy,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    settingKey,
+    settingValue,
+    description,
+    updatedBy,
+    createdAt,
+    updatedAt,
+  ];
 }

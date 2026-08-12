@@ -30,8 +30,7 @@ class UpdatePlatformSetting {
   ResultFuture<PlatformSetting> call(
     String settingId,
     Map<String, dynamic> value,
-  ) =>
-      _repository.updatePlatformSetting(settingId, value);
+  ) => _repository.updatePlatformSetting(settingId, value);
 }
 
 class GetAdminUserDirectory {
