@@ -369,20 +369,20 @@ graph TD
 - **Deliverables**: Verified `AppConfig`, active Supabase project connection, updated `.env.example`.
 - **Complexity**: LOW
 
-#### Phase 1: Authentication + Session + User Profiles + Roles [COMPLETED & INTEGRATED]
+#### Phase 1: Authentication + Session + User Profiles + Roles [DEPLOYED & VERIFIED ON LIVE SUPABASE]
 - **Purpose**: Implement real Supabase authentication, session persistence across restarts, user profile creation (`public.profiles`), role authorization (`pet_owner`, `veterinarian`, `volunteer_rescue`, `administrator`), and auth-aware GoRouter route guards (`RouteGuard`).
 - **Screens**: 1–8 (Auth), 58 (Profile), 59 (Settings).
 - **Tables Created/Modified**: `profiles` (with RLS policies enabled).
 - **Deliverables**: Real sign in, sign up, sign out, password recovery, OTP verification, `profiles` RLS policies, reactive `GoRouterRefreshStream`, unit tests passing.
-- **Status**: COMPLETE
+- **Status**: COMPLETE & DEPLOYED (Live Project: `cghgslyikjqghrzhrqxz`)
 - **Complexity**: MEDIUM
 
-#### Phase 2: Core Pet Management [COMPLETED & INTEGRATED]
+#### Phase 2: Core Pet Management [DEPLOYED & VERIFIED ON LIVE SUPABASE]
 - **Purpose**: Build pet profile CRUD, species catalog, pet settings, and global pet search.
 - **Screens**: 9 (My Pets), 10 (Add Pet), 11 (Pet Profile Detail), 13 (Edit Pet Profile), 14 (Delete Pet Confirmation), 15 (Pet Settings), 16 (Pet Media Gallery), 17 (Pet Sharing), 18 (Initial Pet Setup).
 - **Tables Created/Modified**: `pets`, `pet_settings` (with owner RLS policies & anti-spoofing triggers).
 - **Deliverables**: Real pet roster list, add/edit/delete pet flow, selected pet switching, pet settings persistence, RLS security, 23 unit tests passing.
-- **Status**: COMPLETE
+- **Status**: COMPLETE & DEPLOYED (Live Project: `cghgslyikjqghrzhrqxz`)
 - **Complexity**: MEDIUM
 
 #### Phase 3: Pet Health Passport & Medical Data

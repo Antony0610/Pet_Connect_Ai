@@ -36,8 +36,9 @@ void main() {
 
   group('Auth UseCases Unit Tests', () {
     test('GetCurrentSession calls repository.currentSession', () async {
-      when(() => mockRepository.currentSession())
-          .thenAnswer((_) async => const Right<Failure, AuthSession?>(tSession));
+      when(
+        () => mockRepository.currentSession(),
+      ).thenAnswer((_) async => const Right<Failure, AuthSession?>(tSession));
 
       final useCase = GetCurrentSession(mockRepository);
       final result = await useCase(const NoParams());
@@ -47,34 +48,37 @@ void main() {
     });
 
     test('SignInWithPassword calls repository.signInWithPassword', () async {
-      when(() => mockRepository.signInWithPassword(
-            email: 'test@example.com',
-            password: 'Password123',
-          )).thenAnswer((_) async => const Right<Failure, AuthSession>(tSession));
-
-      final useCase = SignInWithPassword(mockRepository);
-      final result = await useCase(
-        const SignInParams(
+      when(
+        () => mockRepository.signInWithPassword(
           email: 'test@example.com',
           password: 'Password123',
         ),
+      ).thenAnswer((_) async => const Right<Failure, AuthSession>(tSession));
+
+      final useCase = SignInWithPassword(mockRepository);
+      final result = await useCase(
+        const SignInParams(email: 'test@example.com', password: 'Password123'),
       );
 
       expect(result, const Right<Failure, AuthSession>(tSession));
-      verify(() => mockRepository.signInWithPassword(
-            email: 'test@example.com',
-            password: 'Password123',
-          )).called(1);
+      verify(
+        () => mockRepository.signInWithPassword(
+          email: 'test@example.com',
+          password: 'Password123',
+        ),
+      ).called(1);
     });
 
     test('CreateAccount calls repository.signUp', () async {
-      when(() => mockRepository.signUp(
-            email: 'test@example.com',
-            password: 'Password123',
-            fullName: 'Test User',
-            role: AppPortal.petOwner,
-            phone: null,
-          )).thenAnswer((_) async => const Right<Failure, void>(null));
+      when(
+        () => mockRepository.signUp(
+          email: 'test@example.com',
+          password: 'Password123',
+          fullName: 'Test User',
+          role: AppPortal.petOwner,
+          phone: null,
+        ),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
       final useCase = CreateAccount(mockRepository);
       final result = await useCase(
@@ -87,51 +91,57 @@ void main() {
       );
 
       expect(result, const Right<Failure, void>(null));
-      verify(() => mockRepository.signUp(
-            email: 'test@example.com',
-            password: 'Password123',
-            fullName: 'Test User',
-            role: AppPortal.petOwner,
-            phone: null,
-          )).called(1);
+      verify(
+        () => mockRepository.signUp(
+          email: 'test@example.com',
+          password: 'Password123',
+          fullName: 'Test User',
+          role: AppPortal.petOwner,
+          phone: null,
+        ),
+      ).called(1);
     });
 
     test('VerifyEmailOtp calls repository.verifyEmailOtp', () async {
-      when(() => mockRepository.verifyEmailOtp(
-            email: 'test@example.com',
-            token: '123456',
-          )).thenAnswer((_) async => const Right<Failure, AuthSession>(tSession));
-
-      final useCase = VerifyEmailOtp(mockRepository);
-      final result = await useCase(
-        const VerifyEmailOtpParams(
+      when(
+        () => mockRepository.verifyEmailOtp(
           email: 'test@example.com',
           token: '123456',
         ),
+      ).thenAnswer((_) async => const Right<Failure, AuthSession>(tSession));
+
+      final useCase = VerifyEmailOtp(mockRepository);
+      final result = await useCase(
+        const VerifyEmailOtpParams(email: 'test@example.com', token: '123456'),
       );
 
       expect(result, const Right<Failure, AuthSession>(tSession));
-      verify(() => mockRepository.verifyEmailOtp(
-            email: 'test@example.com',
-            token: '123456',
-          )).called(1);
+      verify(
+        () => mockRepository.verifyEmailOtp(
+          email: 'test@example.com',
+          token: '123456',
+        ),
+      ).called(1);
     });
 
     test('ResendEmailOtp calls repository.resendEmailOtp', () async {
-      when(() => mockRepository.resendEmailOtp(email: 'test@example.com'))
-          .thenAnswer((_) async => const Right<Failure, void>(null));
+      when(
+        () => mockRepository.resendEmailOtp(email: 'test@example.com'),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
       final useCase = ResendEmailOtp(mockRepository);
       final result = await useCase('test@example.com');
 
       expect(result, const Right<Failure, void>(null));
-      verify(() => mockRepository.resendEmailOtp(email: 'test@example.com'))
-          .called(1);
+      verify(
+        () => mockRepository.resendEmailOtp(email: 'test@example.com'),
+      ).called(1);
     });
 
     test('SignOut calls repository.signOut', () async {
-      when(() => mockRepository.signOut())
-          .thenAnswer((_) async => const Right<Failure, void>(null));
+      when(
+        () => mockRepository.signOut(),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
       final useCase = SignOut(mockRepository);
       final result = await useCase(const NoParams());
@@ -140,21 +150,27 @@ void main() {
       verify(() => mockRepository.signOut()).called(1);
     });
 
-    test('ResetPasswordForEmail calls repository.resetPasswordForEmail', () async {
-      when(() => mockRepository.resetPasswordForEmail(email: 'test@example.com'))
-          .thenAnswer((_) async => const Right<Failure, void>(null));
+    test(
+      'ResetPasswordForEmail calls repository.resetPasswordForEmail',
+      () async {
+        when(
+          () => mockRepository.resetPasswordForEmail(email: 'test@example.com'),
+        ).thenAnswer((_) async => const Right<Failure, void>(null));
 
-      final useCase = ResetPasswordForEmail(mockRepository);
-      final result = await useCase('test@example.com');
+        final useCase = ResetPasswordForEmail(mockRepository);
+        final result = await useCase('test@example.com');
 
-      expect(result, const Right<Failure, void>(null));
-      verify(() => mockRepository.resetPasswordForEmail(email: 'test@example.com'))
-          .called(1);
-    });
+        expect(result, const Right<Failure, void>(null));
+        verify(
+          () => mockRepository.resetPasswordForEmail(email: 'test@example.com'),
+        ).called(1);
+      },
+    );
 
     test('GetUserProfile calls repository.getUserProfile', () async {
-      when(() => mockRepository.getUserProfile(userId: 'u123'))
-          .thenAnswer((_) async => const Right<Failure, UserProfile?>(tProfile));
+      when(
+        () => mockRepository.getUserProfile(userId: 'u123'),
+      ).thenAnswer((_) async => const Right<Failure, UserProfile?>(tProfile));
 
       final useCase = GetUserProfile(mockRepository);
       final result = await useCase('u123');
@@ -164,8 +180,9 @@ void main() {
     });
 
     test('UpsertUserProfile calls repository.upsertUserProfile', () async {
-      when(() => mockRepository.upsertUserProfile(tProfile))
-          .thenAnswer((_) async => const Right<Failure, void>(null));
+      when(
+        () => mockRepository.upsertUserProfile(tProfile),
+      ).thenAnswer((_) async => const Right<Failure, void>(null));
 
       final useCase = UpsertUserProfile(mockRepository);
       final result = await useCase(tProfile);
@@ -176,10 +193,12 @@ void main() {
 
     test('SignInWithPassword returns Left(Failure) on error', () async {
       const failure = AuthFailure('Invalid login credentials');
-      when(() => mockRepository.signInWithPassword(
-            email: 'test@example.com',
-            password: 'WrongPassword',
-          )).thenAnswer((_) async => const Left<Failure, AuthSession>(failure));
+      when(
+        () => mockRepository.signInWithPassword(
+          email: 'test@example.com',
+          password: 'WrongPassword',
+        ),
+      ).thenAnswer((_) async => const Left<Failure, AuthSession>(failure));
 
       final useCase = SignInWithPassword(mockRepository);
       final result = await useCase(

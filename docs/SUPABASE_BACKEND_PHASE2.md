@@ -1,8 +1,11 @@
 # PetConnect AI — Phase 2 Supabase Backend Specification & Verification Report
 
 **Phase Scope**: Core Pet Management  
-**Status**: COMPLETE & VERIFIED  
-**Date**: August 12, 2026  
+**Local Implementation**: COMPLETE & VERIFIED  
+**Live Supabase Deployment**: DEPLOYED & VERIFIED ON LIVE SUPABASE  
+**Live Supabase Project Ref**: `cghgslyikjqghrzhrqxz`  
+**Live Supabase Project URL**: `https://cghgslyikjqghrzhrqxz.supabase.co`  
+**Deployment Date**: August 12, 2026  
 
 ---
 

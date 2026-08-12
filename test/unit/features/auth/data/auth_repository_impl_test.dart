@@ -33,8 +33,10 @@ void main() {
     repository = AuthRepositoryImpl(mockRemote);
   });
 
-  const tSessionModel =
-      AuthSessionModel(userId: 'u123', email: 'test@example.com');
+  const tSessionModel = AuthSessionModel(
+    userId: 'u123',
+    email: 'test@example.com',
+  );
   const tProfileModel = UserProfileModel(
     id: 'u123',
     email: 'test@example.com',
@@ -62,10 +64,12 @@ void main() {
     });
 
     test('signInWithPassword returns AuthSession on success', () async {
-      when(() => mockRemote.signInWithPassword(
-            email: 'test@example.com',
-            password: 'Password123',
-          )).thenAnswer((_) async => tSessionModel);
+      when(
+        () => mockRemote.signInWithPassword(
+          email: 'test@example.com',
+          password: 'Password123',
+        ),
+      ).thenAnswer((_) async => tSessionModel);
 
       final result = await repository.signInWithPassword(
         email: 'test@example.com',
@@ -80,10 +84,12 @@ void main() {
     });
 
     test('signInWithPassword maps AuthException to Failure', () async {
-      when(() => mockRemote.signInWithPassword(
-            email: 'test@example.com',
-            password: 'WrongPassword',
-          )).thenThrow(const AuthException('Invalid login credentials'));
+      when(
+        () => mockRemote.signInWithPassword(
+          email: 'test@example.com',
+          password: 'WrongPassword',
+        ),
+      ).thenThrow(const AuthException('Invalid login credentials'));
 
       final result = await repository.signInWithPassword(
         email: 'test@example.com',
@@ -98,13 +104,15 @@ void main() {
     });
 
     test('signUp completes with Right(null) on success', () async {
-      when(() => mockRemote.signUp(
-            email: 'test@example.com',
-            password: 'Password123',
-            fullName: 'Test User',
-            role: AppPortal.petOwner,
-            phone: null,
-          )).thenAnswer((_) async {});
+      when(
+        () => mockRemote.signUp(
+          email: 'test@example.com',
+          password: 'Password123',
+          fullName: 'Test User',
+          role: AppPortal.petOwner,
+          phone: null,
+        ),
+      ).thenAnswer((_) async {});
 
       final result = await repository.signUp(
         email: 'test@example.com',
@@ -125,22 +133,28 @@ void main() {
       verify(() => mockRemote.signOut()).called(1);
     });
 
-    test('resetPasswordForEmail completes with Right(null) on success',
-        () async {
-      when(() => mockRemote.resetPasswordForEmail(email: 'test@example.com'))
-          .thenAnswer((_) async {});
+    test(
+      'resetPasswordForEmail completes with Right(null) on success',
+      () async {
+        when(
+          () => mockRemote.resetPasswordForEmail(email: 'test@example.com'),
+        ).thenAnswer((_) async {});
 
-      final result =
-          await repository.resetPasswordForEmail(email: 'test@example.com');
+        final result = await repository.resetPasswordForEmail(
+          email: 'test@example.com',
+        );
 
-      expect(result, const Right<Failure, void>(null));
-      verify(() => mockRemote.resetPasswordForEmail(email: 'test@example.com'))
-          .called(1);
-    });
+        expect(result, const Right<Failure, void>(null));
+        verify(
+          () => mockRemote.resetPasswordForEmail(email: 'test@example.com'),
+        ).called(1);
+      },
+    );
 
     test('getUserProfile returns UserProfile on success', () async {
-      when(() => mockRemote.getUserProfile(userId: 'u123'))
-          .thenAnswer((_) async => tProfileModel);
+      when(
+        () => mockRemote.getUserProfile(userId: 'u123'),
+      ).thenAnswer((_) async => tProfileModel);
 
       final result = await repository.getUserProfile(userId: 'u123');
 
