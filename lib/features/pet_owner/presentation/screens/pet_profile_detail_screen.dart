@@ -56,7 +56,7 @@ class PetProfileDetailScreen extends ConsumerWidget {
             icon: const Icon(Icons.edit),
             tooltip: 'Edit Profile',
             onPressed: () => context.goNamed(
-              RouteNames.ownerEditPet,
+              RouteNames.ownerPetEdit,
               pathParameters: {'petId': pet.id},
             ),
           ),

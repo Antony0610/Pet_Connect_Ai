@@ -108,8 +108,7 @@ class _AddPetScreenState extends ConsumerState<AddPetScreen> {
       actions: const [SizedBox(width: AppIconSizes.xxl)],
     );
 
-    final topPad =
-        context.viewPadding.top + appBar.preferredSize.preferredSize.height;
+    final topPad = context.viewPadding.top + appBar.preferredSize.height;
 
     return Scaffold(
       backgroundColor: scheme.surface,

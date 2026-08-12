@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
@@ -6,6 +7,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
@@ -67,7 +70,7 @@ class MyPetsListScreen extends ConsumerWidget {
       floatingActionButton: OwnerActionFab(
         icon: Icons.add,
         tooltip: 'Add Pet',
-        onPressed: () => context.goNamed(RouteNames.ownerAddPet),
+        onPressed: () => context.goNamed(RouteNames.ownerPetAdd),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -117,7 +120,7 @@ class MyPetsListScreen extends ConsumerWidget {
                               AppSpacing.vGapLg,
                               ElevatedButton.icon(
                                 onPressed: () =>
-                                    context.goNamed(RouteNames.ownerAddPet),
+                                    context.goNamed(RouteNames.ownerPetAdd),
                                 icon: const Icon(Icons.add),
                                 label: const Text('Add Your First Pet'),
                               ),

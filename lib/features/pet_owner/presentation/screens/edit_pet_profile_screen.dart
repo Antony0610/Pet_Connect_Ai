@@ -31,7 +31,36 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
 
   bool _initialized = false;
   bool _isSaving = false;
+  bool _aiHealthTracking = true;
   Pet? _currentPet;
+
+  Future<void> _pickBirthday() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2019, 5, 12),
+      firstDate: DateTime(1995),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      _birthdayController.text =
+          '${_month(picked.month)} ${picked.day}, ${picked.year}';
+    }
+  }
+
+  String _month(int m) => const [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][m - 1];
 
   @override
   void initState() {
