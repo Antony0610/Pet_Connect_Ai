@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/features/storage/domain/entities/pet_document.dart';
+import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Pet Documents Vault**
@@ -13,15 +17,16 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 ///
 /// Centralized vault for organizing medical certificates, lab results, prescriptions,
 /// and insurance policies with search, filter, download, and share actions.
-class PetDocumentsVaultScreen extends StatefulWidget {
+class PetDocumentsVaultScreen extends ConsumerStatefulWidget {
   const PetDocumentsVaultScreen({super.key});
 
   @override
-  State<PetDocumentsVaultScreen> createState() =>
+  ConsumerState<PetDocumentsVaultScreen> createState() =>
       _PetDocumentsVaultScreenState();
 }
 
-class _PetDocumentsVaultScreenState extends State<PetDocumentsVaultScreen> {
+class _PetDocumentsVaultScreenState
+    extends ConsumerState<PetDocumentsVaultScreen> {
   static const double _maxContentWidth = 1000;
   String _selectedCategory = 'All';
   final _searchController = TextEditingController();
@@ -34,33 +39,6 @@ class _PetDocumentsVaultScreenState extends State<PetDocumentsVaultScreen> {
     'Insurances',
   ];
 
-  final List<_VaultDocumentItem> _documents = const [
-    _VaultDocumentItem(
-      title: 'Rabies Vaccination Certificate 2024',
-      category: 'Vaccinations',
-      meta: 'PDF • 1.2 MB • Added May 12, 2024',
-      provider: 'Dr. Emily Carter • Metro Vet Clinic',
-    ),
-    _VaultDocumentItem(
-      title: 'Blood Work & CBC Panel',
-      category: 'Lab Results',
-      meta: 'PDF • 3.4 MB • Added Apr 02, 2024',
-      provider: 'Dr. Mark Vance • City Animal Hospital',
-    ),
-    _VaultDocumentItem(
-      title: 'Apoquel Prescription Renewal',
-      category: 'Prescriptions',
-      meta: 'PDF • 0.8 MB • Added Mar 15, 2024',
-      provider: 'Dr. Emily Carter • Metro Vet Clinic',
-    ),
-    _VaultDocumentItem(
-      title: 'Pet Insurance Policy #PT-9042',
-      category: 'Insurances',
-      meta: 'PDF • 2.1 MB • Added Jan 05, 2024',
-      provider: 'HealthyPaws Insurance Co.',
-    ),
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -70,210 +48,211 @@ class _PetDocumentsVaultScreenState extends State<PetDocumentsVaultScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-
-    final filteredDocs = _documents.where((doc) {
-      final matchesCategory =
-          _selectedCategory == 'All' || doc.category == _selectedCategory;
-      final query = _searchController.text.toLowerCase();
-      final matchesQuery =
-          query.isEmpty ||
-          doc.title.toLowerCase().contains(query) ||
-          doc.provider.toLowerCase().contains(query);
-      return matchesCategory && matchesQuery;
-    }).toList();
+    // Default active pet context
+    const activePetId = 'pet-default-id';
+    final docsAsync = ref.watch(petDocumentsProvider(activePetId));
 
     return Scaffold(
       appBar: OwnerGlassAppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back',
-          onPressed: () => GoRouter.of(context).pop(),
-        ),
         title: Text(
           'Pet Documents Vault',
-          style: context.textTheme.headlineSmall?.copyWith(
-            color: scheme.primary,
+          style: context.textTheme.titleMedium?.copyWith(
             fontWeight: AppTypography.bold,
-            letterSpacing: -0.25,
           ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => GoRouter.of(context).pop(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.upload_file),
+            icon: const Icon(Icons.upload_file_outlined),
             tooltip: 'Upload Document',
             onPressed: () {
-              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Document upload picker ready')),
+                const SnackBar(
+                  content: Text('Document uploader initialized...'),
+                ),
               );
             },
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Align(
-          alignment: Alignment.topCenter,
+        child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Subtitle & Search Input ────────────────────────
-                Text(
-                  'Secure digital repository for all medical records, lab reports, and insurance documents.',
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Search Input ──────────────────────────────────
+                  AppTextField(
+                    controller: _searchController,
+                    hintText: 'Search documents by title or provider...',
+                    prefixIcon: const Icon(Icons.search),
+                    onChanged: (_) => setState(() {}),
                   ),
-                ),
-                AppSpacing.vGapLg,
-                AppTextField(
-                  controller: _searchController,
-                  hintText: 'Search documents by title, clinic, or vet...',
-                  prefixIcon: const Icon(Icons.search),
-                  onChanged: (_) => setState(() {}),
-                ),
-                AppSpacing.vGapLg,
+                  AppSpacing.vGapLg,
 
-                // ── Category Filter Chips ──────────────────────────
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _categories.map((cat) {
-                      final isSelected = _selectedCategory == cat;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.sm),
-                        child: ChoiceChip(
-                          label: Text(cat),
-                          selected: isSelected,
-                          selectedColor: scheme.primary,
-                          backgroundColor: scheme.surfaceContainerHigh,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? scheme.onPrimary
-                                : scheme.onSurface,
-                            fontWeight: AppTypography.semiBold,
+                  // ── Category Filters ──────────────────────────────
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _categories.map((cat) {
+                        final isSelected = _selectedCategory == cat;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: AppSpacing.sm),
+                          child: FilterChip(
+                            label: Text(cat),
+                            selected: isSelected,
+                            selectedColor: scheme.primary,
+                            backgroundColor: scheme.surfaceContainerHigh,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? scheme.onPrimary
+                                  : scheme.onSurface,
+                              fontWeight: AppTypography.semiBold,
+                            ),
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _selectedCategory = cat);
+                              }
+                            },
                           ),
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedCategory = cat);
-                            }
-                          },
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
-                AppSpacing.vGapLg,
+                  AppSpacing.vGapLg,
 
-                // ── Document Cards List ───────────────────────────
-                if (filteredDocs.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xl),
-                      child: Text(
-                        'No documents found in this category.',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
+                  // ── Document Cards List ───────────────────────────
+                  docsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => Center(
+                      child: Text('Error loading documents: $err'),
                     ),
-                  )
-                else
-                  ...filteredDocs.map(
-                    (doc) => Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: AppCard(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.sm),
-                              decoration: BoxDecoration(
-                                color: scheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.sm,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.picture_as_pdf,
-                                color: scheme.primary,
-                                size: AppIconSizes.md,
-                              ),
-                            ),
-                            AppSpacing.hGapMd,
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    doc.title,
-                                    style: context.textTheme.titleSmall
-                                        ?.copyWith(
-                                          fontWeight: AppTypography.bold,
-                                        ),
-                                  ),
-                                  AppSpacing.vGapXs,
-                                  Text(
-                                    doc.meta,
-                                    style: context.textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: scheme.onSurfaceVariant,
-                                          fontSize: 11,
-                                        ),
-                                  ),
-                                  Text(
-                                    doc.provider,
-                                    style: context.textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: scheme.primary,
-                                          fontWeight: AppTypography.semiBold,
-                                          fontSize: 11,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.file_download_outlined,
+                    data: (docs) {
+                      final query = _searchController.text.toLowerCase();
+                      final filteredDocs = docs.where((doc) {
+                        final matchesCat = _selectedCategory == 'All' ||
+                            (_selectedCategory == 'Vaccinations' &&
+                                doc.documentType == 'VACCINATION_CERT') ||
+                            (_selectedCategory == 'Lab Results' &&
+                                doc.documentType == 'LAB_RESULT') ||
+                            (_selectedCategory == 'Prescriptions' &&
+                                doc.documentType == 'PRESCRIPTION');
+                        final matchesQuery = query.isEmpty ||
+                            doc.documentName.toLowerCase().contains(query);
+                        return matchesCat && matchesQuery;
+                      }).toList();
+
+                      if (filteredDocs.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.xl),
+                            child: Text(
+                              'No documents found in this category.',
+                              style: context.textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
-                              tooltip: 'Download',
-                              onPressed: () {},
                             ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.share_outlined,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                              tooltip: 'Share',
-                              onPressed: () {},
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        children: filteredDocs
+                            .map((doc) => _buildDocumentCard(context, doc))
+                            .toList(),
+                      );
+                    },
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
-}
 
-class _VaultDocumentItem {
-  const _VaultDocumentItem({
-    required this.title,
-    required this.category,
-    required this.meta,
-    required this.provider,
-  });
+  Widget _buildDocumentCard(BuildContext context, PetDocument doc) {
+    final scheme = context.colorScheme;
+    final sizeKb = (doc.fileSize ?? 0) ~/ 1024;
+    final meta = 'PDF • $sizeKb KB • Uploaded Vault';
 
-  final String title;
-  final String category;
-  final String meta;
-  final String provider;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: AppCard(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(
+                Icons.picture_as_pdf,
+                color: scheme.primary,
+                size: AppIconSizes.md,
+              ),
+            ),
+            AppSpacing.hGapMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    doc.documentName,
+                    style: context.textTheme.titleSmall?.copyWith(
+                      fontWeight: AppTypography.bold,
+                    ),
+                  ),
+                  AppSpacing.vGapXs,
+                  Text(
+                    meta,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    doc.documentType,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: AppTypography.semiBold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.file_download_outlined,
+                color: scheme.onSurfaceVariant,
+              ),
+              tooltip: 'Download Signed Document',
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      doc.signedUrl != null
+                          ? 'Signed URL ready for ${doc.documentName}'
+                          : 'Preparing download...',
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
