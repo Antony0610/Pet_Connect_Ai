@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/error/failures.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 
 /// The Pet Owner **Settings** screen (frozen "Community Settings", Light
 /// master).
@@ -16,14 +21,14 @@ import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.da
 /// Privacy / Interactions groups with toggles and navigable rows. All colors,
 /// spacing, radii and type come from the theme / design tokens so one widget
 /// tree serves both Light and Dark.
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _publicProfile = true;
   bool _showLocation = false;
 
@@ -139,6 +144,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: 'Choose who can send you direct messages.',
                       trailingValue: 'Friends Only',
                       onTap: () {},
+                    ),
+                  ],
+                ),
+                AppSpacing.vGapXl,
+
+                // ── Account & Session ──────────────────────────────────
+                _SettingsSection(
+                  title: 'Account & Session',
+                  description: 'Manage your authenticated session.',
+                  children: [
+                    _NavRow(
+                      icon: Icons.logout,
+                      title: 'Sign Out',
+                      subtitle: 'Sign out of PetConnect AI on this device.',
+                      onTap: () async {
+                        final result =
+                            await ref.read(signOutProvider)(const NoParams());
+                        if (!mounted) return;
+                        result.fold(
+                          (Failure f) => context.showErrorSnack(f.message),
+                          (_) => context.go(RoutePaths.login),
+                        );
+                      },
                     ),
                   ],
                 ),

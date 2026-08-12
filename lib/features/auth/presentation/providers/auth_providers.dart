@@ -6,14 +6,19 @@ import 'package:petconnect_ai/features/auth/data/datasources/auth_remote_datasou
 import 'package:petconnect_ai/features/auth/data/datasources/onboarding_local_datasource.dart';
 import 'package:petconnect_ai/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:petconnect_ai/features/auth/data/repositories/onboarding_repository_impl.dart';
+import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/domain/repositories/auth_repository.dart';
 import 'package:petconnect_ai/features/auth/domain/repositories/onboarding_repository.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/complete_onboarding.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/create_account.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/get_current_session.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/get_user_profile.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/is_onboarding_complete.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/resend_email_otp.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/reset_password_for_email.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/sign_in_with_password.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/sign_out.dart';
+import 'package:petconnect_ai/features/auth/domain/usecases/upsert_user_profile.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/verify_email_otp.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 
@@ -74,34 +79,49 @@ final resendEmailOtpProvider = Provider<ResendEmailOtp>(
   (ref) => ResendEmailOtp(ref.watch(authRepositoryProvider)),
 );
 
-/// The email currently being verified, carried from Create Account into the
-/// OTP screen. Transient signup state — cleared once verification completes.
+final signOutProvider = Provider<SignOut>(
+  (ref) => SignOut(ref.watch(authRepositoryProvider)),
+);
+
+final resetPasswordForEmailProvider = Provider<ResetPasswordForEmail>(
+  (ref) => ResetPasswordForEmail(ref.watch(authRepositoryProvider)),
+);
+
+final getUserProfileProvider = Provider<GetUserProfile>(
+  (ref) => GetUserProfile(ref.watch(authRepositoryProvider)),
+);
+
+final upsertUserProfileProvider = Provider<UpsertUserProfile>(
+  (ref) => UpsertUserProfile(ref.watch(authRepositoryProvider)),
+);
+
+/// Transient signup state: pending verification email.
 final pendingVerificationEmailProvider = StateProvider<String?>((ref) => null);
 
-// ──────────────────────────────────────────────────────────────────
-// Presentation logic
-// ──────────────────────────────────────────────────────────────────
-
-/// The portal the user picks on the Role Selection screen.
-///
-/// Transient signup state — defaults to [AppPortal.petOwner] (the design's
-/// default-selected card) and drives which portal identity the subsequent
-/// auth screens carry. Not persisted; the durable role is written server-side
-/// once the account is created.
+/// Transient signup state: selected role portal on Role Selection screen.
 final selectedPortalProvider = StateProvider<AppPortal>(
   (ref) => AppPortal.petOwner,
 );
 
+/// Asynchronously resolves the currently authenticated user's profile.
+final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
+  final getCurrentSession = ref.watch(getCurrentSessionProvider);
+  final sessionResult = await getCurrentSession(const NoParams());
+  final session = sessionResult.fold((_) => null, (s) => s);
+
+  if (session == null) return null;
+
+  final getUserProfile = ref.watch(getUserProfileProvider);
+  final profileResult = await getUserProfile(session.userId);
+  return profileResult.fold((_) => null, (profile) => profile);
+});
+
 /// Resolves the Splash screen's destination.
-///
-/// Reads the current session and onboarding state and returns the path Splash
-/// should navigate to after its minimum display duration. The Splash screen
-/// watches this and navigates once it resolves.
 ///
 /// Decision tree:
 /// - No session + onboarding incomplete → onboarding
 /// - No session + onboarding complete → login
-/// - Session exists → owner home (placeholder; role-based routing comes later)
+/// - Session exists → portal home matching user's role (owner, vet, rescue, admin)
 final splashDestinationProvider = FutureProvider<String>((ref) async {
   final getCurrentSession = ref.watch(getCurrentSessionProvider);
   final isOnboardingComplete = ref.watch(isOnboardingCompleteProvider);
@@ -109,19 +129,29 @@ final splashDestinationProvider = FutureProvider<String>((ref) async {
   // Check session
   final sessionResult = await getCurrentSession(const NoParams());
   final session = sessionResult.fold(
-    (_) => null, // Treat auth failure as unauthenticated
+    (_) => null,
     (session) => session,
   );
 
-  // Authenticated → portal home (placeholder; role-based routing later)
+  // Authenticated → route to portal matching profile role
   if (session != null) {
-    return RoutePaths.ownerHome;
+    final getUserProfile = ref.watch(getUserProfileProvider);
+    final profileResult = await getUserProfile(session.userId);
+    final profile = profileResult.fold((_) => null, (p) => p);
+
+    final portal = profile?.role ?? AppPortal.petOwner;
+    return switch (portal) {
+      AppPortal.petOwner => RoutePaths.ownerHome,
+      AppPortal.veterinarian => RoutePaths.vetHome,
+      AppPortal.volunteerRescue => RoutePaths.rescueHome,
+      AppPortal.administrator => RoutePaths.adminHome,
+    };
   }
 
   // Unauthenticated → onboarding or login
   final onboardingResult = await isOnboardingComplete(const NoParams());
   final hasSeenOnboarding = onboardingResult.fold(
-    (_) => false, // Treat onboarding-check failure as incomplete
+    (_) => false,
     (complete) => complete,
   );
 

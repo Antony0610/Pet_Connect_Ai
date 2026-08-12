@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
@@ -115,10 +117,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   final logger = ref.watch(loggerProvider);
   final guard = RouteGuard(ref);
 
+  final client = ref.watch(supabaseClientProvider);
+
   return GoRouter(
     initialLocation: RoutePaths.splash,
     debugLogDiagnostics: ref.watch(appConfigProvider).isDebuggable,
     observers: [AppRouteObserver(logger)],
+    refreshListenable: GoRouterRefreshStream(client.auth.onAuthStateChange),
     redirect: guard.redirect,
     errorBuilder: (context, state) => PlaceholderScreen(
       title: 'Not Found',
@@ -135,6 +140,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.onboarding,
         name: RouteNames.onboarding,
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.globalSearch,
+        name: RouteNames.globalSearch,
+        builder: (context, state) => const GlobalSearchScreen(),
       ),
 
       // ── Auth ───────────────────────────────────────────────────
@@ -184,11 +194,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'notifications',
             name: RouteNames.ownerNotifications,
             builder: (context, state) => const NotificationsScreen(),
-          ),
-          GoRoute(
-            path: 'search',
-            name: RouteNames.ownerSearch,
-            builder: (context, state) => const GlobalSearchScreen(),
           ),
           GoRoute(
             path: 'pets',
@@ -672,3 +677,21 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Listenable adapter that triggers GoRouter redirect re-evaluation when a
+/// Stream (e.g. Supabase `onAuthStateChange`) emits an event.
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -6,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
@@ -117,15 +119,24 @@ class ProfileScreen extends StatelessWidget {
 }
 // ── Header card ──────────────────────────────────────────────────────────
 
-class _ProfileHeaderCard extends StatelessWidget {
+class _ProfileHeaderCard extends ConsumerWidget {
   const _ProfileHeaderCard({required this.avatarUrl});
 
   final String avatarUrl;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final text = context.textTheme;
+    final userProfileAsync = ref.watch(currentUserProfileProvider);
+    final userProfile = userProfileAsync.valueOrNull;
+
+    final displayName = userProfile?.fullName.isNotEmpty == true
+        ? userProfile!.fullName
+        : 'Alex Mercer';
+    final displayBio = userProfile?.email.isNotEmpty == true
+        ? userProfile!.email
+        : 'Golden Retriever Enthusiast & Local Guide';
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -183,7 +194,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                   children: [
                     AppSpacing.vGapSm,
                     Text(
-                      'Alex Mercer',
+                      displayName,
                       style: text.headlineSmall?.copyWith(
                         color: scheme.onSurface,
                         fontWeight: AppTypography.bold,
@@ -191,7 +202,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                     ),
                     AppSpacing.vGapXs,
                     Text(
-                      'Golden Retriever Enthusiast & Local Guide',
+                      displayBio,
                       style: text.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

@@ -7,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/sign_in_with_password.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/router/route_guard.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
@@ -69,7 +70,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     result.fold(
       (failure) => context.showErrorSnack(failure.message),
-      (_) => context.go(RoutePaths.ownerHome),
+      (session) async {
+        final profileResult = await ref.read(getUserProfileProvider)(session.userId);
+        final profile = profileResult.fold((_) => null, (p) => p);
+        final portal = profile?.role ?? AppPortal.petOwner;
+        final targetPath = RouteGuard.portalHome(portal);
+        if (mounted) context.go(targetPath);
+      },
     );
   }
 

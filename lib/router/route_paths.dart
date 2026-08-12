@@ -12,6 +12,7 @@ abstract final class RoutePaths {
   // ── Root / shared ──────────────────────────────────────────────
   static const String splash = '/';
   static const String onboarding = '/onboarding';
+  static const String globalSearch = '/search';
 
   // ── Auth ───────────────────────────────────────────────────────
   static const String login = '/login';
@@ -130,6 +131,7 @@ abstract final class RouteNames {
 
   static const String splash = 'splash';
   static const String onboarding = 'onboarding';
+  static const String globalSearch = 'globalSearch';
 
   static const String login = 'login';
   static const String register = 'register';

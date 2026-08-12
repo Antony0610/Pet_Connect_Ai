@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-/// Forgot Password Recovery Screen (Stitch Auth Flow Reference: `1acf0131a54a4b0aa273dc07dbf12168`).
-///
-/// Password recovery and reset request screen. Accepts user email address, displays
-/// validation states, simulates reset link dispatch, and provides navigation back to login.
-class ForgotPasswordScreen extends StatefulWidget {
+/// Password recovery and reset request screen.
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState
+    extends ConsumerState<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isSubmitted = false;
   bool _isLoading = false;
@@ -29,28 +31,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _handleResetRequest() {
+  Future<void> _handleResetRequest() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter a valid email address.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      context.showErrorSnack('Please enter a valid email address.');
       return;
     }
 
     setState(() => _isLoading = true);
 
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _isSubmitted = true;
-        });
-      }
-    });
+    final result = await ref.read(resetPasswordForEmailProvider)(email);
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    result.fold(
+      (failure) => context.showErrorSnack(failure.message),
+      (_) => setState(() => _isSubmitted = true),
+    );
   }
 
   @override
@@ -63,7 +61,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         title: const Text('Password Recovery'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => GoRouter.of(context).pop(),
         ),
       ),
       body: SingleChildScrollView(
@@ -135,7 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextButton.icon(
           icon: const Icon(Icons.arrow_back, size: 16),
           label: const Text('Back to Sign In'),
-          onPressed: () => context.pop(),
+          onPressed: () => GoRouter.of(context).pop(),
         ),
       ],
     );
@@ -197,7 +195,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           text: 'Return to Sign In',
           icon: Icons.login,
           isFullWidth: true,
-          onPressed: () => context.pop(),
+          onPressed: () => GoRouter.of(context).pop(),
           backgroundColor: colorScheme.primary,
           textColor: colorScheme.onPrimary,
           height: 48,
@@ -207,7 +205,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           onPressed: () {
             setState(() => _isSubmitted = false);
           },
-          child: const Text('Didn\'t receive email? Try again'),
+          child: const Text("Didn't receive email? Try again"),
         ),
       ],
     );

@@ -93,11 +93,13 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
 
     setState(() => _isSubmitting = true);
     final email = _emailController.text.trim();
+    final role = ref.read(selectedPortalProvider);
     final result = await ref.read(createAccountProvider)(
       CreateAccountParams(
         email: email,
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
+        role: role,
         phone: _phoneController.text.trim(),
       ),
     );

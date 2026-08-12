@@ -1,28 +1,64 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 
-/// Centralized navigation guard / redirect logic.
+/// Centralized navigation guard logic for GoRouter.
 ///
-/// FOUNDATION SCOPE: intentionally **permissive** — it performs no gating yet
-/// and returns `null` (no redirect) for every location. The structure is in
-/// place so the Auth feature phase can implement session- and role-based
-/// routing here (e.g. redirect unauthenticated users to `/login`, route each
-/// role to its portal home) **without touching `app_router.dart`**.
+/// NOTE: This is client-side navigation protection for UX purposes ONLY.
+/// Database security is strictly enforced at the PostgreSQL layer via RLS.
 class RouteGuard {
   const RouteGuard(this._ref);
 
-  // Kept for when auth/session providers are read during redirect.
-  // ignore: unused_field
   final Ref _ref;
 
-  /// GoRouter redirect callback. Returns a path to redirect to, or `null` to
-  /// proceed to the requested location.
+  /// Returns a path string to redirect to, or `null` to proceed.
   String? redirect(BuildContext context, GoRouterState state) {
-    // TODO(auth): once the Auth feature lands, read session + role here and:
-    //   - send unauthenticated users from protected routes to RoutePaths.login
-    //   - send authenticated users away from auth routes to their portal home
-    //   - enforce per-portal role access
+    final location = state.uri.path;
+
+    // Check current session from initialized Supabase client
+    final client = _ref.read(supabaseClientProvider);
+    final session = client.auth.currentSession;
+    final isAuthenticated = session != null;
+
+    final isSplash = location == RoutePaths.splash;
+    final isOnboarding = location == RoutePaths.onboarding;
+    final isAuthRoute = location == RoutePaths.login ||
+        location == RoutePaths.register ||
+        location == RoutePaths.forgotPassword ||
+        location == RoutePaths.roleSelection ||
+        location == RoutePaths.otpVerification;
+
+    // Splash screen handles its own deferred navigation
+    if (isSplash) return null;
+
+    // 1. Unauthenticated user accessing protected portal route → redirect to Login
+    if (!isAuthenticated) {
+      if (isAuthRoute || isOnboarding) {
+        return null; // Proceed to public auth/onboarding screen
+      }
+      return RoutePaths.login;
+    }
+
+    // 2. Authenticated user accessing auth or onboarding screens → redirect to portal home
+    if (isAuthRoute || isOnboarding) {
+      final user = session.user;
+      final roleStr = user.userMetadata?['role'] as String?;
+      final portal = AppPortalExtension.fromDbRole(roleStr);
+      return portalHome(portal);
+    }
+
     return null;
   }
+
+  /// Maps an [AppPortal] role to its canonical home route.
+  static String portalHome(AppPortal portal) => switch (portal) {
+        AppPortal.petOwner => RoutePaths.ownerHome,
+        AppPortal.veterinarian => RoutePaths.vetHome,
+        AppPortal.volunteerRescue => RoutePaths.rescueHome,
+        AppPortal.administrator => RoutePaths.adminHome,
+      };
 }
