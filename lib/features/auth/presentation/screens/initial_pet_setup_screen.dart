@@ -51,13 +51,10 @@ class _InitialPetSetupScreenState extends ConsumerState<InitialPetSetupScreen> {
     );
 
     final result = await ref.read(createPetUseCaseProvider)(newPet);
-    result.fold(
-      (_) {},
-      (createdPet) {
-        ref.read(selectedPetIdProvider.notifier).state = createdPet.id;
-        ref.read(petsProvider.notifier).refreshPets();
-      },
-    );
+    result.fold((_) {}, (createdPet) {
+      ref.read(selectedPetIdProvider.notifier).state = createdPet.id;
+      ref.read(petsProvider.notifier).refreshPets();
+    });
 
     if (mounted) context.go(RoutePaths.ownerHome);
   }

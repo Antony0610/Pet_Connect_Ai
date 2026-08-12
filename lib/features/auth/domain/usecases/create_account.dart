@@ -26,10 +26,10 @@ class CreateAccount implements UseCase<void, CreateAccountParams> {
 
   @override
   ResultVoid call(CreateAccountParams params) => _repository.signUp(
-        email: params.email,
-        password: params.password,
-        fullName: params.fullName,
-        role: params.role,
-        phone: params.phone,
-      );
+    email: params.email,
+    password: params.password,
+    fullName: params.fullName,
+    role: params.role,
+    phone: params.phone,
+  );
 }

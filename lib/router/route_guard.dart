@@ -26,7 +26,8 @@ class RouteGuard {
 
     final isSplash = location == RoutePaths.splash;
     final isOnboarding = location == RoutePaths.onboarding;
-    final isAuthRoute = location == RoutePaths.login ||
+    final isAuthRoute =
+        location == RoutePaths.login ||
         location == RoutePaths.register ||
         location == RoutePaths.forgotPassword ||
         location == RoutePaths.roleSelection ||
@@ -56,9 +57,9 @@ class RouteGuard {
 
   /// Maps an [AppPortal] role to its canonical home route.
   static String portalHome(AppPortal portal) => switch (portal) {
-        AppPortal.petOwner => RoutePaths.ownerHome,
-        AppPortal.veterinarian => RoutePaths.vetHome,
-        AppPortal.volunteerRescue => RoutePaths.rescueHome,
-        AppPortal.administrator => RoutePaths.adminHome,
-      };
+    AppPortal.petOwner => RoutePaths.ownerHome,
+    AppPortal.veterinarian => RoutePaths.vetHome,
+    AppPortal.volunteerRescue => RoutePaths.rescueHome,
+    AppPortal.administrator => RoutePaths.adminHome,
+  };
 }

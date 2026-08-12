@@ -128,10 +128,7 @@ final splashDestinationProvider = FutureProvider<String>((ref) async {
 
   // Check session
   final sessionResult = await getCurrentSession(const NoParams());
-  final session = sessionResult.fold(
-    (_) => null,
-    (session) => session,
-  );
+  final session = sessionResult.fold((_) => null, (session) => session);
 
   // Authenticated → route to portal matching profile role
   if (session != null) {

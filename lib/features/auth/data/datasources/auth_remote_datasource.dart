@@ -154,7 +154,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final user = session.user;
       final existing = await getUserProfile(userId: user.id);
       if (existing == null) {
-        final fullName = user.userMetadata?['full_name'] as String? ?? 'Pet Owner';
+        final fullName =
+            user.userMetadata?['full_name'] as String? ?? 'Pet Owner';
         final roleStr = user.userMetadata?['role'] as String?;
         final role = AppPortalExtension.fromDbRole(roleStr);
         await upsertUserProfile(

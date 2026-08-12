@@ -4,18 +4,18 @@ import 'package:petconnect_ai/shared/domain/entity.dart';
 /// Helper extension to map between [AppPortal] and database role strings.
 extension AppPortalExtension on AppPortal {
   String toDbRole() => switch (this) {
-        AppPortal.petOwner => 'pet_owner',
-        AppPortal.veterinarian => 'veterinarian',
-        AppPortal.volunteerRescue => 'volunteer_rescue',
-        AppPortal.administrator => 'administrator',
-      };
+    AppPortal.petOwner => 'pet_owner',
+    AppPortal.veterinarian => 'veterinarian',
+    AppPortal.volunteerRescue => 'volunteer_rescue',
+    AppPortal.administrator => 'administrator',
+  };
 
   static AppPortal fromDbRole(String? roleStr) => switch (roleStr) {
-        'veterinarian' => AppPortal.veterinarian,
-        'volunteer_rescue' => AppPortal.volunteerRescue,
-        'administrator' => AppPortal.administrator,
-        _ => AppPortal.petOwner,
-      };
+    'veterinarian' => AppPortal.veterinarian,
+    'volunteer_rescue' => AppPortal.volunteerRescue,
+    'administrator' => AppPortal.administrator,
+    _ => AppPortal.petOwner,
+  };
 }
 
 /// User profile domain entity representing a record in the `profiles` table.
@@ -60,12 +60,12 @@ class UserProfile extends Entity {
 
   @override
   List<Object?> get props => [
-        id,
-        email,
-        fullName,
-        role,
-        avatarUrl,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    email,
+    fullName,
+    role,
+    avatarUrl,
+    createdAt,
+    updatedAt,
+  ];
 }

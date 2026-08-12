@@ -68,16 +68,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    result.fold(
-      (failure) => context.showErrorSnack(failure.message),
-      (session) async {
-        final profileResult = await ref.read(getUserProfileProvider)(session.userId);
-        final profile = profileResult.fold((_) => null, (p) => p);
-        final portal = profile?.role ?? AppPortal.petOwner;
-        final targetPath = RouteGuard.portalHome(portal);
-        if (mounted) context.go(targetPath);
-      },
-    );
+    result.fold((failure) => context.showErrorSnack(failure.message), (
+      session,
+    ) async {
+      final profileResult = await ref.read(getUserProfileProvider)(
+        session.userId,
+      );
+      final profile = profileResult.fold((_) => null, (p) => p);
+      final portal = profile?.role ?? AppPortal.petOwner;
+      final targetPath = RouteGuard.portalHome(portal);
+      if (mounted) context.go(targetPath);
+    });
   }
 
   @override
