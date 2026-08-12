@@ -30,16 +30,16 @@ class PharmacyItem extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        clinicId,
-        itemName,
-        category,
-        sku,
-        stockQuantity,
-        unit,
-        status,
-        isCritical,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    clinicId,
+    itemName,
+    category,
+    sku,
+    stockQuantity,
+    unit,
+    status,
+    isCritical,
+    createdAt,
+    updatedAt,
+  ];
 }

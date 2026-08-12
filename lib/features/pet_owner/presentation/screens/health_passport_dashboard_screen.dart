@@ -34,7 +34,10 @@ class HealthPassportDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Health" : 'Health'),
+      appBar: healthAppBar(
+        context,
+        title: selectedPet != null ? "${selectedPet.name}'s Health" : 'Health',
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
@@ -48,7 +51,10 @@ class HealthPassportDashboardScreen extends ConsumerWidget {
                 margin,
                 AppSpacing.xxl,
               ),
-              child: _DashboardBody(petId: selectedPet?.id, petName: selectedPet?.name),
+              child: _DashboardBody(
+                petId: selectedPet?.id,
+                petName: selectedPet?.name,
+              ),
             ),
           ),
         ),

@@ -44,7 +44,12 @@ class _HealthPassportTimelineScreenState
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Timeline" : 'Timeline'),
+      appBar: healthAppBar(
+        context,
+        title: selectedPet != null
+            ? "${selectedPet.name}'s Timeline"
+            : 'Timeline',
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(

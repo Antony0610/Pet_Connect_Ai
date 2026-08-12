@@ -11,11 +11,20 @@ abstract class VetRemoteDataSource {
   Future<List<VetClinicModel>> getVetClinics();
   Future<VetClinicModel> createVetClinic(VetClinicModel clinic);
 
-  Future<List<AppointmentModel>> getAppointments({String? vetId, String? clinicId});
+  Future<List<AppointmentModel>> getAppointments({
+    String? vetId,
+    String? clinicId,
+  });
   Future<AppointmentModel> createAppointment(AppointmentModel appointment);
-  Future<AppointmentModel> updateAppointmentStatus(String appointmentId, String status);
+  Future<AppointmentModel> updateAppointmentStatus(
+    String appointmentId,
+    String status,
+  );
 
-  Future<List<PatientQueueItemModel>> getPatientQueue({String? clinicId, String? vetId});
+  Future<List<PatientQueueItemModel>> getPatientQueue({
+    String? clinicId,
+    String? vetId,
+  });
 
   Future<ConsultationModel?> getConsultationByAppointment(String appointmentId);
   Future<ConsultationModel> saveConsultation(ConsultationModel consultation);
@@ -39,7 +48,10 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
           .map((json) => VetClinicModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch clinics: $e');
     }
@@ -56,14 +68,20 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
           .single();
       return VetClinicModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to create clinic: $e');
     }
   }
 
   @override
-  Future<List<AppointmentModel>> getAppointments({String? vetId, String? clinicId}) async {
+  Future<List<AppointmentModel>> getAppointments({
+    String? vetId,
+    String? clinicId,
+  }) async {
     try {
       var query = _client.from('appointments').select();
       if (vetId != null) query = query.eq('veterinarian_id', vetId);
@@ -71,17 +89,24 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
 
       final response = await query.order('appointment_date', ascending: true);
       return (response as List)
-          .map((json) => AppointmentModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => AppointmentModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch appointments: $e');
     }
   }
 
   @override
-  Future<AppointmentModel> createAppointment(AppointmentModel appointment) async {
+  Future<AppointmentModel> createAppointment(
+    AppointmentModel appointment,
+  ) async {
     try {
       final json = appointment.toJson()..remove('id');
       final response = await _client
@@ -91,31 +116,46 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
           .single();
       return AppointmentModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to create appointment: $e');
     }
   }
 
   @override
-  Future<AppointmentModel> updateAppointmentStatus(String appointmentId, String status) async {
+  Future<AppointmentModel> updateAppointmentStatus(
+    String appointmentId,
+    String status,
+  ) async {
     try {
       final response = await _client
           .from('appointments')
-          .update({'status': status, 'updated_at': DateTime.now().toIso8601String()})
+          .update({
+            'status': status,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('id', appointmentId)
           .select()
           .single();
       return AppointmentModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to update appointment status: $e');
     }
   }
 
   @override
-  Future<List<PatientQueueItemModel>> getPatientQueue({String? clinicId, String? vetId}) async {
+  Future<List<PatientQueueItemModel>> getPatientQueue({
+    String? clinicId,
+    String? vetId,
+  }) async {
     try {
       var query = _client.from('vw_patient_queue').select();
       if (clinicId != null) query = query.eq('clinic_id', clinicId);
@@ -123,17 +163,25 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
 
       final response = await query.order('created_at', ascending: true);
       return (response as List)
-          .map((json) => PatientQueueItemModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) =>
+                PatientQueueItemModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch patient queue: $e');
     }
   }
 
   @override
-  Future<ConsultationModel?> getConsultationByAppointment(String appointmentId) async {
+  Future<ConsultationModel?> getConsultationByAppointment(
+    String appointmentId,
+  ) async {
     try {
       final response = await _client
           .from('consultations')
@@ -144,14 +192,19 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
       if (response == null) return null;
       return ConsultationModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch consultation: $e');
     }
   }
 
   @override
-  Future<ConsultationModel> saveConsultation(ConsultationModel consultation) async {
+  Future<ConsultationModel> saveConsultation(
+    ConsultationModel consultation,
+  ) async {
     try {
       final json = consultation.toJson()..remove('id');
       final response = await _client
@@ -161,14 +214,19 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
           .single();
       return ConsultationModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to save consultation: $e');
     }
   }
 
   @override
-  Future<List<PrescriptionModel>> getPrescriptions(String consultationId) async {
+  Future<List<PrescriptionModel>> getPrescriptions(
+    String consultationId,
+  ) async {
     try {
       final response = await _client
           .from('prescriptions')
@@ -177,17 +235,24 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
           .order('created_at', ascending: false);
 
       return (response as List)
-          .map((json) => PrescriptionModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => PrescriptionModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch prescriptions: $e');
     }
   }
 
   @override
-  Future<PrescriptionModel> createPrescription(PrescriptionModel prescription) async {
+  Future<PrescriptionModel> createPrescription(
+    PrescriptionModel prescription,
+  ) async {
     try {
       final json = prescription.toJson()..remove('id');
       final response = await _client
@@ -197,7 +262,10 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
           .single();
       return PrescriptionModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to create prescription: $e');
     }
@@ -213,10 +281,15 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
           .order('item_name', ascending: true);
 
       return (response as List)
-          .map((json) => PharmacyItemModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => PharmacyItemModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch pharmacy inventory: $e');
     }

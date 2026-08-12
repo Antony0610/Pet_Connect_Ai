@@ -95,7 +95,9 @@ class HealthRepositoryImpl implements HealthRepository {
   }
 
   @override
-  ResultFuture<List<HealthTimelineEvent>> getTimelineEvents(String petId) async {
+  ResultFuture<List<HealthTimelineEvent>> getTimelineEvents(
+    String petId,
+  ) async {
     try {
       final events = await _remote.getTimelineEvents(petId);
       return Right(events);

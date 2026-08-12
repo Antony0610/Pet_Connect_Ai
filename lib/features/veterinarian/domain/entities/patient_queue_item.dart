@@ -34,18 +34,18 @@ class PatientQueueItem extends Equatable {
 
   @override
   List<Object?> get props => [
-        queueId,
-        appointmentId,
-        petId,
-        petName,
-        breedAge,
-        priority,
-        reason,
-        appointmentDate,
-        status,
-        veterinarianId,
-        clinicId,
-        ownerName,
-        createdAt,
-      ];
+    queueId,
+    appointmentId,
+    petId,
+    petName,
+    breedAge,
+    priority,
+    reason,
+    appointmentDate,
+    status,
+    veterinarianId,
+    clinicId,
+    ownerName,
+    createdAt,
+  ];
 }

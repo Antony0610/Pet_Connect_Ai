@@ -32,7 +32,12 @@ class VaccinationOverviewScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Vaccinations" : 'Vaccinations'),
+      appBar: healthAppBar(
+        context,
+        title: selectedPet != null
+            ? "${selectedPet.name}'s Vaccinations"
+            : 'Vaccinations',
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(

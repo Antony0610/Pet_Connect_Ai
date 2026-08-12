@@ -39,7 +39,12 @@ class _GrowthWeightAnalyticsScreenState
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Growth & Weight" : 'Growth & Weight'),
+      appBar: healthAppBar(
+        context,
+        title: selectedPet != null
+            ? "${selectedPet.name}'s Growth & Weight"
+            : 'Growth & Weight',
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(

@@ -36,10 +36,15 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
           .order('record_date', ascending: false);
 
       return (response as List)
-          .map((json) => HealthRecordModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => HealthRecordModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch health records: $e');
     }
@@ -57,7 +62,10 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
 
       return HealthRecordModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to create health record: $e');
     }
@@ -73,17 +81,24 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
           .order('administered_date', ascending: false);
 
       return (response as List)
-          .map((json) => VaccinationModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => VaccinationModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch vaccinations: $e');
     }
   }
 
   @override
-  Future<VaccinationModel> createVaccination(VaccinationModel vaccination) async {
+  Future<VaccinationModel> createVaccination(
+    VaccinationModel vaccination,
+  ) async {
     try {
       final json = vaccination.toJson()..remove('id');
       final response = await _client
@@ -94,7 +109,10 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
 
       return VaccinationModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to create vaccination: $e');
     }
@@ -110,10 +128,16 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
           .order('event_date', ascending: false);
 
       return (response as List)
-          .map((json) => HealthTimelineEventModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) =>
+                HealthTimelineEventModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch timeline events: $e');
     }
@@ -129,10 +153,15 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
           .order('recorded_at', ascending: true);
 
       return (response as List)
-          .map((json) => PetWeightLogModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => PetWeightLogModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch weight logs: $e');
     }
@@ -150,7 +179,10 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
 
       return PetWeightLogModel.fromJson(response);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to add weight log: $e');
     }
@@ -166,10 +198,15 @@ class HealthRemoteDataSourceImpl implements HealthRemoteDataSource {
           .order('created_at', ascending: false);
 
       return (response as List)
-          .map((json) => TreatmentPlanModel.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => TreatmentPlanModel.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, statusCode: int.tryParse(e.code ?? '500'));
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
     } catch (e) {
       throw ServerException('Failed to fetch treatment plans: $e');
     }

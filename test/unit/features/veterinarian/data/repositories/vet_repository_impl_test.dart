@@ -99,8 +99,9 @@ void main() {
     });
 
     test('getVetClinics returns Left(ServerFailure) on exception', () async {
-      when(() => mockRemote.getVetClinics())
-          .thenThrow(const ServerException('Database failure'));
+      when(
+        () => mockRemote.getVetClinics(),
+      ).thenThrow(const ServerException('Database failure'));
 
       final result = await repository.getVetClinics();
       expect(result.isLeft(), isTrue);
@@ -110,64 +111,84 @@ void main() {
       );
     });
 
-    test('getAppointments returns Right(List<Appointment>) on success', () async {
-      when(() => mockRemote.getAppointments(vetId: 'vet-1', clinicId: null))
-          .thenAnswer((_) async => [tAppointment]);
+    test(
+      'getAppointments returns Right(List<Appointment>) on success',
+      () async {
+        when(
+          () => mockRemote.getAppointments(vetId: 'vet-1', clinicId: null),
+        ).thenAnswer((_) async => [tAppointment]);
 
-      final result = await repository.getAppointments(vetId: 'vet-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (list) => expect(list, [tAppointment]),
-      );
-    });
+        final result = await repository.getAppointments(vetId: 'vet-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (list) => expect(list, [tAppointment]),
+        );
+      },
+    );
 
-    test('getPatientQueue returns Right(List<PatientQueueItem>) on success', () async {
-      when(() => mockRemote.getPatientQueue(clinicId: 'clinic-1', vetId: null))
-          .thenAnswer((_) async => [tQueue]);
+    test(
+      'getPatientQueue returns Right(List<PatientQueueItem>) on success',
+      () async {
+        when(
+          () => mockRemote.getPatientQueue(clinicId: 'clinic-1', vetId: null),
+        ).thenAnswer((_) async => [tQueue]);
 
-      final result = await repository.getPatientQueue(clinicId: 'clinic-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (queue) => expect(queue, [tQueue]),
-      );
-    });
+        final result = await repository.getPatientQueue(clinicId: 'clinic-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (queue) => expect(queue, [tQueue]),
+        );
+      },
+    );
 
-    test('getConsultationByAppointment returns Right(Consultation?) on success', () async {
-      when(() => mockRemote.getConsultationByAppointment('apt-1'))
-          .thenAnswer((_) async => tConsultation);
+    test(
+      'getConsultationByAppointment returns Right(Consultation?) on success',
+      () async {
+        when(
+          () => mockRemote.getConsultationByAppointment('apt-1'),
+        ).thenAnswer((_) async => tConsultation);
 
-      final result = await repository.getConsultationByAppointment('apt-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (consultation) => expect(consultation, tConsultation),
-      );
-    });
+        final result = await repository.getConsultationByAppointment('apt-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (consultation) => expect(consultation, tConsultation),
+        );
+      },
+    );
 
-    test('getPrescriptions returns Right(List<Prescription>) on success', () async {
-      when(() => mockRemote.getPrescriptions('c-1'))
-          .thenAnswer((_) async => [tPrescription]);
+    test(
+      'getPrescriptions returns Right(List<Prescription>) on success',
+      () async {
+        when(
+          () => mockRemote.getPrescriptions('c-1'),
+        ).thenAnswer((_) async => [tPrescription]);
 
-      final result = await repository.getPrescriptions('c-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (list) => expect(list, [tPrescription]),
-      );
-    });
+        final result = await repository.getPrescriptions('c-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (list) => expect(list, [tPrescription]),
+        );
+      },
+    );
 
-    test('getPharmacyInventory returns Right(List<PharmacyItem>) on success', () async {
-      when(() => mockRemote.getPharmacyInventory('clinic-1'))
-          .thenAnswer((_) async => [tPharmacy]);
+    test(
+      'getPharmacyInventory returns Right(List<PharmacyItem>) on success',
+      () async {
+        when(
+          () => mockRemote.getPharmacyInventory('clinic-1'),
+        ).thenAnswer((_) async => [tPharmacy]);
 
-      final result = await repository.getPharmacyInventory('clinic-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (items) => expect(items, [tPharmacy]),
-      );
-    });
+        final result = await repository.getPharmacyInventory('clinic-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (items) => expect(items, [tPharmacy]),
+        );
+      },
+    );
   });
 }

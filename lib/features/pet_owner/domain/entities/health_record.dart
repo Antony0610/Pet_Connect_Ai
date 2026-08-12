@@ -30,16 +30,16 @@ class HealthRecord extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        petId,
-        recordDate,
-        category,
-        title,
-        notes,
-        diagnosis,
-        treatment,
-        veterinarianName,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    petId,
+    recordDate,
+    category,
+    title,
+    notes,
+    diagnosis,
+    treatment,
+    veterinarianName,
+    createdAt,
+    updatedAt,
+  ];
 }

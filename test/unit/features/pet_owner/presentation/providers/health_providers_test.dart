@@ -38,27 +38,29 @@ void main() {
 
   ProviderContainer makeContainer() {
     return ProviderContainer(
-      overrides: [
-        healthRepositoryProvider.overrideWithValue(mockRepo),
-      ],
+      overrides: [healthRepositoryProvider.overrideWithValue(mockRepo)],
     );
   }
 
   group('Health Providers Unit Tests', () {
     test('healthRecordsProvider loads health records for a pet', () async {
-      when(() => mockRepo.getHealthRecords('pet-1'))
-          .thenAnswer((_) async => Right([tRecord]));
+      when(
+        () => mockRepo.getHealthRecords('pet-1'),
+      ).thenAnswer((_) async => Right([tRecord]));
 
       final container = makeContainer();
-      final records = await container.read(healthRecordsProvider('pet-1').future);
+      final records = await container.read(
+        healthRecordsProvider('pet-1').future,
+      );
 
       expect(records, [tRecord]);
       verify(() => mockRepo.getHealthRecords('pet-1')).called(1);
     });
 
     test('vaccinationsProvider loads vaccinations for a pet', () async {
-      when(() => mockRepo.getVaccinations('pet-1'))
-          .thenAnswer((_) async => Right([tVaccination]));
+      when(
+        () => mockRepo.getVaccinations('pet-1'),
+      ).thenAnswer((_) async => Right([tVaccination]));
 
       final container = makeContainer();
       final list = await container.read(vaccinationsProvider('pet-1').future);

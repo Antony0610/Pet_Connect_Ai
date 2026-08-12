@@ -28,15 +28,15 @@ class Prescription extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        consultationId,
-        rxNumber,
-        medicationName,
-        dosage,
-        frequency,
-        duration,
-        instructions,
-        status,
-        createdAt,
-      ];
+    id,
+    consultationId,
+    rxNumber,
+    medicationName,
+    dosage,
+    frequency,
+    duration,
+    instructions,
+    status,
+    createdAt,
+  ];
 }

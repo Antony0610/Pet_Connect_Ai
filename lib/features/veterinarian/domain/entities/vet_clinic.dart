@@ -26,14 +26,14 @@ class VetClinic extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        address,
-        phone,
-        email,
-        licenseNumber,
-        ownerId,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    name,
+    address,
+    phone,
+    email,
+    licenseNumber,
+    ownerId,
+    createdAt,
+    updatedAt,
+  ];
 }

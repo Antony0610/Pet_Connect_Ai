@@ -65,8 +65,9 @@ void main() {
 
   group('Health UseCases Unit Tests', () {
     test('GetHealthRecords delegates to repository', () async {
-      when(() => mockRepo.getHealthRecords('pet-1'))
-          .thenAnswer((_) async => Right([tRecord]));
+      when(
+        () => mockRepo.getHealthRecords('pet-1'),
+      ).thenAnswer((_) async => Right([tRecord]));
 
       final useCase = GetHealthRecords(mockRepo);
       final result = await useCase('pet-1');
@@ -79,8 +80,9 @@ void main() {
     });
 
     test('GetVaccinations delegates to repository', () async {
-      when(() => mockRepo.getVaccinations('pet-1'))
-          .thenAnswer((_) async => Right([tVaccination]));
+      when(
+        () => mockRepo.getVaccinations('pet-1'),
+      ).thenAnswer((_) async => Right([tVaccination]));
 
       final useCase = GetVaccinations(mockRepo);
       final result = await useCase('pet-1');
@@ -92,8 +94,9 @@ void main() {
     });
 
     test('GetHealthTimelineEvents delegates to repository', () async {
-      when(() => mockRepo.getTimelineEvents('pet-1'))
-          .thenAnswer((_) async => Right([tEvent]));
+      when(
+        () => mockRepo.getTimelineEvents('pet-1'),
+      ).thenAnswer((_) async => Right([tEvent]));
 
       final useCase = GetHealthTimelineEvents(mockRepo);
       final result = await useCase('pet-1');
@@ -105,8 +108,9 @@ void main() {
     });
 
     test('GetPetWeightLogs delegates to repository', () async {
-      when(() => mockRepo.getWeightLogs('pet-1'))
-          .thenAnswer((_) async => Right([tWeight]));
+      when(
+        () => mockRepo.getWeightLogs('pet-1'),
+      ).thenAnswer((_) async => Right([tWeight]));
 
       final useCase = GetPetWeightLogs(mockRepo);
       final result = await useCase('pet-1');
@@ -118,8 +122,9 @@ void main() {
     });
 
     test('GetTreatmentPlans delegates to repository', () async {
-      when(() => mockRepo.getTreatmentPlans('pet-1'))
-          .thenAnswer((_) async => Right([tPlan]));
+      when(
+        () => mockRepo.getTreatmentPlans('pet-1'),
+      ).thenAnswer((_) async => Right([tPlan]));
 
       final useCase = GetTreatmentPlans(mockRepo);
       final result = await useCase('pet-1');

@@ -11,7 +11,8 @@ import 'package:petconnect_ai/features/pet_owner/data/models/treatment_plan_mode
 import 'package:petconnect_ai/features/pet_owner/data/models/vaccination_model.dart';
 import 'package:petconnect_ai/features/pet_owner/data/repositories/health_repository_impl.dart';
 
-class MockHealthRemoteDataSource extends Mock implements HealthRemoteDataSource {}
+class MockHealthRemoteDataSource extends Mock
+    implements HealthRemoteDataSource {}
 
 void main() {
   late MockHealthRemoteDataSource mockRemote;
@@ -67,22 +68,27 @@ void main() {
   });
 
   group('HealthRepositoryImpl Unit Tests', () {
-    test('getHealthRecords returns Right(List<HealthRecord>) on success', () async {
-      when(() => mockRemote.getHealthRecords('pet-1'))
-          .thenAnswer((_) async => [tRecord]);
+    test(
+      'getHealthRecords returns Right(List<HealthRecord>) on success',
+      () async {
+        when(
+          () => mockRemote.getHealthRecords('pet-1'),
+        ).thenAnswer((_) async => [tRecord]);
 
-      final result = await repository.getHealthRecords('pet-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (records) => expect(records, [tRecord]),
-      );
-      verify(() => mockRemote.getHealthRecords('pet-1')).called(1);
-    });
+        final result = await repository.getHealthRecords('pet-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (records) => expect(records, [tRecord]),
+        );
+        verify(() => mockRemote.getHealthRecords('pet-1')).called(1);
+      },
+    );
 
     test('getHealthRecords returns Left(ServerFailure) on exception', () async {
-      when(() => mockRemote.getHealthRecords('pet-1'))
-          .thenThrow(const ServerException('Database error'));
+      when(
+        () => mockRemote.getHealthRecords('pet-1'),
+      ).thenThrow(const ServerException('Database error'));
 
       final result = await repository.getHealthRecords('pet-1');
       expect(result.isLeft(), isTrue);
@@ -92,52 +98,68 @@ void main() {
       );
     });
 
-    test('getVaccinations returns Right(List<Vaccination>) on success', () async {
-      when(() => mockRemote.getVaccinations('pet-1'))
-          .thenAnswer((_) async => [tVaccination]);
+    test(
+      'getVaccinations returns Right(List<Vaccination>) on success',
+      () async {
+        when(
+          () => mockRemote.getVaccinations('pet-1'),
+        ).thenAnswer((_) async => [tVaccination]);
 
-      final result = await repository.getVaccinations('pet-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (list) => expect(list, [tVaccination]),
-      );
-    });
+        final result = await repository.getVaccinations('pet-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (list) => expect(list, [tVaccination]),
+        );
+      },
+    );
 
-    test('getTimelineEvents returns Right(List<HealthTimelineEvent>) on success', () async {
-      when(() => mockRemote.getTimelineEvents('pet-1'))
-          .thenAnswer((_) async => [tEvent]);
+    test(
+      'getTimelineEvents returns Right(List<HealthTimelineEvent>) on success',
+      () async {
+        when(
+          () => mockRemote.getTimelineEvents('pet-1'),
+        ).thenAnswer((_) async => [tEvent]);
 
-      final result = await repository.getTimelineEvents('pet-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (events) => expect(events, [tEvent]),
-      );
-    });
+        final result = await repository.getTimelineEvents('pet-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (events) => expect(events, [tEvent]),
+        );
+      },
+    );
 
-    test('getWeightLogs returns Right(List<PetWeightLog>) on success', () async {
-      when(() => mockRemote.getWeightLogs('pet-1'))
-          .thenAnswer((_) async => [tWeight]);
+    test(
+      'getWeightLogs returns Right(List<PetWeightLog>) on success',
+      () async {
+        when(
+          () => mockRemote.getWeightLogs('pet-1'),
+        ).thenAnswer((_) async => [tWeight]);
 
-      final result = await repository.getWeightLogs('pet-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (logs) => expect(logs, [tWeight]),
-      );
-    });
+        final result = await repository.getWeightLogs('pet-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (logs) => expect(logs, [tWeight]),
+        );
+      },
+    );
 
-    test('getTreatmentPlans returns Right(List<TreatmentPlan>) on success', () async {
-      when(() => mockRemote.getTreatmentPlans('pet-1'))
-          .thenAnswer((_) async => [tPlan]);
+    test(
+      'getTreatmentPlans returns Right(List<TreatmentPlan>) on success',
+      () async {
+        when(
+          () => mockRemote.getTreatmentPlans('pet-1'),
+        ).thenAnswer((_) async => [tPlan]);
 
-      final result = await repository.getTreatmentPlans('pet-1');
-      expect(result.isRight(), isTrue);
-      result.fold(
-        (failure) => fail('Should be right'),
-        (plans) => expect(plans, [tPlan]),
-      );
-    });
+        final result = await repository.getTreatmentPlans('pet-1');
+        expect(result.isRight(), isTrue);
+        result.fold(
+          (failure) => fail('Should be right'),
+          (plans) => expect(plans, [tPlan]),
+        );
+      },
+    );
   });
 }

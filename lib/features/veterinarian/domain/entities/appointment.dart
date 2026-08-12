@@ -32,17 +32,17 @@ class Appointment extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        petId,
-        clinicId,
-        veterinarianId,
-        appointmentDate,
-        durationMinutes,
-        reason,
-        status,
-        priority,
-        notes,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    petId,
+    clinicId,
+    veterinarianId,
+    appointmentDate,
+    durationMinutes,
+    reason,
+    status,
+    priority,
+    notes,
+    createdAt,
+    updatedAt,
+  ];
 }

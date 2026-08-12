@@ -18,18 +18,21 @@ final healthRepositoryProvider = Provider<HealthRepository>((ref) {
   return HealthRepositoryImpl(ref.watch(healthRemoteDataSourceProvider));
 });
 
-final healthRecordsProvider =
-    FutureProvider.family<List<HealthRecord>, String>((ref, petId) async {
-  final repo = ref.watch(healthRepositoryProvider);
-  final result = await repo.getHealthRecords(petId);
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (records) => records,
-  );
-});
+final healthRecordsProvider = FutureProvider.family<List<HealthRecord>, String>(
+  (ref, petId) async {
+    final repo = ref.watch(healthRepositoryProvider);
+    final result = await repo.getHealthRecords(petId);
+    return result.fold(
+      (failure) => throw Exception(failure.message),
+      (records) => records,
+    );
+  },
+);
 
-final vaccinationsProvider =
-    FutureProvider.family<List<Vaccination>, String>((ref, petId) async {
+final vaccinationsProvider = FutureProvider.family<List<Vaccination>, String>((
+  ref,
+  petId,
+) async {
   final repo = ref.watch(healthRepositoryProvider);
   final result = await repo.getVaccinations(petId);
   return result.fold(
@@ -39,31 +42,35 @@ final vaccinationsProvider =
 });
 
 final healthTimelineEventsProvider =
-    FutureProvider.family<List<HealthTimelineEvent>, String>((ref, petId) async {
-  final repo = ref.watch(healthRepositoryProvider);
-  final result = await repo.getTimelineEvents(petId);
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (events) => events,
-  );
-});
+    FutureProvider.family<List<HealthTimelineEvent>, String>((
+      ref,
+      petId,
+    ) async {
+      final repo = ref.watch(healthRepositoryProvider);
+      final result = await repo.getTimelineEvents(petId);
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (events) => events,
+      );
+    });
 
-final petWeightLogsProvider =
-    FutureProvider.family<List<PetWeightLog>, String>((ref, petId) async {
-  final repo = ref.watch(healthRepositoryProvider);
-  final result = await repo.getWeightLogs(petId);
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (logs) => logs,
-  );
-});
+final petWeightLogsProvider = FutureProvider.family<List<PetWeightLog>, String>(
+  (ref, petId) async {
+    final repo = ref.watch(healthRepositoryProvider);
+    final result = await repo.getWeightLogs(petId);
+    return result.fold(
+      (failure) => throw Exception(failure.message),
+      (logs) => logs,
+    );
+  },
+);
 
 final treatmentPlansProvider =
     FutureProvider.family<List<TreatmentPlan>, String>((ref, petId) async {
-  final repo = ref.watch(healthRepositoryProvider);
-  final result = await repo.getTreatmentPlans(petId);
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (plans) => plans,
-  );
-});
+      final repo = ref.watch(healthRepositoryProvider);
+      final result = await repo.getTreatmentPlans(petId);
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (plans) => plans,
+      );
+    });

@@ -16,7 +16,8 @@ class InventoryPharmacyScreen extends ConsumerStatefulWidget {
       _InventoryPharmacyScreenState();
 }
 
-class _InventoryPharmacyScreenState extends ConsumerState<InventoryPharmacyScreen> {
+class _InventoryPharmacyScreenState
+    extends ConsumerState<InventoryPharmacyScreen> {
   String _searchQuery = '';
 
   final List<Map<String, dynamic>> _inventoryItems = [

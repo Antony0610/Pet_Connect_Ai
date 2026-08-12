@@ -84,63 +84,88 @@ void main() {
 
   group('Vet UseCases Unit Tests', () {
     test('GetVetClinics delegates to repository', () async {
-      when(() => mockRepo.getVetClinics()).thenAnswer((_) async => Right([tClinic]));
+      when(
+        () => mockRepo.getVetClinics(),
+      ).thenAnswer((_) async => Right([tClinic]));
 
       final useCase = GetVetClinics(mockRepo);
       final result = await useCase();
       expect(result.isRight(), isTrue);
-      result.fold((l) => fail('Should be right'), (clinics) => expect(clinics, [tClinic]));
+      result.fold(
+        (l) => fail('Should be right'),
+        (clinics) => expect(clinics, [tClinic]),
+      );
       verify(() => mockRepo.getVetClinics()).called(1);
     });
 
     test('GetAppointments delegates to repository', () async {
-      when(() => mockRepo.getAppointments(vetId: 'vet-1', clinicId: null))
-          .thenAnswer((_) async => Right([tAppointment]));
+      when(
+        () => mockRepo.getAppointments(vetId: 'vet-1', clinicId: null),
+      ).thenAnswer((_) async => Right([tAppointment]));
 
       final useCase = GetAppointments(mockRepo);
       final result = await useCase(vetId: 'vet-1');
       expect(result.isRight(), isTrue);
-      result.fold((l) => fail('Should be right'), (list) => expect(list, [tAppointment]));
+      result.fold(
+        (l) => fail('Should be right'),
+        (list) => expect(list, [tAppointment]),
+      );
     });
 
     test('GetPatientQueue delegates to repository', () async {
-      when(() => mockRepo.getPatientQueue(clinicId: 'clinic-1', vetId: null))
-          .thenAnswer((_) async => Right([tQueue]));
+      when(
+        () => mockRepo.getPatientQueue(clinicId: 'clinic-1', vetId: null),
+      ).thenAnswer((_) async => Right([tQueue]));
 
       final useCase = GetPatientQueue(mockRepo);
       final result = await useCase(clinicId: 'clinic-1');
       expect(result.isRight(), isTrue);
-      result.fold((l) => fail('Should be right'), (queue) => expect(queue, [tQueue]));
+      result.fold(
+        (l) => fail('Should be right'),
+        (queue) => expect(queue, [tQueue]),
+      );
     });
 
     test('GetConsultationByAppointment delegates to repository', () async {
-      when(() => mockRepo.getConsultationByAppointment('apt-1'))
-          .thenAnswer((_) async => Right(tConsultation));
+      when(
+        () => mockRepo.getConsultationByAppointment('apt-1'),
+      ).thenAnswer((_) async => Right(tConsultation));
 
       final useCase = GetConsultationByAppointment(mockRepo);
       final result = await useCase('apt-1');
       expect(result.isRight(), isTrue);
-      result.fold((l) => fail('Should be right'), (c) => expect(c, tConsultation));
+      result.fold(
+        (l) => fail('Should be right'),
+        (c) => expect(c, tConsultation),
+      );
     });
 
     test('GetPrescriptions delegates to repository', () async {
-      when(() => mockRepo.getPrescriptions('c-1'))
-          .thenAnswer((_) async => Right([tPrescription]));
+      when(
+        () => mockRepo.getPrescriptions('c-1'),
+      ).thenAnswer((_) async => Right([tPrescription]));
 
       final useCase = GetPrescriptions(mockRepo);
       final result = await useCase('c-1');
       expect(result.isRight(), isTrue);
-      result.fold((l) => fail('Should be right'), (list) => expect(list, [tPrescription]));
+      result.fold(
+        (l) => fail('Should be right'),
+        (list) => expect(list, [tPrescription]),
+      );
     });
 
     test('GetPharmacyInventory delegates to repository', () async {
-      when(() => mockRepo.getPharmacyInventory('clinic-1'))
-          .thenAnswer((_) async => Right([tPharmacy]));
+      when(
+        () => mockRepo.getPharmacyInventory('clinic-1'),
+      ).thenAnswer((_) async => Right([tPharmacy]));
 
       final useCase = GetPharmacyInventory(mockRepo);
       final result = await useCase('clinic-1');
       expect(result.isRight(), isTrue);
-      result.fold((l) => fail('Should be right'), (items) => expect(items, [tPharmacy]));
+      result.fold(
+        (l) => fail('Should be right'),
+        (items) => expect(items, [tPharmacy]),
+      );
     });
   });
 }

@@ -38,15 +38,15 @@ void main() {
 
   ProviderContainer makeContainer() {
     return ProviderContainer(
-      overrides: [
-        vetRepositoryProvider.overrideWithValue(mockRepo),
-      ],
+      overrides: [vetRepositoryProvider.overrideWithValue(mockRepo)],
     );
   }
 
   group('Vet Providers Unit Tests', () {
     test('vetClinicsProvider loads list of clinics', () async {
-      when(() => mockRepo.getVetClinics()).thenAnswer((_) async => Right([tClinic]));
+      when(
+        () => mockRepo.getVetClinics(),
+      ).thenAnswer((_) async => Right([tClinic]));
 
       final container = makeContainer();
       final clinics = await container.read(vetClinicsProvider.future);
@@ -56,8 +56,9 @@ void main() {
     });
 
     test('appointmentsProvider loads appointments for vet', () async {
-      when(() => mockRepo.getAppointments(vetId: 'vet-1', clinicId: null))
-          .thenAnswer((_) async => Right([tAppointment]));
+      when(
+        () => mockRepo.getAppointments(vetId: 'vet-1', clinicId: null),
+      ).thenAnswer((_) async => Right([tAppointment]));
 
       final container = makeContainer();
       final list = await container.read(
@@ -65,7 +66,9 @@ void main() {
       );
 
       expect(list, [tAppointment]);
-      verify(() => mockRepo.getAppointments(vetId: 'vet-1', clinicId: null)).called(1);
+      verify(
+        () => mockRepo.getAppointments(vetId: 'vet-1', clinicId: null),
+      ).called(1);
     });
   });
 }

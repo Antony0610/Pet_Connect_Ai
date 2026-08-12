@@ -28,31 +28,42 @@ final vetClinicsProvider = FutureProvider<List<VetClinic>>((ref) async {
   );
 });
 
-final appointmentsProvider = FutureProvider.family<List<Appointment>, Map<String, String?>>((ref, params) async {
-  final repo = ref.watch(vetRepositoryProvider);
-  final result = await repo.getAppointments(
-    vetId: params['vetId'],
-    clinicId: params['clinicId'],
-  );
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (appointments) => appointments,
-  );
-});
+final appointmentsProvider =
+    FutureProvider.family<List<Appointment>, Map<String, String?>>((
+      ref,
+      params,
+    ) async {
+      final repo = ref.watch(vetRepositoryProvider);
+      final result = await repo.getAppointments(
+        vetId: params['vetId'],
+        clinicId: params['clinicId'],
+      );
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (appointments) => appointments,
+      );
+    });
 
-final patientQueueProvider = FutureProvider.family<List<PatientQueueItem>, Map<String, String?>>((ref, params) async {
-  final repo = ref.watch(vetRepositoryProvider);
-  final result = await repo.getPatientQueue(
-    clinicId: params['clinicId'],
-    vetId: params['vetId'],
-  );
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (queue) => queue,
-  );
-});
+final patientQueueProvider =
+    FutureProvider.family<List<PatientQueueItem>, Map<String, String?>>((
+      ref,
+      params,
+    ) async {
+      final repo = ref.watch(vetRepositoryProvider);
+      final result = await repo.getPatientQueue(
+        clinicId: params['clinicId'],
+        vetId: params['vetId'],
+      );
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (queue) => queue,
+      );
+    });
 
-final consultationProvider = FutureProvider.family<Consultation?, String>((ref, appointmentId) async {
+final consultationProvider = FutureProvider.family<Consultation?, String>((
+  ref,
+  appointmentId,
+) async {
   final repo = ref.watch(vetRepositoryProvider);
   final result = await repo.getConsultationByAppointment(appointmentId);
   return result.fold(
@@ -61,20 +72,23 @@ final consultationProvider = FutureProvider.family<Consultation?, String>((ref, 
   );
 });
 
-final prescriptionsProvider = FutureProvider.family<List<Prescription>, String>((ref, consultationId) async {
-  final repo = ref.watch(vetRepositoryProvider);
-  final result = await repo.getPrescriptions(consultationId);
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (prescriptions) => prescriptions,
-  );
-});
+final prescriptionsProvider = FutureProvider.family<List<Prescription>, String>(
+  (ref, consultationId) async {
+    final repo = ref.watch(vetRepositoryProvider);
+    final result = await repo.getPrescriptions(consultationId);
+    return result.fold(
+      (failure) => throw Exception(failure.message),
+      (prescriptions) => prescriptions,
+    );
+  },
+);
 
-final pharmacyInventoryProvider = FutureProvider.family<List<PharmacyItem>, String>((ref, clinicId) async {
-  final repo = ref.watch(vetRepositoryProvider);
-  final result = await repo.getPharmacyInventory(clinicId);
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (items) => items,
-  );
-});
+final pharmacyInventoryProvider =
+    FutureProvider.family<List<PharmacyItem>, String>((ref, clinicId) async {
+      final repo = ref.watch(vetRepositoryProvider);
+      final result = await repo.getPharmacyInventory(clinicId);
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (items) => items,
+      );
+    });

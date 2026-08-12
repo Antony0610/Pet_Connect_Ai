@@ -28,15 +28,15 @@ class TreatmentPlan extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        petId,
-        title,
-        category,
-        targetDate,
-        progressPercent,
-        status,
-        notes,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    petId,
+    title,
+    category,
+    targetDate,
+    progressPercent,
+    status,
+    notes,
+    createdAt,
+    updatedAt,
+  ];
 }

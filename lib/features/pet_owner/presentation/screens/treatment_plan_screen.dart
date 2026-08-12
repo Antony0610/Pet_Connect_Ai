@@ -19,7 +19,8 @@ class TreatmentPlanScreen extends ConsumerStatefulWidget {
   const TreatmentPlanScreen({super.key});
 
   @override
-  ConsumerState<TreatmentPlanScreen> createState() => _TreatmentPlanScreenState();
+  ConsumerState<TreatmentPlanScreen> createState() =>
+      _TreatmentPlanScreenState();
 }
 
 class _TreatmentPlanScreenState extends ConsumerState<TreatmentPlanScreen> {
@@ -42,7 +43,9 @@ class _TreatmentPlanScreenState extends ConsumerState<TreatmentPlanScreen> {
           onPressed: () => GoRouter.of(context).pop(),
         ),
         title: Text(
-          selectedPet != null ? "${selectedPet.name}'s Recovery Plan" : 'Active Treatment Plan',
+          selectedPet != null
+              ? "${selectedPet.name}'s Recovery Plan"
+              : 'Active Treatment Plan',
           style: context.textTheme.headlineSmall?.copyWith(
             color: scheme.primary,
             fontWeight: AppTypography.bold,

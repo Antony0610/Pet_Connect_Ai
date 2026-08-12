@@ -13,15 +13,26 @@ abstract class VetRepository {
   ResultFuture<VetClinic> createVetClinic(VetClinic clinic);
 
   // Appointments
-  ResultFuture<List<Appointment>> getAppointments({String? vetId, String? clinicId});
+  ResultFuture<List<Appointment>> getAppointments({
+    String? vetId,
+    String? clinicId,
+  });
   ResultFuture<Appointment> createAppointment(Appointment appointment);
-  ResultFuture<Appointment> updateAppointmentStatus(String appointmentId, String status);
+  ResultFuture<Appointment> updateAppointmentStatus(
+    String appointmentId,
+    String status,
+  );
 
   // Patient Queue
-  ResultFuture<List<PatientQueueItem>> getPatientQueue({String? clinicId, String? vetId});
+  ResultFuture<List<PatientQueueItem>> getPatientQueue({
+    String? clinicId,
+    String? vetId,
+  });
 
   // Consultations
-  ResultFuture<Consultation?> getConsultationByAppointment(String appointmentId);
+  ResultFuture<Consultation?> getConsultationByAppointment(
+    String appointmentId,
+  );
   ResultFuture<Consultation> saveConsultation(Consultation consultation);
 
   // Prescriptions

@@ -37,8 +37,10 @@ class CreateAppointment {
 class GetPatientQueue {
   const GetPatientQueue(this._repository);
   final VetRepository _repository;
-  ResultFuture<List<PatientQueueItem>> call({String? clinicId, String? vetId}) =>
-      _repository.getPatientQueue(clinicId: clinicId, vetId: vetId);
+  ResultFuture<List<PatientQueueItem>> call({
+    String? clinicId,
+    String? vetId,
+  }) => _repository.getPatientQueue(clinicId: clinicId, vetId: vetId);
 }
 
 class GetConsultationByAppointment {

@@ -20,11 +20,11 @@ class PetWeightLog extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        petId,
-        recordedAt,
-        weightKg,
-        notes,
-        createdAt,
-      ];
+    id,
+    petId,
+    recordedAt,
+    weightKg,
+    notes,
+    createdAt,
+  ];
 }

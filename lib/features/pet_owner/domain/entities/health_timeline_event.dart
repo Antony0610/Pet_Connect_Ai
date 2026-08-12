@@ -24,13 +24,13 @@ class HealthTimelineEvent extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        petId,
-        eventDate,
-        category,
-        title,
-        description,
-        metadata,
-        createdAt,
-      ];
+    id,
+    petId,
+    eventDate,
+    category,
+    title,
+    description,
+    metadata,
+    createdAt,
+  ];
 }

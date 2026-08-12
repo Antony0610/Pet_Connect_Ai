@@ -57,9 +57,15 @@ class VetRepositoryImpl implements VetRepository {
   }
 
   @override
-  ResultFuture<List<Appointment>> getAppointments({String? vetId, String? clinicId}) async {
+  ResultFuture<List<Appointment>> getAppointments({
+    String? vetId,
+    String? clinicId,
+  }) async {
     try {
-      final list = await _remote.getAppointments(vetId: vetId, clinicId: clinicId);
+      final list = await _remote.getAppointments(
+        vetId: vetId,
+        clinicId: clinicId,
+      );
       return Right(list);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
@@ -95,9 +101,15 @@ class VetRepositoryImpl implements VetRepository {
   }
 
   @override
-  ResultFuture<Appointment> updateAppointmentStatus(String appointmentId, String status) async {
+  ResultFuture<Appointment> updateAppointmentStatus(
+    String appointmentId,
+    String status,
+  ) async {
     try {
-      final updated = await _remote.updateAppointmentStatus(appointmentId, status);
+      final updated = await _remote.updateAppointmentStatus(
+        appointmentId,
+        status,
+      );
       return Right(updated);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
@@ -107,9 +119,15 @@ class VetRepositoryImpl implements VetRepository {
   }
 
   @override
-  ResultFuture<List<PatientQueueItem>> getPatientQueue({String? clinicId, String? vetId}) async {
+  ResultFuture<List<PatientQueueItem>> getPatientQueue({
+    String? clinicId,
+    String? vetId,
+  }) async {
     try {
-      final queue = await _remote.getPatientQueue(clinicId: clinicId, vetId: vetId);
+      final queue = await _remote.getPatientQueue(
+        clinicId: clinicId,
+        vetId: vetId,
+      );
       return Right(queue);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
@@ -119,9 +137,13 @@ class VetRepositoryImpl implements VetRepository {
   }
 
   @override
-  ResultFuture<Consultation?> getConsultationByAppointment(String appointmentId) async {
+  ResultFuture<Consultation?> getConsultationByAppointment(
+    String appointmentId,
+  ) async {
     try {
-      final consultation = await _remote.getConsultationByAppointment(appointmentId);
+      final consultation = await _remote.getConsultationByAppointment(
+        appointmentId,
+      );
       return Right(consultation);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
@@ -156,7 +178,9 @@ class VetRepositoryImpl implements VetRepository {
   }
 
   @override
-  ResultFuture<List<Prescription>> getPrescriptions(String consultationId) async {
+  ResultFuture<List<Prescription>> getPrescriptions(
+    String consultationId,
+  ) async {
     try {
       final list = await _remote.getPrescriptions(consultationId);
       return Right(list);
@@ -168,7 +192,9 @@ class VetRepositoryImpl implements VetRepository {
   }
 
   @override
-  ResultFuture<Prescription> createPrescription(Prescription prescription) async {
+  ResultFuture<Prescription> createPrescription(
+    Prescription prescription,
+  ) async {
     try {
       final model = PrescriptionModel(
         id: prescription.id,

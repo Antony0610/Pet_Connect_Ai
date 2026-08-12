@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -14,14 +16,16 @@ import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 ///
 /// The central hub for Volunteer & Rescue operations. Displays live emergency
 /// dispatch alerts, active rescue metrics, quick action tiles, and recent activity.
-class MissionDashboardScreen extends StatefulWidget {
+class MissionDashboardScreen extends ConsumerStatefulWidget {
   const MissionDashboardScreen({super.key});
 
   @override
-  State<MissionDashboardScreen> createState() => _MissionDashboardScreenState();
+  ConsumerState<MissionDashboardScreen> createState() =>
+      _MissionDashboardScreenState();
 }
 
-class _MissionDashboardScreenState extends State<MissionDashboardScreen> {
+class _MissionDashboardScreenState
+    extends ConsumerState<MissionDashboardScreen> {
   bool _isOnDuty = true;
 
   @override
@@ -29,6 +33,7 @@ class _MissionDashboardScreenState extends State<MissionDashboardScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final rescueAccent = PortalPalette.accentFor(AppPortal.volunteerRescue);
+    ref.watch(rescueMissionsProvider(null));
 
     return Scaffold(
       appBar: AppBar(

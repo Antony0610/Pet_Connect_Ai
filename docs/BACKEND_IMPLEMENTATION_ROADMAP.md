@@ -400,11 +400,12 @@ graph TD
 - **Deliverables**: Vet appointment management, prescription creator, patient registry access.
 - **Complexity**: VERY HIGH
 
-#### Phase 5: Volunteer & Rescue Operations + Community
-- **Purpose**: Lost pet mode activation, sighting reports, emergency rescue mission dispatch, community feed, local events, and adoption listings.
-- **Screens**: 20–22, 45–52, 54–57, 73–87.
-- **Tables Created/Modified**: `lost_pet_alerts`, `lost_pet_sightings`, `rescue_missions`, `community_posts`, `saved_posts`, `post_comments`, `post_reactions`, `user_achievements`, `vw_active_lost_pets`, `vw_nearby_rescue_requests`.
-- **Deliverables**: Realtime lost pet alerts, rescue mission dashboard, community posts & events.
+#### Phase 5: Volunteer & Rescue Operations + Community Backend [COMPLETE]
+- **Status**: DEPLOYED & VERIFIED
+- **Purpose**: Lost pet mode activation, sighting reports, emergency rescue mission dispatch, EOC dashboard, and volunteer active operations.
+- **Screens**: 73–87.
+- **Tables Created/Modified**: `lost_pet_alerts`, `lost_pet_sightings`, `rescue_missions`, `vw_active_lost_pets` (WITH security_invoker = true), `vw_nearby_rescue_requests` (WITH security_invoker = true).
+- **Deliverables**: Realtime lost pet alerts, rescue mission dashboard, EOC active operations, RLS security, 122 unit tests passing.
 - **Complexity**: VERY HIGH
 
 #### Phase 6: Administrator Portal Backend
