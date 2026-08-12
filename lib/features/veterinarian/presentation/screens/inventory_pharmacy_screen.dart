@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -7,15 +8,15 @@ import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-class InventoryPharmacyScreen extends StatefulWidget {
+class InventoryPharmacyScreen extends ConsumerStatefulWidget {
   const InventoryPharmacyScreen({super.key});
 
   @override
-  State<InventoryPharmacyScreen> createState() =>
+  ConsumerState<InventoryPharmacyScreen> createState() =>
       _InventoryPharmacyScreenState();
 }
 
-class _InventoryPharmacyScreenState extends State<InventoryPharmacyScreen> {
+class _InventoryPharmacyScreenState extends ConsumerState<InventoryPharmacyScreen> {
   String _searchQuery = '';
 
   final List<Map<String, dynamic>> _inventoryItems = [

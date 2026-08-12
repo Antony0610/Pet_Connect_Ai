@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -7,18 +8,18 @@ import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-class ConsultationWorkspaceScreen extends StatefulWidget {
+class ConsultationWorkspaceScreen extends ConsumerStatefulWidget {
   final String appointmentId;
 
   const ConsultationWorkspaceScreen({super.key, required this.appointmentId});
 
   @override
-  State<ConsultationWorkspaceScreen> createState() =>
+  ConsumerState<ConsultationWorkspaceScreen> createState() =>
       _ConsultationWorkspaceScreenState();
 }
 
 class _ConsultationWorkspaceScreenState
-    extends State<ConsultationWorkspaceScreen> {
+    extends ConsumerState<ConsultationWorkspaceScreen> {
   final TextEditingController _subjectiveController = TextEditingController(
     text:
         'Owner reports lethargy and reduced appetite for 2 days. No vomiting or diarrhea.',

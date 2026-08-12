@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-class PatientQueueScreen extends StatefulWidget {
+class PatientQueueScreen extends ConsumerStatefulWidget {
   const PatientQueueScreen({super.key});
 
   @override
-  State<PatientQueueScreen> createState() => _PatientQueueScreenState();
+  ConsumerState<PatientQueueScreen> createState() => _PatientQueueScreenState();
 }
 
-class _PatientQueueScreenState extends State<PatientQueueScreen> {
+class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
   String _searchQuery = '';
   String _selectedPriority = 'ALL';
 
