@@ -1,6 +1,7 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/shared/data/datasource.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Local data source for onboarding state persistence via SharedPreferences.
 ///

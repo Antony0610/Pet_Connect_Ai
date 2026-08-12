@@ -1,11 +1,12 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:petconnect_ai/core/config/app_config.dart';
 import 'package:petconnect_ai/core/network/dio_client.dart';
 import 'package:petconnect_ai/core/network/network_info.dart';
 import 'package:petconnect_ai/core/utils/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Core dependency-injection providers.
 ///

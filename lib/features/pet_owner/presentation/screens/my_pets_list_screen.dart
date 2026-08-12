@@ -367,6 +367,56 @@ class _PetCard extends StatelessWidget {
   }
 }
 
+class _PetCardImage extends StatelessWidget {
+  const _PetCardImage({required this.imageUrl, required this.health});
+
+  final String imageUrl;
+  final _PetHealth health;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              color: scheme.surfaceContainerHigh,
+              child: Icon(Icons.pets, size: 48, color: scheme.primary),
+            ),
+          ),
+          Positioned(
+            top: AppSpacing.sm,
+            right: AppSpacing.sm,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: health.color(scheme).withValues(alpha: 0.90),
+                borderRadius: AppRadius.brSm,
+              ),
+              child: Text(
+                health.label,
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: scheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PetCardHeader extends StatelessWidget {
   const _PetCardHeader({required this.pet, required this.onMore});
 
