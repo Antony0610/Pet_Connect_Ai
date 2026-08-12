@@ -81,12 +81,15 @@ Phase 4 introduces 7 core database tables and 1 database view to power the Veter
 
 8. **`public.vw_patient_queue`** (View):
    - Dynamically joins `public.appointments`, `public.pets`, and `public.profiles` (owners) for live queue rendering.
+   - **Security Invoker Hardening**: Configured explicitly with `WITH (security_invoker = true)` to force PostgreSQL to evaluate RLS policies of underlying tables (`appointments`, `pets`, `profiles`) under the calling user's security context.
 
 ---
 
-## 2. Row Level Security (RLS) & Role Access Control
+## 2. Row Level Security (RLS) & Security Audit Fix
 
 - RLS enabled on all 7 Phase 4 tables (`rls_enabled: true`).
+- **Security Issue Remediation**: During Phase 4 security audit, `public.vw_patient_queue` was identified as lacking `security_invoker = true`. Standard PostgreSQL views default to `SECURITY DEFINER` privileges, which bypassed RLS policies on `appointments`, `pets`, and `profiles`.
+- **Fix Applied**: Recreated `public.vw_patient_queue WITH (security_invoker = true)`. Verified live catalog state via `pg_class.reloptions` (`security_invoker=true`).
 - Veterinarians are restricted to accessing data for clinics and appointments where they are assigned staff or owners.
 - Pet owners are restricted to viewing appointments, consultations, and prescriptions for their registered pets.
 - Administrators retain system-wide administrative access.
