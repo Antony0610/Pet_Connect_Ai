@@ -13,24 +13,29 @@ import 'package:petconnect_ai/features/pet_owner/presentation/widgets/health_wid
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+
 /// **Health Passport Dashboard** — the `/owner/health` hub.
 ///
 /// Frozen Stitch comp: a wellness-score gauge, an AI health insight, a
 /// horizontal quick-action rail into the four sub-passports, a 2×2 stat grid,
 /// a recent event and an article promo. Emerald in the comp maps to the Pet
 /// Owner portal **accent**; every other color to the active [ColorScheme].
-class HealthPassportDashboardScreen extends StatelessWidget {
+class HealthPassportDashboardScreen extends ConsumerWidget {
   const HealthPassportDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
+    final selectedPet = ref.watch(selectedPetProvider);
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: 'Health'),
+      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Health" : 'Health'),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
@@ -44,7 +49,7 @@ class HealthPassportDashboardScreen extends StatelessWidget {
                 margin,
                 AppSpacing.xxl,
               ),
-              child: const _DashboardBody(),
+              child: _DashboardBody(petId: selectedPet?.id, petName: selectedPet?.name),
             ),
           ),
         ),
@@ -59,15 +64,19 @@ class HealthPassportDashboardScreen extends StatelessWidget {
   }
 }
 
-class _DashboardBody extends StatelessWidget {
-  const _DashboardBody();
+class _DashboardBody extends ConsumerWidget {
+  const _DashboardBody({this.petId, this.petName});
+
+  final String? petId;
+  final String? petName;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final brightness = context.theme.brightness;
     final accent = palette.accent;
     final onAccent = context.colorScheme.onPrimary;
+    final name = petName ?? 'Buddy';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

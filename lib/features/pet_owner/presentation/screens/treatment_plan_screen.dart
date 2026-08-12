@@ -12,14 +12,23 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 ///
 /// Active recovery management including post-surgery rehab progress (65%),
 /// daily medication check-ins, physical therapy tasks, and vet care team contacts.
-class TreatmentPlanScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+
+/// A faithful Flutter rendering of the frozen Stitch **Treatment Plan**
+/// (Light Theme design authority, ID `8373546021f043e08a462b5358057e93`).
+///
+/// Active recovery management including post-surgery rehab progress (65%),
+/// daily medication check-ins, physical therapy tasks, and vet care team contacts.
+class TreatmentPlanScreen extends ConsumerStatefulWidget {
   const TreatmentPlanScreen({super.key});
 
   @override
-  State<TreatmentPlanScreen> createState() => _TreatmentPlanScreenState();
+  ConsumerState<TreatmentPlanScreen> createState() => _TreatmentPlanScreenState();
 }
 
-class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
+class _TreatmentPlanScreenState extends ConsumerState<TreatmentPlanScreen> {
   static const double _maxContentWidth = 1000;
 
   bool _task1Completed = true;
@@ -29,6 +38,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final selectedPet = ref.watch(selectedPetProvider);
 
     return Scaffold(
       appBar: OwnerGlassAppBar(
@@ -38,7 +48,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
           onPressed: () => GoRouter.of(context).pop(),
         ),
         title: Text(
-          'Active Treatment Plan',
+          selectedPet != null ? "${selectedPet.name}'s Recovery Plan" : 'Active Treatment Plan',
           style: context.textTheme.headlineSmall?.copyWith(
             color: scheme.primary,
             fontWeight: AppTypography.bold,

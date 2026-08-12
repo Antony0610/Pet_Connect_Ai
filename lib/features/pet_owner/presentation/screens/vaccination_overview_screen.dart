@@ -15,20 +15,31 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 /// Frozen Stitch comp: an emerald "fully protected" status banner, a core
 /// completion progress card, an "upcoming next" schedule card and a completed
 /// history list where each row taps through to a certificate.
-class VaccinationOverviewScreen extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+
+/// **Vaccination Overview** — `/owner/health/vaccinations`.
+///
+/// Frozen Stitch comp: an emerald "fully protected" status banner, a core
+/// completion progress card, an "upcoming next" schedule card and a completed
+/// history list where each row taps through to a certificate.
+class VaccinationOverviewScreen extends ConsumerWidget {
   const VaccinationOverviewScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final brightness = context.theme.brightness;
 
+    final selectedPet = ref.watch(selectedPetProvider);
+
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: 'Vaccinations'),
+      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Vaccinations" : 'Vaccinations'),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(

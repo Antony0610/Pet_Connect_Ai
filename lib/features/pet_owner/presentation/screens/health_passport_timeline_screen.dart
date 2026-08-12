@@ -12,19 +12,26 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 /// **Health Passport Timeline** — `/owner/health/timeline`.
 ///
 /// Frozen Stitch comp: category filter chips over a center-line vertical
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+
+/// **Health Passport Timeline** — `/owner/health/timeline`.
+///
+/// Frozen Stitch comp: category filter chips over a center-line vertical
 /// timeline. Each event is color-coded by category (Medical=error,
 /// AI=primary, Growth=tertiary, Vaccine=secondary) with an icon node, a card
 /// with title/detail/timestamp and — for growth — a weight-trend line.
-class HealthPassportTimelineScreen extends StatefulWidget {
+class HealthPassportTimelineScreen extends ConsumerStatefulWidget {
   const HealthPassportTimelineScreen({super.key});
 
   @override
-  State<HealthPassportTimelineScreen> createState() =>
+  ConsumerState<HealthPassportTimelineScreen> createState() =>
       _HealthPassportTimelineScreenState();
 }
 
 class _HealthPassportTimelineScreenState
-    extends State<HealthPassportTimelineScreen> {
+    extends ConsumerState<HealthPassportTimelineScreen> {
   static const _filters = ['All', 'Medical', 'AI', 'Growth', 'Vaccines'];
   int _selected = 0;
 
@@ -33,6 +40,7 @@ class _HealthPassportTimelineScreenState
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
+    final selectedPet = ref.watch(selectedPetProvider);
 
     final events = _events(context);
     final visible = _selected == 0
@@ -41,7 +49,7 @@ class _HealthPassportTimelineScreenState
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: 'Timeline'),
+      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Timeline" : 'Timeline'),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(

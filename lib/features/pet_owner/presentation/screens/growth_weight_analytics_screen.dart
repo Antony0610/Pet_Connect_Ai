@@ -16,16 +16,26 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 /// curve line chart with a range segmented control, a body-condition meter and
 /// a recent weigh-ins list. The chart and meter are custom-painted (no chart
 /// package in the project). Emerald maps to the Pet Owner accent.
-class GrowthWeightAnalyticsScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+
+/// **Growth & Weight Analytics** — `/owner/health/growth`.
+///
+/// Frozen Stitch comp: a current-weight hero with an AI verdict, a growth
+/// curve line chart with a range segmented control, a body-condition meter and
+/// a recent weigh-ins list. The chart and meter are custom-painted (no chart
+/// package in the project). Emerald maps to the Pet Owner accent.
+class GrowthWeightAnalyticsScreen extends ConsumerStatefulWidget {
   const GrowthWeightAnalyticsScreen({super.key});
 
   @override
-  State<GrowthWeightAnalyticsScreen> createState() =>
+  ConsumerState<GrowthWeightAnalyticsScreen> createState() =>
       _GrowthWeightAnalyticsScreenState();
 }
 
 class _GrowthWeightAnalyticsScreenState
-    extends State<GrowthWeightAnalyticsScreen> {
+    extends ConsumerState<GrowthWeightAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
@@ -33,10 +43,11 @@ class _GrowthWeightAnalyticsScreenState
     final margin = _horizontalMargin(width);
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final brightness = context.theme.brightness;
+    final selectedPet = ref.watch(selectedPetProvider);
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: 'Growth & Weight'),
+      appBar: healthAppBar(context, title: selectedPet != null ? "${selectedPet.name}'s Growth & Weight" : 'Growth & Weight'),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
