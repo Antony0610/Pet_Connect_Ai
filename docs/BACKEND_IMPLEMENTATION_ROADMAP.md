@@ -272,13 +272,13 @@ Every database entity referenced by the 96 screens is classified into one of sev
 
 ---
 
-## 7. Row Level Security (RLS) Strategy
+## 7. Row Level Security (RLS) Strategy & Role Protection
 
 All database tables have RLS explicitly enabled (`ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;`).
 
 | Table Category | Anonymous | Authenticated Pet Owner | Veterinarian | Volunteer / Rescue | Administrator |
 |---|---|---|---|---|---|
-| `profiles` | READ (Public info) | READ/UPDATE (Own profile) | READ/UPDATE (Own profile) | READ/UPDATE (Own profile) | READ/UPDATE (All profiles) |
+| `profiles` | READ (Public info) | READ/UPDATE (Own profile*) | READ/UPDATE (Own profile*) | READ/UPDATE (Own profile*) | READ/UPDATE (All profiles) |
 | `pets` | NONE | READ/INSERT/UPDATE/DELETE (Own pets) | READ (Assigned patients) | READ (Lost/Rescue pets) | READ/DELETE (All) |
 | `health_records` | NONE | READ/INSERT/UPDATE (Own pets) | READ/INSERT/UPDATE (Active patients) | NONE | READ (Audit) |
 | `vaccinations` | NONE | READ (Own pets) | READ/INSERT/UPDATE (Authorized vet) | NONE | READ (Audit) |
@@ -290,6 +290,36 @@ All database tables have RLS explicitly enabled (`ALTER TABLE <table> ENABLE ROW
 | `smart_collars` | NONE | READ/INSERT/UPDATE (Own collar) | NONE | READ (During active lost mode) | READ/UPDATE |
 | `community_posts` | READ | READ/INSERT/UPDATE/DELETE (Own) | READ/INSERT/UPDATE/DELETE (Own) | READ/INSERT/UPDATE/DELETE (Own) | READ/DELETE (Moderation) |
 | `audit_logs` | NONE | NONE | NONE | NONE | READ ONLY |
+
+*\*Note: Standard users may update permitted profile fields (full_name, avatar_url, phone), but CANNOT modify `role` due to the database trigger below.*
+
+### 7.1 Database-Enforced Role Escalation Prevention Trigger
+
+Standard RLS `FOR UPDATE USING (auth.uid() = id)` allows users to update rows they own, but does not natively prevent mutating the `role` column. To prevent unauthorized role elevation (e.g. `pet_owner` -> `administrator`), a server-side PostgreSQL trigger enforces column-level security:
+
+```sql
+-- Trigger Function: Abort update if non-admin attempts to mutate role column
+CREATE OR REPLACE FUNCTION public.prevent_profile_role_escalation()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.role IS DISTINCT FROM OLD.role THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'administrator'
+    ) THEN
+      RAISE EXCEPTION 'Unauthorized: Standard users cannot alter their application role.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Attach trigger BEFORE UPDATE on profiles table
+CREATE OR REPLACE TRIGGER enforce_profile_role_protection
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_profile_role_escalation();
+```
 
 ---
 
