@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -7,18 +8,9 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/health_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
-
-/// **Growth & Weight Analytics** — `/owner/health/growth`.
-///
-/// Frozen Stitch comp: a current-weight hero with an AI verdict, a growth
-/// curve line chart with a range segmented control, a body-condition meter and
-/// a recent weigh-ins list. The chart and meter are custom-painted (no chart
-/// package in the project). Emerald maps to the Pet Owner accent.
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 
 /// **Growth & Weight Analytics** — `/owner/health/growth`.
 ///

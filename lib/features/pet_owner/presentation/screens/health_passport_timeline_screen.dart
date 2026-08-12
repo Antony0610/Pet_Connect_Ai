@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -6,15 +7,9 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/health_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
-
-/// **Health Passport Timeline** — `/owner/health/timeline`.
-///
-/// Frozen Stitch comp: category filter chips over a center-line vertical
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 
 /// **Health Passport Timeline** — `/owner/health/timeline`.
 ///

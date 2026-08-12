@@ -4,9 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.dart';
-import 'package:petconnect_ai/features/pet_owner/domain/entities/health_timeline_event.dart';
-import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_weight_log.dart';
-import 'package:petconnect_ai/features/pet_owner/domain/entities/treatment_plan.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/repositories/health_repository.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
