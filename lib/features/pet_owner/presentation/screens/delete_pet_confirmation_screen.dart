@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -8,30 +9,58 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 
-/// The Pet Owner **Delete Pet Confirmation** modal.
-///
-/// A faithful Flutter rendering of the frozen Stitch "Delete Pet
-/// Confirmation" (Light master): a blurred scrim over the underlying page and
-/// a centered dialog card carrying a sad-pet illustration, a destructive
-/// prompt and Delete / Cancel actions. Every color, spacing, radius and type
-/// comes from the theme / design tokens so one widget tree serves both Light
-/// and Dark.
-///
-/// Presented as a route (rather than [showDialog]) so it participates in the
-/// GoRouter stack; the scrim is transparent to preserve the page beneath.
-class DeletePetConfirmationScreen extends StatelessWidget {
-  const DeletePetConfirmationScreen({super.key, this.petName = 'Buddy'});
+class DeletePetConfirmationScreen extends ConsumerStatefulWidget {
+  const DeletePetConfirmationScreen({super.key, this.petName});
 
-  final String petName;
+  final String? petName;
 
+  @override
+  ConsumerState<DeletePetConfirmationScreen> createState() =>
+      _DeletePetConfirmationScreenState();
+}
+
+class _DeletePetConfirmationScreenState
+    extends ConsumerState<DeletePetConfirmationScreen> {
   static const String _illustrationUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAqfb3H_kAbAknf2jSIrScXsT8e76RpJyT0VQJCpCTtT0_aL9Zbun0Pg9IAhFqtnc0Yp5mCFMo5AmCUiQCg0jBaycxxiFjq6mdypqytFl8QdPUmYwMGhXGHoi745FJkgVcnWLNr09hnblUmoyZfCwL4JI8W66ohw_DGSs9qNDgU1brlJxGpaVhmdiEcMgde5RIqAcEkNdmIelHgV0-lhuUatwgq1YQLp9t_d9ybaXY09E2Uao7khb_chA';
+
+  bool _isDeleting = false;
+
+  Future<void> _delete(String? petId) async {
+    if (petId == null) {
+      GoRouter.of(context).pop();
+      return;
+    }
+
+    setState(() => _isDeleting = true);
+
+    final result = await ref.read(deletePetUseCaseProvider)(petId);
+    if (!mounted) return;
+
+    setState(() => _isDeleting = false);
+
+    result.fold((failure) => context.showErrorSnack(failure.message), (_) {
+      ref.read(petsProvider.notifier).refreshPets();
+      ref.read(selectedPetIdProvider.notifier).state = null;
+      context.goNamed(RouteNames.ownerPets);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final text = context.textTheme;
+    final pathPetId =
+        GoRouterState.of(context).pathParameters['petId'] ??
+        ref.watch(selectedPetIdProvider);
+    final petAsync = pathPetId != null
+        ? ref.watch(petDetailProvider(pathPetId))
+        : const AsyncValue.data(null);
+    final pet = petAsync.valueOrNull ?? ref.watch(selectedPetProvider);
+    final displayName = widget.petName ?? pet?.name ?? 'this pet';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -88,7 +117,7 @@ class DeletePetConfirmationScreen extends StatelessWidget {
                         ),
                         AppSpacing.vGapLg,
                         Text(
-                          'Are you sure you want to remove $petName?',
+                          'Are you sure you want to remove $displayName?',
                           textAlign: TextAlign.center,
                           style: text.headlineSmall?.copyWith(
                             color: scheme.onSurface,
@@ -108,7 +137,9 @@ class DeletePetConfirmationScreen extends StatelessWidget {
                         SizedBox(
                           height: 56,
                           child: FilledButton.icon(
-                            onPressed: () => GoRouter.of(context).pop(),
+                            onPressed: _isDeleting
+                                ? null
+                                : () => _delete(pathPetId),
                             style: FilledButton.styleFrom(
                               backgroundColor: scheme.error,
                               foregroundColor: scheme.onError,
@@ -119,11 +150,21 @@ class DeletePetConfirmationScreen extends StatelessWidget {
                                 fontWeight: AppTypography.semiBold,
                               ),
                             ),
-                            icon: const Icon(
-                              Icons.delete_forever,
-                              size: AppIconSizes.sm,
+                            icon: _isDeleting
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.delete_forever),
+                            label: Text(
+                              _isDeleting
+                                  ? 'Deleting...'
+                                  : 'Delete Pet Profile',
                             ),
-                            label: Text('Yes, Delete $petName'),
                           ),
                         ),
                         AppSpacing.vGapSm,

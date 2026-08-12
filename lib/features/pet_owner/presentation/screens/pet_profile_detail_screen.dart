@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -7,34 +8,33 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/cards/glass_card.dart';
 
-/// The Pet Owner **Pet Profile Detail** screen.
-///
-/// A faithful Flutter rendering of the frozen Stitch "Pet Profile Detail"
-/// (Light master): a glass header, a hero photo with a gradient fade, an
-/// overlapping glass pet-info card (name / breed / age / weight), a six-slot
-/// quick-actions grid and a bento of personality, activity level and timeline
-/// preview cards. Every color, spacing, radius, type and elevation comes from
-/// the theme / design tokens so one widget tree serves both Light and Dark.
-///
-/// Reached from the "My Pets" list with a `petId` path parameter; the design
-/// comp is rendered for the featured pet ("Bella").
-class PetProfileDetailScreen extends StatelessWidget {
+class PetProfileDetailScreen extends ConsumerWidget {
   const PetProfileDetailScreen({super.key});
 
   static const String _heroPhotoUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBGFV_pbjsU4U9lQQlVb4lf8p6GQm10sWarSnNaGQGtjicsgw8LVzLV7QpWOf-KGYW3l1aArnjMBekTnWbCEq9XRjz0xBVmeCcuPdRQ4Ds38Cfswj6c5xxTQYP6S_q0h3rGWiElYbKZ38w-jJwdbRPrarYLGUlDgHWzjiyCA2GeA9c2P4324UWuP4q69-a6PEJIAPB8H-y76ICEqHg0f54akaEvC3OWdAkYv83E_YBhcn67k6FER6BtVQ';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final width = context.screenWidth;
     final isWide = AppBreakpoints.isDesktop(width);
     final margin = _horizontalMargin(width);
+
+    final petId =
+        GoRouterState.of(context).pathParameters['petId'] ??
+        ref.watch(selectedPetIdProvider);
+    final petAsync = petId != null
+        ? ref.watch(petDetailProvider(petId))
+        : const AsyncValue.data(null);
+    final pet = petAsync.valueOrNull ?? ref.watch(selectedPetProvider);
 
     final appBar = OwnerGlassAppBar(
       leading: IconButton(
@@ -43,7 +43,7 @@ class PetProfileDetailScreen extends StatelessWidget {
         onPressed: () => GoRouter.of(context).pop(),
       ),
       title: Text(
-        'PetConnect AI',
+        pet?.name ?? 'Pet Profile',
         style: context.textTheme.headlineSmall?.copyWith(
           color: context.colorScheme.primary,
           fontWeight: AppTypography.bold,
@@ -51,6 +51,24 @@ class PetProfileDetailScreen extends StatelessWidget {
         ),
       ),
       actions: [
+        if (pet != null)
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Profile',
+            onPressed: () => context.goNamed(
+              RouteNames.ownerEditPet,
+              pathParameters: {'petId': pet.id},
+            ),
+          ),
+        if (pet != null)
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Pet Settings',
+            onPressed: () => context.goNamed(
+              RouteNames.ownerPetSettings,
+              pathParameters: {'petId': pet.id},
+            ),
+          ),
         OwnerAppBarAction(
           icon: Icons.smart_toy,
           tooltip: 'AI Assistant',
@@ -124,7 +142,7 @@ class PetProfileDetailScreen extends StatelessWidget {
                     padding: EdgeInsets.symmetric(
                       horizontal: isWide ? margin : AppSpacing.sm,
                     ),
-                    child: _PetInfoCard(palette: palette),
+                    child: _PetInfoCard(palette: palette, pet: pet),
                   ),
                 ),
                 if (!isWide)
@@ -186,12 +204,17 @@ class PetProfileDetailScreen extends StatelessWidget {
 
 /// Glass info card overlapping the hero: name / breed + age / weight stats.
 class _PetInfoCard extends StatelessWidget {
-  const _PetInfoCard({required this.palette});
+  const _PetInfoCard({required this.palette, required this.pet});
 
   final PortalPalette palette;
+  final Pet? pet;
 
   @override
   Widget build(BuildContext context) {
+    final name = pet?.name ?? 'Companion';
+    final breedStr = pet?.breedLine ?? 'Pet Details';
+    final weightStr = pet?.weightKg != null ? '${pet!.weightKg}kg' : 'N/A';
+
     return GlassCard(
       padding: AppSpacing.cardPaddingPremium,
       borderRadius: AppRadius.brCard,
@@ -203,24 +226,27 @@ class _PetInfoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Bella',
+                name,
                 style: context.textTheme.headlineLarge?.copyWith(
                   color: context.colorScheme.onSurface,
                 ),
               ),
               Text(
-                'Golden Retriever',
+                breedStr,
                 style: context.textTheme.bodyLarge?.copyWith(
                   color: context.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
-          const Row(
+          Row(
             children: [
-              _PetStatBox(label: 'Age', value: '3y'),
+              _PetStatBox(
+                label: 'Species',
+                value: pet?.species.toUpperCase() ?? 'DOG',
+              ),
               AppSpacing.hGapSm,
-              _PetStatBox(label: 'Weight', value: '65lb'),
+              _PetStatBox(label: 'Weight', value: weightStr),
             ],
           ),
         ],

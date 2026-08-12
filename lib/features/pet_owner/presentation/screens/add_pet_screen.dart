@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -8,6 +9,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
@@ -20,29 +23,65 @@ import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 /// breed, gender segment) with a fixed bottom action bar. Every color,
 /// spacing, radius and type comes from the theme / design tokens so one
 /// widget tree serves both Light and Dark.
-class AddPetScreen extends StatefulWidget {
+class AddPetScreen extends ConsumerStatefulWidget {
   const AddPetScreen({super.key});
 
   @override
-  State<AddPetScreen> createState() => _AddPetScreenState();
+  ConsumerState<AddPetScreen> createState() => _AddPetScreenState();
 }
 
 enum _PetType { dog, cat }
 
 enum _Gender { male, female }
 
-class _AddPetScreenState extends State<AddPetScreen> {
+class _AddPetScreenState extends ConsumerState<AddPetScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _breedController = TextEditingController();
 
   _PetType _type = _PetType.dog;
   _Gender _gender = _Gender.female;
+  bool _isSaving = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _breedController.dispose();
     super.dispose();
+  }
+
+  Future<void> _savePet() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      context.showErrorSnack('Please enter your pet name.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final newPet = Pet(
+      id: '',
+      ownerId: '',
+      name: name,
+      species: _type.name,
+      breed: _breedController.text.trim().isNotEmpty
+          ? _breedController.text.trim()
+          : null,
+      gender: _gender.name,
+      healthStatus: 'optimal',
+    );
+
+    final result = await ref.read(createPetUseCaseProvider)(newPet);
+    if (!mounted) return;
+
+    setState(() => _isSaving = false);
+
+    result.fold((failure) => context.showErrorSnack(failure.message), (
+      createdPet,
+    ) {
+      ref.read(selectedPetIdProvider.notifier).state = createdPet.id;
+      ref.read(petsProvider.notifier).refreshPets();
+      GoRouter.of(context).pop();
+    });
   }
 
   @override
@@ -69,14 +108,15 @@ class _AddPetScreenState extends State<AddPetScreen> {
       actions: const [SizedBox(width: AppIconSizes.xxl)],
     );
 
-    final topPad = context.viewPadding.top + appBar.preferredSize.height;
+    final topPad =
+        context.viewPadding.top + appBar.preferredSize.preferredSize.height;
 
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: appBar,
       bottomNavigationBar: _BottomActionBar(
         onCancel: () => GoRouter.of(context).pop(),
-        onContinue: () => GoRouter.of(context).pop(),
+        onContinue: _isSaving ? () {} : _savePet,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(

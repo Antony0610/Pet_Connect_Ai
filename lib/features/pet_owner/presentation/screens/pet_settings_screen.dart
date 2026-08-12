@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -6,27 +7,27 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 
-/// The Pet Owner **Pet Settings** screen.
-///
-/// A faithful Flutter rendering of the frozen Stitch "Pet Settings" (Light
-/// master): a glass header carrying the pet avatar and an AI action, a
-/// grouped settings list (rename, breed/type, privacy, notifications,
-/// archive) and a destructive "Delete Pet Profile" danger zone. Every color,
-/// spacing, radius and type comes from the theme / design tokens so one
-/// widget tree serves both Light and Dark.
-class PetSettingsScreen extends StatelessWidget {
+class PetSettingsScreen extends ConsumerWidget {
   const PetSettingsScreen({super.key});
 
   static const String _avatarUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuDjI16jwSuB84Xzdt7-YtGGD8cXKVStGaG8oZWrTEE2O1-goYOuDRZcqSyPad1CPYiOtNpmKHsFuDGF1XWYq6EKqov84OOWCPHJxPpXKLuqTC6Q477BNMLO-6HiNHsNS4xCTdLYf92lsegzNK54T942Rm3uKfjS8--dRESAdQBH0TVmbgyvaZ_C4SsdIEjuXC5yT77JIkjPqIRey1hLpRcoeWF2RBXnU1DgCs_q6PoFUKKDG2FrJRTLfA';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final text = context.textTheme;
+    final petId =
+        GoRouterState.of(context).pathParameters['petId'] ??
+        ref.watch(selectedPetIdProvider);
+    final petAsync = petId != null
+        ? ref.watch(petDetailProvider(petId))
+        : const AsyncValue.data(null);
+    final pet = petAsync.valueOrNull ?? ref.watch(selectedPetProvider);
 
     final appBar = OwnerGlassAppBar(
       leading: IconButton(
@@ -155,7 +156,16 @@ class PetSettingsScreen extends StatelessWidget {
 
                 // ── Danger zone ────────────────────────────────────────
                 _DeleteButton(
-                  onTap: () => context.goNamed(RouteNames.ownerPetDelete),
+                  onTap: () {
+                    if (pet != null) {
+                      context.goNamed(
+                        RouteNames.ownerPetDelete,
+                        pathParameters: {'petId': pet.id},
+                      );
+                    } else {
+                      context.goNamed(RouteNames.ownerPetDelete);
+                    }
+                  },
                 ),
               ],
             ),

@@ -159,8 +159,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       title: 'Sign Out',
                       subtitle: 'Sign out of PetConnect AI on this device.',
                       onTap: () async {
-                        final result =
-                            await ref.read(signOutProvider)(const NoParams());
+                        final result = await ref.read(signOutProvider)(
+                          const NoParams(),
+                        );
                         if (!mounted) return;
                         result.fold(
                           (Failure f) => context.showErrorSnack(f.message),

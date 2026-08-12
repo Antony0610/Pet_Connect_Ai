@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -6,42 +7,61 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-/// The Pet Owner **Edit Pet Profile** screen.
-///
-/// A faithful Flutter rendering of the frozen Stitch "Edit Pet" (Light
-/// master): a glass header with a trailing "Save" action, an editable
-/// circular photo, a glass form panel (name, breed, weight, birthday, AI
-/// health-tracking toggle) and a destructive "Archive Pet Profile" action.
-/// Every color, spacing, radius and type comes from the theme / design
-/// tokens so one widget tree serves both Light and Dark.
-class EditPetProfileScreen extends StatefulWidget {
+class EditPetProfileScreen extends ConsumerStatefulWidget {
   const EditPetProfileScreen({super.key});
 
   @override
-  State<EditPetProfileScreen> createState() => _EditPetProfileScreenState();
+  ConsumerState<EditPetProfileScreen> createState() =>
+      _EditPetProfileScreenState();
 }
 
-class _EditPetProfileScreenState extends State<EditPetProfileScreen> {
+class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
   static const String _photoUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuCebTvJKADcoc5qnRfZm9Zz8piAyM9XY4feJdNuTMlpSLxUy3RJULukgrawNI8hfHRNv9mMJfKunQ8JgHMSIoM368hwqlwAJ0k7dzUiLfrTEFucAXHDb6qoqfWeusOGlYMRz6SpUF87znQlQ5QDYPlQv7UgoZenpcCEkweQP1Ly2HRIJgKbn2LTRJmZ9_7zFZjhspGSQ18RJJPwev9VB9S9-IVTZx0pwpNuOv8hzTL_kJQ-RaOhXKRvYQ';
 
-  final TextEditingController _nameController = TextEditingController(
-    text: 'Buddy',
-  );
-  final TextEditingController _breedController = TextEditingController(
-    text: 'Golden Retriever',
-  );
-  final TextEditingController _weightController = TextEditingController(
-    text: '65',
-  );
-  final TextEditingController _birthdayController = TextEditingController(
-    text: 'May 12, 2019',
-  );
+  late final TextEditingController _nameController;
+  late final TextEditingController _breedController;
+  late final TextEditingController _weightController;
+  late final TextEditingController _birthdayController;
 
-  bool _aiHealthTracking = true;
+  bool _initialized = false;
+  bool _isSaving = false;
+  Pet? _currentPet;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _breedController = TextEditingController();
+    _weightController = TextEditingController();
+    _birthdayController = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final petId =
+          GoRouterState.of(context).pathParameters['petId'] ??
+          ref.read(selectedPetIdProvider);
+      final pet = petId != null
+          ? ref.read(petDetailProvider(petId)).valueOrNull
+          : ref.read(selectedPetProvider);
+
+      if (pet != null) {
+        _currentPet = pet;
+        _nameController.text = pet.name;
+        _breedController.text = pet.breed ?? '';
+        _weightController.text = pet.weightKg?.toString() ?? '';
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -52,34 +72,35 @@ class _EditPetProfileScreenState extends State<EditPetProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickBirthday() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2019, 5, 12),
-      firstDate: DateTime(1995),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      _birthdayController.text =
-          '${_month(picked.month)} '
-          '${picked.day}, ${picked.year}';
+  Future<void> _savePet() async {
+    if (_currentPet == null) return;
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      context.showErrorSnack('Pet name cannot be empty.');
+      return;
     }
-  }
 
-  String _month(int m) => const [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ][m - 1];
+    setState(() => _isSaving = true);
+
+    final updated = _currentPet!.copyWith(
+      name: name,
+      breed: _breedController.text.trim().isNotEmpty
+          ? _breedController.text.trim()
+          : null,
+      weightKg: double.tryParse(_weightController.text.trim()),
+    );
+
+    final result = await ref.read(updatePetUseCaseProvider)(updated);
+    if (!mounted) return;
+
+    setState(() => _isSaving = false);
+
+    result.fold((failure) => context.showErrorSnack(failure.message), (_) {
+      ref.read(petsProvider.notifier).refreshPets();
+      ref.invalidate(petDetailProvider(_currentPet!.id));
+      GoRouter.of(context).pop();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +122,7 @@ class _EditPetProfileScreenState extends State<EditPetProfileScreen> {
       ),
       actions: [
         TextButton(
-          onPressed: () => GoRouter.of(context).pop(),
+          onPressed: _isSaving ? null : _savePet,
           child: Text(
             'Save',
             style: text.labelLarge?.copyWith(

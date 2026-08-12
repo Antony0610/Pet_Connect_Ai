@@ -1,32 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 
-/// The species a new owner can pick during first-run setup.
 enum PetSpecies { dog, cat }
 
-/// Step 1 of the post-signup setup wizard: pick a pet species.
-///
-/// The frozen Light Theme presents two glass cards (Dog / Cat) that select
-/// with the Pet Owner emerald accent, a 3-step progress indicator, and a
-/// Continue CTA gated on selection plus a Skip affordance. Pet creation itself
-/// belongs to the Pet Owner module; this screen only captures the choice and
-/// advances into the portal.
-class InitialPetSetupScreen extends StatefulWidget {
+class InitialPetSetupScreen extends ConsumerStatefulWidget {
   const InitialPetSetupScreen({super.key});
 
   @override
-  State<InitialPetSetupScreen> createState() => _InitialPetSetupScreenState();
+  ConsumerState<InitialPetSetupScreen> createState() =>
+      _InitialPetSetupScreenState();
 }
 
-class _InitialPetSetupScreenState extends State<InitialPetSetupScreen> {
+class _InitialPetSetupScreenState extends ConsumerState<InitialPetSetupScreen> {
   static const String _dogImageUrl =
       'https://lh3.googleusercontent.com/aida-public/'
       'AB6AXuBHazV0mqkqQ42xRhcxA-nfQYGG4ThWYLNN9tDZ9ZmB1tilbONIhD8dkghPElCSpMw54eBoqy3MbO0CIQyLVNFxOlYdppvqajL0pDTS_uaoCJq72pIUY75Cp_34RHQTzILP58KjR8290qQMKEjf-OAS7QwseYdQIiXwrvdCsAH-UO6ew2rIfgqL07OwlcRPUBMQQ2bEjazSfC6b9r6WyEDgx2aJXZ6KCIOZwFMR81m_WSZdHaCTnXeojQ';
@@ -41,9 +37,29 @@ class _InitialPetSetupScreenState extends State<InitialPetSetupScreen> {
     setState(() => _selected = species);
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     if (_selected == null) return;
-    context.go(RoutePaths.ownerHome);
+    final speciesStr = _selected == PetSpecies.dog ? 'dog' : 'cat';
+    final defaultName = _selected == PetSpecies.dog ? 'Buddy' : 'Whiskers';
+
+    final newPet = Pet(
+      id: '',
+      ownerId: '',
+      name: defaultName,
+      species: speciesStr,
+      healthStatus: 'optimal',
+    );
+
+    final result = await ref.read(createPetUseCaseProvider)(newPet);
+    result.fold(
+      (_) {},
+      (createdPet) {
+        ref.read(selectedPetIdProvider.notifier).state = createdPet.id;
+        ref.read(petsProvider.notifier).refreshPets();
+      },
+    );
+
+    if (mounted) context.go(RoutePaths.ownerHome);
   }
 
   void _skip() => context.go(RoutePaths.ownerHome);

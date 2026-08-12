@@ -22,15 +22,16 @@ import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 /// The grid is 1 / 2 / 3 columns across the design's `md:`/`lg:` breakpoints.
 /// All colors, spacing, radii, type and elevation come from the theme / design
 /// tokens so one widget tree serves both Light and Dark.
-class MyPetsListScreen extends StatelessWidget {
+class MyPetsListScreen extends ConsumerWidget {
   const MyPetsListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final isWide = width >= _twoColumnWidth;
     final margin = _horizontalMargin(width);
+    final petsAsync = ref.watch(petsProvider);
 
     final appBar = OwnerGlassAppBar(
       leading: _HeaderAvatar(
@@ -66,7 +67,7 @@ class MyPetsListScreen extends StatelessWidget {
       floatingActionButton: OwnerActionFab(
         icon: Icons.add,
         tooltip: 'Add Pet',
-        onPressed: () => context.showSnackbar('Add Pet is coming soon.'),
+        onPressed: () => context.goNamed(RouteNames.ownerAddPet),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -85,14 +86,76 @@ class MyPetsListScreen extends StatelessWidget {
               children: [
                 _SectionIntro(isWide: isWide),
                 AppSpacing.vGapLg,
-                _PetGrid(
-                  pets: _pets,
-                  onOpen: (pet) => context.goNamed(
-                    RouteNames.ownerPetDetail,
-                    pathParameters: {'petId': pet.id},
+                petsAsync.when(
+                  data: (pets) {
+                    if (pets.isEmpty) {
+                      return Card(
+                        color: scheme.surfaceContainerLowest,
+                        margin: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.lg,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          child: Column(
+                            children: [
+                              Icon(Icons.pets, size: 48, color: scheme.primary),
+                              AppSpacing.vGapMd,
+                              Text(
+                                'No Pets Added Yet',
+                                style: context.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              AppSpacing.vGapSm,
+                              Text(
+                                'Add your companion to start tracking health, activities, and AI insights.',
+                                textAlign: TextAlign.center,
+                                style: context.textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                              AppSpacing.vGapLg,
+                              ElevatedButton.icon(
+                                onPressed: () =>
+                                    context.goNamed(RouteNames.ownerAddPet),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Your First Pet'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return _PetGrid(
+                      pets: pets,
+                      onOpen: (pet) {
+                        ref.read(selectedPetIdProvider.notifier).state = pet.id;
+                        context.goNamed(
+                          RouteNames.ownerPetDetail,
+                          pathParameters: {'petId': pet.id},
+                        );
+                      },
+                      onMore: (pet) {
+                        ref.read(selectedPetIdProvider.notifier).state = pet.id;
+                        context.goNamed(
+                          RouteNames.ownerPetSettings,
+                          pathParameters: {'petId': pet.id},
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.xl),
+                      child: CircularProgressIndicator(),
+                    ),
                   ),
-                  onMore: (pet) =>
-                      context.showSnackbar('${pet.name} options coming soon.'),
+                  error: (err, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Text('Failed to load pets: $err'),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -160,9 +223,9 @@ class _PetGrid extends StatelessWidget {
     required this.onMore,
   });
 
-  final List<_OwnerPet> pets;
-  final ValueChanged<_OwnerPet> onOpen;
-  final ValueChanged<_OwnerPet> onMore;
+  final List<Pet> pets;
+  final ValueChanged<Pet> onOpen;
+  final ValueChanged<Pet> onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +235,6 @@ class _PetGrid extends StatelessWidget {
         : width >= _twoColumnWidth
         ? 2
         : 1;
-    // gap-md on mobile, md:gap-lg at ≥768px.
     final gap = width >= _twoColumnWidth ? AppSpacing.lg : AppSpacing.md;
 
     if (columns == 1) {
@@ -227,10 +289,6 @@ class _PetGrid extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Pet card
-// ═══════════════════════════════════════════════════════════════════
-
 class _PetCard extends StatelessWidget {
   const _PetCard({
     required this.pet,
@@ -238,13 +296,22 @@ class _PetCard extends StatelessWidget {
     required this.onMore,
   });
 
-  final _OwnerPet pet;
+  final Pet pet;
   final VoidCallback onTap;
   final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final primaryStat = _PetStat(
+      icon: Icons.pets,
+      label: pet.species.toUpperCase(),
+      highlighted: true,
+    );
+    final secondaryStat = _PetStat(
+      icon: Icons.monitor_weight_outlined,
+      label: pet.weightKg != null ? '${pet.weightKg} kg' : 'Weight N/A',
+    );
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -265,7 +332,12 @@ class _PetCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _PetCardImage(imageUrl: pet.imageUrl, health: pet.health),
+              _PetCardImage(
+                imageUrl: pet.imageUrl ?? '',
+                health: pet.healthStatus == 'optimal'
+                    ? _PetHealth.optimal
+                    : _PetHealth.needsReview,
+              ),
               Padding(
                 padding: AppSpacing.cardPaddingPremium,
                 child: Column(
@@ -276,9 +348,9 @@ class _PetCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(child: _PetStatChip(stat: pet.primaryStat)),
+                        Expanded(child: _PetStatChip(stat: primaryStat)),
                         AppSpacing.hGapSm,
-                        Expanded(child: _PetStatChip(stat: pet.secondaryStat)),
+                        Expanded(child: _PetStatChip(stat: secondaryStat)),
                       ],
                     ),
                   ],
@@ -292,100 +364,10 @@ class _PetCard extends StatelessWidget {
   }
 }
 
-/// The 280px cover photo with a floating glass health badge.
-class _PetCardImage extends StatelessWidget {
-  const _PetCardImage({required this.imageUrl, required this.health});
-
-  final String imageUrl;
-  final _PetHealth health;
-
-  static const double _height = 280;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return SizedBox(
-      height: _height,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => ColoredBox(
-                color: scheme.secondaryContainer,
-                child: Icon(
-                  Icons.pets_rounded,
-                  size: AppIconSizes.xxl,
-                  color: scheme.onSecondaryContainer,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: AppSpacing.md,
-            right: AppSpacing.md,
-            child: _HealthBadge(health: health),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The translucent "Optimal" / "Needs Review" pill over the photo.
-class _HealthBadge extends StatelessWidget {
-  const _HealthBadge({required this.health});
-
-  final _PetHealth health;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final color = health.color(scheme);
-
-    return ClipRRect(
-      borderRadius: AppRadius.brPill,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surface.withValues(alpha: 0.90),
-          borderRadius: AppRadius.brPill,
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.10),
-          ),
-          boxShadow: AppElevation.shadowSoft,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.favorite, size: AppIconSizes.xs, color: color),
-              AppSpacing.hGapXs,
-              Text(
-                health.label,
-                style: context.textTheme.labelLarge?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Name + breed line with the trailing overflow-menu button.
 class _PetCardHeader extends StatelessWidget {
   const _PetCardHeader({required this.pet, required this.onMore});
 
-  final _OwnerPet pet;
+  final Pet pet;
   final VoidCallback onMore;
 
   @override
