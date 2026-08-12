@@ -610,57 +610,5 @@ class _PetStat {
   final bool highlighted;
 }
 
-/// A pet shown in the My Pets grid. Presentation-only mock data until the
-/// Pets domain layer is wired; images fall back gracefully.
-class _OwnerPet {
-  const _OwnerPet({
-    required this.id,
-    required this.name,
-    required this.breedLine,
-    required this.imageUrl,
-    required this.health,
-    required this.primaryStat,
-    required this.secondaryStat,
-  });
-
-  final String id;
-  final String name;
-  final String breedLine;
-  final String imageUrl;
-  final _PetHealth health;
-  final _PetStat primaryStat;
-  final _PetStat secondaryStat;
-}
-
-const List<_OwnerPet> _pets = [
-  _OwnerPet(
-    id: 'luna',
-    name: 'Luna',
-    breedLine: 'Siberian Husky • 3 years',
-    imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCiHWTij2HHJqqqGBMtljXopq2ktMlYGW79e4xjex8vCnvfNCk1jpnwMQyomaZ1WgxlF7UBLG-NMw3gM3I3IYUcjcawI76svTBjdVNbu83bxJzBuDq9PSc6pxa3gybdX0kJYkLLnMzL4PVYaNHq01EiH79sy5rNWj2EMnBd5hcCdy-R29_O_ltaapX7xJHDZwqIF1-5rGNszJiqPj7xQx8Au53vGWpgiTu2unhxOYlCrQsqscbl2fsS0A',
-    health: _PetHealth.optimal,
-    primaryStat: _PetStat(
-      icon: Icons.location_on,
-      label: 'Collar Online',
-      highlighted: true,
-    ),
-    secondaryStat: _PetStat(
-      icon: Icons.directions_walk,
-      label: 'Activity Normal',
-    ),
-  ),
-  _OwnerPet(
-    id: 'oliver',
-    name: 'Oliver',
-    breedLine: 'Maine Coon • 5 years',
-    imageUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBAofv0tT8LexPb9Pp8bwTKft13fdhq6ZIsMJHa-R2Bg73z1Sz5OwFQ3JWvnvfojQX26ywI3uN6ELym3cJfWA7a6hAT0rFq3N8Rfv1Xp8F6eTypQuGDp1SM-tN8kIYE4JCEn3CCGBbZqgLhkraT77cd2UAA3ZVO3u9JHIL8auNZMW4MAmH07aulJWQAYP8mtD1RGLi0NGv0bE-7ockYwJun5oI3PztUMoYihVPWsIKGT2bLChIBsrxakA',
-    health: _PetHealth.needsReview,
-    primaryStat: _PetStat(icon: Icons.location_off, label: 'Collar Offline'),
-    secondaryStat: _PetStat(icon: Icons.restaurant, label: 'Diet Plan Active'),
-  ),
-];
-
 const String _profilePhotoUrl =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuAqXs9-8o_9UQdDqaW523Fjes2TWHU1jYiexscUhhcNCt9nhCbSOe74Lr1yDs1eMgbNvubeMc8G4X1a9-_BlwpcCzoly3EXq-FlpVJfRCnBl7mHxF4USx8gMVSepoj8l3lfdWv4LQEKV_SmabegHDCttbhZeYICPPn2rRtO9uBBlwQY_iVUM8SdwP7XiMqkywiUhymEwgywjpfgP0lTsuj1EXnvtVcyvHPIbdWlovogNtLc2te7rqSHmA';

@@ -12,9 +12,7 @@ import 'package:petconnect_ai/core/utils/logger.dart';
 ///
 /// Access via Riverpod (`dioClientProvider`).
 class DioClient {
-  DioClient({required AppLogger logger, required NetworkInfo networkInfo})
-    : _logger = logger,
-      _networkInfo = networkInfo {
+  DioClient({required this.logger, required this.networkInfo}) {
     _dio = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 30),
@@ -28,13 +26,13 @@ class DioClient {
     );
 
     _dio.interceptors.addAll([
-      _LoggingInterceptor(_logger),
+      _LoggingInterceptor(logger),
       _ErrorInterceptor(),
     ]);
   }
 
-  final AppLogger _logger;
-  final NetworkInfo _networkInfo;
+  final AppLogger logger;
+  final NetworkInfo networkInfo;
   late final Dio _dio;
 
   Dio get instance => _dio;
@@ -110,7 +108,7 @@ class DioClient {
   }
 
   Future<void> _checkConnectivity() async {
-    final isConnected = await _networkInfo.isConnected;
+    final isConnected = await networkInfo.isConnected;
     if (!isConnected) throw const NetworkException();
   }
 }

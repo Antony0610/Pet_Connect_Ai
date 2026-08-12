@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/core/error/failure_mapper.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
