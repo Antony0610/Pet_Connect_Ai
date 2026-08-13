@@ -68,15 +68,16 @@ void main() {
       verify(() => mockRepo.getUserNotifications()).called(1);
     });
 
-    test('liveUserNotificationsStreamProvider emits live stream', () {
+    test('liveUserNotificationsStreamProvider emits live stream', () async {
       when(
         () => mockRepo.subscribeToNotifications(),
       ).thenAnswer((_) => Stream.value(tNotification));
 
       final container = makeContainer();
-      final stream = container.read(liveUserNotificationsStreamProvider.stream);
+      final value =
+          await container.read(liveUserNotificationsStreamProvider.future);
 
-      expect(stream, emits(tNotification));
+      expect(value, tNotification);
       verify(() => mockRepo.subscribeToNotifications()).called(1);
     });
   });

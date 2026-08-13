@@ -106,6 +106,7 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
 
     controller.onCancel = () {
       _client.removeChannel(channel);
+      controller.close();
     };
 
     return controller.stream;
@@ -161,6 +162,7 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
 
     controller.onCancel = () {
       _client.removeChannel(channel);
+      controller.close();
     };
 
     return controller.stream;
