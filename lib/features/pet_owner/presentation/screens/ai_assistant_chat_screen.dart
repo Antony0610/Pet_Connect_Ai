@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
@@ -142,7 +140,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final isDesktop = context.width >= AppBreakpoints.desktop;
+    final isDesktop = context.screenWidth >= AppBreakpoints.desktop;
 
     return Scaffold(
       appBar: AppBar(title: const Text('AI Pet Assistant'), centerTitle: false),
@@ -253,7 +251,7 @@ class _AiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AiCard(
+    return AiGradientBorderCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
