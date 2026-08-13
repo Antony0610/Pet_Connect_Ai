@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -6,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 
 /// The author of a chat message.
@@ -28,39 +30,32 @@ class _ChatMessage {
 /// the frozen `DESIGN.md` rule that AI-generated content is gradient-bordered)
 /// with source-attribution chips. A row of suggestion chips seeds prompts and a
 /// glass composer sends messages. Token-driven, so one tree serves both themes.
-class AiAssistantChatScreen extends StatefulWidget {
+class AiAssistantChatScreen extends ConsumerStatefulWidget {
   const AiAssistantChatScreen({super.key});
 
   @override
-  State<AiAssistantChatScreen> createState() => _AiAssistantChatScreenState();
+  ConsumerState<AiAssistantChatScreen> createState() =>
+      _AiAssistantChatScreenState();
 }
 
-class _AiAssistantChatScreenState extends State<AiAssistantChatScreen> {
+class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
   final TextEditingController _composer = TextEditingController();
   final ScrollController _scroll = ScrollController();
+  bool _isSending = false;
 
   final List<_ChatMessage> _messages = [
     const _ChatMessage(
       _Role.ai,
-      "Hi Sarah! I'm your PetConnect assistant. I've reviewed Buddy's latest "
-      'activity and health data — ask me anything about his care.',
-      sources: ['PetConnect Health Passport'],
-    ),
-    const _ChatMessage(_Role.user, 'Is 14 hours of sleep normal for Buddy?'),
-    const _ChatMessage(
-      _Role.ai,
-      'Yes — adult dogs typically sleep 12–14 hours a day, and Golden '
-      "Retrievers sit at the higher end. Buddy's 14 hours is right in the "
-      'healthy range given his activity level.',
-      sources: ['AKC Canine Sleep Guide', 'Buddy · Activity Log'],
+      "Hi! I'm your PetConnect AI assistant. How can I assist you with your pet's health and wellness today?",
+      sources: ['PetConnect AI Engine'],
     ),
   ];
 
   static const List<String> _suggestions = [
     'Analyze recent activity',
-    'Diet recommendations',
-    'Vaccination status',
-    'Nearby vets',
+    'Vaccination schedule',
+    'Dietary tips',
+    'Sleep habits',
   ];
 
   @override
@@ -70,299 +65,214 @@ class _AiAssistantChatScreenState extends State<AiAssistantChatScreen> {
     super.dispose();
   }
 
-  void _send([String? preset]) {
-    final text = (preset ?? _composer.text).trim();
-    if (text.isEmpty) return;
+  Future<void> _sendPrompt(String prompt) async {
+    if (prompt.trim().isEmpty || _isSending) return;
+
+    final userText = prompt.trim();
+    _composer.clear();
 
     setState(() {
-      _messages.add(_ChatMessage(_Role.user, text));
-      _messages.add(
-        const _ChatMessage(
-          _Role.ai,
-          "Thanks — I'm analyzing that against Buddy's records now. In the "
-          'full experience this connects to the live AI service for a tailored '
-          'answer with cited sources.',
-          sources: ['PetConnect AI'],
-        ),
-      );
-      _composer.clear();
+      _messages.add(_ChatMessage(_Role.user, userText));
+      _isSending = true;
     });
-    _scrollToEnd();
+
+    _scrollToBottom();
+
+    try {
+      final repo = ref.read(aiRepositoryProvider);
+      final result = await repo.sendChatMessage(
+        conversationId: 'default-conv-id',
+        prompt: userText,
+      );
+
+      result.fold(
+        (failure) {
+          setState(() {
+            _messages.add(
+              _ChatMessage(
+                _Role.ai,
+                'I am currently experiencing connectivity issues: ${failure.message}. Please try again shortly.',
+                sources: ['Error Handler'],
+              ),
+            );
+          });
+        },
+        (aiMsg) {
+          setState(() {
+            _messages.add(
+              _ChatMessage(
+                _Role.ai,
+                aiMsg.messageText,
+                sources: const ['Gemini 1.5 Flash via Edge Function'],
+              ),
+            );
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _messages.add(
+          _ChatMessage(
+            _Role.ai,
+            'Request failed: $e',
+            sources: ['System Error'],
+          ),
+        );
+      });
+    } finally {
+      setState(() {
+        _isSending = false;
+      });
+      _scrollToBottom();
+    }
   }
 
-  void _scrollToEnd() {
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final margin = _horizontalMargin(context.screenWidth);
+    final isDesktop = context.width >= AppBreakpoints.desktop;
 
     return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: aiAppBar(
-        context,
-        title: 'AI Assistant',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history_rounded),
-            tooltip: 'History',
-            onPressed: () => context.showSnackbar('Opening chat history…'),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppBreakpoints.maxContentWidth,
-                ),
+      appBar: AppBar(title: const Text('AI Pet Assistant'), centerTitle: false),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            children: [
+              Expanded(
                 child: ListView.separated(
                   controller: _scroll,
-                  padding: EdgeInsets.fromLTRB(
-                    margin,
-                    AppSpacing.md,
-                    margin,
-                    AppSpacing.md,
-                  ),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   itemCount: _messages.length,
                   separatorBuilder: (_, __) => AppSpacing.vGapMd,
-                  itemBuilder: (_, i) => _Bubble(message: _messages[i]),
+                  itemBuilder: (ctx, i) {
+                    final m = _messages[i];
+                    return m.role == _Role.user
+                        ? _UserBubble(text: m.text)
+                        : _AiCard(text: m.text, sources: m.sources);
+                  },
                 ),
               ),
-            ),
-          ),
-          _SuggestionBar(
-            suggestions: _suggestions,
-            onTap: _send,
-            margin: margin,
-          ),
-          _Composer(controller: _composer, onSend: _send, margin: margin),
-        ],
-      ),
-    );
-  }
 
-  static double _horizontalMargin(double width) {
-    if (width < AppBreakpoints.tablet) return AppSpacing.marginMobile;
-    if (width < AppBreakpoints.desktop) return AppSpacing.marginTablet;
-    return AppSpacing.marginDesktop;
-  }
-}
+              if (_isSending)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  child: LinearProgressIndicator(),
+                ),
 
-/// A single chat bubble. User turns are right-aligned `primary` bubbles; AI
-/// turns are left-aligned and wrapped in the gradient-bordered AI card with a
-/// leading assistant avatar and trailing source chips.
-class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message});
-
-  final _ChatMessage message;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final isUser = message.role == _Role.user;
-
-    if (isUser) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: context.screenWidth * 0.78),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: scheme.primary,
-              borderRadius: const BorderRadius.only(
-                topLeft: AppRadius.rXl,
-                topRight: AppRadius.rXl,
-                bottomLeft: AppRadius.rXl,
-                bottomRight: AppRadius.rSm,
+              // Suggestions Row
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: Row(
+                  children: _suggestions.map((s) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.sm),
+                      child: ActionChip(
+                        label: Text(s),
+                        onPressed: () => _sendPrompt(s),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-            child: Text(
-              message.text,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: scheme.onPrimary,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: context.screenWidth * 0.85),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AiCircleIcon(
-              icon: Icons.smart_toy_rounded,
-              background: scheme.primaryContainer,
-              foreground: scheme.onPrimaryContainer,
-              size: 36,
-            ),
-            AppSpacing.hGapSm,
-            Flexible(
-              child: AiGradientBorderCard(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              AppSpacing.vGapSm,
+
+              // Composer Row
+              Padding(
+                padding: EdgeInsets.all(
+                  isDesktop ? AppSpacing.md : AppSpacing.sm,
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      message.text,
-                      style: context.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurface,
+                    Expanded(
+                      child: TextField(
+                        controller: _composer,
+                        decoration: const InputDecoration(
+                          hintText: 'Ask your AI assistant anything...',
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: _sendPrompt,
                       ),
                     ),
-                    if (message.sources.isNotEmpty) ...[
-                      AppSpacing.vGapSm,
-                      Wrap(
-                        spacing: AppSpacing.xs,
-                        runSpacing: AppSpacing.xs,
-                        children: [
-                          for (final s in message.sources)
-                            AiSourceChip(
-                              label: s,
-                              onTap: () =>
-                                  context.showSnackbar('Opening source: $s'),
-                            ),
-                        ],
-                      ),
-                    ],
+                    AppSpacing.hGapSm,
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      color: scheme.primary,
+                      onPressed: () => _sendPrompt(_composer.text),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// A horizontally-scrolling row of suggestion chips that seed prompts.
-class _SuggestionBar extends StatelessWidget {
-  const _SuggestionBar({
-    required this.suggestions,
-    required this.onTap,
-    required this.margin,
-  });
-
-  final List<String> suggestions;
-  final ValueChanged<String> onTap;
-  final double margin;
+class _UserBubble extends StatelessWidget {
+  const _UserBubble({required this.text});
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: margin),
-        itemCount: suggestions.length,
-        separatorBuilder: (_, __) => AppSpacing.hGapSm,
-        itemBuilder: (_, i) {
-          final label = suggestions[i];
-          return ActionChip(
-            label: Text(label),
-            labelStyle: context.textTheme.labelMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontWeight: AppTypography.medium,
-            ),
-            backgroundColor: scheme.surfaceContainerHighest,
-            side: BorderSide(color: scheme.outlineVariant),
-            shape: const RoundedRectangleBorder(borderRadius: AppRadius.brPill),
-            onPressed: () => onTap(label),
-          );
-        },
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Text(text, style: TextStyle(color: scheme.onPrimary)),
       ),
     );
   }
 }
 
-/// The glass composer docked to the bottom: a text field and a filled send
-/// button, on a blurred surface with a hairline top edge.
-class _Composer extends StatelessWidget {
-  const _Composer({
-    required this.controller,
-    required this.onSend,
-    required this.margin,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onSend;
-  final double margin;
+class _AiCard extends StatelessWidget {
+  const _AiCard({required this.text, required this.sources});
+  final String text;
+  final List<String> sources;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border(
-          top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.4)),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        margin,
-        AppSpacing.sm,
-        margin,
-        AppSpacing.md,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.send,
-                onSubmitted: onSend,
-                decoration: InputDecoration(
-                  hintText: 'Ask about Buddy…',
-                  filled: true,
-                  fillColor: scheme.surfaceContainerHigh,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  border: const OutlineInputBorder(
-                    borderRadius: AppRadius.brSection,
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ),
-            AppSpacing.hGapSm,
-            IconButton.filled(
-              onPressed: () => onSend(controller.text),
-              icon: const Icon(Icons.send_rounded, size: AppIconSizes.md),
-              tooltip: 'Send',
+    return AiCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(text),
+          if (sources.isNotEmpty) ...[
+            AppSpacing.vGapSm,
+            Wrap(
+              spacing: 6,
+              children: sources
+                  .map(
+                    (s) => Chip(
+                      label: Text(s, style: const TextStyle(fontSize: 10)),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  )
+                  .toList(),
             ),
           ],
-        ),
+        ],
       ),
     );
   }

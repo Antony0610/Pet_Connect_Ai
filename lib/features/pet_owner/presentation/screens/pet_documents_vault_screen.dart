@@ -131,20 +131,21 @@ class _PetDocumentsVaultScreenState
                   docsAsync.when(
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (err, _) => Center(
-                      child: Text('Error loading documents: $err'),
-                    ),
+                    error: (err, _) =>
+                        Center(child: Text('Error loading documents: $err')),
                     data: (docs) {
                       final query = _searchController.text.toLowerCase();
                       final filteredDocs = docs.where((doc) {
-                        final matchesCat = _selectedCategory == 'All' ||
+                        final matchesCat =
+                            _selectedCategory == 'All' ||
                             (_selectedCategory == 'Vaccinations' &&
                                 doc.documentType == 'VACCINATION_CERT') ||
                             (_selectedCategory == 'Lab Results' &&
                                 doc.documentType == 'LAB_RESULT') ||
                             (_selectedCategory == 'Prescriptions' &&
                                 doc.documentType == 'PRESCRIPTION');
-                        final matchesQuery = query.isEmpty ||
+                        final matchesQuery =
+                            query.isEmpty ||
                             doc.documentName.toLowerCase().contains(query);
                         return matchesCat && matchesQuery;
                       }).toList();
