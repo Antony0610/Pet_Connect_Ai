@@ -425,11 +425,12 @@ graph TD
 - **Deliverables**: File upload repositories, media gallery, encrypted document vault access, storage RLS policies, 137 unit tests passing.
 - **Complexity**: MEDIUM
 
-#### Phase 8: Realtime & Notifications
+#### Phase 8: Realtime & Notifications [COMPLETE]
+- **Status**: DEPLOYED & VERIFIED
 - **Purpose**: Deploy Supabase Realtime channels for in-app messaging, rescue ops, and Firebase Cloud Messaging for push alerts.
 - **Screens**: 12, 53.
 - **Tables Created/Modified**: `user_notifications`, `direct_messages`.
-- **Deliverables**: Chat messaging system, realtime push notifications.
+- **Deliverables**: Chat messaging system, realtime push notifications, publication settings, 143 unit tests passing.
 - **Complexity**: HIGH
 
 #### Phase 9: AI Services & Edge Functions
