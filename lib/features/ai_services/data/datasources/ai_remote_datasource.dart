@@ -153,7 +153,9 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
       return AiChatMessageModel.fromJson(assistantMsgResponse);
     } on FunctionException catch (e) {
-      throw ServerException('AI Assistant Edge Function error: ${e.reason}');
+      throw ServerException(
+        'AI Assistant Edge Function error: ${e.details ?? e.status}',
+      );
     } on PostgrestException catch (e) {
       throw ServerException(
         e.message,
