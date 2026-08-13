@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -7,6 +8,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Collar Settings** — `/owner/collar/settings`.
@@ -14,15 +17,16 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 /// The device's identity card, a set of behaviour toggles (live tracking, LED,
 /// sound, geofence alerts, battery saver), device management rows and a
 /// destructive "unpair" action. Token-driven; one tree serves both themes.
-class SmartCollarSettingsScreen extends StatefulWidget {
+class SmartCollarSettingsScreen extends ConsumerStatefulWidget {
   const SmartCollarSettingsScreen({super.key});
 
   @override
-  State<SmartCollarSettingsScreen> createState() =>
+  ConsumerState<SmartCollarSettingsScreen> createState() =>
       _SmartCollarSettingsScreenState();
 }
 
-class _SmartCollarSettingsScreenState extends State<SmartCollarSettingsScreen> {
+class _SmartCollarSettingsScreenState
+    extends ConsumerState<SmartCollarSettingsScreen> {
   bool _liveTracking = true;
   bool _ledLight = true;
   bool _soundAlerts = true;
@@ -33,6 +37,7 @@ class _SmartCollarSettingsScreenState extends State<SmartCollarSettingsScreen> {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final margin = _horizontalMargin(context.screenWidth);
+    final collarsAsync = ref.watch(registeredCollarsProvider);
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -53,7 +58,7 @@ class _SmartCollarSettingsScreenState extends State<SmartCollarSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _DeviceCard(),
+                  _DeviceCard(collarsAsync: collarsAsync),
                   AppSpacing.vGapLg,
                   const _SectionTitle('Preferences'),
                   AppSpacing.vGapSm,
@@ -218,11 +223,20 @@ class _SectionTitle extends StatelessWidget {
 
 /// The device identity card: collar avatar, model, serial and firmware.
 class _DeviceCard extends StatelessWidget {
-  const _DeviceCard();
+  const _DeviceCard({required this.collarsAsync});
+
+  final AsyncValue<List<CollarDevice>> collarsAsync;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+
+    final deviceLabel = collarsAsync.maybeWhen(
+      data: (collars) => collars.isNotEmpty
+          ? 'Collar ID: ${collars.first.deviceId}'
+          : 'PetConnect Collar Pro v2',
+      orElse: () => 'PetConnect Collar Pro v2',
+    );
 
     return AppCard(
       child: Row(
@@ -246,15 +260,13 @@ class _DeviceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'PetConnect Collar Pro',
+                  deviceLabel,
                   style: context.textTheme.titleMedium?.copyWith(
-                    color: scheme.onSurface,
-                    fontWeight: AppTypography.semiBold,
+                    fontWeight: AppTypography.bold,
                   ),
                 ),
-                AppSpacing.vGapXs,
                 Text(
-                  'Serial PC-4821-BD · Firmware v2.4.1',
+                  'Hardware Standby Mode',
                   style: context.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

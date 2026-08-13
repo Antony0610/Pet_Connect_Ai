@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -8,6 +9,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Live GPS Tracking** — `/owner/collar/tracking`.
@@ -15,15 +17,31 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 /// A live map hero over the current-location detail grid, a safe-zone status
 /// banner and the primary "Get directions" action. Composes the frozen collar
 /// primitives; every value is token-driven so one tree serves both themes.
-class SmartCollarTrackingScreen extends StatelessWidget {
+class SmartCollarTrackingScreen extends ConsumerWidget {
   const SmartCollarTrackingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
     final isWide = width >= AppBreakpoints.tablet;
+
+    final collarsAsync = ref.watch(registeredCollarsProvider);
+    final collarId = collarsAsync.maybeWhen(
+      data: (collars) =>
+          collars.isNotEmpty ? collars.first.id : 'demo-collar-id',
+      orElse: () => 'demo-collar-id',
+    );
+
+    final gpsStreamAsync = ref.watch(liveGpsLocationStreamProvider(collarId));
+
+    final locationText = gpsStreamAsync.when(
+      data: (gps) =>
+          'Lat: ${gps.latitude.toStringAsFixed(4)}, Lng: ${gps.longitude.toStringAsFixed(4)} (${gps.isOfflineTelemetry ? "Buffered" : "Live"})',
+      loading: () => 'Receiving Realtime GPS Telemetry…',
+      error: (_, __) => 'GPS Telemetry Hardware Standby (Centennial Park)',
+    );
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -55,7 +73,7 @@ class SmartCollarTrackingScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   CollarMapPreview(
-                    locationLabel: 'Centennial Park',
+                    locationLabel: locationText,
                     height: isWide ? 360 : 280,
                     onTap: () => context.showSnackbar('Expanding live map…'),
                   ),

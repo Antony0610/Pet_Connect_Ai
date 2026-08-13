@@ -6,6 +6,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -97,6 +98,7 @@ class _AiHistoryScreenState extends ConsumerState<AiHistoryScreen> {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final margin = _horizontalMargin(context.screenWidth);
+    final conversationsAsync = ref.watch(aiConversationsProvider);
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -105,37 +107,95 @@ class _AiHistoryScreenState extends ConsumerState<AiHistoryScreen> {
         title: 'AI History',
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded),
-            tooltip: 'Clear history',
-            onPressed: () => context.showSnackbar('Clear AI history?'),
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Search history',
+            onPressed: () => context.showSnackbar('Search feature coming soon'),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppBreakpoints.maxContentWidth,
-            ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                margin,
-                AppSpacing.md,
-                margin,
-                AppSpacing.xxl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _FilterBar(
-                    selected: _filter,
-                    onChanged: (k) => setState(() => _filter = k),
+      body: conversationsAsync.when(
+        data: (conversations) {
+          final groups = conversations.isEmpty
+              ? _groups
+              : [
+                  _Group(
+                    'Recent Conversations',
+                    conversations
+                        .map(
+                          (c) => _Entry(
+                            _EntryKind.chat,
+                            c.title,
+                            'Session ID: ${c.id.substring(0, c.id.length > 8 ? 8 : c.id.length)}',
+                            '${c.createdAt.hour}:${c.createdAt.minute.toString().padLeft(2, '0')}',
+                          ),
+                        )
+                        .toList(),
                   ),
-                  AppSpacing.vGapLg,
-                  for (final group in _groups) ...[
-                    _GroupSection(group: group, filter: _filter),
-                  ],
-                ],
+                ];
+
+          final filtered = groups
+              .map((g) {
+                final matched = _filter == null
+                    ? g.entries
+                    : g.entries.where((e) => e.kind == _filter).toList();
+                return _Group(g.label, matched);
+              })
+              .where((g) => g.entries.isNotEmpty)
+              .toList();
+
+          return SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.maxContentWidth,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    margin,
+                    AppSpacing.md,
+                    margin,
+                    AppSpacing.xxl,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _FilterBar(
+                        selected: _filter,
+                        onChanged: (kind) => setState(() => _filter = kind),
+                      ),
+                      AppSpacing.vGapLg,
+                      if (filtered.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.xxl),
+                            child: Text(
+                              'No interactions found for this filter.',
+                              style: context.textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        for (final group in filtered) ...[
+                          _GroupSection(group: group, filter: _filter),
+                          AppSpacing.vGapLg,
+                        ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              'Unable to load AI history: $err',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: scheme.error,
               ),
             ),
           ),

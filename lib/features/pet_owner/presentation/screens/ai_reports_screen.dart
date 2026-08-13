@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -7,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -27,8 +29,34 @@ enum _ReportStatus { ready, generating }
 ///
 /// A featured, gradient-bordered weekly wellness report over an archive of
 /// previously generated reports. Token-driven; one tree serves both themes.
-class AiReportsScreen extends StatelessWidget {
+class AiReportsScreen extends ConsumerStatefulWidget {
   const AiReportsScreen({super.key});
+
+  @override
+  ConsumerState<AiReportsScreen> createState() => _AiReportsScreenState();
+}
+
+class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
+  bool _isGenerating = false;
+
+  Future<void> _generateReport() async {
+    setState(() => _isGenerating = true);
+    try {
+      final repo = ref.read(aiRepositoryProvider);
+      final result = await repo.generateHealthReport('demo-pet-id');
+      if (!mounted) return;
+      result.fold(
+        (failure) =>
+            context.showSnackbar('Report generation error: ${failure.message}'),
+        (reportData) =>
+            context.showSnackbar('AI Health Report generated successfully!'),
+      );
+    } catch (e) {
+      if (mounted) context.showSnackbar('Report error: $e');
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,9 +97,9 @@ class AiReportsScreen extends StatelessWidget {
         title: 'AI Reports',
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_rounded),
-            tooltip: 'Generate report',
-            onPressed: () => context.showSnackbar('Generating a new report…'),
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Filter',
+            onPressed: () => context.showSnackbar('Filter reports…'),
           ),
         ],
       ),
@@ -91,7 +119,10 @@ class AiReportsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _FeaturedReport(),
+                  _FeaturedReport(
+                    isGenerating: _isGenerating,
+                    onGenerate: _generateReport,
+                  ),
                   AppSpacing.vGapLg,
                   Text(
                     'Report Archive',
@@ -135,7 +166,10 @@ class AiReportsScreen extends StatelessWidget {
 /// The featured latest report: a gradient-bordered card summarizing the most
 /// recent weekly wellness report with a primary "View report" action.
 class _FeaturedReport extends StatelessWidget {
-  const _FeaturedReport();
+  const _FeaturedReport({required this.isGenerating, required this.onGenerate});
+
+  final bool isGenerating;
+  final VoidCallback onGenerate;
 
   @override
   Widget build(BuildContext context) {

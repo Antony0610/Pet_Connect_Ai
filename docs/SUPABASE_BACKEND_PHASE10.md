@@ -87,6 +87,15 @@ Supabase smart_collars.battery_percentage (State of Charge %)
 | Unit Test Suite (159 tests) | **UNIT TESTED / SIMULATED** |
 | Physical Hardware (GPS IC, BLE stack, GSM/eSIM modem, SPI flash) | **REQUIRES PHYSICAL HARDWARE** |
 
+### 5.7 Frontend Integration Summary
+
+- `SmartCollarDashboardScreen`: LIVE (Connected to `registeredCollarsProvider`)
+- `SmartCollarGeofenceScreen`: LIVE (Connected to `geofencesProvider`)
+- `SmartCollarTrackingScreen`: LIVE (Connected to `registeredCollarsProvider` & `liveGpsLocationStreamProvider`)
+- `SmartCollarActivityScreen`: LIVE (Connected to `collarActivitySummariesProvider`)
+- `SmartCollarDiagnosticsScreen`: SOFTWARE READY / HARDWARE REQUIRED (Connected to `batteryServiceProvider` & `smartCollarHealthServiceProvider`)
+- `SmartCollarSettingsScreen`: LIVE (Connected to `registeredCollarsProvider` & `smartCollarRepositoryProvider`)
+
 ---
 
 ## 6. Verification Results

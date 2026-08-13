@@ -23,7 +23,7 @@ class AiScanIdentifyScreen extends StatefulWidget {
 class _AiScanIdentifyScreenState extends State<AiScanIdentifyScreen> {
   static const double _maxContentWidth = 1000;
   String _selectedMode = 'Nose Print';
-  bool _isScanning = false;
+  final bool _isScanning = false;
   bool _hasMatch = false;
 
   final List<String> _scanModes = const [
@@ -163,22 +163,11 @@ class _AiScanIdentifyScreenState extends State<AiScanIdentifyScreen> {
                       Positioned(
                         bottom: AppSpacing.md,
                         child: FloatingActionButton(
-                          onPressed: _isScanning
-                              ? null
-                              : () {
-                                  setState(() => _isScanning = true);
-                                  Future.delayed(
-                                    const Duration(seconds: 2),
-                                    () {
-                                      if (mounted) {
-                                        setState(() {
-                                          _isScanning = false;
-                                          _hasMatch = true;
-                                        });
-                                      }
-                                    },
-                                  );
-                                },
+                          onPressed: () {
+                            context.showSnackbar(
+                              'Camera Hardware Required — Scan feature waiting for camera device input.',
+                            );
+                          },
                           backgroundColor: scheme.primary,
                           child: const Icon(
                             Icons.camera_alt,

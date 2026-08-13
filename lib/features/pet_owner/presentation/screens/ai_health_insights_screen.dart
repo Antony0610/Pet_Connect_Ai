@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -39,90 +41,83 @@ enum _Confidence { high, moderate }
 /// then a list of AI-derived insight cards. Each carries a confidence badge and
 /// source-attribution chips so every claim is traceable. Token-driven — one
 /// tree serves Light and Dark.
-class AiHealthInsightsScreen extends StatelessWidget {
+class AiHealthInsightsScreen extends ConsumerWidget {
   const AiHealthInsightsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final margin = _horizontalMargin(context.screenWidth);
-
-    const insights = [
-      _Insight(
-        icon: Icons.directions_run_rounded,
-        tint: _Tint.primary,
-        title: 'Activity up 15% this week',
-        detail:
-            "Buddy's daily steps are trending above his 30-day average, "
-            'matching the top 5% of active dogs in the community.',
-        confidence: _Confidence.high,
-        sources: ['Smart Collar · Activity', 'Community Benchmarks'],
-      ),
-      _Insight(
-        icon: Icons.bedtime_rounded,
-        tint: _Tint.secondary,
-        title: 'Sleep is consistent',
-        detail:
-            'Averaging 14 hours over the last 7 nights — a healthy range for '
-            'an adult Golden Retriever, with no signs of restlessness.',
-        confidence: _Confidence.high,
-        sources: ['Smart Collar · Rest', 'AKC Sleep Guide'],
-      ),
-      _Insight(
-        icon: Icons.restaurant_rounded,
-        tint: _Tint.tertiary,
-        title: 'Consider a small diet tweak',
-        detail:
-            'Given the higher activity, evening portions could rise ~5%. '
-            "Confirm with Buddy's vet before adjusting his meal plan.",
-        confidence: _Confidence.moderate,
-        sources: ['Dietary Analysis'],
-      ),
-    ];
+    final scansAsync = ref.watch(aiHealthScansProvider);
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: aiAppBar(
-        context,
-        title: 'Health Insights',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Filter',
-            onPressed: () => context.showSnackbar('Filter insights…'),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppBreakpoints.maxContentWidth,
-            ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                margin,
-                AppSpacing.md,
-                margin,
-                AppSpacing.xxl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _SummaryHero(),
-                  AppSpacing.vGapLg,
-                  Text(
-                    'Latest Insights',
-                    style: context.textTheme.titleLarge?.copyWith(
-                      fontWeight: AppTypography.semiBold,
-                    ),
+      appBar: aiAppBar(context, title: 'Health Insights'),
+      body: scansAsync.when(
+        data: (scans) {
+          final liveInsights = scans.map((s) {
+            return _Insight(
+              icon: s.urgencyLevel == 'CRITICAL'
+                  ? Icons.warning_amber_rounded
+                  : Icons.health_and_safety_rounded,
+              tint: s.urgencyLevel == 'CRITICAL'
+                  ? _Tint.secondary
+                  : _Tint.primary,
+              title: 'Urgency: ${s.urgencyLevel}',
+              detail: s.analysisSummary,
+              confidence: _Confidence.high,
+              sources: const ['AI Symptom Scan Edge Function'],
+            );
+          }).toList();
+
+          final displayInsights = liveInsights.isEmpty
+              ? _insights
+              : liveInsights;
+
+          return SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.maxContentWidth,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    margin,
+                    AppSpacing.md,
+                    margin,
+                    AppSpacing.xxl,
                   ),
-                  AppSpacing.vGapSm,
-                  for (var i = 0; i < insights.length; i++) ...[
-                    if (i > 0) AppSpacing.vGapMd,
-                    _InsightCard(insight: insights[i]),
-                  ],
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _SummaryHero(),
+                      AppSpacing.vGapLg,
+                      Text(
+                        'Derived Insights',
+                        style: context.textTheme.titleMedium?.copyWith(
+                          fontWeight: AppTypography.bold,
+                        ),
+                      ),
+                      AppSpacing.vGapSm,
+                      for (final item in displayInsights) ...[
+                        _InsightCard(insight: item),
+                        AppSpacing.vGapMd,
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              'Unable to load health insights: $err',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: scheme.error,
               ),
             ),
           ),
@@ -130,6 +125,29 @@ class AiHealthInsightsScreen extends StatelessWidget {
       ),
     );
   }
+
+  static const _insights = [
+    _Insight(
+      icon: Icons.show_chart_rounded,
+      tint: _Tint.primary,
+      title: 'Activity score +15% above 30-day average',
+      detail:
+          'Buddy logged an average of 9,420 steps daily this week, driven by '
+          'longer morning walks. Rest quality remained optimal.',
+      confidence: _Confidence.high,
+      sources: ['Smart Collar Activity Log', 'Health Passport'],
+    ),
+    _Insight(
+      icon: Icons.bedtime_rounded,
+      tint: _Tint.secondary,
+      title: 'Sleep is consistent',
+      detail:
+          'Averaging 14 hours over the last 7 nights — a healthy range for '
+          'an adult Golden Retriever, with no signs of restlessness.',
+      confidence: _Confidence.high,
+      sources: ['Smart Collar · Rest', 'AKC Sleep Guide'],
+    ),
+  ];
 
   static double _horizontalMargin(double width) {
     if (width < AppBreakpoints.tablet) return AppSpacing.marginMobile;

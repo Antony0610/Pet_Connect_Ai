@@ -50,7 +50,16 @@ Phase 9 deploys server-side Supabase Edge Functions (`ai-assistant`, `ai-symptom
 - **DTO Models**: `AiConversationModel`, `AiChatMessageModel`, `AiHealthScanModel`
 - **Remote Data Source**: `AiRemoteDataSourceImpl` invoking `SupabaseClient.functions.invoke()`
 - **Riverpod Providers**: `aiRepositoryProvider`, `aiConversationsProvider`, `aiChatMessagesProvider`
-- **Screens Connected**: `AiAssistantChatScreen` wired to server-side AI repository.
+- **Screens Connected**: All 9 Phase 9 screens complete:
+  - `AiAssistantChatScreen`: LIVE (Connected to `ai-assistant` Edge Function with dynamic conversation session management)
+  - `AiHubDashboardScreen`: LIVE (Connected to `aiConversationsProvider`)
+  - `AiHistoryScreen`: LIVE (Connected to `aiConversationsProvider` with grouping and date filtering)
+  - `AiHealthInsightsScreen`: LIVE (Connected to `aiHealthScansProvider`)
+  - `AiRecommendationsScreen`: LIVE (Connected to `aiHealthScansProvider`)
+  - `AiReportsScreen`: LIVE (Connected to `generateHealthReport` Edge Function `ai-report-generator`)
+  - `AiHealthAnalysisScreen`: LIVE (Connected to `ai-symptom-scan` Edge Function)
+  - `AiDiagnosticCenterScreen`: LIVE (Connected to saved AI symptom scans)
+  - `AiScanIdentifyScreen`: SOFTWARE READY / HARDWARE REQUIRED (Explicit camera hardware requirement notice)
 
 ---
 

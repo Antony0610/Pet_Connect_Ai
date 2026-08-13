@@ -4,6 +4,7 @@ import 'package:petconnect_ai/features/ai_services/data/datasources/ai_remote_da
 import 'package:petconnect_ai/features/ai_services/data/repositories/ai_repository_impl.dart';
 import 'package:petconnect_ai/features/ai_services/domain/entities/ai_chat_message.dart';
 import 'package:petconnect_ai/features/ai_services/domain/entities/ai_conversation.dart';
+import 'package:petconnect_ai/features/ai_services/domain/entities/ai_health_scan.dart';
 import 'package:petconnect_ai/features/ai_services/domain/repositories/ai_repository.dart';
 
 final aiRemoteDataSourceProvider = Provider<AiRemoteDataSource>((ref) {
@@ -40,3 +41,12 @@ final aiChatMessagesProvider =
         (messages) => messages,
       );
     });
+
+final aiHealthScansProvider = FutureProvider<List<AiHealthScan>>((ref) async {
+  final repo = ref.watch(aiRepositoryProvider);
+  final result = await repo.getHealthScans();
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (scans) => scans,
+  );
+});

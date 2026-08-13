@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -14,17 +16,50 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 ///
 /// Provides photo upload/capture for symptom analysis, AI confidence assessment,
 /// guidance cards, and medical disclaimers.
-class AiHealthAnalysisScreen extends StatefulWidget {
+class AiHealthAnalysisScreen extends ConsumerStatefulWidget {
   const AiHealthAnalysisScreen({super.key});
 
   @override
-  State<AiHealthAnalysisScreen> createState() => _AiHealthAnalysisScreenState();
+  ConsumerState<AiHealthAnalysisScreen> createState() =>
+      _AiHealthAnalysisScreenState();
 }
 
-class _AiHealthAnalysisScreenState extends State<AiHealthAnalysisScreen> {
+class _AiHealthAnalysisScreenState
+    extends ConsumerState<AiHealthAnalysisScreen> {
   static const double _maxContentWidth = 1000;
   bool _isAnalyzing = false;
   bool _hasAnalyzed = false;
+  String _analysisSummary = '';
+  String _urgencyLevel = 'ROUTINE';
+
+  Future<void> _performAnalysis() async {
+    setState(() => _isAnalyzing = true);
+    try {
+      final repo = ref.read(aiRepositoryProvider);
+      final result = await repo.analyzeSymptoms(
+        symptomDescription: 'General symptom scan analysis requested via UI.',
+      );
+
+      result.fold(
+        (failure) {
+          context.showSnackbar('Analysis error: ${failure.message}');
+        },
+        (scan) {
+          if (mounted) {
+            setState(() {
+              _analysisSummary = scan.analysisSummary;
+              _urgencyLevel = scan.urgencyLevel;
+              _hasAnalyzed = true;
+            });
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) context.showSnackbar('Analysis failed: $e');
+    } finally {
+      if (mounted) setState(() => _isAnalyzing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,20 +141,7 @@ class _AiHealthAnalysisScreenState extends State<AiHealthAnalysisScreen> {
                               AppButton.filled(
                                 onPressed: _isAnalyzing
                                     ? null
-                                    : () {
-                                        setState(() => _isAnalyzing = true);
-                                        Future.delayed(
-                                          const Duration(seconds: 2),
-                                          () {
-                                            if (mounted) {
-                                              setState(() {
-                                                _isAnalyzing = false;
-                                                _hasAnalyzed = true;
-                                              });
-                                            }
-                                          },
-                                        );
-                                      },
+                                    : _performAnalysis,
                                 child: _isAnalyzing
                                     ? const SizedBox(
                                         width: 20,
@@ -215,14 +237,16 @@ class _AiHealthAnalysisScreenState extends State<AiHealthAnalysisScreen> {
                         ),
                         AppSpacing.vGapMd,
                         Text(
-                          'Mild Mild Dermatitis / Allergic Rash Detected',
+                          'Urgency: $_urgencyLevel',
                           style: context.textTheme.titleLarge?.copyWith(
                             fontWeight: AppTypography.bold,
                           ),
                         ),
                         AppSpacing.vGapXs,
                         Text(
-                          'Visual scan shows localized redness and slight flaking around the left ear fold. Non-urgent condition.',
+                          _analysisSummary.isNotEmpty
+                              ? _analysisSummary
+                              : 'Visual scan complete via Edge Function ai-symptom-scan.',
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurface,
                           ),

@@ -112,4 +112,16 @@ class AiRepositoryImpl implements AiRepository {
       return Left(FailureMapper.fromException(ServerException(e.toString())));
     }
   }
+
+  @override
+  ResultFuture<List<AiHealthScan>> getHealthScans() async {
+    try {
+      final scans = await _remote.getHealthScans(_currentUserId);
+      return Right(scans);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
 }

@@ -29,6 +29,8 @@ abstract class AiRemoteDataSource {
   });
 
   Future<Map<String, dynamic>> invokeReportGenerator({required String petId});
+
+  Future<List<AiHealthScanModel>> getHealthScans(String userId);
 }
 
 class AiRemoteDataSourceImpl implements AiRemoteDataSource {
@@ -224,6 +226,30 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       return (res.data as Map<String, dynamic>?) ?? {};
     } catch (e) {
       throw ServerException('Failed to generate AI health report: $e');
+    }
+  }
+
+  @override
+  Future<List<AiHealthScanModel>> getHealthScans(String userId) async {
+    try {
+      final response = await _client
+          .from('ai_health_scans')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map(
+            (json) => AiHealthScanModel.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch AI health scans: $e');
     }
   }
 }

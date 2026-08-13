@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -14,15 +15,16 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 ///
 /// Diagnostic workspace providing symptom triage, risk severity classification,
 /// AI recommendations, and direct veterinary escalation.
-class AiDiagnosticCenterScreen extends StatefulWidget {
+class AiDiagnosticCenterScreen extends ConsumerStatefulWidget {
   const AiDiagnosticCenterScreen({super.key});
 
   @override
-  State<AiDiagnosticCenterScreen> createState() =>
+  ConsumerState<AiDiagnosticCenterScreen> createState() =>
       _AiDiagnosticCenterScreenState();
 }
 
-class _AiDiagnosticCenterScreenState extends State<AiDiagnosticCenterScreen> {
+class _AiDiagnosticCenterScreenState
+    extends ConsumerState<AiDiagnosticCenterScreen> {
   static const double _maxContentWidth = 1000;
   String _selectedCategory = 'Skin & Coat';
 

@@ -56,6 +56,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
     'Sleep habits',
   ];
 
+  String? _activeConversationId;
+
   @override
   void dispose() {
     _composer.dispose();
@@ -78,8 +80,24 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
 
     try {
       final repo = ref.read(aiRepositoryProvider);
+
+      if (_activeConversationId == null) {
+        final convResult = await repo.createConversation(
+          title: userText.length > 25
+              ? '${userText.substring(0, 25)}...'
+              : userText,
+        );
+        convResult.fold((_) {}, (conv) {
+          _activeConversationId = conv.id;
+        });
+      }
+
+      final convId =
+          _activeConversationId ??
+          'session-${DateTime.now().millisecondsSinceEpoch}';
+
       final result = await repo.sendChatMessage(
-        conversationId: 'default-conv-id',
+        conversationId: convId,
         prompt: userText,
       );
 
@@ -90,7 +108,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
               _ChatMessage(
                 _Role.ai,
                 'I am currently experiencing connectivity issues: ${failure.message}. Please try again shortly.',
-                sources: ['Error Handler'],
+                sources: const ['Error Handler'],
               ),
             );
           });

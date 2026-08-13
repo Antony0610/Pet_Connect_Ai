@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -8,6 +9,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// The outcome of a single hardware/system check.
@@ -28,38 +30,41 @@ class _Check {
 /// The collar's health at a glance: a battery ring with charge state, a list of
 /// system checks (GPS, signal, sensors, firmware) each with a health pill, and
 /// diagnostic/firmware actions. Token-driven; one tree serves both themes.
-class SmartCollarDiagnosticsScreen extends StatelessWidget {
+class SmartCollarDiagnosticsScreen extends ConsumerWidget {
   const SmartCollarDiagnosticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
 
-    const checks = [
+    final batteryService = ref.watch(batteryServiceProvider);
+    final batterySoc = batteryService.getBatteryPercentage();
+
+    final dynamicChecks = [
       _Check(
+        Icons.battery_charging_full_rounded,
+        'MAX17048 Fuel Gauge IC',
+        'SoC: $batterySoc% (Hardware Abstraction Active)',
+        _Health.ok,
+      ),
+      const _Check(
         Icons.gps_fixed_rounded,
-        'GPS module',
-        'Strong satellite lock · ±4 m',
-        _Health.ok,
+        'GPS Module Hardware',
+        'Hardware Required — Standing by for satellite lock',
+        _Health.attention,
       ),
-      _Check(
-        Icons.signal_cellular_alt_rounded,
-        'Cellular signal',
-        'Strong (5/5) on the LTE-M network',
-        _Health.ok,
+      const _Check(
+        Icons.cell_tower_rounded,
+        'GSM/LTE Modem Hardware',
+        'Hardware Required — SIM/Modem offline standby',
+        _Health.attention,
       ),
-      _Check(
+      const _Check(
         Icons.sensors_rounded,
-        'Motion sensors',
-        'Accelerometer & gyroscope nominal',
-        _Health.ok,
-      ),
-      _Check(
-        Icons.system_update_rounded,
-        'Firmware',
-        'v2.4.1 — update available (v2.5.0)',
+        'Motion Sensors',
+        'Hardware Required — Accelerometer standby',
         _Health.attention,
       ),
     ];
@@ -105,7 +110,7 @@ class SmartCollarDiagnosticsScreen extends StatelessWidget {
                   AppCard(
                     child: Column(
                       children: [
-                        for (var i = 0; i < checks.length; i++) ...[
+                        for (var i = 0; i < dynamicChecks.length; i++) ...[
                           if (i > 0)
                             Divider(
                               color: scheme.outlineVariant.withValues(
@@ -113,7 +118,7 @@ class SmartCollarDiagnosticsScreen extends StatelessWidget {
                               ),
                               height: AppSpacing.lg,
                             ),
-                          _CheckRow(check: checks[i]),
+                          _CheckRow(check: dynamicChecks[i]),
                         ],
                       ],
                     ),

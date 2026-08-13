@@ -33,4 +33,7 @@ abstract class AiRepository {
 
   /// Invoke `ai-report-generator` Edge Function for pet health summary report.
   ResultFuture<Map<String, dynamic>> generateHealthReport(String petId);
+
+  /// Fetch all AI health scans for active user.
+  ResultFuture<List<AiHealthScan>> getHealthScans();
 }

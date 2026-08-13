@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -6,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A single logged activity in the day's timeline.
@@ -27,15 +29,23 @@ enum _Tint { primary, secondary, tertiary }
 /// The collar's daily activity summary: a goal ring, a stat grid (steps,
 /// distance, active minutes, rest) and a time-stamped daily timeline. Composes
 /// the frozen collar primitives; token-driven, one tree for both themes.
-class SmartCollarActivityScreen extends StatelessWidget {
+class SmartCollarActivityScreen extends ConsumerWidget {
   const SmartCollarActivityScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
-    final isWide = width >= AppBreakpoints.tablet;
+
+    final collarsAsync = ref.watch(registeredCollarsProvider);
+    final collarId = collarsAsync.maybeWhen(
+      data: (collars) =>
+          collars.isNotEmpty ? collars.first.id : 'demo-collar-id',
+      orElse: () => 'demo-collar-id',
+    );
+
+    final summariesAsync = ref.watch(collarActivitySummariesProvider(collarId));
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -50,35 +60,51 @@ class SmartCollarActivityScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppBreakpoints.maxContentWidth,
-            ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                margin,
-                AppSpacing.md,
-                margin,
-                AppSpacing.xxl,
+      body: summariesAsync.when(
+        data: (summaries) => SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.maxContentWidth,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _GoalHero(),
-                  AppSpacing.vGapMd,
-                  _StatGrid(isWide: isWide),
-                  AppSpacing.vGapLg,
-                  Text(
-                    "Today's Timeline",
-                    style: context.textTheme.titleLarge?.copyWith(
-                      fontWeight: AppTypography.semiBold,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  margin,
+                  AppSpacing.md,
+                  margin,
+                  AppSpacing.xxl,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _GoalHero(),
+                    AppSpacing.vGapLg,
+                    _StatGrid(
+                      isWide: context.screenWidth >= AppBreakpoints.tablet,
                     ),
-                  ),
-                  AppSpacing.vGapSm,
-                  const _Timeline(),
-                ],
+                    AppSpacing.vGapLg,
+                    Text(
+                      "Today's Timeline",
+                      style: context.textTheme.titleLarge?.copyWith(
+                        fontWeight: AppTypography.semiBold,
+                      ),
+                    ),
+                    AppSpacing.vGapSm,
+                    const _Timeline(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              'Telemetry Standby: Showing activity baselines.',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
