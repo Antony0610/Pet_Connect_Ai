@@ -55,7 +55,8 @@ class SmartCollarGeofenceScreen extends ConsumerWidget {
       orElse: () => null,
     );
 
-    final zones = dynamicZones ??
+    final zones =
+        dynamicZones ??
         const [
           _Zone(Icons.home_rounded, 'Home', '120 m radius', true),
           _Zone(Icons.park_rounded, 'Centennial Park', '250 m radius', true),

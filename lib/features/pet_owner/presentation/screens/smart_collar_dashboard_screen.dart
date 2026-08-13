@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
+
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
@@ -404,6 +404,8 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -419,8 +421,9 @@ class _QuickActions extends StatelessWidget {
             Expanded(
               child: CollarActionTile(
                 icon: Icons.my_location_rounded,
-                title: 'Live Tracking',
-                subtitle: 'Real-time GPS map',
+                label: 'Live Tracking',
+                background: scheme.primaryContainer,
+                foreground: scheme.onPrimaryContainer,
                 onTap: () => context.goNamed(RouteNames.ownerCollarTracking),
               ),
             ),
@@ -428,8 +431,9 @@ class _QuickActions extends StatelessWidget {
             Expanded(
               child: CollarActionTile(
                 icon: Icons.shield_rounded,
-                title: 'Safe Zones',
-                subtitle: 'Geofence boundaries',
+                label: 'Safe Zones',
+                background: scheme.secondaryContainer,
+                foreground: scheme.onSecondaryContainer,
                 onTap: () => context.goNamed(RouteNames.ownerCollarGeofence),
               ),
             ),
@@ -441,8 +445,9 @@ class _QuickActions extends StatelessWidget {
             Expanded(
               child: CollarActionTile(
                 icon: Icons.show_chart_rounded,
-                title: 'Activity',
-                subtitle: 'Daily step logs',
+                label: 'Activity',
+                background: scheme.tertiaryContainer,
+                foreground: scheme.onTertiaryContainer,
                 onTap: () => context.goNamed(RouteNames.ownerCollarActivity),
               ),
             ),
@@ -450,8 +455,9 @@ class _QuickActions extends StatelessWidget {
             Expanded(
               child: CollarActionTile(
                 icon: Icons.health_and_safety_rounded,
-                title: 'Diagnostics',
-                subtitle: 'Battery & signal',
+                label: 'Diagnostics',
+                background: scheme.errorContainer,
+                foreground: scheme.onErrorContainer,
                 onTap: () => context.goNamed(RouteNames.ownerCollarDiagnostics),
               ),
             ),
