@@ -116,9 +116,15 @@ class _DeviceStatusCard extends ConsumerWidget {
     return collarsAsync.when(
       data: (collars) {
         final collar = collars.isNotEmpty ? collars.first : null;
-        final petName = collar != null ? 'Registered Collar (${collar.deviceId})' : 'Buddy (No Hardware)';
-        final batteryVal = collar != null ? '${collar.batteryPercentage}%' : 'Software Only';
-        final connVal = collar != null ? collar.connectivityType : 'No Hardware';
+        final petName = collar != null
+            ? 'Collar ${collar.deviceId}'
+            : 'Buddy (No Hardware)';
+        final batteryVal = collar != null
+            ? '${collar.batteryPercentage}%'
+            : 'Software Only';
+        final connVal = collar != null
+            ? collar.connectivityType
+            : 'No Hardware';
 
         final header = Column(
           crossAxisAlignment: isWide
@@ -126,24 +132,98 @@ class _DeviceStatusCard extends ConsumerWidget {
               : CrossAxisAlignment.center,
           children: [
             Text(
-
-    return GlassCard(
-      child: isWide
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              petName,
+              style: context.textTheme.headlineSmall?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: AppTypography.bold,
+              ),
+            ),
+            AppSpacing.vGapXs,
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _PetAvatar(online: online),
-                AppSpacing.hGapLg,
-                Expanded(child: info),
-              ],
-            )
-          : Column(
-              children: [
-                _PetAvatar(online: online),
-                AppSpacing.vGapMd,
-                info,
+                Icon(Icons.wifi_rounded, color: online, size: AppIconSizes.sm),
+                AppSpacing.hGapXs,
+                Text(
+                  collar != null
+                      ? 'Connected & Active'
+                      : 'Software Service Active',
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
+          ],
+        );
+
+        final stats = Row(
+          children: [
+            const Expanded(
+              child: CollarStatTile(
+                icon: Icons.location_on_rounded,
+                label: 'Location',
+                value: 'Centennial Park',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: CollarStatTile(
+                icon: Icons.battery_full_rounded,
+                label: 'Battery',
+                value: batteryVal,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: CollarStatTile(
+                icon: Icons.cell_tower_rounded,
+                label: 'Signal',
+                value: connVal,
+              ),
+            ),
+          ],
+        );
+
+        final info = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [header, AppSpacing.vGapMd, stats],
+        );
+
+        return GlassCard(
+          child: isWide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _PetAvatar(online: online),
+                    AppSpacing.hGapLg,
+                    Expanded(child: info),
+                  ],
+                )
+              : Column(
+                  children: [
+                    _PetAvatar(online: online),
+                    AppSpacing.vGapMd,
+                    info,
+                  ],
+                ),
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (_, __) => GlassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Text(
+            'Unable to load collar device.',
+            style: context.textTheme.bodyMedium?.copyWith(color: scheme.error),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -158,57 +238,35 @@ class _PetAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    const dim = 112.0;
 
-    return SizedBox(
-      width: dim,
-      height: dim,
-      child: Stack(
-        children: [
-          Container(
-            width: dim,
-            height: dim,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: scheme.surface, width: 4),
-              boxShadow: AppElevation.soft(context.theme.brightness),
-            ),
-            child: ClipOval(
-              child: Image.network(
-                kCollarPetPhotoUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => ColoredBox(
-                  color: scheme.primaryContainer,
-                  child: Icon(
-                    Icons.pets_rounded,
-                    color: scheme.onPrimaryContainer,
-                    size: AppIconSizes.xl,
-                  ),
-                ),
-              ),
-            ),
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        CircleAvatar(
+          radius: AppSpacing.xxl,
+          backgroundColor: scheme.primaryContainer.withValues(alpha: 0.4),
+          child: Icon(
+            Icons.pets_rounded,
+            size: AppIconSizes.xl,
+            color: scheme.primary,
           ),
-          Positioned(
-            right: 6,
-            bottom: 6,
-            child: Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                color: online,
-                shape: BoxShape.circle,
-                border: Border.all(color: scheme.surface, width: 3),
-              ),
-            ),
+        ),
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: online,
+            shape: BoxShape.circle,
+            border: Border.all(color: scheme.surface, width: 2),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// "Today's Activity" — a bordered surface card with the step ring and a
-/// "Join Challenge" call to action.
+/// "Today's Activity" hero tile: a circular step progress ring with center text
+/// beside a vertical breakdown stack (Distance, Active, Rest).
 class _TodaysActivity extends StatelessWidget {
   const _TodaysActivity();
 
@@ -217,153 +275,215 @@ class _TodaysActivity extends StatelessWidget {
     final scheme = context.colorScheme;
 
     return AppCard(
-      isOutlined: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Today's Activity",
-            style: context.textTheme.titleLarge?.copyWith(
-              color: scheme.onSurface,
-              fontWeight: AppTypography.semiBold,
-            ),
-          ),
-          AppSpacing.vGapXs,
-          Text(
-            'Buddy is on track to meet daily goals.',
-            style: context.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          AppSpacing.vGapLg,
-          Center(
-            child: CollarMetricRing(
-              progress: 0.65,
-              arcColor: scheme.primary,
-              center: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.pets_rounded,
-                    color: scheme.primary,
-                    size: AppIconSizes.md,
-                  ),
-                  AppSpacing.vGapXs,
-                  Text(
-                    '6,540',
-                    style: context.textTheme.headlineMedium?.copyWith(
-                      color: scheme.onSurface,
-                      fontWeight: AppTypography.bold,
-                      height: 1,
-                    ),
-                  ),
-                  Text(
-                    'Steps',
-                    style: context.textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  AppSpacing.vGapXs,
-                  TextButton.icon(
-                    onPressed: () =>
-                        context.showSnackbar('Joining the step challenge…'),
-                    icon: const Icon(
-                      Icons.groups_rounded,
-                      size: AppIconSizes.sm,
-                    ),
-                    label: const Text('Join Challenge'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: scheme.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                      ),
-                      minimumSize: const Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: context.textTheme.labelLarge?.copyWith(
-                        fontWeight: AppTypography.semiBold,
-                      ),
-                    ),
-                  ),
-                ],
+      elevation: AppElevation.sm,
+      backgroundColor: scheme.surfaceContainerLow,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Today's Activity",
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: AppTypography.semiBold,
               ),
             ),
-          ),
-        ],
+            AppSpacing.vGapLg,
+            Row(
+              children: [
+                SizedBox(
+                  width: 110,
+                  height: 110,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        height: 110,
+                        child: CircularProgressIndicator(
+                          value: 8420 / 10000,
+                          strokeWidth: 10,
+                          backgroundColor: scheme.outlineVariant.withValues(
+                            alpha: 0.3,
+                          ),
+                          color: scheme.primary,
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '8,420',
+                            style: context.textTheme.titleLarge?.copyWith(
+                              fontWeight: AppTypography.bold,
+                            ),
+                          ),
+                          Text(
+                            'steps',
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                AppSpacing.hGapLg,
+                const Expanded(
+                  child: Column(
+                    children: [
+                      _MetricLine(
+                        icon: Icons.directions_walk_rounded,
+                        label: 'Distance',
+                        value: '5.2 km',
+                      ),
+                      AppSpacing.vGapSm,
+                      _MetricLine(
+                        icon: Icons.timer_rounded,
+                        label: 'Active',
+                        value: '1h 45m',
+                      ),
+                      AppSpacing.vGapSm,
+                      _MetricLine(
+                        icon: Icons.bedtime_rounded,
+                        label: 'Rest',
+                        value: '14h 20m',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// The 2×2 quick-action grid: Live Tracking, Lost Mode, Geofence, Diagnostics.
-class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+class _MetricLine extends StatelessWidget {
+  const _MetricLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    final actions = [
-      (
-        Icons.my_location_rounded,
-        'Live Tracking',
-        scheme.primaryContainer,
-        scheme.onPrimaryContainer,
-        () => context.goNamed(RouteNames.ownerCollarTracking),
-      ),
-      (
-        Icons.warning_rounded,
-        'Lost Mode',
-        scheme.errorContainer,
-        scheme.onErrorContainer,
-        () => context.goNamed(RouteNames.ownerLostMode),
-      ),
-      (
-        Icons.share_location_rounded,
-        'Geofence',
-        scheme.surfaceContainerHigh,
-        scheme.onSurface,
-        () => context.goNamed(RouteNames.ownerCollarGeofence),
-      ),
-      (
-        Icons.health_and_safety_rounded,
-        'Diagnostics',
-        scheme.surfaceContainerHigh,
-        scheme.onSurface,
-        () => context.goNamed(RouteNames.ownerCollarDiagnostics),
-      ),
-    ];
-
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppSpacing.sm,
-      crossAxisSpacing: AppSpacing.sm,
-      childAspectRatio: 1.35,
+    return Row(
       children: [
-        for (final (icon, label, bg, fg, onTap) in actions)
-          CollarActionTile(
-            icon: icon,
-            label: label,
-            background: bg,
-            foreground: fg,
-            onTap: onTap,
+        Icon(icon, size: AppIconSizes.sm, color: scheme.primary),
+        AppSpacing.hGapXs,
+        Text(
+          label,
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
           ),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: context.textTheme.bodyMedium?.copyWith(
+            fontWeight: AppTypography.semiBold,
+          ),
+        ),
       ],
     );
   }
 }
 
-/// The live mini-map preview; tapping opens full Live Tracking.
+/// 2×2 quick-action grid linking into the child collar routes.
+class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: context.textTheme.titleLarge?.copyWith(
+            fontWeight: AppTypography.semiBold,
+          ),
+        ),
+        AppSpacing.vGapSm,
+        Row(
+          children: [
+            Expanded(
+              child: CollarActionCard(
+                icon: Icons.my_location_rounded,
+                title: 'Live Tracking',
+                subtitle: 'Real-time GPS map',
+                onTap: () => context.goNamed(RouteNames.ownerCollarTracking),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: CollarActionCard(
+                icon: Icons.shield_rounded,
+                title: 'Safe Zones',
+                subtitle: 'Geofence boundaries',
+                onTap: () => context.goNamed(RouteNames.ownerCollarGeofence),
+              ),
+            ),
+          ],
+        ),
+        AppSpacing.vGapMd,
+        Row(
+          children: [
+            Expanded(
+              child: CollarActionCard(
+                icon: Icons.show_chart_rounded,
+                title: 'Activity',
+                subtitle: 'Daily step logs',
+                onTap: () => context.goNamed(RouteNames.ownerCollarActivity),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: CollarActionCard(
+                icon: Icons.health_and_safety_rounded,
+                title: 'Diagnostics',
+                subtitle: 'Battery & signal',
+                onTap: () => context.goNamed(RouteNames.ownerCollarDiagnostics),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Mini-map hero tile previewing Buddy's current location with a button to tap into tracking.
 class _MiniMap extends StatelessWidget {
   const _MiniMap();
 
   @override
   Widget build(BuildContext context) {
-    return CollarMapPreview(
-      locationLabel: 'Centennial Park',
-      height: context.screenWidth >= AppBreakpoints.tablet ? 256 : 192,
-      onTap: () => context.goNamed(RouteNames.ownerCollarTracking),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Location Preview',
+          style: context.textTheme.titleLarge?.copyWith(
+            fontWeight: AppTypography.semiBold,
+          ),
+        ),
+        AppSpacing.vGapSm,
+        CollarMapPreview(
+          locationLabel: 'Centennial Park • 2m ago',
+          onTap: () => context.goNamed(RouteNames.ownerCollarTracking),
+        ),
+      ],
     );
   }
 }
