@@ -8,6 +8,7 @@ import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_devic
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_gps_location.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/geofence.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/repositories/smart_collar_repository.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/services/battery_service.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/usecases/smart_collar_usecases.dart';
 
 /// Provider for [SmartCollarRemoteDataSource].
@@ -22,6 +23,11 @@ final smartCollarRepositoryProvider = Provider<SmartCollarRepository>((ref) {
   final dataSource = ref.watch(smartCollarRemoteDataSourceProvider);
   final client = ref.watch(supabaseClientProvider);
   return SmartCollarRepositoryImpl(dataSource, client);
+});
+
+/// Provider for [BatteryService] fuel-gauge IC abstraction.
+final batteryServiceProvider = Provider<BatteryService>((ref) {
+  return const SimulatedBatteryService();
 });
 
 // ── Use Cases ─────────────────────────────────────────────────────────────

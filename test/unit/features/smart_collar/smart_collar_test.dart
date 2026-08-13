@@ -9,6 +9,7 @@ import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_devic
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_gps_location.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/geofence.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/repositories/smart_collar_repository.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/services/battery_service.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/usecases/smart_collar_usecases.dart';
 
 class MockSmartCollarRepository extends Mock implements SmartCollarRepository {}
@@ -161,5 +162,30 @@ void main() {
       final result = await useCase();
       expect(result.isRight(), isTrue);
     });
+  });
+
+  group('BatteryService Unit Tests', () {
+    test(
+      'SimulatedBatteryService reports correct fuel-gauge SoC and battery states',
+      () async {
+        const normalBattery = SimulatedBatteryService(initialPercentage: 85);
+        expect(await normalBattery.getBatteryPercentage(), 85);
+        expect(
+          await normalBattery.getBatteryStatus(),
+          BatteryState.discharging,
+        );
+
+        const lowBattery = SimulatedBatteryService(initialPercentage: 18);
+        expect(await lowBattery.getBatteryStatus(), BatteryState.low);
+
+        const criticalBattery = SimulatedBatteryService(initialPercentage: 8);
+        expect(await criticalBattery.getBatteryStatus(), BatteryState.critical);
+
+        const chargingBattery = SimulatedBatteryService(
+          initialIsCharging: true,
+        );
+        expect(await chargingBattery.getBatteryStatus(), BatteryState.charging);
+      },
+    );
   });
 }

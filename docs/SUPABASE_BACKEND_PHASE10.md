@@ -26,19 +26,33 @@ The architecture supports multi-modal connectivity (BLE, Wi-Fi, GSM/LTE cellular
 
 ---
 
-## 3. Hardware Feature Classification
+---
 
-| Feature | Implementation Status |
-| :--- | :--- |
-| Smart Collar Database Schema | **LIVE SUPABASE VERIFIED** |
-| Clean Architecture & DTOs | **IMPLEMENTED IN SOFTWARE** |
-| Unit Test Suite (156 tests) | **UNIT TESTED / SIMULATED** |
-| Realtime GPS Location Streams | **LIVE SUPABASE VERIFIED** |
-| Physical Hardware (GPS, BLE, Cellular modem) | **REQUIRES PHYSICAL HARDWARE** |
+## 4. Fuel-Gauge IC Battery Architecture
+
+### Data Flow Architecture
+```
+Li-ion/LiPo Battery
+     ↓
+Fuel Gauge IC (e.g. MAX17048/MAX17049 or TI BQ-series)
+     ↓
+MCU (I2C/SMBus)
+     ↓
+BLE / Wi-Fi / GSM-LTE
+     ↓
+Secure Telemetry Ingestion
+     ↓
+Supabase smart_collars.battery_percentage (State of Charge %)
+```
+
+### Configurable Notification Thresholds
+- **Low Battery Warning**: `battery_percentage <= 20%` (State: `BatteryState.low`)
+- **Critical Battery Warning**: `battery_percentage <= 10%` (State: `BatteryState.critical`)
+- System integrates with Phase 8 `public.user_notifications` and Realtime alerts.
 
 ---
 
-## 4. Verification Results
-- **Unit Tests**: 156/156 unit tests passing (`flutter test test/unit/`).
+## 5. Verification Results
+- **Unit Tests**: 158/158 unit tests passing (`flutter test test/unit/`).
 - **Static Analysis**: `flutter analyze --no-fatal-infos` passed cleanly (0 errors, 0 warnings).
 - **Git Sync**: Synced to `origin/master`.
