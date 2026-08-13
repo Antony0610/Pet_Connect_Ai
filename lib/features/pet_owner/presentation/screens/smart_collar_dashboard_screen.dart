@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
@@ -10,6 +11,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_ai_fab.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -101,76 +103,29 @@ class SmartCollarDashboardScreen extends StatelessWidget {
 
 /// The glass device-status hero: the pet's photo with an online indicator, the
 /// name and connection line, and a Location / Battery / Signal stat grid.
-class _DeviceStatusCard extends StatelessWidget {
+class _DeviceStatusCard extends ConsumerWidget {
   const _DeviceStatusCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final online = PortalPalettes.of(AppPortal.petOwner).accent;
     final isWide = context.screenWidth >= AppBreakpoints.tablet;
+    final collarsAsync = ref.watch(registeredCollarsProvider);
 
-    final header = Column(
-      crossAxisAlignment: isWide
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
-      children: [
-        Text(
-          'Buddy',
-          style: context.textTheme.headlineSmall?.copyWith(
-            color: scheme.onSurface,
-            fontWeight: AppTypography.bold,
-          ),
-        ),
-        AppSpacing.vGapXs,
-        Row(
-          mainAxisSize: MainAxisSize.min,
+    return collarsAsync.when(
+      data: (collars) {
+        final collar = collars.isNotEmpty ? collars.first : null;
+        final petName = collar != null ? 'Registered Collar (${collar.deviceId})' : 'Buddy (No Hardware)';
+        final batteryVal = collar != null ? '${collar.batteryPercentage}%' : 'Software Only';
+        final connVal = collar != null ? collar.connectivityType : 'No Hardware';
+
+        final header = Column(
+          crossAxisAlignment: isWide
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.center,
           children: [
-            Icon(Icons.wifi_rounded, color: online, size: AppIconSizes.sm),
-            AppSpacing.hGapXs,
             Text(
-              'Connected & Active',
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-
-    const stats = Row(
-      children: [
-        Expanded(
-          child: CollarStatTile(
-            icon: Icons.location_on_rounded,
-            label: 'Location',
-            value: 'Centennial Park',
-          ),
-        ),
-        SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: CollarStatTile(
-            icon: Icons.battery_full_rounded,
-            label: 'Battery',
-            value: '84%',
-          ),
-        ),
-        SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: CollarStatTile(
-            icon: Icons.signal_cellular_alt_rounded,
-            label: 'Signal',
-            value: 'Strong',
-          ),
-        ),
-      ],
-    );
-
-    final info = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [header, AppSpacing.vGapMd, stats],
-    );
 
     return GlassCard(
       child: isWide

@@ -56,6 +56,7 @@ Phase 9 deploys server-side Supabase Edge Functions (`ai-assistant`, `ai-symptom
 
 ## 5. Verification Results
 
-- **Unit Tests**: 150/150 unit tests passing (`flutter test test/unit/`).
+- **Unit Tests**: 159/159 unit tests passing (`flutter test test/unit/`).
 - **Static Analysis**: `flutter analyze --no-fatal-infos` passed cleanly (0 errors, 0 warnings).
 - **Secret Inspection**: Verified zero instances of `GEMINI_API_KEY` or secrets in client source code.
+- **Frontend Integration**: Riverpod providers connected to `AiAssistantChatScreen`, `AiHubDashboardScreen`, and `AiHistoryScreen`.

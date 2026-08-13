@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -43,14 +45,14 @@ class _Group {
 /// A chronological, filterable log of every AI interaction — chats, image
 /// analyses, generated reports and insights — grouped by day. Token-driven;
 /// one tree serves both themes.
-class AiHistoryScreen extends StatefulWidget {
+class AiHistoryScreen extends ConsumerStatefulWidget {
   const AiHistoryScreen({super.key});
 
   @override
-  State<AiHistoryScreen> createState() => _AiHistoryScreenState();
+  ConsumerState<AiHistoryScreen> createState() => _AiHistoryScreenState();
 }
 
-class _AiHistoryScreenState extends State<AiHistoryScreen> {
+class _AiHistoryScreenState extends ConsumerState<AiHistoryScreen> {
   _EntryKind? _filter;
 
   static const List<_Group> _groups = [

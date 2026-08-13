@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -8,6 +9,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A defined geofence the collar watches, with its live in/out status.
@@ -25,15 +27,16 @@ class _Zone {
 /// A map preview of the active geofences over a list of safe zones, each
 /// showing whether Buddy is currently inside, plus an "add zone" action.
 /// Composes the frozen collar primitives; token-driven, one tree both themes.
-class SmartCollarGeofenceScreen extends StatelessWidget {
+class SmartCollarGeofenceScreen extends ConsumerWidget {
   const SmartCollarGeofenceScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
     final isWide = width >= AppBreakpoints.tablet;
+    final geofencesAsync = ref.watch(geofencesProvider);
 
     const zones = [
       _Zone(Icons.home_rounded, 'Home', '120 m radius', true),

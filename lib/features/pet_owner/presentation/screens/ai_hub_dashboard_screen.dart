@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -7,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
@@ -400,36 +402,13 @@ class _Activity {
 
 /// The Recent Activity list: a header with "View All" over a card of history
 /// rows (icon badge, title, subtitle, timestamp + chevron).
-class _RecentActivity extends StatelessWidget {
+class _RecentActivity extends ConsumerWidget {
   const _RecentActivity();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
-
-    const items = [
-      _Activity(
-        Icons.set_meal_rounded,
-        'Dietary Analysis Complete',
-        'Recommended reducing evening portion by 5%.',
-        '2 hrs ago',
-        _Tint.primary,
-      ),
-      _Activity(
-        Icons.image_search_rounded,
-        'Rash Image Scanned',
-        'Low risk detected. Apply recommended ointment.',
-        'Yesterday',
-        _Tint.tertiary,
-      ),
-      _Activity(
-        Icons.bedtime_rounded,
-        'Sleep Pattern Logged',
-        'Buddy slept 14 hours. Normal range.',
-        'Yesterday',
-        _Tint.secondary,
-      ),
-    ];
+    final convsAsync = ref.watch(aiConversationsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -451,19 +430,64 @@ class _RecentActivity extends StatelessWidget {
           ],
         ),
         AppSpacing.vGapSm,
-        AppCard(
-          backgroundColor: scheme.surfaceContainerLowest,
-          child: Column(
-            children: [
-              for (var i = 0; i < items.length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    color: scheme.outlineVariant.withValues(alpha: 0.4),
-                    height: AppSpacing.lg,
+        convsAsync.when(
+          data: (convs) {
+            if (convs.isEmpty) {
+              return AppCard(
+                backgroundColor: scheme.surfaceContainerLowest,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Text(
+                    'No recent AI activity recorded yet.',
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
-                _ActivityRow(activity: items[i]),
-              ],
-            ],
+                ),
+              );
+            }
+            final displayList = convs.take(3).toList();
+            return AppCard(
+              backgroundColor: scheme.surfaceContainerLowest,
+              child: Column(
+                children: [
+                  for (var i = 0; i < displayList.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                        color: scheme.outlineVariant.withValues(alpha: 0.4),
+                        height: AppSpacing.lg,
+                      ),
+                    _ActivityRow(
+                      activity: _Activity(
+                        Icons.chat_bubble_outline_rounded,
+                        displayList[i].title,
+                        'AI Consultation Thread',
+                        '${displayList[i].updatedAt.hour}:${displayList[i].updatedAt.minute.toString().padLeft(2, '0')}',
+                        _Tint.primary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (_, __) => AppCard(
+            backgroundColor: scheme.surfaceContainerLowest,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                'Unable to load AI history.',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: scheme.error,
+                ),
+              ),
+            ),
           ),
         ),
       ],
