@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -129,6 +129,17 @@ void main() {
       final result = await useCase();
       expect(result.isRight(), isTrue);
       result.fold((l) => fail('should pass'), (r) => expect(r, [tCollar]));
+    });
+
+    test('GetLatestLocation delegates to repository', () async {
+      final useCase = GetLatestLocation(mockRepo);
+      when(
+        () => mockRepo.getLatestLocation('collar-1'),
+      ).thenAnswer((_) async => Right(tLocation));
+
+      final result = await useCase('collar-1');
+      expect(result.isRight(), isTrue);
+      result.fold((l) => fail('should pass'), (r) => expect(r, tLocation));
     });
 
     test('SetLostMode delegates to repository', () async {

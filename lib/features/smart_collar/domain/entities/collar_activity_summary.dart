@@ -22,6 +22,7 @@ class CollarActivitySummary extends Equatable {
   final int restMinutes;
   final int stepCount;
   final int caloriesBurned;
+  final DateTime createdAt;
 
   @override
   List<Object?> get props => [

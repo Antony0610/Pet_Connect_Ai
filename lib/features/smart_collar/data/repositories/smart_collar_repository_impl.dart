@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:petconnect_ai/core/error/exceptions.dart';
-import 'package:petconnect_ai/core/error/failure.dart';
 import 'package:petconnect_ai/core/error/failure_mapper.dart';
+import 'package:petconnect_ai/core/error/failures.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
 import 'package:petconnect_ai/features/smart_collar/data/datasources/smart_collar_remote_datasource.dart';
 import 'package:petconnect_ai/features/smart_collar/data/models/collar_gps_location_model.dart';
@@ -30,8 +30,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
       }
       final models = await _remoteDataSource.getRegisteredCollars(uid);
       return Right(models);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -40,8 +42,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
     try {
       final model = await _remoteDataSource.getCollarById(collarId);
       return Right(model);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -61,8 +65,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
         petId: petId,
       );
       return Right(model);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -77,8 +83,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
         isLostMode: isLostMode,
       );
       return Right(model);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -87,8 +95,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
     try {
       final model = await _remoteDataSource.getLatestLocation(collarId);
       return Right(model);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -99,8 +109,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
     try {
       final models = await _remoteDataSource.getLocationHistory(collarId);
       return Right(models);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -130,8 +142,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
 
       final result = await _remoteDataSource.ingestTelemetry(model);
       return Right(result);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -142,8 +156,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
     try {
       final models = await _remoteDataSource.getActivitySummaries(collarId);
       return Right(models);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -156,8 +172,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
       }
       final models = await _remoteDataSource.getGeofences(uid);
       return Right(models);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -188,8 +206,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
 
       final result = await _remoteDataSource.createGeofence(model);
       return Right(result);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 
@@ -198,8 +218,10 @@ class SmartCollarRepositoryImpl implements SmartCollarRepository {
     try {
       await _remoteDataSource.deleteGeofence(geofenceId);
       return const Right(null);
-    } catch (e) {
+    } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromUnknown(e));
     }
   }
 

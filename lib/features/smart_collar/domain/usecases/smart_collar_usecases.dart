@@ -1,5 +1,4 @@
 import 'package:petconnect_ai/core/utils/typedefs.dart';
-import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_activity_summary.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_gps_location.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/geofence.dart';
