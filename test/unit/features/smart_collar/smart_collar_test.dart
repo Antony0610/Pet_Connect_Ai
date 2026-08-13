@@ -10,6 +10,7 @@ import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_gps_l
 import 'package:petconnect_ai/features/smart_collar/domain/entities/geofence.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/repositories/smart_collar_repository.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/services/battery_service.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/services/smart_collar_health_service.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/usecases/smart_collar_usecases.dart';
 
 class MockSmartCollarRepository extends Mock implements SmartCollarRepository {}
@@ -185,6 +186,52 @@ void main() {
           initialIsCharging: true,
         );
         expect(await chargingBattery.getBatteryStatus(), BatteryState.charging);
+      },
+    );
+  });
+
+  group('SmartCollarHealthService Unit Tests', () {
+    test(
+      'SmartCollarHealthServiceImpl correctly detects offline devices and geofence breaches',
+      () {
+        const healthService = SmartCollarHealthServiceImpl();
+
+        final recent = DateTime.now().subtract(const Duration(minutes: 5));
+        final stale = DateTime.now().subtract(const Duration(minutes: 30));
+
+        expect(healthService.isDeviceOffline(recent), isFalse);
+        expect(healthService.isDeviceOffline(stale), isTrue);
+
+        final insideLoc = CollarGpsLocation(
+          id: 'l1',
+          collarId: 'c1',
+          latitude: 37.7749,
+          longitude: -122.4194,
+          gpsTimestamp: recent,
+          serverTimestamp: recent,
+          createdAt: recent,
+        );
+
+        final outsideLoc = CollarGpsLocation(
+          id: 'l2',
+          collarId: 'c1',
+          latitude: 37.8500,
+          longitude: -122.4194,
+          gpsTimestamp: recent,
+          serverTimestamp: recent,
+          createdAt: recent,
+        );
+
+        expect(
+          healthService.checkGeofenceBreach(insideLoc, tGeofence),
+          isFalse,
+        );
+        expect(
+          healthService.checkGeofenceBreach(outsideLoc, tGeofence),
+          isTrue,
+        );
+        expect(healthService.isGpsFixStale(recent), isFalse);
+        expect(healthService.isGpsFixStale(stale), isTrue);
       },
     );
   });

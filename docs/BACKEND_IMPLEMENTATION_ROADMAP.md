@@ -445,7 +445,7 @@ graph TD
 - **Purpose**: BLE pairing interface, telemetry ingestion endpoint, live GPS location mapping, and geofence polygon boundary checks.
 - **Screens**: 39–44.
 - **Tables Created/Modified**: `smart_collars`, `collar_gps_locations`, `geofences`, `collar_activity_summaries`.
-- **Deliverables**: Telemetry ingest service, PostGIS geofence breach detection, map tracking, 158 unit tests passing.
+- **Deliverables**: Telemetry ingest service, PostGIS geofence breach detection, map tracking, 159 unit tests passing.
 - **Complexity**: VERY HIGH
 - **Status**: COMPLETE + LIVE
 
