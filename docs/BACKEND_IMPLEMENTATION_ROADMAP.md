@@ -438,7 +438,7 @@ graph TD
 - **Purpose**: Deploy Supabase Edge Functions integrating Gemini API for AI chat, multimodal symptom scans, health reports, and diagnostic recommendations.
 - **Screens**: 30–38.
 - **Tables Created/Modified**: `ai_conversations`, `ai_chat_messages`, `ai_health_scans`.
-- **Deliverables**: Server-side AI Edge Functions, streaming chat UI, visual symptom analyzer, 148 unit tests passing.
+- **Deliverables**: Server-side AI Edge Functions, streaming chat UI, visual symptom analyzer, 150 unit tests passing.
 - **Complexity**: VERY HIGH
 
 #### Phase 10: Smart Collar + BLE / GPS Telemetry

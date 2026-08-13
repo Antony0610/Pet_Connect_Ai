@@ -74,8 +74,9 @@ void main() {
       ).thenAnswer((_) => Stream.value(tNotification));
 
       final container = makeContainer();
-      final value =
-          await container.read(liveUserNotificationsStreamProvider.future);
+      final value = await container.read(
+        liveUserNotificationsStreamProvider.future,
+      );
 
       expect(value, tNotification);
       verify(() => mockRepo.subscribeToNotifications()).called(1);
