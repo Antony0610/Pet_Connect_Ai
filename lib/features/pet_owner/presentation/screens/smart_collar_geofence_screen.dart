@@ -38,17 +38,40 @@ class SmartCollarGeofenceScreen extends ConsumerWidget {
     final isWide = width >= AppBreakpoints.tablet;
     final geofencesAsync = ref.watch(geofencesProvider);
 
-    const zones = [
-      _Zone(Icons.home_rounded, 'Home', '120 m radius', true),
-      _Zone(Icons.park_rounded, 'Centennial Park', '250 m radius', true),
-      _Zone(
-        Icons.local_hospital_rounded,
-        "Dr. Miller's Vet",
-        '80 m radius',
-        false,
-      ),
-      _Zone(Icons.storefront_rounded, 'Pet Supplies Co.', '60 m radius', false),
-    ];
+    final dynamicZones = geofencesAsync.maybeWhen(
+      data: (geofences) {
+        if (geofences.isEmpty) return null;
+        return geofences
+            .map(
+              (g) => _Zone(
+                Icons.shield_rounded,
+                g.name,
+                '${g.radiusMeters.toInt()} m radius',
+                true,
+              ),
+            )
+            .toList();
+      },
+      orElse: () => null,
+    );
+
+    final zones = dynamicZones ??
+        const [
+          _Zone(Icons.home_rounded, 'Home', '120 m radius', true),
+          _Zone(Icons.park_rounded, 'Centennial Park', '250 m radius', true),
+          _Zone(
+            Icons.local_hospital_rounded,
+            "Dr. Miller's Vet",
+            '80 m radius',
+            false,
+          ),
+          _Zone(
+            Icons.storefront_rounded,
+            'Pet Supplies Co.',
+            '60 m radius',
+            false,
+          ),
+        ];
 
     return Scaffold(
       backgroundColor: scheme.surface,

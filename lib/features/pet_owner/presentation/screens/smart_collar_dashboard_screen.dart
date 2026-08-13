@@ -275,7 +275,6 @@ class _TodaysActivity extends StatelessWidget {
     final scheme = context.colorScheme;
 
     return AppCard(
-      elevation: AppElevation.sm,
       backgroundColor: scheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -418,7 +417,7 @@ class _QuickActions extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: CollarActionCard(
+              child: CollarActionTile(
                 icon: Icons.my_location_rounded,
                 title: 'Live Tracking',
                 subtitle: 'Real-time GPS map',
@@ -427,7 +426,7 @@ class _QuickActions extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: CollarActionCard(
+              child: CollarActionTile(
                 icon: Icons.shield_rounded,
                 title: 'Safe Zones',
                 subtitle: 'Geofence boundaries',
@@ -440,7 +439,7 @@ class _QuickActions extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: CollarActionCard(
+              child: CollarActionTile(
                 icon: Icons.show_chart_rounded,
                 title: 'Activity',
                 subtitle: 'Daily step logs',
@@ -449,7 +448,7 @@ class _QuickActions extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: CollarActionCard(
+              child: CollarActionTile(
                 icon: Icons.health_and_safety_rounded,
                 title: 'Diagnostics',
                 subtitle: 'Battery & signal',
