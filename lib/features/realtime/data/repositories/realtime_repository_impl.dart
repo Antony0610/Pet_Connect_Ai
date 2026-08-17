@@ -86,4 +86,16 @@ class RealtimeRepositoryImpl implements RealtimeRepository {
       return Left(FailureMapper.fromException(ServerException(e.toString())));
     }
   }
+
+  @override
+  ResultFuture<int> markAllNotificationsRead() async {
+    try {
+      final count = await _remote.markAllNotificationsRead();
+      return Right(count);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
 }

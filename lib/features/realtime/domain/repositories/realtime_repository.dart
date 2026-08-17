@@ -24,4 +24,7 @@ abstract class RealtimeRepository {
 
   /// Mark notification as read.
   ResultFuture<void> markNotificationRead(String notificationId);
+
+  /// Mark all unread notifications as read for current authenticated user.
+  ResultFuture<int> markAllNotificationsRead();
 }

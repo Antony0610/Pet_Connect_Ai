@@ -23,6 +23,8 @@ abstract class RealtimeRemoteDataSource {
   Stream<UserNotificationModel> subscribeToNotifications(String userId);
 
   Future<void> markNotificationRead(String notificationId);
+
+  Future<int> markAllNotificationsRead();
 }
 
 class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
@@ -67,6 +69,7 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
           .insert(model.toJson())
           .select()
           .single();
+
       return DirectMessageModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw ServerException(
@@ -121,7 +124,8 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
           .from('user_notifications')
           .select()
           .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .limit(100);
 
       return (response as List)
           .map(
@@ -182,6 +186,21 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to mark notification as read: $e');
+    }
+  }
+
+  @override
+  Future<int> markAllNotificationsRead() async {
+    try {
+      final response = await _client.rpc<int>('mark_all_notifications_read');
+      return response;
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to mark all notifications as read: $e');
     }
   }
 }

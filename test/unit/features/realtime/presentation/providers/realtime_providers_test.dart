@@ -31,6 +31,15 @@ void main() {
     createdAt: now,
   );
 
+  final tNotification2 = UserNotification(
+    id: 'notif-2',
+    userId: 'user-1',
+    title: 'Sighting',
+    body: 'Pet spotted nearby',
+    isRead: false,
+    createdAt: now,
+  );
+
   setUp(() {
     mockRepo = MockRealtimeRepository();
   });
@@ -56,16 +65,56 @@ void main() {
       verify(() => mockRepo.getDirectMessages('user-2')).called(1);
     });
 
-    test('userNotificationsProvider loads notifications', () async {
+    test('userNotificationsProvider loads notifications and computes unread count', () async {
+      when(
+        () => mockRepo.getUserNotifications(),
+      ).thenAnswer((_) async => Right([tNotification, tNotification2]));
+
+      final container = makeContainer();
+      final notifs = await container.read(userNotificationsProvider.future);
+
+      expect(notifs.length, 2);
+      verify(() => mockRepo.getUserNotifications()).called(1);
+
+      final unreadCount = container.read(unreadNotificationsCountProvider);
+      expect(unreadCount, 2);
+    });
+
+    test('UserNotificationsNotifier markAllRead updates state and unread count', () async {
+      when(
+        () => mockRepo.getUserNotifications(),
+      ).thenAnswer((_) async => Right([tNotification, tNotification2]));
+      when(
+        () => mockRepo.markAllNotificationsRead(),
+      ).thenAnswer((_) async => const Right(2));
+
+      final container = makeContainer();
+      await container.read(userNotificationsProvider.future);
+
+      final count = await container
+          .read(userNotificationsProvider.notifier)
+          .markAllRead();
+
+      expect(count, 2);
+      final unreadCount = container.read(unreadNotificationsCountProvider);
+      expect(unreadCount, 0);
+    });
+
+    test('UserNotificationsNotifier addLiveNotification prepends without duplicating', () async {
       when(
         () => mockRepo.getUserNotifications(),
       ).thenAnswer((_) async => Right([tNotification]));
 
       final container = makeContainer();
-      final notifs = await container.read(userNotificationsProvider.future);
+      await container.read(userNotificationsProvider.future);
 
-      expect(notifs, [tNotification]);
-      verify(() => mockRepo.getUserNotifications()).called(1);
+      container
+          .read(userNotificationsProvider.notifier)
+          .addLiveNotification(tNotification2);
+
+      final notifs = container.read(userNotificationsProvider).value;
+      expect(notifs?.length, 2);
+      expect(notifs?.first.id, 'notif-2');
     });
 
     test('liveUserNotificationsStreamProvider emits live stream', () async {

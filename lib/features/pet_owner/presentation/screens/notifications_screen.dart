@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -8,22 +9,23 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/features/realtime/domain/entities/user_notification.dart';
+import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 
 /// The Pet Owner **Notifications Center**.
 ///
-/// A faithful Flutter rendering of the frozen Stitch "Notifications Center"
-/// (Light master): the shared glass owner header, a "Mark all as read" action,
-/// a horizontal row of category filter chips and a vertical feed of
+/// A live Flutter rendering connected to Supabase Realtime & user_notifications
+/// table: the shared glass owner header, a "Mark all as read" action,
+/// a horizontal row of category filter chips, and a live reactive feed of
 /// notification cards (critical / AI / health / social) with unread markers.
-/// All colors, spacing, radii and type come from the theme / design tokens so
-/// one widget tree serves both Light and Dark.
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
 /// Notification visual/semantic kinds, each mapping to a theme token family.
@@ -43,6 +45,7 @@ enum _NotifFilter {
 
 class _NotifData {
   _NotifData({
+    required this.id,
     required this.kind,
     required this.filter,
     required this.icon,
@@ -54,6 +57,7 @@ class _NotifData {
     this.footerBadge,
   });
 
+  final String id;
   final _NotifKind kind;
   final _NotifFilter filter;
   final IconData icon;
@@ -63,74 +67,111 @@ class _NotifData {
   bool unread;
   final String? actionLabel;
   final String? footerBadge;
+
+  factory _NotifData.fromEntity(UserNotification entity) {
+    final typeUpper = entity.notificationType.toUpperCase();
+    _NotifKind kind;
+    _NotifFilter filter;
+    IconData icon;
+    String? footerBadge;
+
+    if (typeUpper.contains('CRITICAL') ||
+        typeUpper.contains('BATTERY') ||
+        typeUpper.contains('GEOFENCE')) {
+      kind = _NotifKind.critical;
+      filter = _NotifFilter.collar;
+      icon =
+          typeUpper.contains('BATTERY') ? Icons.battery_alert : Icons.warning;
+      footerBadge = 'High Priority';
+    } else if (typeUpper.contains('COLLAR')) {
+      kind = _NotifKind.critical;
+      filter = _NotifFilter.collar;
+      icon = Icons.pets;
+    } else if (typeUpper.contains('AI')) {
+      kind = _NotifKind.ai;
+      filter = _NotifFilter.ai;
+      icon = Icons.smart_toy;
+    } else if (typeUpper.contains('HEALTH') ||
+        typeUpper.contains('APPOINTMENT') ||
+        typeUpper.contains('VACCINE')) {
+      kind = _NotifKind.health;
+      filter = _NotifFilter.health;
+      icon = Icons.monitor_heart;
+    } else {
+      kind = _NotifKind.social;
+      filter = _NotifFilter.social;
+      icon = Icons.favorite;
+    }
+
+    final now = DateTime.now();
+    final diff = now.difference(entity.createdAt);
+    String timestamp;
+    if (diff.inMinutes < 1) {
+      timestamp = 'Just now';
+    } else if (diff.inMinutes < 60) {
+      timestamp = '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      timestamp = '${diff.inHours}h ago';
+    } else if (diff.inDays < 7) {
+      timestamp = '${diff.inDays}d ago';
+    } else {
+      timestamp =
+          '${entity.createdAt.month}/${entity.createdAt.day}/${entity.createdAt.year}';
+    }
+
+    return _NotifData(
+      id: entity.id,
+      kind: kind,
+      filter: filter,
+      icon: icon,
+      title: entity.title,
+      timestamp: timestamp,
+      body: entity.body,
+      unread: !entity.isRead,
+      footerBadge: footerBadge,
+    );
+  }
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   _NotifFilter _selected = _NotifFilter.all;
 
   static const String _avatarUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuDjI16jwSuB84Xzdt7-YtGGD8cXKVStGaG8oZWrTEE2O1-goYOuDRZcqSyPad1CPYiOtNpmKHsFuDGF1XWYq6EKqov84OOWCPHJxPpXKLuqTC6Q477BNMLO-6HiNHsNS4xCTdLYf92lsegzNK54T942Rm3uKfjS8--dRESAdQBH0TVmbgyvaZ_C4SsdIEjuXC5yT77JIkjPqIRey1hLpRcoeWF2RBXnU1DgCs_q6PoFUKKDG2FrJRTLfA';
 
-  late final List<_NotifData> _items = [
-    _NotifData(
-      kind: _NotifKind.critical,
-      filter: _NotifFilter.collar,
-      icon: Icons.battery_alert,
-      title: 'Low Battery Warning',
-      timestamp: '10m ago',
-      body:
-          "Bella's smart collar is at 5%. Please charge soon to maintain GPS "
-          'tracking.',
-      unread: true,
-      footerBadge: 'High Priority',
-    ),
-    _NotifData(
-      kind: _NotifKind.ai,
-      filter: _NotifFilter.ai,
-      icon: Icons.smart_toy,
-      title: 'Activity Insight',
-      timestamp: '1h ago',
-      body:
-          'AI Analysis: Charlie has been 20% less active today compared to his '
-          'weekly average. Consider an extra evening walk.',
-      unread: true,
-    ),
-    _NotifData(
-      kind: _NotifKind.health,
-      filter: _NotifFilter.health,
-      icon: Icons.monitor_heart,
-      title: 'Vaccination Reminder',
-      timestamp: 'Yesterday',
-      body: "Luna's annual checkup and rabies vaccination are due next week.",
-      unread: true,
-      actionLabel: 'Schedule Appointment',
-    ),
-    _NotifData(
-      kind: _NotifKind.social,
-      filter: _NotifFilter.social,
-      icon: Icons.favorite,
-      title: 'New Follower',
-      timestamp: '2d ago',
-      body: 'Max the Beagle started following your pack!',
-    ),
-  ];
-
-  void _markAllRead() {
-    setState(() {
-      for (final item in _items) {
-        item.unread = false;
+  Future<void> _markAllRead() async {
+    try {
+      await ref.read(userNotificationsProvider.notifier).markAllRead();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All notifications marked as read')),
+        );
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to mark all as read: $e')),
+        );
+      }
+    }
   }
-
-  List<_NotifData> get _visible => _selected == _NotifFilter.all
-      ? _items
-      : _items.where((i) => i.filter == _selected).toList();
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final text = context.textTheme;
+
+    // Listen to live realtime notifications
+    ref.listen<AsyncValue<UserNotification>>(
+      liveUserNotificationsStreamProvider,
+      (previous, next) {
+        next.whenData((notif) {
+          ref.read(userNotificationsProvider.notifier).addLiveNotification(notif);
+        });
+      },
+    );
+
+    final notificationsAsync = ref.watch(userNotificationsProvider);
 
     final appBar = OwnerGlassAppBar(
       leading: _AvatarButton(
@@ -157,7 +198,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final topPad = context.viewPadding.top + appBar.preferredSize.height;
     final bottomPad =
         context.viewPadding.bottom + AppSpacing.xxl * 2 + AppSpacing.md;
-    final visible = _visible;
 
     return OwnerScaffold(
       currentTab: OwnerTab.notifications,
@@ -223,13 +263,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 AppSpacing.vGapLg,
 
                 // ── Feed ───────────────────────────────────────────────
-                if (visible.isEmpty)
-                  _EmptyState()
-                else
-                  for (var i = 0; i < visible.length; i++) ...[
-                    _NotificationCard(data: visible[i]),
-                    if (i != visible.length - 1) AppSpacing.vGapMd,
-                  ],
+                notificationsAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (err, stack) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+                    child: Center(
+                      child: Text(
+                        'Error loading notifications: $err',
+                        style: text.bodyMedium?.copyWith(color: scheme.error),
+                      ),
+                    ),
+                  ),
+                  data: (entities) {
+                    final allItems =
+                        entities.map(_NotifData.fromEntity).toList();
+                    final visible =
+                        _selected == _NotifFilter.all
+                            ? allItems
+                            : allItems
+                                .where((i) => i.filter == _selected)
+                                .toList();
+
+                    if (visible.isEmpty) {
+                      return _EmptyState();
+                    }
+
+                    return Column(
+                      children: [
+                        for (var i = 0; i < visible.length; i++) ...[
+                          _NotificationCard(
+                            data: visible[i],
+                            onTap: () async {
+                              if (visible[i].unread) {
+                                await ref
+                                    .read(userNotificationsProvider.notifier)
+                                    .markRead(visible[i].id);
+                              }
+                            },
+                          ),
+                          if (i != visible.length - 1) AppSpacing.vGapMd,
+                        ],
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -282,11 +362,12 @@ class _FilterChip extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: AppRadius.brPill,
-            border: selected
-                ? null
-                : Border.all(
-                    color: scheme.outlineVariant.withValues(alpha: 0.40),
-                  ),
+            border:
+                selected
+                    ? null
+                    : Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.40),
+                    ),
           ),
           child: Text(
             label,
@@ -375,9 +456,10 @@ class _KindStyle {
 }
 
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.data});
+  const _NotificationCard({required this.data, this.onTap});
 
   final _NotifData data;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -387,118 +469,104 @@ class _NotificationCard extends StatelessWidget {
     final isCritical = data.kind == _NotifKind.critical;
     final isAi = data.kind == _NotifKind.ai;
 
-    // Card surface: critical uses a tinted error wash; read items dim to 70%.
-    final surface = isCritical
-        ? scheme.errorContainer.withValues(alpha: 0.10)
-        : scheme.surfaceContainerLowest;
-    final borderColor = isCritical
-        ? scheme.error.withValues(alpha: 0.20)
-        : scheme.outlineVariant.withValues(alpha: 0.10);
+    final surface =
+        isCritical
+            ? scheme.errorContainer.withValues(alpha: 0.10)
+            : scheme.surfaceContainerLowest;
+    final borderColor =
+        isCritical
+            ? scheme.error.withValues(alpha: 0.20)
+            : scheme.outlineVariant.withValues(alpha: 0.10);
 
-    Widget card = Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: AppRadius.brCard,
-        border: Border.all(color: borderColor),
-        // AI insight carries a subtle primary→secondary gradient edge.
-        gradient: isAi
-            ? LinearGradient(
-                colors: [
-                  scheme.primary.withValues(alpha: 0.06),
-                  scheme.secondary.withValues(alpha: 0.06),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon badge.
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: style.badgeBg,
-            ),
-            child: Icon(data.icon, size: AppIconSizes.sm, color: style.badgeFg),
-          ),
-          AppSpacing.hGapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        data.title,
-                        style: text.titleMedium?.copyWith(
-                          color: style.titleColor,
-                          fontWeight: AppTypography.bold,
-                        ),
-                      ),
-                    ),
-                    AppSpacing.hGapSm,
-                    Text(
-                      data.timestamp,
-                      style: text.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    if (data.unread) ...[
-                      AppSpacing.hGapSm,
-                      Container(
-                        width: AppSpacing.sm,
-                        height: AppSpacing.sm,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: scheme.primary,
-                        ),
-                      ),
+    Widget card = InkWell(
+      onTap: onTap,
+      borderRadius: AppRadius.brCard,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: AppRadius.brCard,
+          border: Border.all(color: borderColor),
+          gradient:
+              isAi
+                  ? LinearGradient(
+                    colors: [
+                      scheme.primary.withValues(alpha: 0.06),
+                      scheme.secondary.withValues(alpha: 0.06),
                     ],
-                  ],
-                ),
-                AppSpacing.vGapXs,
-                Text(
-                  data.body,
-                  style: text.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                if (data.footerBadge != null) ...[
-                  AppSpacing.vGapMd,
-                  _PriorityBadge(label: data.footerBadge!),
-                ],
-                if (data.actionLabel != null) ...[
-                  AppSpacing.vGapXs,
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () =>
-                          context.goNamed(RouteNames.ownerHealthVaccinations),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        data.actionLabel!,
-                        style: text.labelLarge?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: AppTypography.semiBold,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                  : null,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: style.badgeBg,
+              ),
+              child: Icon(
+                data.icon,
+                size: AppIconSizes.sm,
+                color: style.badgeFg,
+              ),
+            ),
+            AppSpacing.hGapMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          data.title,
+                          style: text.titleMedium?.copyWith(
+                            color: style.titleColor,
+                            fontWeight: AppTypography.bold,
+                          ),
                         ),
                       ),
+                      AppSpacing.hGapSm,
+                      Text(
+                        data.timestamp,
+                        style: text.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (data.unread) ...[
+                        AppSpacing.hGapSm,
+                        Container(
+                          width: AppSpacing.sm,
+                          height: AppSpacing.sm,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  AppSpacing.vGapXs,
+                  Text(
+                    data.body,
+                    style: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
+                  if (data.footerBadge != null) ...[
+                    AppSpacing.vGapMd,
+                    _PriorityBadge(label: data.footerBadge!),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 

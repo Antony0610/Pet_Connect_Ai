@@ -43,3 +43,18 @@ class SubscribeToNotifications {
 
   Stream<UserNotification> call() => _repository.subscribeToNotifications();
 }
+
+class MarkNotificationRead {
+  const MarkNotificationRead(this._repository);
+  final RealtimeRepository _repository;
+
+  ResultFuture<void> call(String notificationId) =>
+      _repository.markNotificationRead(notificationId);
+}
+
+class MarkAllNotificationsRead {
+  const MarkAllNotificationsRead(this._repository);
+  final RealtimeRepository _repository;
+
+  ResultFuture<int> call() => _repository.markAllNotificationsRead();
+}
