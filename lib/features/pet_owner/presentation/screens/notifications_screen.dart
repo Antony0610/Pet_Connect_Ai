@@ -53,7 +53,6 @@ class _NotifData {
     required this.timestamp,
     required this.body,
     this.unread = false,
-    this.actionLabel,
     this.footerBadge,
   });
 
@@ -65,7 +64,6 @@ class _NotifData {
   final String timestamp;
   final String body;
   bool unread;
-  final String? actionLabel;
   final String? footerBadge;
 
   factory _NotifData.fromEntity(UserNotification entity) {

@@ -43,7 +43,7 @@ void main() {
 
       final result = await repository.markAllNotificationsRead();
 
-      expect(result, const Right(4));
+      expect(result, const Right<Failure, int>(4));
       verify(() => mockRemote.markAllNotificationsRead()).called(1);
     });
 
@@ -68,7 +68,7 @@ void main() {
       final usecase = MarkAllNotificationsRead(repository);
       final result = await usecase();
 
-      expect(result, const Right(2));
+      expect(result, const Right<Failure, int>(2));
     });
 
     test('MarkNotificationRead usecase executes repository call', () async {
@@ -77,7 +77,7 @@ void main() {
       final usecase = MarkNotificationRead(repository);
       final result = await usecase('notif-99');
 
-      expect(result, const Right(null));
+      expect(result, const Right<Failure, void>(null));
       verify(() => mockRemote.markNotificationRead('notif-99')).called(1);
     });
   });
