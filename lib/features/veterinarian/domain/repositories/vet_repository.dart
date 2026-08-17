@@ -1,5 +1,6 @@
 import 'package:petconnect_ai/core/utils/typedefs.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/appointment.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/clinic_analytics_summary.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/consultation.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/patient_queue_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/pharmacy_item.dart';
@@ -41,4 +42,9 @@ abstract class VetRepository {
 
   // Pharmacy Inventory
   ResultFuture<List<PharmacyItem>> getPharmacyInventory(String clinicId);
+
+  // Analytics (Phase 11)
+  ResultFuture<List<ClinicAnalyticsSummary>> getClinicAnalytics(
+    String clinicId,
+  );
 }

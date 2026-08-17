@@ -1,6 +1,7 @@
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/features/administrator/data/models/admin_user_entry_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/audit_log_model.dart';
+import 'package:petconnect_ai/features/administrator/data/models/platform_report_summary_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/platform_setting_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -16,6 +17,9 @@ abstract class AdminRemoteDataSource {
 
   Future<List<AdminUserEntryModel>> getAdminUserDirectory();
   Future<AdminUserEntryModel> updateUserRole(String userId, String newRole);
+
+  // Phase 11 — Analytics
+  Future<PlatformReportSummaryModel?> getPlatformReports();
 }
 
 class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
@@ -159,6 +163,29 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to update user role: $e');
+    }
+  }
+
+  // Phase 11 — Analytics
+  @override
+  Future<PlatformReportSummaryModel?> getPlatformReports() async {
+    try {
+      // Reads from vw_platform_reports (security_invoker wrapper).
+      // The view enforces administrator-only access at the database level.
+      final response = await _client
+          .from('vw_platform_reports')
+          .select()
+          .maybeSingle();
+
+      if (response == null) return null;
+      return PlatformReportSummaryModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch platform reports: $e');
     }
   }
 }

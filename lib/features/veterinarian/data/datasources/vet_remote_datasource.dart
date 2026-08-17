@@ -1,5 +1,6 @@
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/appointment_model.dart';
+import 'package:petconnect_ai/features/veterinarian/data/models/clinic_analytics_summary_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/consultation_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/patient_queue_item_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/pharmacy_item_model.dart';
@@ -33,6 +34,11 @@ abstract class VetRemoteDataSource {
   Future<PrescriptionModel> createPrescription(PrescriptionModel prescription);
 
   Future<List<PharmacyItemModel>> getPharmacyInventory(String clinicId);
+
+  // Phase 11 — Analytics
+  Future<List<ClinicAnalyticsSummaryModel>> getClinicAnalytics(
+    String clinicId,
+  );
 }
 
 class VetRemoteDataSourceImpl implements VetRemoteDataSource {
@@ -292,6 +298,37 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to fetch pharmacy inventory: $e');
+    }
+  }
+
+  // Phase 11 — Analytics
+  @override
+  Future<List<ClinicAnalyticsSummaryModel>> getClinicAnalytics(
+    String clinicId,
+  ) async {
+    try {
+      // Reads from vw_clinic_analytics (security_invoker wrapper).
+      // The view enforces that the caller owns or is staff of this clinic.
+      final response = await _client
+          .from('vw_clinic_analytics')
+          .select()
+          .eq('clinic_id', clinicId)
+          .order('report_month', ascending: false);
+
+      return (response as List)
+          .map(
+            (json) => ClinicAnalyticsSummaryModel.fromJson(
+              json as Map<String, dynamic>,
+            ),
+          )
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch clinic analytics: $e');
     }
   }
 }

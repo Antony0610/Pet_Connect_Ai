@@ -9,6 +9,7 @@ import 'package:petconnect_ai/features/veterinarian/data/models/consultation_mod
 import 'package:petconnect_ai/features/veterinarian/data/models/prescription_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/vet_clinic_model.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/appointment.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/clinic_analytics_summary.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/consultation.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/patient_queue_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/pharmacy_item.dart';
@@ -221,6 +222,21 @@ class VetRepositoryImpl implements VetRepository {
   ResultFuture<List<PharmacyItem>> getPharmacyInventory(String clinicId) async {
     try {
       final list = await _remote.getPharmacyInventory(clinicId);
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Analytics (Phase 11)
+  @override
+  ResultFuture<List<ClinicAnalyticsSummary>> getClinicAnalytics(
+    String clinicId,
+  ) async {
+    try {
+      final list = await _remote.getClinicAnalytics(clinicId);
       return Right(list);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));

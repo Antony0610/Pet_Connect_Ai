@@ -4,6 +4,7 @@ import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/data/datasources/vet_remote_datasource.dart';
 import 'package:petconnect_ai/features/veterinarian/data/repositories/vet_repository_impl.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/appointment.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/clinic_analytics_summary.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/consultation.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/patient_queue_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/pharmacy_item.dart';
@@ -92,3 +93,19 @@ final pharmacyInventoryProvider =
         (items) => items,
       );
     });
+
+/// Phase 11 — Analytics provider.
+/// Parameterized by [clinicId] so each clinic loads its own monthly rows.
+/// The backend (vw_clinic_analytics) enforces that the caller can only
+/// access clinics they own or are staff of.
+final vetClinicAnalyticsProvider =
+    FutureProvider.family<List<ClinicAnalyticsSummary>, String>(
+      (ref, clinicId) async {
+        final repo = ref.watch(vetRepositoryProvider);
+        final result = await repo.getClinicAnalytics(clinicId);
+        return result.fold(
+          (failure) => throw Exception(failure.message),
+          (rows) => rows,
+        );
+      },
+    );

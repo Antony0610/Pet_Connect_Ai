@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:petconnect_ai/features/veterinarian/domain/entities/appointment.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/clinic_analytics_summary.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_clinic.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/repositories/vet_repository.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
@@ -69,6 +70,36 @@ void main() {
       verify(
         () => mockRepo.getAppointments(vetId: 'vet-1', clinicId: null),
       ).called(1);
+    });
+
+    test('vetClinicAnalyticsProvider loads clinic analytics', () async {
+      final tAnalytics = ClinicAnalyticsSummary(
+        clinicId: 'clinic-1',
+        clinicName: 'Paws Clinic',
+        reportMonth: now,
+        totalAppointments: 25,
+        completedAppointments: 20,
+        cancelledAppointments: 2,
+        avgDurationMinutes: 15.0,
+        totalConsultations: 18,
+        totalPrescriptions: 12,
+        totalVaccinations: 8,
+        uniquePatients: 15,
+        refreshedAt: now,
+      );
+
+      when(
+        () => mockRepo.getClinicAnalytics('clinic-1'),
+      ).thenAnswer((_) async => Right([tAnalytics]));
+
+      final container = makeContainer();
+      final rows = await container.read(
+        vetClinicAnalyticsProvider('clinic-1').future,
+      );
+
+      expect(rows, [tAnalytics]);
+      expect(rows.first.totalAppointments, 25);
+      verify(() => mockRepo.getClinicAnalytics('clinic-1')).called(1);
     });
   });
 }

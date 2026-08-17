@@ -449,11 +449,12 @@ graph TD
 - **Complexity**: VERY HIGH
 - **Status**: COMPLETE + LIVE
 
-#### Phase 11: Analytics & Reports
-- **Purpose**: Create PostgreSQL materialized views and aggregation functions for vet clinic analytics and platform reporting.
-- **Screens**: 71, 93.
-- **Database Views Created**: `mv_clinic_analytics`, `mv_platform_reports`.
-- **Deliverables**: Performant SQL aggregation views, clinic revenue & patient volume charts.
+#### Phase 11: Analytics & Reports [COMPLETE]
+- **Status**: DEPLOYED & VERIFIED
+- **Purpose**: Create PostgreSQL materialized views, security-invoker wrapper views, on-demand refresh RPC (`refresh_analytics_views`), Clean Architecture data layer, and live Riverpod providers for vet clinic analytics and platform reporting.
+- **Screens**: 71 (`ClinicAnalyticsScreen` / `/vet/analytics`), 93 (`AdminPlatformReportsScreen` / `/admin/reports`).
+- **Database Views Created**: `mv_clinic_analytics`, `mv_platform_reports`, `vw_clinic_analytics` (WITH security_invoker = true), `vw_platform_reports` (WITH security_invoker = true), `refresh_analytics_views()` (SECURITY DEFINER RPC).
+- **Deliverables**: Live database aggregation views, clinic isolation security, admin platform reporting, timeframe aggregation on Flutter layer, 171 unit tests passing.
 - **Complexity**: MEDIUM
 
 #### Phase 12: Security Hardening & Audit Review

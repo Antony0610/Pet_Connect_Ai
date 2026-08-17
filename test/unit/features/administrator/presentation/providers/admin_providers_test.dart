@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/domain/repositories/admin_repository.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
@@ -93,6 +94,35 @@ void main() {
       expect(users.first.fullName, 'Sarah Connor');
       expect(users.first.role, 'administrator');
       verify(() => mockRepo.getAdminUserDirectory()).called(1);
+    });
+
+    test('adminPlatformReportsProvider loads platform reports', () async {
+      final tReports = PlatformReportSummary(
+        reportMonth: now,
+        totalUsers: 100,
+        totalPetOwners: 80,
+        totalVeterinarians: 15,
+        totalRescuers: 4,
+        totalAdministrators: 1,
+        totalAppointments: 200,
+        completedAppointments: 180,
+        totalAiConversations: 50,
+        totalAiScans: 20,
+        totalRescueMissions: 5,
+        totalLostPetAlerts: 2,
+        refreshedAt: now,
+      );
+
+      when(
+        () => mockRepo.getPlatformReports(),
+      ).thenAnswer((_) async => Right(tReports));
+
+      final container = makeContainer();
+      final report = await container.read(adminPlatformReportsProvider.future);
+
+      expect(report, tReports);
+      expect(report?.totalUsers, 100);
+      verify(() => mockRepo.getPlatformReports()).called(1);
     });
   });
 }

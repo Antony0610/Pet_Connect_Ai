@@ -7,6 +7,7 @@ import 'package:petconnect_ai/features/administrator/data/datasources/admin_remo
 import 'package:petconnect_ai/features/administrator/data/models/audit_log_model.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/domain/repositories/admin_repository.dart';
 
@@ -81,6 +82,19 @@ class AdminRepositoryImpl implements AdminRepository {
     try {
       final list = await _remote.getAdminUserDirectory();
       return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Analytics (Phase 11)
+  @override
+  ResultFuture<PlatformReportSummary?> getPlatformReports() async {
+    try {
+      final result = await _remote.getPlatformReports();
+      return Right(result);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
     } catch (e) {
