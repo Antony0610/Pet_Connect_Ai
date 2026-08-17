@@ -1,11 +1,11 @@
 {
-    "name": "petconnect_ai",
-    "short_name": "petconnect_ai",
+    "name": "PetConnect AI",
+    "short_name": "PetConnect",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FBF8F2",
+    "theme_color": "#137A63",
+    "description": "Next-generation AI-powered pet care, digital health passport, smart collar telemetry, and emergency rescue network.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
