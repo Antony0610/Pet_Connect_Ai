@@ -9,6 +9,7 @@ import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/security_posture_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/repositories/admin_repository.dart';
 
 class AdminRepositoryImpl implements AdminRepository {
@@ -78,6 +79,24 @@ class AdminRepositoryImpl implements AdminRepository {
   }
 
   @override
+  ResultFuture<PlatformSetting> updatePlatformSettingByKey(
+    String settingKey,
+    Map<String, dynamic> value,
+  ) async {
+    try {
+      final updated = await _remote.updatePlatformSettingByKey(
+        settingKey,
+        value,
+      );
+      return Right(updated);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
   ResultFuture<List<AdminUserEntry>> getAdminUserDirectory() async {
     try {
       final list = await _remote.getAdminUserDirectory();
@@ -94,6 +113,19 @@ class AdminRepositoryImpl implements AdminRepository {
   ResultFuture<PlatformReportSummary?> getPlatformReports() async {
     try {
       final result = await _remote.getPlatformReports();
+      return Right(result);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Security Hardening (Phase 12)
+  @override
+  ResultFuture<SecurityPostureSummary> getSecurityPosture() async {
+    try {
+      final result = await _remote.getSecurityPosture();
       return Right(result);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));

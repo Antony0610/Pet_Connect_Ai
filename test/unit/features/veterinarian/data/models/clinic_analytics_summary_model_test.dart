@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:petconnect_ai/features/veterinarian/data/models/clinic_analytics_summary_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/platform_report_summary_model.dart';
+import 'package:petconnect_ai/features/veterinarian/data/models/clinic_analytics_summary_model.dart';
 
 void main() {
   group('Phase 11 Analytics Model Tests', () {

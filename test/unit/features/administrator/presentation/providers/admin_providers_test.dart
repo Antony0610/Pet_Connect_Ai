@@ -7,6 +7,7 @@ import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/security_posture_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/repositories/admin_repository.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
 
@@ -43,6 +44,23 @@ void main() {
     role: 'administrator',
     createdAt: now,
     updatedAt: now,
+  );
+
+  final tPosture = SecurityPostureSummary(
+    postureRating: 'OPTIMAL',
+    totalAuditEvents24h: 15,
+    criticalEvents24h: 0,
+    warningEvents24h: 2,
+    infoEvents24h: 13,
+    totalAuditEventsAllTime: 150,
+    activeAdministrators: 3,
+    totalSystemUsers: 50,
+    rlsTablesProtected: 31,
+    totalPublicTables: 31,
+    auditLogImmutability: 'ENFORCED',
+    roleEscalationGuard: 'ENFORCED',
+    petOwnerSpoofingGuard: 'ENFORCED',
+    refreshedAt: now,
   );
 
   setUp(() {
@@ -123,6 +141,20 @@ void main() {
       expect(report, tReports);
       expect(report?.totalUsers, 100);
       verify(() => mockRepo.getPlatformReports()).called(1);
+    });
+
+    test('adminSecurityPostureProvider loads security posture summary (Phase 12)', () async {
+      when(
+        () => mockRepo.getSecurityPosture(),
+      ).thenAnswer((_) async => Right(tPosture));
+
+      final container = makeContainer();
+      final posture = await container.read(adminSecurityPostureProvider.future);
+
+      expect(posture, tPosture);
+      expect(posture.postureRating, 'OPTIMAL');
+      expect(posture.rlsTablesProtected, 31);
+      verify(() => mockRepo.getSecurityPosture()).called(1);
     });
   });
 }

@@ -7,6 +7,7 @@ import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/security_posture_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/repositories/admin_repository.dart';
 
 final adminRemoteDataSourceProvider = Provider<AdminRemoteDataSource>((ref) {
@@ -58,5 +59,17 @@ final adminPlatformReportsProvider =
       return result.fold(
         (failure) => throw Exception(failure.message),
         (summary) => summary,
+      );
+    });
+
+/// Phase 12 — Security Posture provider.
+/// Restricted to administrator role at the database level via get_security_posture_summary() RPC.
+final adminSecurityPostureProvider =
+    FutureProvider<SecurityPostureSummary>((ref) async {
+      final repo = ref.watch(adminRepositoryProvider);
+      final result = await repo.getSecurityPosture();
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (posture) => posture,
       );
     });

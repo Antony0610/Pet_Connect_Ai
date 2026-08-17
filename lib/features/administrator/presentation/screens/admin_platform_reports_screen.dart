@@ -29,8 +29,6 @@ class _AdminPlatformReportsScreenState
     extends ConsumerState<AdminPlatformReportsScreen> {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final reportsAsync = ref.watch(adminPlatformReportsProvider);
 
     return Scaffold(

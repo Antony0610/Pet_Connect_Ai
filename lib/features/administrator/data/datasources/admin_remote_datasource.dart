@@ -3,6 +3,7 @@ import 'package:petconnect_ai/features/administrator/data/models/admin_user_entr
 import 'package:petconnect_ai/features/administrator/data/models/audit_log_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/platform_report_summary_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/platform_setting_model.dart';
+import 'package:petconnect_ai/features/administrator/data/models/security_posture_summary_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract class AdminRemoteDataSource {
@@ -14,12 +15,19 @@ abstract class AdminRemoteDataSource {
     String settingId,
     Map<String, dynamic> value,
   );
+  Future<PlatformSettingModel> updatePlatformSettingByKey(
+    String settingKey,
+    Map<String, dynamic> value,
+  );
 
   Future<List<AdminUserEntryModel>> getAdminUserDirectory();
   Future<AdminUserEntryModel> updateUserRole(String userId, String newRole);
 
   // Phase 11 — Analytics
   Future<PlatformReportSummaryModel?> getPlatformReports();
+
+  // Phase 12 — Security Hardening
+  Future<SecurityPostureSummaryModel> getSecurityPosture();
 }
 
 class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
@@ -120,6 +128,32 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   }
 
   @override
+  Future<PlatformSettingModel> updatePlatformSettingByKey(
+    String settingKey,
+    Map<String, dynamic> value,
+  ) async {
+    try {
+      final response = await _client
+          .from('platform_settings')
+          .update({
+            'setting_value': value,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('setting_key', settingKey)
+          .select()
+          .single();
+      return PlatformSettingModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to update platform setting by key: $e');
+    }
+  }
+
+  @override
   Future<List<AdminUserEntryModel>> getAdminUserDirectory() async {
     try {
       final response = await _client
@@ -170,8 +204,6 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<PlatformReportSummaryModel?> getPlatformReports() async {
     try {
-      // Reads from vw_platform_reports (security_invoker wrapper).
-      // The view enforces administrator-only access at the database level.
       final response = await _client
           .from('vw_platform_reports')
           .select()
@@ -186,6 +218,24 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to fetch platform reports: $e');
+    }
+  }
+
+  // Phase 12 — Security Hardening
+  @override
+  Future<SecurityPostureSummaryModel> getSecurityPosture() async {
+    try {
+      final response = await _client.rpc<Map<String, dynamic>>(
+        'get_security_posture_summary',
+      );
+      return SecurityPostureSummaryModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch security posture summary: $e');
     }
   }
 }
