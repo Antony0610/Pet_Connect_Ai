@@ -31,7 +31,9 @@ class RouteGuard {
         location == RoutePaths.register ||
         location == RoutePaths.forgotPassword ||
         location == RoutePaths.roleSelection ||
-        location == RoutePaths.otpVerification;
+        location == RoutePaths.otpVerification ||
+        location == RoutePaths.welcomeSuccess ||
+        location == RoutePaths.initialPetSetup;
 
     // Splash screen handles its own deferred navigation
     if (isSplash) return null;

@@ -96,7 +96,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_index > 0) _animateTo(_index - 1);
   }
 
-  void _skip() => _animateTo(_pages.length - 1);
+  void _skip() => _finish(RoutePaths.login);
 
   /// Persists completion (best-effort) then routes to [destination].
   Future<void> _finish(String destination) async {
@@ -126,7 +126,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 itemBuilder: (context, i) => _OnboardingPage(
                   data: _pages[i],
                   isLast: i == _pages.length - 1,
-                  onGetStarted: () => _finish(RoutePaths.roleSelection),
+                  onGetStarted: () => _finish(RoutePaths.login),
                   onHaveAccount: () => _finish(RoutePaths.login),
                 ),
               ),
