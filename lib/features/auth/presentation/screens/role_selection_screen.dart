@@ -140,7 +140,7 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
                     child: Column(
                       children: [
                         AppButton.filled(
-                          label: 'Continue to Dashboard',
+                          label: 'Continue',
                           icon: Icons.arrow_forward,
                           iconAlignment: IconAlignment.end,
                           borderRadius: AppRadius.brPill,

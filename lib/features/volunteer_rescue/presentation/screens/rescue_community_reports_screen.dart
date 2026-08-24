@@ -36,7 +36,7 @@ class _RescueCommunityReportsScreenState
     {
       'reporter': 'Civic Reporter • Elena R.',
       'time': '25 mins ago',
-      'pet': 'Buddy (Golden Retriever)',
+      'pet': 'Archie (Golden Retriever)',
       'location': 'Near 5th & Main St Coffee Shop',
       'verified': false,
       'notes':

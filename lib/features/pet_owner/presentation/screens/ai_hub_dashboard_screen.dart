@@ -9,6 +9,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
@@ -73,18 +75,22 @@ class AiHubDashboardScreen extends StatelessWidget {
 }
 
 /// The personal greeting: an `h2`-scale name over a muted subtitle.
-class _Greeting extends StatelessWidget {
+class _Greeting extends ConsumerWidget {
   const _Greeting();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final name = (profile != null && profile.fullName.isNotEmpty)
+        ? profile.fullName
+        : (profile?.email.split('@').first ?? 'Companion Owner');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Hello Sarah',
+          'Hello $name',
           style: context.textTheme.headlineMedium?.copyWith(
             color: scheme.primary,
             fontWeight: AppTypography.semiBold,
@@ -104,12 +110,14 @@ class _Greeting extends StatelessWidget {
 
 /// The gradient-bordered AI hero card: headline, a friendly status line and a
 /// primary "Start Conversation" pill that opens the assistant chat.
-class _AssistantHero extends StatelessWidget {
+class _AssistantHero extends ConsumerWidget {
   const _AssistantHero();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final activePet = ref.watch(selectedPetProvider);
+    final petName = activePet?.name ?? 'your companion';
 
     return AiGradientBorderCard(
       child: Column(
@@ -124,7 +132,7 @@ class _AssistantHero extends StatelessWidget {
           ),
           AppSpacing.vGapXs,
           Text(
-            "I've analyzed Buddy's latest health data. Everything looks "
+            "I've analyzed $petName's latest health data. Everything looks "
             'fantastic today!',
             style: context.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
@@ -148,14 +156,16 @@ class _AssistantHero extends StatelessWidget {
 
 /// "Today's Insight": a High-Confidence badge, a lightbulb glyph, the insight
 /// copy and a footer that taps through to the full insights screen.
-class _InsightCard extends StatelessWidget {
+class _InsightCard extends ConsumerWidget {
   const _InsightCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final brightness = context.theme.brightness;
+    final activePet = ref.watch(selectedPetProvider);
+    final petName = activePet?.name ?? 'Companion';
 
     return AppCard(
       backgroundColor: scheme.surfaceContainer,
@@ -191,7 +201,7 @@ class _InsightCard extends StatelessWidget {
                 color: scheme.onSurface,
               ),
               children: [
-                const TextSpan(text: "Buddy's activity is up "),
+                TextSpan(text: "$petName's activity is up "),
                 TextSpan(
                   text: '15%',
                   style: TextStyle(

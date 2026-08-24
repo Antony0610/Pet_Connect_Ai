@@ -154,7 +154,12 @@ class _AnalyticsBody extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context, theme, colorScheme, clinicName),
+              _buildHeader(context, theme, colorScheme, clinicName, () {
+                ref.invalidate(vetClinicAnalyticsProvider(clinicId));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Refreshing clinic analytics…')),
+                );
+              }),
               const SizedBox(height: AppSpacing.md),
               _buildTimeframeSelector(theme),
               const SizedBox(height: AppSpacing.md),
@@ -178,6 +183,7 @@ class _AnalyticsBody extends ConsumerWidget {
     ThemeData theme,
     ColorScheme colorScheme,
     String name,
+    VoidCallback onRefresh,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -209,7 +215,7 @@ class _AnalyticsBody extends ConsumerWidget {
           const SizedBox(width: AppSpacing.sm),
           AppButton(
             text: 'Refresh',
-            onPressed: () {},
+            onPressed: onRefresh,
             backgroundColor: colorScheme.primary,
             textColor: colorScheme.onPrimary,
             height: 36,

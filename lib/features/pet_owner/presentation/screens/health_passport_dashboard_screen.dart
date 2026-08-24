@@ -114,7 +114,7 @@ class _DashboardBody extends ConsumerWidget {
 // Wellness score
 // ═══════════════════════════════════════════════════════════════════
 
-class _WellnessCard extends StatelessWidget {
+class _WellnessCard extends ConsumerWidget {
   const _WellnessCard({
     required this.accent,
     required this.onAccent,
@@ -128,8 +128,16 @@ class _WellnessCard extends StatelessWidget {
   final Color onContainer;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final selectedPet = ref.watch(selectedPetProvider);
+
+    final score = selectedPet == null
+        ? 0
+        : (selectedPet.healthStatus == 'optimal' ? 95 : 75);
+    final statusLabel = selectedPet == null
+        ? 'No Pet Selected'
+        : (selectedPet.healthStatus == 'optimal' ? 'Optimal Health' : 'Needs Review');
 
     return GlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -148,7 +156,7 @@ class _WellnessCard extends StatelessWidget {
             height: 176,
             child: CustomPaint(
               painter: _WellnessGaugePainter(
-                progress: 0.92,
+                progress: score / 100,
                 track: scheme.outlineVariant.withValues(alpha: 0.4),
                 accent: accent,
               ),
@@ -157,7 +165,7 @@ class _WellnessCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '92',
+                      '$score',
                       style: context.textTheme.displayMedium?.copyWith(
                         color: scheme.onSurface,
                         fontWeight: AppTypography.bold,
@@ -177,7 +185,7 @@ class _WellnessCard extends StatelessWidget {
           ),
           AppSpacing.vGapLg,
           HealthCategoryChip(
-            label: 'Optimal Health',
+            label: statusLabel,
             icon: Icons.verified_rounded,
             background: container,
             foreground: onContainer,
@@ -258,7 +266,7 @@ class _WellnessGaugePainter extends CustomPainter {
 // AI insight
 // ═══════════════════════════════════════════════════════════════════
 
-class _AiInsightCard extends StatelessWidget {
+class _AiInsightCard extends ConsumerWidget {
   const _AiInsightCard({
     required this.accent,
     required this.container,
@@ -270,8 +278,10 @@ class _AiInsightCard extends StatelessWidget {
   final Color onContainer;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final petName = selectedPet?.name ?? 'your pet';
 
     return Container(
       decoration: BoxDecoration(
@@ -301,14 +311,14 @@ class _AiInsightCard extends StatelessWidget {
               AppSpacing.hGapSm,
               Expanded(
                 child: Text(
-                  'Weight Stability',
+                  'Health & Wellness Status',
                   style: context.textTheme.titleMedium?.copyWith(
                     fontWeight: AppTypography.semiBold,
                   ),
                 ),
               ),
               HealthCategoryChip(
-                label: '98% Match',
+                label: 'AI Monitored',
                 background: container,
                 foreground: onContainer,
               ),
@@ -316,8 +326,9 @@ class _AiInsightCard extends StatelessWidget {
           ),
           AppSpacing.vGapSm,
           Text(
-            "Buddy's weight has stabilized at 65lbs. AI suggests current "
-            'nutrition plan is optimal.',
+            selectedPet != null
+                ? '$petName’s health profile is registered. Use AI Symptom Scan or chat with the AI Vet Assistant to check symptoms or get health advice.'
+                : 'Select a pet to view customized AI health insights and recommendations.',
             style: context.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -450,16 +461,21 @@ class _QuickActionTile extends StatelessWidget {
 // Stat grid
 // ═══════════════════════════════════════════════════════════════════
 
-class _StatGrid extends StatelessWidget {
+class _StatGrid extends ConsumerWidget {
   const _StatGrid();
 
   @override
-  Widget build(BuildContext context) {
-    const stats = [
-      _Stat(Icons.vaccines_rounded, 'Vaccinations', 'Up to date'),
-      _Stat(Icons.event_rounded, 'Next Appt', 'Oct 12'),
-      _Stat(Icons.monitor_weight_rounded, 'Weight', '65 lbs'),
-      _Stat(Icons.medication_rounded, 'Medication', '1 Active'),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedPet = ref.watch(selectedPetProvider);
+    final weightStr = selectedPet?.weightKg != null
+        ? '${selectedPet!.weightKg} kg'
+        : '—';
+
+    final stats = [
+      const _Stat(Icons.vaccines_rounded, 'Vaccinations', 'Up to date'),
+      const _Stat(Icons.event_rounded, 'Next Appt', '—'),
+      _Stat(Icons.monitor_weight_rounded, 'Weight', weightStr),
+      const _Stat(Icons.medication_rounded, 'Medication', '0 Active'),
     ];
 
     return GridView.count(
@@ -598,7 +614,7 @@ class _ArticleCard extends StatelessWidget {
           ),
           AppSpacing.hGapSm,
           TextButton(
-            onPressed: () => context.showSnackbar('Opening Health Hub…'),
+            onPressed: () => context.push(RoutePaths.ownerCommunitySaved),
             style: TextButton.styleFrom(foregroundColor: scheme.primary),
             child: const Text('View Hub'),
           ),

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
-import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 
 /// Centralized navigation guard logic for GoRouter.
@@ -48,10 +48,8 @@ class RouteGuard {
 
     // 2. Authenticated user accessing auth or onboarding screens → redirect to portal home
     if (isAuthRoute || isOnboarding) {
-      final user = session.user;
-      final roleStr = user.userMetadata?['role'] as String?;
-      final portal = AppPortalExtension.fromDbRole(roleStr);
-      return portalHome(portal);
+      final selectedPortal = _ref.read(selectedPortalProvider);
+      return portalHome(selectedPortal);
     }
 
     return null;

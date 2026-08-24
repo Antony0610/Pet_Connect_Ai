@@ -169,7 +169,14 @@ class _CommunityEventsScreenState extends State<CommunityEventsScreen> {
                           AppSpacing.hGapSm,
                           IconButton(
                             icon: const Icon(Icons.notifications_none),
-                            onPressed: () {},
+                            tooltip: 'Set Event Reminder',
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Reminder notification set for Golden Retriever Romp!'),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

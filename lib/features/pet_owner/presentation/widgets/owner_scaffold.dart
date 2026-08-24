@@ -49,7 +49,7 @@ class OwnerScaffold extends StatelessWidget {
   }
 
   void _openAiAssistant(BuildContext context) {
-    context.goNamed(RouteNames.ownerAiAssistant);
+    context.goNamed(RouteNames.ownerAiChat);
   }
 
   @override

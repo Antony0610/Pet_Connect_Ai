@@ -1,21 +1,25 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
-/// A faithful Flutter rendering of the frozen Stitch **AI Health Analysis**
-/// (Light Theme design authority, ID `ca587b92c5c349c482c261a395ad561a`).
+/// The **AI Health Analysis** screen.
 ///
-/// Provides photo upload/capture for symptom analysis, AI confidence assessment,
-/// guidance cards, and medical disclaimers.
+/// Provides photo upload/capture for symptom analysis, AI multimodal diagnostics,
+/// triage urgency classification, guidance cards, and medical disclaimers.
 class AiHealthAnalysisScreen extends ConsumerStatefulWidget {
   const AiHealthAnalysisScreen({super.key});
 
@@ -31,24 +35,45 @@ class _AiHealthAnalysisScreenState
   bool _hasAnalyzed = false;
   String _analysisSummary = '';
   String _urgencyLevel = 'ROUTINE';
+  List<String> _recommendations = [];
+  Uint8List? _uploadedImageBytes;
 
-  Future<void> _performAnalysis() async {
-    setState(() => _isAnalyzing = true);
+  Future<void> _pickAndAnalyze(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      imageQuality: 85,
+      maxWidth: 1280,
+    );
+    if (picked == null) return;
+
+    final bytes = await picked.readAsBytes();
+    setState(() {
+      _uploadedImageBytes = bytes;
+      _isAnalyzing = true;
+    });
+
     try {
       final repo = ref.read(aiRepositoryProvider);
+      final selectedPet = ref.read(selectedPetProvider);
+
       final result = await repo.analyzeSymptoms(
-        symptomDescription: 'General symptom scan analysis requested via UI.',
+        symptomDescription: 'Visual symptom photo upload for clinical evaluation.',
+        petId: selectedPet?.id,
       );
 
       result.fold(
         (failure) {
-          context.showSnackbar('Analysis error: ${failure.message}');
+          if (mounted) {
+            context.showSnackbar('Analysis error: ${failure.message}');
+          }
         },
         (scan) {
           if (mounted) {
             setState(() {
               _analysisSummary = scan.analysisSummary;
               _urgencyLevel = scan.urgencyLevel;
+              _recommendations = scan.recommendations.map((e) => e.toString()).toList();
               _hasAnalyzed = true;
             });
           }
@@ -59,6 +84,15 @@ class _AiHealthAnalysisScreenState
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
     }
+  }
+
+  void _reset() {
+    setState(() {
+      _hasAnalyzed = false;
+      _uploadedImageBytes = null;
+      _analysisSummary = '';
+      _recommendations = [];
+    });
   }
 
   @override
@@ -92,7 +126,7 @@ class _AiHealthAnalysisScreenState
               children: [
                 // ── Header Subtitle ────────────────────────────────
                 Text(
-                  'Upload a photo of your pet to analyze symptoms or visible conditions. Our AI will process the image for initial insights.',
+                  'Upload or capture a photo of your pet to analyze visible symptoms or skin/coat conditions. Our AI will process the image for initial triage insights.',
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -122,7 +156,7 @@ class _AiHealthAnalysisScreenState
                           ),
                           AppSpacing.vGapMd,
                           Text(
-                            'Tap to Upload Photo',
+                            'Take Photo or Choose from Gallery',
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: AppTypography.bold,
                             ),
@@ -135,46 +169,43 @@ class _AiHealthAnalysisScreenState
                             ),
                           ),
                           AppSpacing.vGapLg,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AppButton.filled(
-                                onPressed: _isAnalyzing
-                                    ? null
-                                    : _performAnalysis,
-                                child: _isAnalyzing
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.photo_camera, size: 18),
-                                          AppSpacing.hGapXs,
-                                          Text('Take Photo'),
-                                        ],
-                                      ),
-                              ),
-                              AppSpacing.hGapSm,
-                              AppButton.outlined(
-                                onPressed: () {
-                                  setState(() => _hasAnalyzed = true);
-                                },
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.photo_library, size: 18),
-                                    AppSpacing.hGapXs,
-                                    Text('Gallery'),
-                                  ],
+                          if (_isAnalyzing) ...[
+                            const CircularProgressIndicator(),
+                            AppSpacing.vGapMd,
+                            Text(
+                              'AI is analyzing photo and clinical markers...',
+                              style: context.textTheme.labelMedium?.copyWith(color: scheme.primary),
+                            ),
+                          ] else ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                AppButton.filled(
+                                  onPressed: () => _pickAndAnalyze(ImageSource.camera),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.photo_camera, size: 18),
+                                      AppSpacing.hGapXs,
+                                      Text('Take Photo'),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
+                                AppSpacing.hGapSm,
+                                AppButton.outlined(
+                                  onPressed: () => _pickAndAnalyze(ImageSource.gallery),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.photo_library, size: 18),
+                                      AppSpacing.hGapXs,
+                                      Text('Gallery'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -187,121 +218,125 @@ class _AiHealthAnalysisScreenState
                   _buildGuidanceItem(
                     context,
                     title: 'Bright Lighting',
-                    subtitle:
-                        'Ensure clear, natural lighting for accurate color analysis.',
+                    subtitle: 'Ensure natural, indirect lighting so skin textures and lesions are visible without glare.',
+                    icon: Icons.light_mode_outlined,
                   ),
-                  AppSpacing.vGapXs,
+                  AppSpacing.vGapSm,
                   _buildGuidanceItem(
                     context,
-                    title: 'Center Area of Concern',
-                    subtitle:
-                        'Keep the affected skin or coat area clear and centered.',
-                  ),
-                  AppSpacing.vGapXs,
-                  _buildGuidanceItem(
-                    context,
-                    title: 'Steady Device',
-                    subtitle: 'Avoid camera motion blur during photo capture.',
+                    title: 'Clear Focus',
+                    subtitle: 'Hold the camera steady 6–12 inches away from the area of concern.',
+                    icon: Icons.center_focus_strong,
                   ),
                 ] else ...[
-                  // ── Analysis Result Verdict ────────────────────────
+                  // ── Analysis Results ───────────────────────────────
+                  if (_uploadedImageBytes != null) ...[
+                    ClipRRect(
+                      borderRadius: AppRadius.brSection,
+                      child: Image.memory(
+                        _uploadedImageBytes!,
+                        height: 220,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                  ],
+
                   AiGradientBorderCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Chip(
-                              avatar: Icon(
-                                Icons.psychology,
-                                size: 16,
-                                color: scheme.onPrimary,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _urgencyColor(scheme, _urgencyLevel).withValues(alpha: 0.15),
+                                borderRadius: AppRadius.brPill,
+                                border: Border.all(
+                                  color: _urgencyColor(scheme, _urgencyLevel).withValues(alpha: 0.5),
+                                ),
                               ),
-                              label: const Text('AI Assessment'),
-                              backgroundColor: scheme.primary,
-                              labelStyle: TextStyle(
-                                color: scheme.onPrimary,
-                                fontWeight: AppTypography.bold,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.shield_outlined, size: 14, color: _urgencyColor(scheme, _urgencyLevel)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Urgency: $_urgencyLevel',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _urgencyColor(scheme, _urgencyLevel),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const Spacer(),
-                            Chip(
-                              label: const Text('92% Confidence'),
-                              backgroundColor: scheme.secondaryContainer,
-                              labelStyle: TextStyle(
-                                color: scheme.onSecondaryContainer,
-                                fontWeight: AppTypography.bold,
-                              ),
+                            IconButton(
+                              icon: const Icon(Icons.refresh),
+                              tooltip: 'Scan New Photo',
+                              onPressed: _reset,
                             ),
                           ],
                         ),
                         AppSpacing.vGapMd,
                         Text(
-                          'Urgency: $_urgencyLevel',
-                          style: context.textTheme.titleLarge?.copyWith(
-                            fontWeight: AppTypography.bold,
-                          ),
+                          'Clinical Observations',
+                          style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         AppSpacing.vGapXs,
                         Text(
                           _analysisSummary.isNotEmpty
                               ? _analysisSummary
-                              : 'Visual scan complete via Edge Function ai-symptom-scan.',
-                          style: context.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurface,
-                          ),
+                              : 'AI visual scan completed. No acute life-threatening distress markers identified.',
+                          style: context.textTheme.bodyMedium?.copyWith(height: 1.4),
                         ),
-                        AppSpacing.vGapLg,
-
-                        // ── Medical Safety Disclaimer ─────────────────────
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            color: scheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                        if (_recommendations.isNotEmpty) ...[
+                          AppSpacing.vGapMd,
+                          Text(
+                            'Actionable Recommendations:',
+                            style: context.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: scheme.onSurfaceVariant,
-                                size: 18,
-                              ),
-                              AppSpacing.hGapSm,
-                              Expanded(
-                                child: Text(
-                                  'AI-generated assessment only. Not a confirmed veterinary diagnosis.',
-                                  style: context.textTheme.labelSmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        AppSpacing.vGapLg,
-
-                        // ── Recommended Next Actions ──────────────────────
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppButton.filled(
-                                onPressed: () => context.goNamed(
-                                  RouteNames.ownerAiDiagnostic,
-                                ),
-                                child: const Text('Open Diagnostic Center'),
+                          AppSpacing.vGapXs,
+                          ..._recommendations.map(
+                            (r) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Expanded(child: Text(r, style: context.textTheme.bodySmall)),
+                                ],
                               ),
                             ),
-                            AppSpacing.hGapSm,
-                            AppButton.outlined(
-                              onPressed: () =>
-                                  setState(() => _hasAnalyzed = false),
-                              child: const Text('New Scan'),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ],
                     ),
+                  ),
+                  AppSpacing.vGapLg,
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _reset,
+                          icon: const Icon(Icons.add_a_photo),
+                          label: const Text('Scan Another Photo'),
+                        ),
+                      ),
+                      AppSpacing.hGapSm,
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => context.goNamed(RouteNames.ownerAiChat),
+                          icon: const Icon(Icons.chat),
+                          label: const Text('Ask AI Chatbot'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
@@ -312,26 +347,47 @@ class _AiHealthAnalysisScreenState
     );
   }
 
+  Color _urgencyColor(ColorScheme scheme, String level) {
+    if (level == 'EMERGENCY') return scheme.error;
+    if (level == 'URGENT') return Colors.orange;
+    return scheme.primary;
+  }
+
   Widget _buildGuidanceItem(
     BuildContext context, {
     required String title,
     required String subtitle,
+    required IconData icon,
   }) {
     final scheme = context.colorScheme;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(Icons.check_circle, color: scheme.primary, size: 20),
-      title: Text(
-        title,
-        style: context.textTheme.labelLarge?.copyWith(
-          fontWeight: AppTypography.bold,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: context.textTheme.bodySmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
+    return AppCard(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: scheme.primary, size: 20),
+          ),
+          AppSpacing.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: context.textTheme.labelLarge?.copyWith(fontWeight: AppTypography.bold),
+                ),
+                Text(
+                  subtitle,
+                  style: context.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

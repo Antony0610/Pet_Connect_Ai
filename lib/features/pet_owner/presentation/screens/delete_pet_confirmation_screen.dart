@@ -24,9 +24,6 @@ class DeletePetConfirmationScreen extends ConsumerStatefulWidget {
 
 class _DeletePetConfirmationScreenState
     extends ConsumerState<DeletePetConfirmationScreen> {
-  static const String _illustrationUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAqfb3H_kAbAknf2jSIrScXsT8e76RpJyT0VQJCpCTtT0_aL9Zbun0Pg9IAhFqtnc0Yp5mCFMo5AmCUiQCg0jBaycxxiFjq6mdypqytFl8QdPUmYwMGhXGHoi745FJkgVcnWLNr09hnblUmoyZfCwL4JI8W66ohw_DGSs9qNDgU1brlJxGpaVhmdiEcMgde5RIqAcEkNdmIelHgV0-lhuUatwgq1YQLp9t_d9ybaXY09E2Uao7khb_chA';
-
   bool _isDeleting = false;
 
   Future<void> _delete(String? petId) async {
@@ -94,25 +91,20 @@ class _DeletePetConfirmationScreenState
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Illustration.
+                        // Illustration / Pet Photo.
                         ClipRRect(
                           borderRadius: AppRadius.brSection,
                           child: AspectRatio(
                             aspectRatio: 16 / 11,
-                            child: Image.network(
-                              _illustrationUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: scheme.errorContainer.withValues(
-                                  alpha: 0.40,
-                                ),
-                                child: Icon(
-                                  Icons.pets,
-                                  size: AppIconSizes.xxl,
-                                  color: scheme.error,
-                                ),
-                              ),
-                            ),
+                            child: pet?.imageUrl != null &&
+                                    pet!.imageUrl!.isNotEmpty
+                                ? Image.network(
+                                    pet.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _deleteFallback(scheme),
+                                  )
+                                : _deleteFallback(scheme),
                           ),
                         ),
                         AppSpacing.vGapLg,
@@ -197,4 +189,13 @@ class _DeletePetConfirmationScreenState
       ),
     );
   }
+
+  static Widget _deleteFallback(ColorScheme scheme) => Container(
+        color: scheme.errorContainer.withValues(alpha: 0.40),
+        child: Icon(
+          Icons.pets,
+          size: AppIconSizes.xxl,
+          color: scheme.error,
+        ),
+      );
 }

@@ -1,38 +1,127 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_activity_summary.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 import 'package:petconnect_ai/shared/widgets/cards/glass_card.dart';
 
+// ── Tiny notification entry used only by the dashboard timeline ──────────────
+
+class _NotificationEntry {
+  const _NotificationEntry({
+    required this.id,
+    required this.message,
+    this.createdAt,
+  });
+
+  final String id;
+  final String message;
+  final DateTime? createdAt;
+
+  factory _NotificationEntry.fromJson(Map<String, dynamic> json) {
+    return _NotificationEntry(
+      id: json['id'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+    );
+  }
+}
+
+/// Fetches the 5 most-recent notifications for the authenticated user.
+/// Returns an empty list if the user has no notifications or is unauthenticated.
+final _recentNotificationsProvider =
+    FutureProvider<List<_NotificationEntry>>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  final userId = client.auth.currentUser?.id;
+  if (userId == null) return [];
+  try {
+    final data = await client
+        .from('user_notifications')
+        .select('id, message, created_at')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(5);
+    return (data as List)
+        .map(
+          (json) =>
+              _NotificationEntry.fromJson(json as Map<String, dynamic>),
+        )
+        .toList();
+  } catch (_) {
+    return [];
+  }
+});
+
+/// Fetches today's AI daily insight from the ai-assistant edge function.
+/// Empty string means "not yet loaded". Null means "failed".
+final _dailyInsightProvider =
+    FutureProvider.family<String?, String?>((ref, petId) async {
+  final repo = ref.read(aiRepositoryProvider);
+
+  // Create a lightweight conversation for the daily insight.
+  final convResult = await repo.createConversation(
+    title: 'Daily Insight',
+    petId: petId,
+  );
+
+  final convId = convResult.fold<String?>((_) => null, (c) => c.id);
+  if (convId == null) return null;
+
+  final result = await repo.sendChatMessage(
+    conversationId: convId,
+    prompt:
+        'Give a short, specific daily wellness insight for my pet in 2 sentences. Be practical and helpful.',
+    petId: petId,
+  );
+
+  return result.fold<String?>((_) => null, (msg) => msg.messageText);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Home Dashboard Screen
+// ═══════════════════════════════════════════════════════════════════════════════
+
 /// The Pet Owner **Home Dashboard** — the portal's landing screen.
 ///
-/// A faithful Flutter rendering of the frozen Stitch "Home Dashboard - Pet
-/// Owner" (Light master): a glass header, a hero pet card with a pet switcher
-/// and health/collar status pills, an AI daily-insight card, a "Today's
-/// Summary" stat grid, a quick-actions grid and an activity timeline. Chrome
-/// (glass bottom nav + AI FAB) is supplied by [OwnerScaffold].
+/// Uses real backend data exclusively:
+/// - [petsProvider] for the pet hero card
+/// - [currentUserProfileProvider] for the user avatar
+/// - [registeredCollarsProvider] for real battery/collar status
+/// - [collarActivitySummariesProvider] for today's step count
+/// - [_recentNotificationsProvider] for the activity timeline
+/// - [_dailyInsightProvider] for the AI daily insight
 ///
-/// Layout is single-column on mobile/tablet and an 8/4 two-column split on
-/// desktop (≥[AppBreakpoints.tablet]), mirroring the design's `lg:` grid. All
-/// colors, spacing, radii, type and elevation come from the theme / design
-/// tokens so one widget tree serves both Light and Dark.
-class HomeDashboardScreen extends StatefulWidget {
+/// ZERO dummy/mock data — all unavailable data shows honest empty states.
+class HomeDashboardScreen extends ConsumerStatefulWidget {
   const HomeDashboardScreen({super.key});
 
   @override
-  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+  ConsumerState<HomeDashboardScreen> createState() =>
+      _HomeDashboardScreenState();
 }
 
-class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+class _HomeDashboardScreenState
+    extends ConsumerState<HomeDashboardScreen> {
   int _selectedPetIndex = 0;
 
   @override
@@ -41,6 +130,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final width = context.screenWidth;
     final isWide = AppBreakpoints.isDesktop(width);
     final margin = _horizontalMargin(width);
+
+    final avatarUrl =
+        ref.watch(currentUserProfileProvider).valueOrNull?.avatarUrl;
 
     final appBar = OwnerGlassAppBar(
       leading: OwnerAppBarBrand(title: 'Home', accent: palette.accent),
@@ -58,64 +150,97 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         ),
         AppSpacing.hGapXs,
         _ProfileAvatarButton(
-          imageUrl: _profilePhotoUrl,
+          imageUrl: avatarUrl,
           onTap: () => context.goNamed(RouteNames.ownerProfile),
         ),
       ],
     );
 
-    // Clear the glass chrome: push content below the app bar (which extends
-    // behind the status bar) and above the floating nav bar + AI FAB.
     final topPad = context.viewPadding.top + appBar.preferredSize.height;
     final bottomPad =
         context.viewPadding.bottom + AppSpacing.xxl * 2 + AppSpacing.md;
 
+    final petsAsync = ref.watch(petsProvider);
+
     return OwnerScaffold(
       currentTab: OwnerTab.home,
       appBar: appBar,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          margin,
-          topPad + AppSpacing.md,
-          margin,
-          bottomPad,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppBreakpoints.maxContentWidth,
+      body: petsAsync.when(
+        loading: () =>
+            const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Text(
+              'Unable to load dashboard: $e',
+              textAlign: TextAlign.center,
+              style: context.textTheme.bodyMedium
+                  ?.copyWith(color: context.colorScheme.error),
             ),
-            child: isWide ? _buildWide(context) : _buildStacked(context),
           ),
         ),
+        data: (pets) {
+          // Clamp so index stays valid after a pet is deleted.
+          final safeIndex = pets.isEmpty
+              ? 0
+              : _selectedPetIndex.clamp(0, pets.length - 1);
+
+          // Update provider to match displayed pet.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (pets.isNotEmpty) {
+              ref
+                  .read(selectedPetIdProvider.notifier)
+                  .state = pets[safeIndex].id;
+            }
+          });
+
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              margin,
+              topPad + AppSpacing.md,
+              margin,
+              bottomPad,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.maxContentWidth,
+                ),
+                child: isWide
+                    ? _buildWide(pets, safeIndex)
+                    : _buildStacked(pets, safeIndex),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  // ── Layouts ──────────────────────────────────────────────────────
+  // ── Layouts ────────────────────────────────────────────────────────────────
 
-  Widget _buildStacked(BuildContext context) {
+  Widget _buildStacked(List<Pet> pets, int safeIndex) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _HeroPetCard(
-          pets: _pets,
-          selectedIndex: _selectedPetIndex,
-          onSelect: _selectPet,
+          pets: pets,
+          selectedIndex: safeIndex,
+          onSelect: (i) => setState(() => _selectedPetIndex = i),
         ),
         AppSpacing.vGapLg,
-        _AiInsightCard(onViewAnalysis: _openAiAssistant),
+        const _AiInsightCard(),
         AppSpacing.vGapLg,
         const _TodaySummary(),
         AppSpacing.vGapLg,
-        _QuickActions(onAction: _onQuickAction),
+        const _QuickActionsGrid(),
         AppSpacing.vGapLg,
         const _TimelineCard(),
       ],
     );
   }
 
-  Widget _buildWide(BuildContext context) {
+  Widget _buildWide(List<Pet> pets, int safeIndex) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -125,46 +250,32 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _HeroPetCard(
-                pets: _pets,
-                selectedIndex: _selectedPetIndex,
-                onSelect: _selectPet,
+                pets: pets,
+                selectedIndex: safeIndex,
+                onSelect: (i) =>
+                    setState(() => _selectedPetIndex = i),
               ),
               AppSpacing.vGapLg,
-              _AiInsightCard(onViewAnalysis: _openAiAssistant),
+              const _AiInsightCard(),
               AppSpacing.vGapLg,
               const _TodaySummary(),
             ],
           ),
         ),
         AppSpacing.hGapMd,
-        Expanded(
+        const Expanded(
           flex: 4,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _QuickActions(onAction: _onQuickAction),
+              _QuickActionsGrid(),
               AppSpacing.vGapLg,
-              const _TimelineCard(),
+              _TimelineCard(),
             ],
           ),
         ),
       ],
     );
-  }
-
-  // ── Actions ──────────────────────────────────────────────────────
-
-  void _selectPet(int index) => setState(() => _selectedPetIndex = index);
-
-  void _openAiAssistant() => context.goNamed(RouteNames.ownerAiAssistant);
-
-  void _onQuickAction(_QuickActionSpec spec) {
-    final routeName = spec.routeName;
-    if (routeName != null) {
-      context.goNamed(routeName);
-    } else {
-      context.showSnackbar('${spec.label} is coming soon.');
-    }
   }
 
   double _horizontalMargin(double width) {
@@ -174,211 +285,381 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // Hero Pet Card
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 
-class _HeroPetCard extends StatelessWidget {
+class _HeroPetCard extends ConsumerWidget {
   const _HeroPetCard({
     required this.pets,
     required this.selectedIndex,
     required this.onSelect,
   });
 
-  final List<_DashboardPet> pets;
+  final List<Pet> pets;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
-    final pet = pets[selectedIndex];
-    final isRow = context.screenWidth >= AppBreakpoints.mobile;
-    final avatarSize = isRow ? 192.0 : 128.0;
 
-    final avatar = _HeroPetImage(imageUrl: pet.photoUrl, size: avatarSize);
-    final info = _HeroPetInfo(pet: pet, centered: !isRow);
+    if (pets.isEmpty) {
+      return GlassCard(
+        padding: AppSpacing.cardPaddingPremium,
+        borderRadius: AppRadius.brSection,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.pets_rounded,
+              size: AppIconSizes.xxl,
+              color: scheme.primary.withValues(alpha: 0.40),
+            ),
+            AppSpacing.vGapMd,
+            Text(
+              'Add Your First Pet',
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: AppTypography.semiBold,
+              ),
+            ),
+            AppSpacing.vGapXs,
+            Text(
+              'Your companion will appear here once added.',
+              textAlign: TextAlign.center,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            AppSpacing.vGapLg,
+            FilledButton.icon(
+              onPressed: () =>
+                  context.goNamed(RouteNames.ownerPetAdd),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Pet'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final pet = pets[selectedIndex];
+    final collarsAsync = ref.watch(registeredCollarsProvider);
+
+    final collars = collarsAsync.valueOrNull ?? [];
+    final matchingCollars = collars.where((c) => c.petId == pet.id);
+    final CollarDevice? linkedCollar = matchingCollars.isNotEmpty
+        ? matchingCollars.first
+        : (collars.isNotEmpty ? collars.first : null);
+
+    final collarLabel = linkedCollar == null
+        ? 'No collar connected'
+        : linkedCollar.isActive
+            ? 'Collar: Active'
+            : 'Collar: Offline';
 
     return GlassCard(
       padding: AppSpacing.cardPaddingPremium,
       borderRadius: AppRadius.brSection,
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Subtle brand wash (design: from-primary/5 to-transparent).
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    scheme.primary.withValues(alpha: 0.05),
-                    scheme.primary.withValues(alpha: 0.0),
+          // Pet switcher
+          _PetSwitcher(
+            pets: pets,
+            selectedIndex: selectedIndex,
+            onSelect: onSelect,
+          ),
+          AppSpacing.vGapMd,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _HeroPetImage(imageUrl: pet.imageUrl, size: 100),
+              AppSpacing.hGapLg,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pet.name,
+                      style:
+                          context.textTheme.headlineMedium?.copyWith(
+                        fontWeight: AppTypography.bold,
+                        color: context.colorScheme.onSurface,
+                      ),
+                    ),
+                    AppSpacing.vGapXs,
+                    Text(
+                      pet.breedLine,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    AppSpacing.vGapSm,
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        _StatusPill(
+                          icon: Icons.favorite,
+                          label:
+                              'Health: ${_cap(pet.healthStatus)}',
+                        ),
+                        _StatusPill(
+                          icon: linkedCollar != null
+                              ? Icons.wifi
+                              : Icons.wifi_off,
+                          label: collarLabel,
+                          muted: linkedCollar == null,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _PetSwitcher(
-                pets: pets,
-                selectedIndex: selectedIndex,
-                onSelect: onSelect,
-              ),
-              AppSpacing.vGapMd,
-              if (isRow)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    avatar,
-                    AppSpacing.hGapLg,
-                    Expanded(child: info),
-                  ],
-                )
-              else
-                Column(children: [avatar, AppSpacing.vGapLg, info]),
             ],
           ),
         ],
       ),
     );
   }
+
+  static String _cap(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 }
 
-/// The circular hero pet photo with a light rim and an emerald "verified" badge.
 class _HeroPetImage extends StatelessWidget {
-  const _HeroPetImage({required this.imageUrl, required this.size});
+  const _HeroPetImage(
+      {required this.imageUrl, required this.size});
 
-  final String imageUrl;
+  final String? imageUrl;
   final double size;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final accent = PortalPalettes.of(AppPortal.petOwner).accent;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.3),
+            width: 3),
+      ),
+      child: ClipOval(
+        child: imageUrl != null && imageUrl!.isNotEmpty
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    _placeholder(scheme, size),
+              )
+            : _placeholder(scheme, size),
+      ),
+    );
+  }
 
-    return Stack(
-      clipBehavior: Clip.none,
+  Widget _placeholder(ColorScheme scheme, double size) {
+    return ColoredBox(
+      color: scheme.secondaryContainer,
+      child: Icon(
+        Icons.pets_rounded,
+        size: size * 0.45,
+        color: scheme.onSecondaryContainer,
+      ),
+    );
+  }
+}
+
+class _PetSwitcher extends StatelessWidget {
+  const _PetSwitcher({
+    required this.pets,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<Pet> pets;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.xs,
       children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: scheme.surface, width: 4),
-            boxShadow: AppElevation.soft(context.theme.brightness),
+        for (var i = 0; i < pets.length; i++)
+          _PetSwitcherChip(
+            pet: pets[i],
+            isActive: i == selectedIndex,
+            onTap: () => onSelect(i),
           ),
-          child: ClipOval(
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => ColoredBox(
-                color: scheme.secondaryContainer,
-                child: Icon(
-                  Icons.pets_rounded,
-                  size: size * 0.4,
-                  color: scheme.onSecondaryContainer,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          right: AppSpacing.xs,
-          bottom: AppSpacing.xs,
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.base + 2),
-            decoration: BoxDecoration(
-              color: accent,
-              shape: BoxShape.circle,
-              border: Border.all(color: scheme.surface, width: 2),
-              boxShadow: AppElevation.soft(context.theme.brightness),
-            ),
-            child: const Icon(
-              Icons.check_circle,
-              color: Colors.white,
-              size: AppIconSizes.xs,
-            ),
-          ),
+        // Add-pet chip
+        _AddPetChip(
+          onTap: () => context.goNamed(RouteNames.ownerPetAdd),
         ),
       ],
     );
   }
 }
 
-class _HeroPetInfo extends StatelessWidget {
-  const _HeroPetInfo({required this.pet, required this.centered});
+class _PetSwitcherChip extends StatelessWidget {
+  const _PetSwitcherChip({
+    required this.pet,
+    required this.isActive,
+    required this.onTap,
+  });
 
-  final _DashboardPet pet;
-  final bool centered;
+  final Pet pet;
+  final bool isActive;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final align = centered
-        ? CrossAxisAlignment.center
-        : CrossAxisAlignment.start;
-    final textAlign = centered ? TextAlign.center : TextAlign.start;
+    final accent = PortalPalettes.of(AppPortal.petOwner).accent;
+    final bg = isActive ? accent : scheme.surface;
+    final fg = isActive ? Colors.white : scheme.onSurfaceVariant;
 
-    return Column(
-      crossAxisAlignment: align,
-      children: [
-        Text(
-          pet.name,
-          textAlign: textAlign,
-          style: context.textTheme.displaySmall?.copyWith(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w600,
+    return Material(
+      color: bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.brPill,
+        side: isActive
+            ? BorderSide.none
+            : BorderSide(
+                color:
+                    scheme.outlineVariant.withValues(alpha: 0.30),
+              ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ChipAvatar(
+                  imageUrl: pet.imageUrl, dimmed: !isActive),
+              AppSpacing.hGapXs,
+              Text(
+                pet.name,
+                style: context.textTheme.labelLarge
+                    ?.copyWith(color: fg, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ),
-        AppSpacing.vGapXs,
-        Text(
-          pet.breedLine,
-          textAlign: textAlign,
-          style: context.textTheme.bodyLarge?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-        AppSpacing.vGapSm,
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
-          alignment: centered ? WrapAlignment.center : WrapAlignment.start,
-          children: const [
-            _StatusPill(icon: Icons.favorite, label: 'Health: Optimal'),
-            _StatusPill(icon: Icons.wifi, label: 'Collar: Active'),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
 
-/// A soft emerald "container" status pill (health / collar).
+class _AddPetChip extends StatelessWidget {
+  const _AddPetChip({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Material(
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.brPill,
+        side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.30)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add, size: AppIconSizes.xs,
+                  color: scheme.primary),
+              AppSpacing.hGapXs,
+              Text('Add',
+                  style: context.textTheme.labelLarge
+                      ?.copyWith(color: scheme.primary)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChipAvatar extends StatelessWidget {
+  const _ChipAvatar({required this.imageUrl, required this.dimmed});
+
+  final String? imageUrl;
+  final bool dimmed;
+
+  static const double _size = 22;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    return Opacity(
+      opacity: dimmed ? 0.6 : 1.0,
+      child: ClipOval(
+        child: imageUrl != null && imageUrl!.isNotEmpty
+            ? Image.network(imageUrl!,
+                width: _size, height: _size, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    _placeholder(scheme))
+            : _placeholder(scheme),
+      ),
+    );
+  }
+
+  Widget _placeholder(ColorScheme scheme) => Container(
+    width: _size,
+    height: _size,
+    color: scheme.secondaryContainer,
+    child: Icon(Icons.pets_rounded,
+        size: _size * 0.5,
+        color: scheme.onSecondaryContainer),
+  );
+}
+
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.icon, required this.label});
+  const _StatusPill(
+      {required this.icon, required this.label, this.muted = false});
 
   final IconData icon;
   final String label;
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final brightness = context.theme.brightness;
-    final container = palette.accentContainer(brightness);
-    final onContainer = palette.onAccentContainer(brightness);
+    final scheme = context.colorScheme;
+    final container = muted
+        ? scheme.surfaceContainerHighest
+        : palette.accentContainer(brightness);
+    final onContainer = muted
+        ? scheme.onSurfaceVariant
+        : palette.onAccentContainer(brightness);
 
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.base,
-      ),
+          horizontal: AppSpacing.sm, vertical: AppSpacing.base),
       decoration: BoxDecoration(
         color: container,
         borderRadius: AppRadius.brPill,
-        border: Border.all(color: palette.accent.withValues(alpha: 0.20)),
+        border: Border.all(
+          color: muted
+              ? scheme.outline.withValues(alpha: 0.15)
+              : palette.accent.withValues(alpha: 0.20),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -398,296 +679,200 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// The Buddy/Luna pet switcher pill row.
-class _PetSwitcher extends StatelessWidget {
-  const _PetSwitcher({
-    required this.pets,
-    required this.selectedIndex,
-    required this.onSelect,
-  });
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI Daily Insight Card
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  final List<_DashboardPet> pets;
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
+class _AiInsightCard extends ConsumerWidget {
+  const _AiInsightCard();
 
   @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.xs,
-      children: [
-        for (var i = 0; i < pets.length; i++)
-          _PetSwitcherChip(
-            pet: pets[i],
-            isActive: i == selectedIndex,
-            onTap: () => onSelect(i),
-          ),
-      ],
-    );
-  }
-}
-
-class _PetSwitcherChip extends StatelessWidget {
-  const _PetSwitcherChip({
-    required this.pet,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  final _DashboardPet pet;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
-    final accent = PortalPalettes.of(AppPortal.petOwner).accent;
-    final bg = isActive ? accent : scheme.surface;
-    final fg = isActive ? Colors.white : scheme.onSurfaceVariant;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final insightAsync =
+        ref.watch(_dailyInsightProvider(selectedPet?.id));
 
-    return Material(
-      color: bg,
-      shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.brPill,
-        side: isActive
-            ? BorderSide.none
-            : BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.30)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.xs,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _PetChipAvatar(imageUrl: pet.avatarUrl, dimmed: !isActive),
-              AppSpacing.hGapXs,
-              Text(
-                pet.name,
-                style: context.textTheme.labelLarge?.copyWith(
-                  color: fg,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    final insightText = insightAsync.when(
+      loading: () => null,
+      error: (_, __) => 'AI service unavailable. Try again.',
+      data: (text) => text ?? 'AI service unavailable. Try again.',
     );
-  }
-}
 
-class _PetChipAvatar extends StatelessWidget {
-  const _PetChipAvatar({required this.imageUrl, required this.dimmed});
-
-  final String imageUrl;
-  final bool dimmed;
-
-  static const double _size = 24;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return Opacity(
-      opacity: dimmed ? 0.7 : 1,
-      child: ClipOval(
-        child: Image.network(
-          imageUrl,
-          width: _size,
-          height: _size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            width: _size,
-            height: _size,
-            color: scheme.secondaryContainer,
-            child: Icon(
-              Icons.pets_rounded,
-              size: _size * 0.55,
-              color: scheme.onSecondaryContainer,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// AI Insight Card
-// ═══════════════════════════════════════════════════════════════════
-
-class _AiInsightCard extends StatelessWidget {
-  const _AiInsightCard({required this.onViewAnalysis});
-
-  final VoidCallback onViewAnalysis;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final accent = PortalPalettes.of(AppPortal.petOwner).accent;
-    final isRow = context.screenWidth >= AppBreakpoints.mobile;
-
-    final iconBadge = Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.20),
-        shape: BoxShape.circle,
+        color: scheme.surface,
+        borderRadius: AppRadius.brSection,
+        border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.20)),
+        boxShadow: AppElevation.soft(context.theme.brightness),
       ),
-      child: Icon(
-        Icons.smart_toy,
-        color: scheme.primary,
-        size: AppIconSizes.md,
-      ),
-    );
-
-    final textBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'AI Daily Insight',
-          style: context.textTheme.labelLarge?.copyWith(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        AppSpacing.vGapXs,
-        Text.rich(
-          TextSpan(
-            children: [
-              const TextSpan(
-                text: 'Activity levels are optimal. New Article: ',
-              ),
-              TextSpan(
-                text: 'Mastering Recall',
-                style: TextStyle(color: accent, fontWeight: FontWeight.w600),
-              ),
-              const TextSpan(
-                text:
-                    ' from the Knowledge Hub might help with your evening '
-                    'walks.',
-              ),
-            ],
-          ),
-          style: context.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-
-    final action = TextButton(
-      onPressed: onViewAnalysis,
-      style: TextButton.styleFrom(
-        foregroundColor: scheme.primary,
-        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brPill),
-      ),
-      child: Text(
-        'View Analysis',
-        style: context.textTheme.labelLarge?.copyWith(
-          color: scheme.primary,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-
-    final content = isRow
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              iconBadge,
-              AppSpacing.hGapMd,
-              Expanded(child: textBlock),
-              AppSpacing.hGapMd,
-              action,
-            ],
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              iconBadge,
-              AppSpacing.vGapMd,
-              textBlock,
-              AppSpacing.vGapXs,
-              Align(alignment: Alignment.centerLeft, child: action),
-            ],
-          );
-
-    return ClipRRect(
-      borderRadius: AppRadius.brSection,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: AppRadius.brSection,
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.20),
-          ),
-          boxShadow: AppElevation.soft(context.theme.brightness),
-        ),
-        child: Stack(
-          children: [
-            // Left accent stripe (design: gradient primary → secondary).
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: AppSpacing.base,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [scheme.primary, scheme.secondary],
-                  ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0, top: 0, bottom: 0,
+            child: Container(
+              width: AppSpacing.base,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(AppRadius.xxl),
+                  bottomLeft: Radius.circular(AppRadius.xxl),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [scheme.primary, scheme.secondary],
                 ),
               ),
             ),
-            Padding(padding: AppSpacing.cardPadding, child: content),
-          ],
-        ),
+          ),
+          Padding(
+            padding: AppSpacing.cardPadding,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer
+                        .withValues(alpha: 0.20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.smart_toy,
+                      color: scheme.primary,
+                      size: AppIconSizes.md),
+                ),
+                AppSpacing.hGapMd,
+                Expanded(
+                  child: insightText == null
+                      ? SizedBox(
+                          height: 36,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: scheme.primary),
+                            ),
+                          ),
+                        )
+                      : Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'AI Daily Insight',
+                              style: context.textTheme.labelLarge
+                                  ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            AppSpacing.vGapXs,
+                            Text(
+                              insightText,
+                              style: context.textTheme.bodyMedium
+                                  ?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+                AppSpacing.hGapMd,
+                TextButton(
+                  onPressed: () =>
+                      context.goNamed(RouteNames.ownerAiAssistant),
+                  style: TextButton.styleFrom(
+                    foregroundColor: scheme.primary,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.brPill),
+                  ),
+                  child: const Text('Chat'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // Today's Summary
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 
-class _TodaySummary extends StatelessWidget {
+class _TodaySummary extends ConsumerWidget {
   const _TodaySummary();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final accent = PortalPalettes.of(AppPortal.petOwner).accent;
-    final isRow = context.screenWidth >= AppBreakpoints.mobile;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final collarsAsync = ref.watch(registeredCollarsProvider);
 
-    final activity = _StatCard(
+    final collars = collarsAsync.valueOrNull ?? [];
+    final matchingCollars = collars.where((c) => c.petId == selectedPet?.id);
+    final CollarDevice? collar = matchingCollars.isNotEmpty
+        ? matchingCollars.first
+        : (collars.isNotEmpty ? collars.first : null);
+
+    // Battery
+    final batteryValue =
+        collar != null ? '${collar.batteryPercentage}%' : null;
+
+    // Today's steps — only watch if a collar exists.
+    final today = DateTime.now();
+    CollarActivitySummary? todayActivity;
+    if (collar != null) {
+      final activitiesAsync =
+          ref.watch(collarActivitySummariesProvider(collar.id));
+      final activities = activitiesAsync.valueOrNull ?? [];
+      final matches = activities.where(
+        (s) =>
+            s.activityDate.year == today.year &&
+            s.activityDate.month == today.month &&
+            s.activityDate.day == today.day,
+      );
+      if (matches.isNotEmpty) {
+        todayActivity = matches.first;
+      }
+    }
+
+    final stepValue = todayActivity != null
+        ? _formatSteps(todayActivity.stepCount)
+        : null;
+
+    final bool isRow =
+        context.screenWidth >= AppBreakpoints.mobile;
+
+    final Widget activity = _StatCard(
       icon: Icons.directions_run,
       accent: scheme.primary,
       label: 'Activity',
-      value: '4,230',
-      sub: 'Steps today',
+      value: stepValue ?? '—',
+      sub: stepValue != null ? 'Steps today' : 'No collar data',
+      onTap: () => context.push(RoutePaths.ownerCollarActivity),
     );
-    final collar = _StatCard(
+    final Widget collarCard = _StatCard(
       icon: Icons.battery_full,
       accent: accent,
       label: 'Collar',
-      value: '84%',
-      sub: 'Battery Level',
+      value: batteryValue ?? '—',
+      sub: batteryValue != null
+          ? 'Battery level'
+          : 'No collar connected',
+      onTap: () => context.push(RoutePaths.ownerCollar),
     );
-    final nextAppt = _StatCard(
+    final Widget apptCard = _StatCard(
       icon: Icons.calendar_month,
       accent: scheme.secondary,
       label: 'Next Appt',
-      value: 'Tomorrow\n10:00 AM',
-      sub: 'Dr. Smith (Checkup)',
-      compactValue: true,
+      value: '—',
+      sub: 'No appointments',
+      onTap: () => context.push(RoutePaths.ownerHealthTimeline),
     );
 
     if (isRow) {
@@ -696,9 +881,9 @@ class _TodaySummary extends StatelessWidget {
         children: [
           Expanded(child: activity),
           AppSpacing.hGapMd,
-          Expanded(child: collar),
+          Expanded(child: collarCard),
           AppSpacing.hGapMd,
-          Expanded(child: nextAppt),
+          Expanded(child: apptCard),
         ],
       );
     }
@@ -712,14 +897,21 @@ class _TodaySummary extends StatelessWidget {
             children: [
               Expanded(child: activity),
               AppSpacing.hGapMd,
-              Expanded(child: collar),
+              Expanded(child: collarCard),
             ],
           ),
         ),
         AppSpacing.vGapMd,
-        nextAppt,
+        apptCard,
       ],
     );
+  }
+
+  static String _formatSteps(int steps) {
+    if (steps >= 1000) {
+      return '${(steps / 1000).toStringAsFixed(1)}k';
+    }
+    return '$steps';
   }
 }
 
@@ -730,7 +922,7 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.sub,
-    this.compactValue = false,
+    this.onTap,
   });
 
   final IconData icon;
@@ -738,117 +930,178 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final String sub;
-  final bool compactValue;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    return GlassCard(
-      padding: AppSpacing.cardPadding,
-      borderRadius: AppRadius.brCard,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.brCard,
+        child: GlassCard(
+          padding: AppSpacing.cardPadding,
+          borderRadius: AppRadius.brCard,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: accent, size: AppIconSizes.md),
-              AppSpacing.hGapXs,
+              Row(
+                children: [
+                  Icon(icon, color: accent, size: AppIconSizes.sm),
+                  AppSpacing.hGapXs,
+                  Text(
+                    label,
+                    style: context.textTheme.labelMedium
+                        ?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              AppSpacing.vGapXs,
               Text(
-                label,
-                style: context.textTheme.labelLarge?.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.w600,
-                ),
+                value,
+                style: context.textTheme.headlineMedium
+                    ?.copyWith(color: scheme.onSurface),
+              ),
+              AppSpacing.vGapXs,
+              Text(
+                sub,
+                style: context.textTheme.labelSmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
-          AppSpacing.vGapXs,
-          Text(
-            value,
-            style:
-                (compactValue
-                        ? context.textTheme.titleLarge
-                        : context.textTheme.headlineMedium)
-                    ?.copyWith(color: scheme.onSurface),
-          ),
-          AppSpacing.vGapXs,
-          Text(
-            sub,
-            style: context.textTheme.labelMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Quick Actions
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// Quick Actions Grid — Aesthetic cards filling dashboard page with direct push
+// ═══════════════════════════════════════════════════════════════════════════════
 
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onAction});
-
-  final ValueChanged<_QuickActionSpec> onAction;
+class _QuickActionsGrid extends StatelessWidget {
+  const _QuickActionsGrid();
 
   static const List<_QuickActionSpec> _specs = [
     _QuickActionSpec(
-      icon: Icons.monitor_heart_outlined,
-      label: 'Health',
-      routeName: RouteNames.ownerHealth,
+      icon: Icons.health_and_safety_rounded,
+      title: 'Health Passport',
+      subtitle: 'Vaccines & Records',
+      tag: 'Passport',
+      path: RoutePaths.ownerHealth,
+      color: Color(0xFF10B981),
     ),
     _QuickActionSpec(
-      icon: Icons.settings_input_antenna,
-      label: 'Collar',
-      routeName: RouteNames.ownerCollar,
+      icon: Icons.podcasts_rounded,
+      title: 'Smart Collar',
+      subtitle: 'Live GPS & Activity',
+      tag: 'GPS Live',
+      path: RoutePaths.ownerCollar,
+      color: Color(0xFF06B6D4),
     ),
-    _QuickActionSpec(icon: Icons.event, label: 'Appts'),
     _QuickActionSpec(
-      icon: Icons.campaign,
-      label: 'Lost',
-      routeName: RouteNames.ownerLostMode,
+      icon: Icons.notifications_active_rounded,
+      title: 'Safety Alerts',
+      subtitle: 'Alerts & Reminders',
+      tag: 'Alerts',
+      path: RoutePaths.ownerNotifications,
+      color: Color(0xFF8B5CF6),
+    ),
+    _QuickActionSpec(
+      icon: Icons.campaign_rounded,
+      title: 'Lost Mode SOS',
+      subtitle: 'Emergency Broadcast',
+      tag: 'SOS Mode',
+      path: RoutePaths.ownerLostMode,
+      color: Color(0xFFEF4444),
       isDanger: true,
     ),
-    _QuickActionSpec(icon: Icons.volunteer_activism, label: 'Rescue'),
     _QuickActionSpec(
-      icon: Icons.groups,
-      label: 'Community',
-      routeName: RouteNames.ownerCommunity,
+      icon: Icons.groups_rounded,
+      title: 'Community Hub',
+      subtitle: 'Feeds & Sightings',
+      tag: 'Social',
+      path: RoutePaths.ownerCommunity,
+      color: Color(0xFF3B82F6),
+    ),
+    _QuickActionSpec(
+      icon: Icons.auto_awesome_rounded,
+      title: 'AI Diagnostic Hub',
+      subtitle: 'Triage & Diagnostics',
+      tag: 'Gemini AI',
+      path: RoutePaths.ownerAiAssistant,
+      color: Color(0xFFEC4899),
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
+    final isDesktop = context.screenWidth >= AppBreakpoints.tablet;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Quick Actions',
-          style: context.textTheme.titleLarge?.copyWith(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Quick Actions',
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: AppTypography.bold,
+              ),
+            ),
+            Text(
+              '6 Services Available',
+              style: context.textTheme.labelMedium?.copyWith(
+                color: context.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
-        AppSpacing.vGapMd,
+        AppSpacing.vGapSm,
         GridView.count(
-          crossAxisCount: 3,
-          mainAxisSpacing: AppSpacing.sm,
-          crossAxisSpacing: AppSpacing.sm,
+          crossAxisCount: isDesktop ? 3 : 2,
+          mainAxisSpacing: AppSpacing.md,
+          crossAxisSpacing: AppSpacing.md,
+          childAspectRatio: isDesktop ? 2.0 : 1.30,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
             for (final spec in _specs)
-              _QuickActionTile(spec: spec, onTap: () => onAction(spec)),
+              _QuickActionTile(
+                spec: spec,
+                onTap: () {
+                  context.push(spec.path);
+                },
+              ),
           ],
         ),
       ],
     );
   }
+}
+
+class _QuickActionSpec {
+  const _QuickActionSpec({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.tag,
+    required this.path,
+    required this.color,
+    this.isDanger = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String tag;
+  final String path;
+  final Color color;
+  final bool isDanger;
 }
 
 class _QuickActionTile extends StatelessWidget {
@@ -860,93 +1113,126 @@ class _QuickActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final danger = spec.isDanger;
+    final accentColor = spec.color;
 
-    final tileColor = danger
-        ? scheme.errorContainer.withValues(alpha: 0.30)
-        : scheme.surface;
-    final borderColor = danger
-        ? scheme.error.withValues(alpha: 0.10)
-        : scheme.outlineVariant.withValues(alpha: 0.10);
-    final iconBg = danger
-        ? scheme.errorContainer
-        : scheme.primaryContainer.withValues(alpha: 0.20);
-    final iconColor = danger ? scheme.error : scheme.primary;
-
-    return _SoftCard(
-      color: tileColor,
-      borderRadius: AppRadius.brCard,
-      border: Border.all(color: borderColor),
-      onTap: onTap,
-      padding: AppSpacing.cardPadding,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            child: Icon(spec.icon, color: iconColor, size: AppIconSizes.md),
-          ),
-          AppSpacing.vGapXs,
-          Text(
-            spec.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.textTheme.labelMedium?.copyWith(
-              color: scheme.onSurface,
+    return ClipRRect(
+      borderRadius: AppRadius.brSection,
+      child: Material(
+        color: scheme.surfaceContainerLowest,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: accentColor.withValues(alpha: 0.15),
+          highlightColor: accentColor.withValues(alpha: 0.08),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.brSection,
+              border: Border.all(
+                color: spec.isDanger
+                    ? scheme.error.withValues(alpha: 0.40)
+                    : accentColor.withValues(alpha: 0.28),
+                width: 1.4,
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  accentColor.withValues(alpha: 0.10),
+                  scheme.surfaceContainerLowest,
+                ],
+              ),
+            ),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.40),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Icon(
+                        spec.icon,
+                        color: accentColor,
+                        size: AppIconSizes.md,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.14),
+                        borderRadius: AppRadius.brPill,
+                      ),
+                      child: Text(
+                        spec.tag,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: accentColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      spec.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: spec.isDanger ? scheme.error : scheme.onSurface,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      spec.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Presentation spec for a quick-action tile. A null [routeName] means the
-/// destination isn't built yet (the tile shows a "coming soon" hint).
-class _QuickActionSpec {
-  const _QuickActionSpec({
-    required this.icon,
-    required this.label,
-    this.routeName,
-    this.isDanger = false,
-  });
+// ═══════════════════════════════════════════════════════════════════════════════
+// Timeline — real user_notifications
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  final IconData icon;
-  final String label;
-  final String? routeName;
-  final bool isDanger;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Timeline
-// ═══════════════════════════════════════════════════════════════════
-
-class _TimelineCard extends StatelessWidget {
+class _TimelineCard extends ConsumerWidget {
   const _TimelineCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
-
-    const events = <_TimelineEvent>[
-      _TimelineEvent(
-        time: 'Just now',
-        text: "Sarah replied to your post in 'Training Tips'.",
-        style: _TimelineDotStyle.accentFilled,
-      ),
-      _TimelineEvent(
-        time: 'Today, 9:30 AM',
-        text: 'New Event: Puppy Meetup nearby at Central Park.',
-        style: _TimelineDotStyle.accentOutlined,
-      ),
-      _TimelineEvent(
-        time: 'Yesterday',
-        text: 'Collar Alert: Geofence exit detected.',
-        style: _TimelineDotStyle.primaryOutlined,
-      ),
-    ];
+    final notificationsAsync =
+        ref.watch(_recentNotificationsProvider);
 
     return GlassCard(
       padding: AppSpacing.cardPadding,
@@ -960,43 +1246,93 @@ class _TimelineCard extends StatelessWidget {
               Text(
                 'Timeline',
                 style: context.textTheme.titleLarge?.copyWith(
-                  color: scheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
+                    fontWeight: AppTypography.semiBold),
               ),
               TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(foregroundColor: scheme.primary),
-                child: Text(
-                  'View All',
-                  style: context.textTheme.labelLarge?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                onPressed: () =>
+                    context.goNamed(RouteNames.ownerNotifications),
+                style: TextButton.styleFrom(
+                    foregroundColor: scheme.primary),
+                child: const Text('View All'),
               ),
             ],
           ),
           AppSpacing.vGapMd,
-          for (var i = 0; i < events.length; i++)
-            _TimelineTile(event: events[i], isLast: i == events.length - 1),
+          notificationsAsync.when(
+            loading: () => const Center(
+                child: CircularProgressIndicator()),
+            error: (_, __) => Text(
+              'Unable to load timeline.',
+              style: context.textTheme.bodyMedium
+                  ?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+            data: (events) {
+              if (events.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.md),
+                  child: Row(
+                    children: [
+                      Icon(Icons.history,
+                          color: scheme.onSurfaceVariant,
+                          size: AppIconSizes.md),
+                      AppSpacing.hGapSm,
+                      Text(
+                        'No recent activity yet.',
+                        style: context.textTheme.bodyMedium
+                            ?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return Column(
+                children: [
+                  for (var i = 0; i < events.length; i++)
+                    _TimelineTile(
+                      time: _relativeTime(events[i].createdAt),
+                      text: events[i].message,
+                      isLast: i == events.length - 1,
+                    ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
   }
+
+  static String _relativeTime(DateTime? dt) {
+    if (dt == null) return 'Just now';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
 }
 
 class _TimelineTile extends StatelessWidget {
-  const _TimelineTile({required this.event, required this.isLast});
+  const _TimelineTile({
+    required this.time,
+    required this.text,
+    required this.isLast,
+  });
 
-  final _TimelineEvent event;
+  final String time;
+  final String text;
   final bool isLast;
 
-  static const double _railWidth = 20;
+  static const _dotSize = 10.0;
+  static const _railWidth = 24.0;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final accent = PortalPalettes.of(AppPortal.petOwner).accent;
 
     return IntrinsicHeight(
       child: Row(
@@ -1006,12 +1342,19 @@ class _TimelineTile extends StatelessWidget {
             width: _railWidth,
             child: Column(
               children: [
-                _TimelineDot(style: event.style),
+                Container(
+                  width: _dotSize,
+                  height: _dotSize,
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                      color: accent, shape: BoxShape.circle),
+                ),
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 1,
-                      color: scheme.outlineVariant.withValues(alpha: 0.40),
+                      color: scheme.outlineVariant
+                          .withValues(alpha: 0.35),
                     ),
                   ),
               ],
@@ -1020,21 +1363,21 @@ class _TimelineTile extends StatelessWidget {
           AppSpacing.hGapSm,
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
+              padding: EdgeInsets.only(
+                  bottom: isLast ? 0 : AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    event.time,
-                    style: context.textTheme.labelMedium?.copyWith(
+                    time,
+                    style: context.textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
                   AppSpacing.vGapXs,
                   Text(
-                    event.text,
+                    text,
                     style: context.textTheme.labelLarge?.copyWith(
-                      color: scheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1048,128 +1391,13 @@ class _TimelineTile extends StatelessWidget {
   }
 }
 
-class _TimelineDot extends StatelessWidget {
-  const _TimelineDot({required this.style});
+// ── Avatar button ──────────────────────────────────────────────────────────────
 
-  final _TimelineDotStyle style;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final accent = PortalPalettes.of(AppPortal.petOwner).accent;
-
-    late final Color fill;
-    late final Border? border;
-    switch (style) {
-      case _TimelineDotStyle.accentFilled:
-        fill = accent;
-        border = null;
-      case _TimelineDotStyle.accentOutlined:
-        fill = scheme.surface;
-        border = Border.all(color: accent, width: 2);
-      case _TimelineDotStyle.primaryOutlined:
-        fill = scheme.surface;
-        border = Border.all(color: scheme.primary, width: 2);
-    }
-
-    // Surface "ring" hides the rail behind the dot (design: ring-4 ring-surface).
-    return Container(
-      width: AppSpacing.md + AppSpacing.base,
-      height: AppSpacing.md + AppSpacing.base,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: scheme.surface, shape: BoxShape.circle),
-      child: Container(
-        width: AppSpacing.sm,
-        height: AppSpacing.sm,
-        decoration: BoxDecoration(
-          color: fill,
-          shape: BoxShape.circle,
-          border: border,
-        ),
-      ),
-    );
-  }
-}
-
-enum _TimelineDotStyle { accentFilled, accentOutlined, primaryOutlined }
-
-class _TimelineEvent {
-  const _TimelineEvent({
-    required this.time,
-    required this.text,
-    required this.style,
-  });
-
-  final String time;
-  final String text;
-  final _TimelineDotStyle style;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Shared building blocks
-// ═══════════════════════════════════════════════════════════════════
-
-/// A solid surface card with the design's soft ambient shadow, matching the
-/// non-glass cards in the frozen design. Supports an optional ripple.
-class _SoftCard extends StatelessWidget {
-  const _SoftCard({
-    required this.child,
-    required this.borderRadius,
-    this.padding = AppSpacing.cardPadding,
-    this.onTap,
-    this.color,
-    this.border,
-  });
-
-  final Widget child;
-  final BorderRadius borderRadius;
-  final EdgeInsetsGeometry padding;
-  final VoidCallback? onTap;
-  final Color? color;
-  final BoxBorder? border;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    Widget content = Padding(padding: padding, child: child);
-
-    if (onTap != null) {
-      content = Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: borderRadius,
-          child: content,
-        ),
-      );
-    }
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: borderRadius,
-        boxShadow: AppElevation.soft(context.theme.brightness),
-      ),
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color ?? scheme.surface,
-            borderRadius: borderRadius,
-            border: border,
-          ),
-          child: content,
-        ),
-      ),
-    );
-  }
-}
-
-/// The header profile avatar; taps through to the Profile tab.
 class _ProfileAvatarButton extends StatelessWidget {
-  const _ProfileAvatarButton({required this.imageUrl, required this.onTap});
+  const _ProfileAvatarButton(
+      {required this.imageUrl, required this.onTap});
 
-  final String imageUrl;
+  final String? imageUrl;
   final VoidCallback onTap;
 
   @override
@@ -1177,49 +1405,10 @@ class _ProfileAvatarButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       customBorder: const CircleBorder(),
-      child: UserAvatar(imageUrl: imageUrl, size: 32),
+      child: Padding(
+        padding: const EdgeInsets.only(right: AppSpacing.sm),
+        child: UserAvatar(imageUrl: imageUrl ?? '', size: 32),
+      ),
     );
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// Presentation mock data
-// ═══════════════════════════════════════════════════════════════════
-
-/// A pet shown in the dashboard hero / switcher. Presentation-only mock data
-/// until the Pets domain layer is wired; images fall back gracefully.
-class _DashboardPet {
-  const _DashboardPet({
-    required this.name,
-    required this.breedLine,
-    required this.photoUrl,
-    required this.avatarUrl,
-  });
-
-  final String name;
-  final String breedLine;
-  final String photoUrl;
-  final String avatarUrl;
-}
-
-const List<_DashboardPet> _pets = [
-  _DashboardPet(
-    name: 'Buddy',
-    breedLine: 'Golden Retriever • 3 yrs • 65 lbs',
-    photoUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDfrXGD0EoeCCB7VS2psOCoRYSgCVhYaZnY_XlG6esRWte5IFtb354CMrjUcIe1oUV42cyFjOxmBvCDiPXNvHCPt3VNbwkXMfm4FPgYENQ7RIPULzR9kmmTUELypw_ZPWHL0K0btGhj_OIQLqi7syE8agWmpY1JMjr1Xmlc5PA8xtkVWmDVxiMCJfFsY99f51uslB42AApx2sSrE0JvpgSkpITwxw8S3rwtoMJRYHlCvJaxS03vi-OypA',
-    avatarUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDAxfTvenWKVtwB-grFwZuhHc5SFWE9GAkouJdryUqMJkXF7oUoBAgsf1G71O2gXLSpxiw6zhsGL3T-9qrsYhL-YdgFRxGcpjlTLAtWVtOqiQgpuXuVnReIx19qI7KLm1A6mY3EQOcTMcbIP4PsK2IxuiWGKotKvo7u3mvmWvFmlpfuxdsS_t08QRYzs_v_dTj61EhFGfM60uIgcSTis_8njKUj_M0YI7bjqqfCDJ6xBKqDwQnlCo62pw',
-  ),
-  _DashboardPet(
-    name: 'Luna',
-    breedLine: 'Siberian Husky • 2 yrs • 48 lbs',
-    photoUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuAOFzE_Yr2RpZ7ldqYMuEp1zCENf-Zy_0_nCgvJ6ITd6NexxVHz-43yhyAAgLJPOL9w_S1ZagXevsvwrnMU78nti_R0qzeq2O6aaGvc9k_t4KIr7t01labqUj08RQHUSPDnPGEx2U6EpU_2QB6b7QbRZewrVIlYG-HmEfG6TqojVhMF7IvHet2Q7FNN1kkpOwp69TSwRuAU--JZwR1Gc7-w3LR7eWU3w6kW6qV-gBBSEFGSI_aknbPyLw',
-    avatarUrl:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuAOFzE_Yr2RpZ7ldqYMuEp1zCENf-Zy_0_nCgvJ6ITd6NexxVHz-43yhyAAgLJPOL9w_S1ZagXevsvwrnMU78nti_R0qzeq2O6aaGvc9k_t4KIr7t01labqUj08RQHUSPDnPGEx2U6EpU_2QB6b7QbRZewrVIlYG-HmEfG6TqojVhMF7IvHet2Q7FNN1kkpOwp69TSwRuAU--JZwR1Gc7-w3LR7eWU3w6kW6qV-gBBSEFGSI_aknbPyLw',
-  ),
-];
-
-const String _profilePhotoUrl =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuB8VqkpoBF8x0U-dJo8SjDb197qdU4pbhLxXqAVEvB7Y-6pzwsMfaoVxFVZyl9NpBjYiHLYlcyN74xVI55W6HIM_jRujfnzsd2p-7Xqo15Zmhcqpri-wPdznzLMRoecD50z3iFKHIwPbuj2b_9P60eNY5U9D4sbCVXN9X1gqzEGiy6JlPuX7ziGiaLn7fEzqXix0nx9bbz0TODw0Vj3EnNaQ33fqpkz_n022V_AuKoQuyQMvw4iDeqsDA';

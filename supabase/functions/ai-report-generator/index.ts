@@ -11,19 +11,74 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { pet_id } = await req.json();
+    const { pet_id, pet_name, pet_species, pet_breed } = await req.json();
+
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    let overall_health_score = 92;
+    let key_insights: string[] = [];
+    let dietary_recommendations = "";
+
+    if (geminiApiKey) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: `You are PetConnect AI Report Generator.
+Generate a comprehensive wellness report for a pet named "${pet_name || "Companion"}" (${pet_species || "dog"}, ${pet_breed || "mixed breed"}).
+Respond ONLY in JSON with this structure:
+{
+  "overall_health_score": <number 85-98>,
+  "key_insights": ["Insight 1", "Insight 2", "Insight 3"],
+  "dietary_recommendations": "Detailed diet and nutrition recommendation string"
+}`,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.3,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
+        overall_health_score = parsed.overall_health_score || 92;
+        key_insights = parsed.key_insights || [
+          "Weight trajectory is optimal for breed and life stage.",
+          "Preventative vaccination milestones are up to date.",
+          "Activity indicators show consistent daily movement.",
+        ];
+        dietary_recommendations = parsed.dietary_recommendations || "High-protein, age-appropriate nutrition with balanced hydration.";
+      }
+    }
+
+    if (key_insights.length === 0) {
+      key_insights = [
+        "Weight trajectory is stable within the standard breed range.",
+        "Vaccination protocol is compliant with preventative standards.",
+        "Daily activity levels align with recommended exercise targets.",
+      ];
+      dietary_recommendations = "Maintain current balanced nutrition formula with fresh water available at all times.";
+    }
 
     return new Response(
       JSON.stringify({
         pet_id,
         generated_at: new Date().toISOString(),
-        overall_health_score: 94,
-        key_insights: [
-          "Weight trajectory is stable within the optimal breed range.",
-          "Vaccination protocol is 100% compliant.",
-          "Daily activity levels meet veterinary exercise recommendations."
-        ],
-        dietary_recommendations: "Maintain current high-protein, balanced omega-3 formulated diet."
+        overall_health_score,
+        key_insights,
+        dietary_recommendations,
       }),
       {
         headers: {

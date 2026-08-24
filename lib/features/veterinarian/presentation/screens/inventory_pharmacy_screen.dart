@@ -340,7 +340,35 @@ class _InventoryPharmacyScreenState
               Row(
                 children: [
                   OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(item['name'] as String),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Category: ${item['category']}'),
+                              const SizedBox(height: 6),
+                              Text('SKU Code: ${item['sku']}'),
+                              const SizedBox(height: 6),
+                              Text('Current On-Hand Stock: ${item['stock']} units'),
+                              const SizedBox(height: 6),
+                              const Text('Storage Requirement: Controlled (15-25°C)'),
+                              const SizedBox(height: 6),
+                              const Text('Batch: #PC-2026-B8 · Expiry: 12/2027'),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
@@ -351,7 +379,18 @@ class _InventoryPharmacyScreenState
                   ),
                   const SizedBox(width: 6),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      final isCritical = item['isCritical'] == true;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isCritical
+                              ? 'Purchase order created for ${item['name']} (50 units requested).'
+                              : '1 unit of ${item['name']} logged for clinical use.',
+                          ),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),

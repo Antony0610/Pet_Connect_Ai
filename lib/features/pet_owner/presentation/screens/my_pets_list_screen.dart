@@ -7,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
@@ -14,17 +15,6 @@ import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 
 /// The Pet Owner **My Pets** list — the portal's pet roster.
-///
-/// A faithful Flutter rendering of the frozen Stitch "My Pets List" (Light
-/// master): a glass header (profile avatar + primary "My Pets" wordmark + AI
-/// button), a "Your Companions" section intro and a responsive grid of pet
-/// cards. Each card shows a cover photo topped by a glass health badge, the
-/// pet's name and breed, an overflow menu and a pair of status chips. Chrome
-/// (glass bottom nav + the "Add Pet" FAB) is supplied by [OwnerScaffold].
-///
-/// The grid is 1 / 2 / 3 columns across the design's `md:`/`lg:` breakpoints.
-/// All colors, spacing, radii, type and elevation come from the theme / design
-/// tokens so one widget tree serves both Light and Dark.
 class MyPetsListScreen extends ConsumerWidget {
   const MyPetsListScreen({super.key});
 
@@ -35,10 +25,12 @@ class MyPetsListScreen extends ConsumerWidget {
     final isWide = width >= _twoColumnWidth;
     final margin = _horizontalMargin(width);
     final petsAsync = ref.watch(petsProvider);
+    final userProfileAsync = ref.watch(currentUserProfileProvider);
+    final userAvatar = userProfileAsync.valueOrNull?.avatarUrl;
 
     final appBar = OwnerGlassAppBar(
       leading: _HeaderAvatar(
-        imageUrl: _profilePhotoUrl,
+        imageUrl: userAvatar ?? '',
         onTap: () => context.goNamed(RouteNames.ownerProfile),
       ),
       title: Text(
@@ -138,13 +130,7 @@ class MyPetsListScreen extends ConsumerWidget {
                           pathParameters: {'petId': pet.id},
                         );
                       },
-                      onMore: (pet) {
-                        ref.read(selectedPetIdProvider.notifier).state = pet.id;
-                        context.goNamed(
-                          RouteNames.ownerPetSettings,
-                          pathParameters: {'petId': pet.id},
-                        );
-                      },
+                      onMore: (pet) => _showPetActionMenu(context, ref, pet),
                     );
                   },
                   loading: () => const Center(
@@ -162,6 +148,78 @@ class MyPetsListScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPetActionMenu(BuildContext context, WidgetRef ref, Pet pet) {
+    ref.read(selectedPetIdProvider.notifier).state = pet.id;
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.xxl),
+        ),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('Pet Details'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.goNamed(
+                    RouteNames.ownerPetDetail,
+                    pathParameters: {'petId': pet.id},
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Photo Gallery'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.goNamed(
+                    RouteNames.ownerPetGallery,
+                    pathParameters: {'petId': pet.id},
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('Pet Settings'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.goNamed(
+                    RouteNames.ownerPetSettings,
+                    pathParameters: {'petId': pet.id},
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(ctx).colorScheme.error,
+                ),
+                title: Text(
+                  'Delete Pet',
+                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.goNamed(
+                    RouteNames.ownerPetDelete,
+                    pathParameters: {'petId': pet.id},
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -349,7 +407,7 @@ class _PetCard extends StatelessWidget {
                     _PetCardHeader(pet: pet, onMore: onMore),
                     AppSpacing.vGapLg,
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(child: _PetStatChip(stat: primaryStat)),
                         AppSpacing.hGapSm,
@@ -609,6 +667,3 @@ class _PetStat {
   final String label;
   final bool highlighted;
 }
-
-const String _profilePhotoUrl =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAqXs9-8o_9UQdDqaW523Fjes2TWHU1jYiexscUhhcNCt9nhCbSOe74Lr1yDs1eMgbNvubeMc8G4X1a9-_BlwpcCzoly3EXq-FlpVJfRCnBl7mHxF4USx8gMVSepoj8l3lfdWv4LQEKV_SmabegHDCttbhZeYICPPn2rRtO9uBBlwQY_iVUM8SdwP7XiMqkywiUhymEwgywjpfgP0lTsuj1EXnvtVcyvHPIbdWlovogNtLc2te7rqSHmA';

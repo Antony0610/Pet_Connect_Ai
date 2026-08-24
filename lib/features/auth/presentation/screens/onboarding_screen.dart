@@ -126,7 +126,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 itemBuilder: (context, i) => _OnboardingPage(
                   data: _pages[i],
                   isLast: i == _pages.length - 1,
-                  onGetStarted: () => _finish(RoutePaths.login),
+                  onGetStarted: () => _finish(RoutePaths.roleSelection),
                   onHaveAccount: () => _finish(RoutePaths.login),
                 ),
               ),

@@ -5,8 +5,11 @@ import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/states/error_view.dart';
@@ -216,6 +219,39 @@ class _AdminPlatformSettingsScreenState
                       backgroundColor: colorScheme.primary,
                       textColor: colorScheme.onPrimary,
                       height: 48,
+                    ),
+
+                    AppSpacing.vGapMd,
+
+                    // ── Sign Out of Admin Portal ────────────────────────
+                    OutlinedButton.icon(
+                      icon: Icon(Icons.logout, color: colorScheme.error),
+                      label: Text('Sign Out of Administrator Portal', style: TextStyle(color: colorScheme.error)),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+                        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
+                      ),
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Sign Out'),
+                            content: const Text('Sign out of Administrator Portal?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: Text('Sign Out', style: TextStyle(color: colorScheme.error)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true && context.mounted) {
+                          await ref.read(signOutProvider)(const NoParams());
+                          if (context.mounted) context.go(RoutePaths.login);
+                        }
+                      },
                     ),
 
                     AppSpacing.vGapXl,

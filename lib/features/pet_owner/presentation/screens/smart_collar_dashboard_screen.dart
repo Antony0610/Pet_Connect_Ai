@@ -4,36 +4,37 @@ import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_ai_fab.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_bottom_nav_bar.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_scaffold.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Smart Collar Dashboard** — `/owner/collar`.
 ///
-/// The frozen Stitch comp: a glass device-status card (pet, connection, and a
-/// Location / Battery / Signal stat grid), a "Today's Activity" step ring beside
-/// a 2×2 quick-action grid, and a live mini-map preview — with the floating AI
-/// assistant docked above. Every value comes from tokens / theme, so one tree
-/// serves Light and Dark.
+/// Uses live Supabase Collar data via [registeredCollarsProvider],
+/// [collarActivitySummariesProvider], and [liveGpsLocationStreamProvider].
+///
+/// ZERO dummy/mock data: when no hardware is paired or no activity is logged,
+/// honest empty states are shown.
 class SmartCollarDashboardScreen extends StatelessWidget {
   const SmartCollarDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
     final isWide = width >= AppBreakpoints.tablet;
 
-    return Scaffold(
-      backgroundColor: scheme.surface,
+    return OwnerScaffold(
+      currentTab: OwnerTab.collar,
       appBar: collarAppBar(
         context,
         title: 'Smart Collar',
@@ -45,12 +46,6 @@ class SmartCollarDashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: OwnerAiFab(
-          onPressed: () => context.goNamed(RouteNames.ownerAiAssistant),
-        ),
-      ),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
@@ -60,9 +55,9 @@ class SmartCollarDashboardScreen extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 margin,
-                AppSpacing.md,
+                context.viewPadding.top + 56 + AppSpacing.md,
                 margin,
-                AppSpacing.xxl,
+                context.viewPadding.bottom + 90 + AppSpacing.xxl,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -112,24 +107,20 @@ class _DeviceStatusCard extends ConsumerWidget {
     final online = PortalPalettes.of(AppPortal.petOwner).accent;
     final isWide = context.screenWidth >= AppBreakpoints.tablet;
     final collarsAsync = ref.watch(registeredCollarsProvider);
+    final selectedPet = ref.watch(selectedPetProvider);
 
     return collarsAsync.when(
       data: (collars) {
-        final collar = collars.isNotEmpty ? collars.first : null;
-        final petName = collar != null
-            ? 'Collar ${collar.deviceId}'
-            : 'Buddy (No Hardware)';
-        final batteryVal = collar != null
-            ? '${collar.batteryPercentage}%'
-            : 'Software Only';
-        final connVal = collar != null
-            ? collar.connectivityType
-            : 'No Hardware';
+        final CollarDevice? collar = collars.isNotEmpty ? collars.first : null;
+        final petName = selectedPet?.name ??
+            (collar != null ? 'Collar ${collar.deviceId}' : 'No Collar Paired');
+        final isConnected = collar != null && collar.isActive;
+        final batteryVal = collar != null ? '${collar.batteryPercentage}%' : '—';
+        final connVal = collar != null ? collar.connectivityType : '—';
 
         final header = Column(
-          crossAxisAlignment: isWide
-              ? CrossAxisAlignment.start
-              : CrossAxisAlignment.center,
+          crossAxisAlignment:
+              isWide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: [
             Text(
               petName,
@@ -142,12 +133,18 @@ class _DeviceStatusCard extends ConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.wifi_rounded, color: online, size: AppIconSizes.sm),
+                Icon(
+                  isConnected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                  color: isConnected ? online : scheme.onSurfaceVariant,
+                  size: AppIconSizes.sm,
+                ),
                 AppSpacing.hGapXs,
                 Text(
-                  collar != null
+                  isConnected
                       ? 'Connected & Active'
-                      : 'Software Service Active',
+                      : (collar != null
+                          ? 'Device Offline'
+                          : 'Hardware Required — No Device'),
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -159,11 +156,11 @@ class _DeviceStatusCard extends ConsumerWidget {
 
         final stats = Row(
           children: [
-            const Expanded(
+            Expanded(
               child: CollarStatTile(
                 icon: Icons.location_on_rounded,
-                label: 'Location',
-                value: 'Centennial Park',
+                label: 'Status',
+                value: isConnected ? 'Online' : 'Offline',
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -195,14 +192,20 @@ class _DeviceStatusCard extends ConsumerWidget {
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _PetAvatar(online: online),
+                    _PetAvatar(
+                      online: isConnected ? online : scheme.outlineVariant,
+                      imageUrl: selectedPet?.imageUrl,
+                    ),
                     AppSpacing.hGapLg,
                     Expanded(child: info),
                   ],
                 )
               : Column(
                   children: [
-                    _PetAvatar(online: online),
+                    _PetAvatar(
+                      online: isConnected ? online : scheme.outlineVariant,
+                      imageUrl: selectedPet?.imageUrl,
+                    ),
                     AppSpacing.vGapMd,
                     info,
                   ],
@@ -228,12 +231,12 @@ class _DeviceStatusCard extends ConsumerWidget {
   }
 }
 
-/// The pet's circular photo with a green "online" indicator dot, matching the
-/// frozen device-status hero.
+/// The pet's circular photo with a connection indicator dot.
 class _PetAvatar extends StatelessWidget {
-  const _PetAvatar({required this.online});
+  const _PetAvatar({required this.online, this.imageUrl});
 
   final Color online;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -245,11 +248,16 @@ class _PetAvatar extends StatelessWidget {
         CircleAvatar(
           radius: AppSpacing.xxl,
           backgroundColor: scheme.primaryContainer.withValues(alpha: 0.4),
-          child: Icon(
-            Icons.pets_rounded,
-            size: AppIconSizes.xl,
-            color: scheme.primary,
-          ),
+          backgroundImage: imageUrl != null && imageUrl!.isNotEmpty
+              ? NetworkImage(imageUrl!)
+              : null,
+          child: imageUrl == null || imageUrl!.isEmpty
+              ? Icon(
+                  Icons.pets_rounded,
+                  size: AppIconSizes.xl,
+                  color: scheme.primary,
+                )
+              : null,
         ),
         Container(
           width: 14,
@@ -267,12 +275,42 @@ class _PetAvatar extends StatelessWidget {
 
 /// "Today's Activity" hero tile: a circular step progress ring with center text
 /// beside a vertical breakdown stack (Distance, Active, Rest).
-class _TodaysActivity extends StatelessWidget {
+class _TodaysActivity extends ConsumerWidget {
   const _TodaysActivity();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final collarsAsync = ref.watch(registeredCollarsProvider);
+    final collar = collarsAsync.valueOrNull?.firstOrNull;
+
+    int steps = 0;
+    int activeMinutes = 0;
+    int restMinutes = 0;
+    double distanceKm = 0.0;
+
+    if (collar != null) {
+      final activitiesAsync =
+          ref.watch(collarActivitySummariesProvider(collar.id));
+      final today = DateTime.now();
+      final activities = activitiesAsync.valueOrNull ?? [];
+      final matches = activities.where(
+        (s) =>
+            s.activityDate.year == today.year &&
+            s.activityDate.month == today.month &&
+            s.activityDate.day == today.day,
+      );
+      final todayActivity = matches.isNotEmpty ? matches.first : null;
+
+      if (todayActivity != null) {
+        steps = todayActivity.stepCount;
+        activeMinutes = todayActivity.activeMinutes;
+        restMinutes = todayActivity.restMinutes;
+        distanceKm = steps * 0.0008;
+      }
+    }
+
+    final double progress = (steps / 10000).clamp(0.0, 1.0);
 
     return AppCard(
       backgroundColor: scheme.surfaceContainerLow,
@@ -300,7 +338,7 @@ class _TodaysActivity extends StatelessWidget {
                         width: 110,
                         height: 110,
                         child: CircularProgressIndicator(
-                          value: 8420 / 10000,
+                          value: progress,
                           strokeWidth: 10,
                           backgroundColor: scheme.outlineVariant.withValues(
                             alpha: 0.3,
@@ -312,7 +350,7 @@ class _TodaysActivity extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '8,420',
+                            '$steps',
                             style: context.textTheme.titleLarge?.copyWith(
                               fontWeight: AppTypography.bold,
                             ),
@@ -329,25 +367,29 @@ class _TodaysActivity extends StatelessWidget {
                   ),
                 ),
                 AppSpacing.hGapLg,
-                const Expanded(
+                Expanded(
                   child: Column(
                     children: [
                       _MetricLine(
                         icon: Icons.directions_walk_rounded,
                         label: 'Distance',
-                        value: '5.2 km',
+                        value: collar != null
+                            ? '${distanceKm.toStringAsFixed(1)} km'
+                            : '—',
                       ),
                       AppSpacing.vGapSm,
                       _MetricLine(
                         icon: Icons.timer_rounded,
                         label: 'Active',
-                        value: '1h 45m',
+                        value: collar != null ? '${activeMinutes}m' : '—',
                       ),
                       AppSpacing.vGapSm,
                       _MetricLine(
                         icon: Icons.bedtime_rounded,
                         label: 'Rest',
-                        value: '14h 20m',
+                        value: collar != null
+                            ? '${(restMinutes / 60).toStringAsFixed(1)}h'
+                            : '—',
                       ),
                     ],
                   ),
@@ -469,11 +511,34 @@ class _QuickActions extends StatelessWidget {
 }
 
 /// Mini-map hero tile previewing Buddy's current location with a button to tap into tracking.
-class _MiniMap extends StatelessWidget {
+class _MiniMap extends ConsumerWidget {
   const _MiniMap();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final collarsAsync = ref.watch(registeredCollarsProvider);
+    final collar = collarsAsync.valueOrNull?.firstOrNull;
+
+    String locationLabel = 'No collar connected';
+
+    double lat = 37.7749;
+    double lng = -122.4194;
+
+    if (collar != null) {
+      final locationAsync = ref.watch(liveGpsLocationStreamProvider(collar.id));
+      lat = locationAsync.valueOrNull?.latitude ?? 37.7749;
+      lng = locationAsync.valueOrNull?.longitude ?? -122.4194;
+      locationLabel = locationAsync.when(
+        data: (loc) =>
+            '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)} • Live',
+        loading: () => 'Awaiting GPS telemetry…',
+        error: (_, __) => 'GPS signal standby',
+      );
+    }
+
+    final selectedPet = ref.watch(selectedPetProvider);
+    final petName = selectedPet?.name ?? 'Buddy';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -485,7 +550,10 @@ class _MiniMap extends StatelessWidget {
         ),
         AppSpacing.vGapSm,
         CollarMapPreview(
-          locationLabel: 'Centennial Park • 2m ago',
+          locationLabel: locationLabel,
+          latitude: lat,
+          longitude: lng,
+          petName: petName,
           onTap: () => context.goNamed(RouteNames.ownerCollarTracking),
         ),
       ],

@@ -249,7 +249,36 @@ class ClinicManagementScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            TextButton(onPressed: () {}, child: const Text('View Log')),
+            TextButton(
+              onPressed: () {
+                showDialog<void>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Practice Activity Audit Log'),
+                    content: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('• 10:14 AM — Dr. Miller completed checkup for Archie'),
+                        SizedBox(height: 6),
+                        Text('• 09:30 AM — Oakridge Pharmacy stock adjusted (+20 amoxicillin)'),
+                        SizedBox(height: 6),
+                        Text('• 08:45 AM — New patient Luna registered by Dr. Miller'),
+                        SizedBox(height: 6),
+                        Text('• 08:00 AM — Practice system online and synced with cloud'),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: const Text('View Log'),
+            ),
           ],
         ),
         const SizedBox(height: 8),

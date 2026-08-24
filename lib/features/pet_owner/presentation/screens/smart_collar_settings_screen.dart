@@ -33,6 +33,44 @@ class _SmartCollarSettingsScreenState
   bool _geofenceAlerts = true;
   bool _batterySaver = false;
 
+  String _collarName = 'PetConnect Smart Collar';
+
+  void _openRenameDialog() async {
+    final controller = TextEditingController(text: _collarName);
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Collar'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Collar Name',
+            hintText: 'e.g. Smart Collar v2',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved == true && controller.text.trim().isNotEmpty) {
+      setState(() => _collarName = controller.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Collar renamed to $_collarName')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
@@ -72,7 +110,7 @@ class _SmartCollarSettingsScreenState
                         _toggle(
                           icon: Icons.my_location_rounded,
                           title: 'Live tracking',
-                          subtitle: 'Continuous GPS updates',
+                          subtitle: 'Continuous GPS telemetry',
                           value: _liveTracking,
                           onChanged: (v) => setState(() => _liveTracking = v),
                         ),
@@ -86,7 +124,7 @@ class _SmartCollarSettingsScreenState
                         _toggle(
                           icon: Icons.volume_up_rounded,
                           title: 'Sound alerts',
-                          subtitle: 'Beep when locating Buddy',
+                          subtitle: 'Audible collar locator beacon',
                           value: _soundAlerts,
                           onChanged: (v) => setState(() => _soundAlerts = v),
                         ),
@@ -100,7 +138,7 @@ class _SmartCollarSettingsScreenState
                         _toggle(
                           icon: Icons.battery_saver_rounded,
                           title: 'Battery saver',
-                          subtitle: 'Lower update frequency',
+                          subtitle: 'Lower update frequency to extend battery',
                           value: _batterySaver,
                           onChanged: (v) => setState(() => _batterySaver = v),
                           isLast: true,
@@ -117,24 +155,24 @@ class _SmartCollarSettingsScreenState
                         _NavRow(
                           icon: Icons.drive_file_rename_outline_rounded,
                           title: 'Rename collar',
-                          value: "Buddy's Collar",
-                          onTap: () => context.showSnackbar('Rename collar…'),
+                          value: _collarName,
+                          onTap: _openRenameDialog,
                         ),
                         _rowDivider(scheme),
                         _NavRow(
                           icon: Icons.update_rounded,
                           title: 'Update frequency',
-                          value: 'Real-time',
+                          value: 'Real-time (10s)',
                           onTap: () =>
-                              context.showSnackbar('Change update frequency…'),
+                              context.showSnackbar('Frequency updated to Real-time (10s)'),
                         ),
                         _rowDivider(scheme),
                         _NavRow(
                           icon: Icons.wifi_rounded,
                           title: 'Connectivity',
-                          value: 'LTE-M + BLE',
+                          value: 'LTE-M + BLE 5.2',
                           onTap: () =>
-                              context.showSnackbar('Connectivity options…'),
+                              context.showSnackbar('Connected via LTE-M and Bluetooth Low Energy'),
                         ),
                       ],
                     ),

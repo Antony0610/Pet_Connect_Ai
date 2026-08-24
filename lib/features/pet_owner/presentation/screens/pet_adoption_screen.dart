@@ -248,7 +248,14 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.favorite_border),
-                      onPressed: () {},
+                      tooltip: 'Save to Favorites',
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('$name added to adoption favorites!'),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -330,7 +337,17 @@ class _PetAdoptionScreenState extends State<PetAdoptionScreen> {
               ],
             ),
           ),
-          IconButton(icon: const Icon(Icons.chevron_right), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            tooltip: 'View Profile',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Opening adoption candidate profile for $name…'),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

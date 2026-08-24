@@ -7,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -14,8 +15,16 @@ import 'package:petconnect_ai/router/route_paths.dart';
 class PetSettingsScreen extends ConsumerWidget {
   const PetSettingsScreen({super.key});
 
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDjI16jwSuB84Xzdt7-YtGGD8cXKVStGaG8oZWrTEE2O1-goYOuDRZcqSyPad1CPYiOtNpmKHsFuDGF1XWYq6EKqov84OOWCPHJxPpXKLuqTC6Q477BNMLO-6HiNHsNS4xCTdLYf92lsegzNK54T942Rm3uKfjS8--dRESAdQBH0TVmbgyvaZ_C4SsdIEjuXC5yT77JIkjPqIRey1hLpRcoeWF2RBXnU1DgCs_q6PoFUKKDG2FrJRTLfA';
+  static Widget _avatarPlaceholder(ColorScheme scheme) => Container(
+        width: 40,
+        height: 40,
+        color: scheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.pets,
+          size: AppIconSizes.sm,
+          color: scheme.onSurfaceVariant,
+        ),
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,22 +47,15 @@ class PetSettingsScreen extends ConsumerWidget {
       title: Row(
         children: [
           ClipOval(
-            child: Image.network(
-              _avatarUrl,
-              width: 40,
-              height: 40,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 40,
-                height: 40,
-                color: scheme.surfaceContainerHighest,
-                child: Icon(
-                  Icons.pets,
-                  size: AppIconSizes.sm,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
+            child: pet?.imageUrl != null && pet!.imageUrl!.isNotEmpty
+                ? Image.network(
+                    pet.imageUrl!,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _avatarPlaceholder(scheme),
+                  )
+                : _avatarPlaceholder(scheme),
           ),
           AppSpacing.hGapSm,
           Flexible(
@@ -80,31 +82,39 @@ class PetSettingsScreen extends ConsumerWidget {
     final topPad = context.viewPadding.top + appBar.preferredSize.height;
     final bottomPad = context.viewPadding.bottom + AppSpacing.xxl;
 
+    final petName = pet?.name ?? 'Companion';
+    final petBreed = pet?.breed ?? (pet?.species == 'cat' ? 'Domestic Cat' : 'Companion Dog');
+
     final items = <_SettingRowData>[
-      const _SettingRowData(
+      _SettingRowData(
         icon: Icons.edit,
         title: 'Rename Pet',
-        subtitle: 'Update Bella’s name',
+        subtitle: 'Update $petName’s name',
+        onTap: () => _openRenameDialog(context, ref, pet),
       ),
-      const _SettingRowData(
+      _SettingRowData(
         icon: Icons.pets,
         title: 'Change Breed/Type',
-        subtitle: 'Currently set to Golden Retriever',
+        subtitle: 'Currently set to $petBreed',
+        onTap: () => _openBreedDialog(context, ref, pet),
       ),
-      const _SettingRowData(
+      _SettingRowData(
         icon: Icons.lock,
         title: 'Privacy Settings',
-        subtitle: 'Manage who can see your pet',
+        subtitle: 'Manage who can see $petName',
+        onTap: () => _openPrivacyDialog(context),
       ),
-      const _SettingRowData(
+      _SettingRowData(
         icon: Icons.notifications_active,
         title: 'Notification Preferences',
-        subtitle: 'Alerts for walks, meals, and vet',
+        subtitle: 'Alerts for walks, meals, and vet for $petName',
+        onTap: () => _openNotificationsDialog(context),
       ),
-      const _SettingRowData(
+      _SettingRowData(
         icon: Icons.archive,
         title: 'Archive Pet',
         subtitle: 'Hide from main dashboard',
+        onTap: () => _openArchiveDialog(context, ref, pet),
       ),
     ];
 
@@ -139,7 +149,7 @@ class PetSettingsScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       for (var i = 0; i < items.length; i++) ...[
-                        _SettingRow(data: items[i], onTap: () {}),
+                        _SettingRow(data: items[i], onTap: items[i].onTap),
                         if (i != items.length - 1)
                           Divider(
                             height: 1,
@@ -174,6 +184,181 @@ class PetSettingsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  void _openRenameDialog(BuildContext context, WidgetRef ref, Pet? pet) async {
+    if (pet == null) return;
+    final controller = TextEditingController(text: pet.name);
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Pet'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Pet Name',
+            hintText: 'Enter new name',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved == true && controller.text.trim().isNotEmpty) {
+      final updated = pet.copyWith(name: controller.text.trim());
+      await ref.read(updatePetUseCaseProvider)(updated);
+      await ref.read(petsProvider.notifier).refreshPets();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Pet name updated to ${controller.text.trim()}')),
+        );
+      }
+    }
+  }
+
+  void _openBreedDialog(BuildContext context, WidgetRef ref, Pet? pet) async {
+    if (pet == null) return;
+    final controller = TextEditingController(text: pet.breed ?? '');
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Change Breed / Species'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Breed',
+            hintText: 'e.g. Golden Retriever',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved == true && controller.text.trim().isNotEmpty) {
+      final updated = pet.copyWith(breed: controller.text.trim());
+      await ref.read(updatePetUseCaseProvider)(updated);
+      await ref.read(petsProvider.notifier).refreshPets();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Breed updated to ${controller.text.trim()}')),
+        );
+      }
+    }
+  }
+
+  void _openPrivacyDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Privacy Settings'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.public),
+              title: Text('Public Profile'),
+              subtitle: Text('Visible in Local Community Hub'),
+              trailing: Icon(Icons.check_circle, color: Colors.green),
+            ),
+            ListTile(
+              leading: Icon(Icons.share_location),
+              title: Text('Emergency GPS Sharing'),
+              subtitle: Text('Shared with Volunteers in Lost Mode'),
+              trailing: Icon(Icons.check_circle, color: Colors.green),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openNotificationsDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Notification Preferences'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.restaurant),
+              title: Text('Meal & Feeding Alerts'),
+              trailing: Icon(Icons.check_circle, color: Colors.green),
+            ),
+            ListTile(
+              leading: Icon(Icons.directions_walk),
+              title: Text('Daily Walk Reminders'),
+              trailing: Icon(Icons.check_circle, color: Colors.green),
+            ),
+            ListTile(
+              leading: Icon(Icons.medical_services),
+              title: Text('Vaccine & Vet Reminders'),
+              trailing: Icon(Icons.check_circle, color: Colors.green),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Save Preferences'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openArchiveDialog(BuildContext context, WidgetRef ref, Pet? pet) {
+    if (pet == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Archive ${pet.name}?'),
+        content: const Text(
+          'Archiving hides this companion from the main active dashboard without deleting medical records or history.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('${pet.name} archived.')),
+              );
+            },
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SettingRowData {
@@ -181,11 +366,13 @@ class _SettingRowData {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback onTap;
 }
 
 class _SettingRow extends StatelessWidget {

@@ -213,7 +213,8 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
                     color: colorScheme.primary,
-                    onPressed: () {},
+                    tooltip: 'Schedule Appointment in Slot',
+                    onPressed: () => context.push(RoutePaths.vetAppointments),
                   ),
                 ],
               ),

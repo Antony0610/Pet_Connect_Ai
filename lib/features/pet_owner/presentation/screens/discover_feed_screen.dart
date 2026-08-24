@@ -1,39 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/community_post.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/community_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 
-/// A faithful Flutter rendering of the frozen Stitch **Discover Feed** (Light
-/// Theme design authority, ID `5aa424a6`).
+/// The **Discover Feed** screen.
 ///
 /// Provides topic category exploration, featured AI-verified health guides,
-/// user success stories, and community feed cards.
-class DiscoverFeedScreen extends StatefulWidget {
+/// user success stories, and live community feed cards from Supabase.
+class DiscoverFeedScreen extends ConsumerStatefulWidget {
   const DiscoverFeedScreen({super.key});
 
   @override
-  State<DiscoverFeedScreen> createState() => _DiscoverFeedScreenState();
+  ConsumerState<DiscoverFeedScreen> createState() => _DiscoverFeedScreenState();
 }
 
-class _DiscoverFeedScreenState extends State<DiscoverFeedScreen> {
+class _DiscoverFeedScreenState extends ConsumerState<DiscoverFeedScreen> {
   static const double _maxContentWidth = 1000;
   String _selectedTopic = 'All Topics';
 
   final List<String> _topics = const [
     'All Topics',
-    'Success Stories',
-    'Health & Diet',
-    'Training Tips',
-    'Local Events',
+    'Photo/Video',
+    'Question',
+    'Story',
+    'Health',
   ];
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final categoryFilter = _selectedTopic == 'All Topics' ? null : _selectedTopic;
+    final postsAsync = ref.watch(communityPostsProvider(categoryFilter));
 
     return Scaffold(
       appBar: OwnerGlassAppBar(
@@ -43,7 +49,7 @@ class _DiscoverFeedScreenState extends State<DiscoverFeedScreen> {
           onPressed: () => GoRouter.of(context).pop(),
         ),
         title: Text(
-          'Discover',
+          'Discover Community',
           style: context.textTheme.headlineSmall?.copyWith(
             color: scheme.primary,
             fontWeight: AppTypography.bold,
@@ -52,249 +58,252 @@ class _DiscoverFeedScreenState extends State<DiscoverFeedScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Search topics...')));
-            },
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.invalidate(communityPostsProvider),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Topic Filter Chips ─────────────────────────────
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _topics.length,
-                    separatorBuilder: (_, __) => AppSpacing.hGapSm,
-                    itemBuilder: (context, index) {
-                      final topic = _topics[index];
-                      final isSelected = _selectedTopic == topic;
-                      return ChoiceChip(
-                        label: Text(topic),
-                        selected: isSelected,
-                        selectedColor: scheme.primary,
-                        backgroundColor: scheme.surfaceContainerHigh,
-                        labelStyle: TextStyle(
-                          color: isSelected
-                              ? scheme.onPrimary
-                              : scheme.onSurface,
-                          fontWeight: AppTypography.semiBold,
+      body: RefreshIndicator(
+        onRefresh: () async => ref.refresh(communityPostsProvider(categoryFilter).future),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Topic Filter Chips ─────────────────────────────
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _topics.length,
+                      separatorBuilder: (_, __) => AppSpacing.hGapSm,
+                      itemBuilder: (context, index) {
+                        final topic = _topics[index];
+                        final isSelected = _selectedTopic == topic;
+                        return ChoiceChip(
+                          label: Text(topic),
+                          selected: isSelected,
+                          selectedColor: scheme.primary,
+                          backgroundColor: scheme.surfaceContainerHigh,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? scheme.onPrimary
+                                : scheme.onSurface,
+                            fontWeight: AppTypography.semiBold,
+                          ),
+                          onSelected: (selected) {
+                            if (selected) setState(() => _selectedTopic = topic);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  AppSpacing.vGapLg,
+
+                  // ── Featured AI Verified Guide ─────────────────────
+                  AiGradientBorderCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.verified, color: scheme.primary, size: 18),
+                            AppSpacing.hGapXs,
+                            Text(
+                              'AI Verified',
+                              style: context.textTheme.labelLarge?.copyWith(
+                                color: scheme.primary,
+                                fontWeight: AppTypography.bold,
+                              ),
+                            ),
+                            Text(
+                              ' • Clinical Guide',
+                              style: context.textTheme.labelMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
-                        onSelected: (selected) {
-                          if (selected) setState(() => _selectedTopic = topic);
-                        },
+                        AppSpacing.vGapSm,
+                        Text(
+                          'Hydration & Diet Guidelines for Active Pets',
+                          style: context.textTheme.titleMedium?.copyWith(
+                            fontWeight: AppTypography.bold,
+                          ),
+                        ),
+                        AppSpacing.vGapXs,
+                        Text(
+                          'Maintaining electrolyte balance and fresh water intake during warmer months protects renal health and prevents heat exhaustion.',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AppSpacing.vGapLg,
+
+                  // ── Live Community Posts ───────────────────────────
+                  postsAsync.when(
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(AppSpacing.xl),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (e, _) => Center(
+                      child: Text('Unable to load feed: $e', style: TextStyle(color: scheme.error)),
+                    ),
+                    data: (posts) {
+                      if (posts.isEmpty) {
+                        return Card(
+                          color: scheme.surfaceContainerLow,
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.xl),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  Icon(Icons.forum_outlined, size: 40, color: scheme.primary),
+                                  AppSpacing.vGapMd,
+                                  Text(
+                                    'No posts in this category yet',
+                                    style: context.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  AppSpacing.vGapSm,
+                                  Text(
+                                    'Share your own stories or photos to start the conversation!',
+                                    style: context.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        children: posts.map((post) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                            child: _DiscoverPostCard(post: post),
+                          );
+                        }).toList(),
                       );
                     },
                   ),
-                ),
-                AppSpacing.vGapLg,
-
-                // ── Featured AI Verified Guide ─────────────────────
-                AiGradientBorderCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.verified, color: scheme.primary, size: 18),
-                          AppSpacing.hGapXs,
-                          Text(
-                            'AI Verified',
-                            style: context.textTheme.labelLarge?.copyWith(
-                              color: scheme.primary,
-                              fontWeight: AppTypography.bold,
-                            ),
-                          ),
-                          Text(
-                            ' • Nutrition Guide',
-                            style: context.textTheme.labelMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                      AppSpacing.vGapSm,
-                      Text(
-                        'The Optimal Raw Diet Transition for Senior Dogs',
-                        style: context.textTheme.titleMedium?.copyWith(
-                          fontWeight: AppTypography.bold,
-                        ),
-                      ),
-                      AppSpacing.vGapXs,
-                      Text(
-                        'Transitioning an older dog to a raw diet requires careful consideration of their changing digestive needs and nutrient requirements. Our AI veterinarian outlines a safe, phased approach to introducing fresh foods.',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.4,
-                        ),
-                      ),
-                      AppSpacing.vGapMd,
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.smart_toy,
-                            color: scheme.primary,
-                            size: 18,
-                          ),
-                          AppSpacing.hGapXs,
-                          Text(
-                            'PetConnect Health AI',
-                            style: context.textTheme.labelMedium?.copyWith(
-                              fontWeight: AppTypography.semiBold,
-                            ),
-                          ),
-                          const Spacer(),
-                          AppButton.filled(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Opening Raw Diet Transition Guide...',
-                                  ),
-                                ),
-                              );
-                            },
-                            size: AppButtonSize.small,
-                            child: const Text('Read Full Guide'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                AppSpacing.vGapLg,
-
-                // ── User Post Card ─────────────────────────────────
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const UserAvatar(name: 'Sarah & Max', radius: 18),
-                          AppSpacing.hGapSm,
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sarah & Max',
-                                style: context.textTheme.labelLarge?.copyWith(
-                                  fontWeight: AppTypography.bold,
-                                ),
-                              ),
-                              Text(
-                                '2 hrs ago • Training',
-                                style: context.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      AppSpacing.vGapMd,
-                      Text(
-                        'Leash reactivity breakthrough!',
-                        style: context.textTheme.titleMedium?.copyWith(
-                          fontWeight: AppTypography.bold,
-                        ),
-                      ),
-                      AppSpacing.vGapXs,
-                      Text(
-                        "After 3 months of consistent counter-conditioning, Max finally walked past another dog without barking. The 'look at me' command we learned from the AI module was a game changer.",
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurface,
-                        ),
-                      ),
-                      AppSpacing.vGapMd,
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.favorite_border, size: 18),
-                            onPressed: () {},
-                          ),
-                          Text('24', style: context.textTheme.labelMedium),
-                          AppSpacing.hGapMd,
-                          IconButton(
-                            icon: const Icon(
-                              Icons.chat_bubble_outline,
-                              size: 18,
-                            ),
-                            onPressed: () {},
-                          ),
-                          Text('8', style: context.textTheme.labelMedium),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.bookmark_border, size: 18),
-                            onPressed: () {},
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                AppSpacing.vGapLg,
-
-                // ── Success Story Card ─────────────────────────────
-                AppCard(
-                  backgroundColor: scheme.tertiaryContainer.withValues(
-                    alpha: 0.3,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.star, color: scheme.tertiary, size: 18),
-                          AppSpacing.hGapXs,
-                          Text(
-                            'Success Story',
-                            style: context.textTheme.labelLarge?.copyWith(
-                              color: scheme.tertiary,
-                              fontWeight: AppTypography.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      AppSpacing.vGapSm,
-                      Text(
-                        "Luna's Recovery Journey",
-                        style: context.textTheme.titleMedium?.copyWith(
-                          fontWeight: AppTypography.bold,
-                        ),
-                      ),
-                      AppSpacing.vGapXs,
-                      Text(
-                        'Read how community support and AI-driven physical therapy routines helped Luna regain her mobility after surgery. A story of resilience and premium care.',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      AppSpacing.vGapMd,
-                      AppButton.outlined(
-                        onPressed: () {},
-                        size: AppButtonSize.small,
-                        child: const Text('Read Story'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push(RoutePaths.ownerCommunityCreatePost),
+        icon: const Icon(Icons.add_photo_alternate_rounded),
+        label: const Text('New Post'),
+      ),
     );
+  }
+}
+
+class _DiscoverPostCard extends StatelessWidget {
+  const _DiscoverPostCard({required this.post});
+
+  final CommunityPost post;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
+    return Card(
+      color: scheme.surfaceContainerLowest,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.brSection,
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.25)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: scheme.primaryContainer,
+                  child: Text(
+                    (post.authorName ?? 'P')[0].toUpperCase(),
+                    style: TextStyle(color: scheme.onPrimaryContainer, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                AppSpacing.hGapSm,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post.authorName ?? 'Pet Owner',
+                      style: context.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${post.category} • ${_timeAgo(post.createdAt)}',
+                      style: context.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, fontSize: 11),
+                    ),
+                  ],
+                ),
+                if (post.location != null) ...[
+                  const Spacer(),
+                  Icon(Icons.location_on, size: 14, color: scheme.primary),
+                  Text(post.location!, style: context.textTheme.bodySmall?.copyWith(color: scheme.primary)),
+                ],
+              ],
+            ),
+            AppSpacing.vGapMd,
+            Text(
+              post.title,
+              style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            AppSpacing.vGapXs,
+            Text(
+              post.content,
+              style: context.textTheme.bodyMedium?.copyWith(color: scheme.onSurface),
+            ),
+            if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
+              AppSpacing.vGapMd,
+              ClipRRect(
+                borderRadius: AppRadius.brCard,
+                child: Image.network(
+                  post.imageUrl!,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            ],
+            if (post.tags.isNotEmpty) ...[
+              AppSpacing.vGapSm,
+              Wrap(
+                spacing: 6,
+                children: post.tags.map((t) => Text('#$t', style: TextStyle(color: scheme.primary, fontSize: 12))).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 }

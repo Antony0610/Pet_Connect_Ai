@@ -263,11 +263,37 @@ class _CommunityMessagesScreenState
                           children: [
                             IconButton(
                               icon: const Icon(Icons.call_outlined),
-                              onPressed: () {},
+                              tooltip: 'Voice Call',
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Starting encrypted voice call with Alex…'),
+                                  ),
+                                );
+                              },
                             ),
-                            IconButton(
+                            PopupMenuButton<String>(
                               icon: const Icon(Icons.more_vert),
-                              onPressed: () {},
+                              tooltip: 'Conversation Options',
+                              onSelected: (val) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('$val setting applied.')),
+                                );
+                              },
+                              itemBuilder: (ctx) => [
+                                const PopupMenuItem(
+                                  value: 'Mute Notifications',
+                                  child: Text('Mute Notifications'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'View Profile',
+                                  child: Text('View Alex\'s Profile'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'Search Chat',
+                                  child: Text('Search in Chat'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -398,7 +424,47 @@ class _CommunityMessagesScreenState
                         children: [
                           IconButton(
                             icon: const Icon(Icons.add_circle_outline),
-                            onPressed: () {},
+                            tooltip: 'Add Attachment',
+                            onPressed: () {
+                              showModalBottomSheet<void>(
+                                context: context,
+                                builder: (ctx) => SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.photo_camera_outlined),
+                                        title: const Text('Camera'),
+                                        onTap: () {
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Opening camera…')),
+                                          );
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.image_outlined),
+                                        title: const Text('Photo & Video Library'),
+                                        onTap: () {
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Opening gallery…')),
+                                          );
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.location_on_outlined),
+                                        title: const Text('Share Live Location'),
+                                        onTap: () {
+                                          Navigator.pop(ctx);
+                                          _messageController.text = '📍 Shared Location: Centennial Dog Park';
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           Expanded(
                             child: TextField(

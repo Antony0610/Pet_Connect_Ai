@@ -23,13 +23,6 @@ class InitialPetSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _InitialPetSetupScreenState extends ConsumerState<InitialPetSetupScreen> {
-  static const String _dogImageUrl =
-      'https://lh3.googleusercontent.com/aida-public/'
-      'AB6AXuBHazV0mqkqQ42xRhcxA-nfQYGG4ThWYLNN9tDZ9ZmB1tilbONIhD8dkghPElCSpMw54eBoqy3MbO0CIQyLVNFxOlYdppvqajL0pDTS_uaoCJq72pIUY75Cp_34RHQTzILP58KjR8290qQMKEjf-OAS7QwseYdQIiXwrvdCsAH-UO6ew2rIfgqL07OwlcRPUBMQQ2bEjazSfC6b9r6WyEDgx2aJXZ6KCIOZwFMR81m_WSZdHaCTnXeojQ';
-  static const String _catImageUrl =
-      'https://lh3.googleusercontent.com/aida-public/'
-      'AB6AXuDOyRzTqb7bU2JGktAN-BSfJc56hZuK2KH9YcQGoNiBdZewb708Vo4v-u5quS4JxJoTBASX6HL5wVz9ntZrB92cvJ8cGZ6C6B8_ht9TcIS7qR3FcLqxWLTguXeVfMUevEjU7Vg7v4Ytt_BWlvwoPuLQUgxbKimrw7unbVtrNohz9L4MHoEG5TWEMwaPUM5Ye8m0rnt2xvhcsbERzmtbiaamyva62UbbBYD_KHJ5fow72Jv224nxHGxvxg';
-
   PetSpecies? _selected;
 
   void _select(PetSpecies species) {
@@ -137,8 +130,6 @@ class _InitialPetSetupScreenState extends ConsumerState<InitialPetSetupScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   _SpeciesGrid(
-                    dogImageUrl: _dogImageUrl,
-                    catImageUrl: _catImageUrl,
                     selected: _selected,
                     accent: accent,
                     onSelect: _select,
@@ -198,15 +189,11 @@ class _StepIndicator extends StatelessWidget {
 /// Responsive two-up (single column on narrow) species selection grid.
 class _SpeciesGrid extends StatelessWidget {
   const _SpeciesGrid({
-    required this.dogImageUrl,
-    required this.catImageUrl,
     required this.selected,
     required this.accent,
     required this.onSelect,
   });
 
-  final String dogImageUrl;
-  final String catImageUrl;
   final PetSpecies? selected;
   final Color accent;
   final ValueChanged<PetSpecies> onSelect;
@@ -216,7 +203,7 @@ class _SpeciesGrid extends StatelessWidget {
     final dog = _PetCard(
       label: 'Dog',
       caption: 'Puppies to seniors',
-      imageUrl: dogImageUrl,
+      icon: Icons.pets_rounded,
       isSelected: selected == PetSpecies.dog,
       accent: accent,
       onTap: () => onSelect(PetSpecies.dog),
@@ -224,7 +211,7 @@ class _SpeciesGrid extends StatelessWidget {
     final cat = _PetCard(
       label: 'Cat',
       caption: 'Kittens to seniors',
-      imageUrl: catImageUrl,
+      icon: Icons.cruelty_free_rounded,
       isSelected: selected == PetSpecies.cat,
       accent: accent,
       onTap: () => onSelect(PetSpecies.cat),
@@ -260,7 +247,7 @@ class _PetCard extends StatelessWidget {
   const _PetCard({
     required this.label,
     required this.caption,
-    required this.imageUrl,
+    required this.icon,
     required this.isSelected,
     required this.accent,
     required this.onTap,
@@ -268,7 +255,7 @@ class _PetCard extends StatelessWidget {
 
   final String label;
   final String caption;
-  final String imageUrl;
+  final IconData icon;
   final bool isSelected;
   final Color accent;
   final VoidCallback onTap;
@@ -320,16 +307,16 @@ class _PetCard extends StatelessWidget {
                         borderRadius: AppRadius.brLg,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: scheme.surfaceContainerLow,
+                            color: isSelected
+                                ? accent.withValues(alpha: 0.15)
+                                : scheme.surfaceContainerLow,
                             borderRadius: AppRadius.brLg,
                           ),
-                          child: Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              label == 'Dog' ? Icons.pets : Icons.pets_outlined,
+                          child: Center(
+                            child: Icon(
+                              icon,
                               size: 72,
-                              color: scheme.primary,
+                              color: isSelected ? accent : scheme.primary,
                             ),
                           ),
                         ),

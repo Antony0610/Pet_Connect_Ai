@@ -1,17 +1,22 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
@@ -37,15 +42,22 @@ enum _Gender { male, female }
 class _AddPetScreenState extends ConsumerState<AddPetScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _breedController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
 
   _PetType _type = _PetType.dog;
   _Gender _gender = _Gender.female;
+  DateTime? _dateOfBirth;
   bool _isSaving = false;
+
+  /// Holds the publicly accessible URL returned after a successful photo upload.
+  /// Null until the user picks and uploads a photo.
+  String? _uploadedImageUrl;
 
   @override
   void dispose() {
     _nameController.dispose();
     _breedController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -58,6 +70,9 @@ class _AddPetScreenState extends ConsumerState<AddPetScreen> {
 
     setState(() => _isSaving = true);
 
+    final weightText = _weightController.text.trim();
+    final weight = weightText.isNotEmpty ? double.tryParse(weightText) : null;
+
     final newPet = Pet(
       id: '',
       ownerId: '',
@@ -67,7 +82,10 @@ class _AddPetScreenState extends ConsumerState<AddPetScreen> {
           ? _breedController.text.trim()
           : null,
       gender: _gender.name,
+      dateOfBirth: _dateOfBirth,
+      weightKg: weight,
       healthStatus: 'optimal',
+      imageUrl: _uploadedImageUrl, // real URL from storage upload
     );
 
     final result = await ref.read(createPetUseCaseProvider)(newPet);
@@ -140,7 +158,13 @@ class _AddPetScreenState extends ConsumerState<AddPetScreen> {
                 AppSpacing.vGapXl,
 
                 // ── Photo uploader ────────────────────────────────────
-                const Center(child: _PhotoUploader()),
+                Center(
+                  child: _PhotoUploader(
+                    initialImageUrl: _uploadedImageUrl,
+                    onUploaded: (url) =>
+                        setState(() => _uploadedImageUrl = url),
+                  ),
+                ),
                 AppSpacing.vGapXl,
 
                 // ── Form fields ───────────────────────────────────────
@@ -192,12 +216,76 @@ class _AddPetScreenState extends ConsumerState<AddPetScreen> {
                   value: _gender,
                   onChanged: (g) => setState(() => _gender = g),
                 ),
+                AppSpacing.vGapLg,
+
+                const _FormLabel(text: 'Date of Birth', optional: true),
+                AppSpacing.vGapXs,
+                InkWell(
+                  onTap: _pickDateOfBirth,
+                  borderRadius: AppRadius.brCard,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.md,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerLow,
+                      borderRadius: AppRadius.brCard,
+                      border: Border.all(
+                        color: scheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _dateOfBirth != null
+                              ? '${_dateOfBirth!.year}-${_dateOfBirth!.month.toString().padLeft(2, '0')}-${_dateOfBirth!.day.toString().padLeft(2, '0')}'
+                              : 'Select Date of Birth',
+                          style: text.bodyMedium?.copyWith(
+                            color: _dateOfBirth != null
+                                ? scheme.onSurface
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        Icon(
+                          Icons.calendar_today,
+                          size: AppIconSizes.sm,
+                          color: scheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                AppSpacing.vGapLg,
+
+                const _FormLabel(text: 'Weight (kg)', optional: true),
+                AppSpacing.vGapXs,
+                AppTextField(
+                  controller: _weightController,
+                  hintText: 'e.g. 12.5',
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? now.subtract(const Duration(days: 365)),
+      firstDate: DateTime(2000),
+      lastDate: now,
+    );
+    if (picked != null) {
+      setState(() => _dateOfBirth = picked);
+    }
   }
 }
 
@@ -255,69 +343,194 @@ class _StepProgress extends StatelessWidget {
   }
 }
 
-/// A circular, dashed-border photo drop target with an "add" affordance.
-class _PhotoUploader extends StatelessWidget {
-  const _PhotoUploader();
+/// A circular photo picker — tapping opens the gallery, uploads to Supabase
+/// Storage and returns the public URL via [onUploaded].
+class _PhotoUploader extends ConsumerStatefulWidget {
+  const _PhotoUploader({
+    required this.onUploaded,
+    this.initialImageUrl,
+  });
+
+  final ValueChanged<String> onUploaded;
+  final String? initialImageUrl;
+
+  @override
+  ConsumerState<_PhotoUploader> createState() => _PhotoUploaderState();
+}
+
+class _PhotoUploaderState extends ConsumerState<_PhotoUploader> {
+  String? _localImageUrl;
+  bool _uploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _localImageUrl = widget.initialImageUrl;
+  }
+
+  Future<void> _pickAndUpload() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1024,
+    );
+    if (picked == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final base64Fallback = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      final client = ref.read(supabaseClientProvider);
+      final String? userId = client.auth.currentUser?.id ??
+          ref.read(currentUserProfileProvider).valueOrNull?.id;
+
+      if (userId != null && userId.isNotEmpty && userId != 'anon') {
+        final storageRepo = ref.read(storageRepositoryProvider);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final result = await storageRepo.uploadPetAvatar(
+          userId: userId,
+          petId: 'temp_$timestamp',
+          bytes: bytes,
+          fileName: 'avatar_$timestamp.jpg',
+          mimeType: 'image/jpeg',
+        );
+
+        result.fold(
+          (failure) {
+            // Fall back to Base64 data URI so user photo is 100% visible and retained
+            setState(() => _localImageUrl = base64Fallback);
+            widget.onUploaded(base64Fallback);
+          },
+          (url) {
+            setState(() => _localImageUrl = url);
+            widget.onUploaded(url);
+          },
+        );
+      } else {
+        setState(() => _localImageUrl = base64Fallback);
+        widget.onUploaded(base64Fallback);
+      }
+    } catch (_) {
+      // Direct local fallback on any unexpected error
+      try {
+        final bytes = await picked.readAsBytes();
+        final base64Fallback = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        setState(() => _localImageUrl = base64Fallback);
+        widget.onUploaded(base64Fallback);
+      } catch (_) {}
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Widget _buildPhotoPreview(String url, ColorScheme scheme, TextTheme text) {
+    if (url.startsWith('data:image')) {
+      try {
+        final commaIdx = url.indexOf(',');
+        final base64Str = commaIdx != -1 ? url.substring(commaIdx + 1) : url;
+        return Image.memory(
+          base64Decode(base64Str),
+          fit: BoxFit.cover,
+        );
+      } catch (_) {
+        return _defaultContent(scheme, text);
+      }
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _defaultContent(scheme, text),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final text = context.textTheme;
+    const size = 128.0;
 
-    return SizedBox(
-      width: 128,
-      height: 128,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CustomPaint(
-            size: const Size(128, 128),
-            painter: _DashedCirclePainter(color: scheme.outlineVariant),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scheme.surfaceContainerLow,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_a_photo,
-                    size: AppIconSizes.xl,
-                    color: scheme.primary,
-                  ),
-                  AppSpacing.vGapXs,
-                  Text(
-                    'Upload Photo',
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: AppTypography.semiBold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scheme.primary,
-                border: Border.all(color: scheme.surface, width: 2),
-              ),
-              child: Icon(
-                Icons.add,
-                size: AppIconSizes.sm,
-                color: scheme.onPrimary,
+    return GestureDetector(
+      onTap: _uploading ? null : _pickAndUpload,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            CustomPaint(
+              size: const Size(size, size),
+              painter: _DashedCirclePainter(color: scheme.outlineVariant),
+              child: ClipOval(
+                child: _localImageUrl != null
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _buildPhotoPreview(_localImageUrl!, scheme, text),
+                          if (_uploading)
+                            ColoredBox(
+                              color: Colors.black.withValues(alpha: 0.40),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              ),
+                            ),
+                        ],
+                      )
+                    : DecoratedBox(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: scheme.surfaceContainerLow,
+                        ),
+                        child: _uploading
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: scheme.primary,
+                                ),
+                              )
+                            : _defaultContent(scheme, text),
+                      ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.primary,
+                  border: Border.all(color: scheme.surface, width: 2),
+                ),
+                child: Icon(
+                  Icons.camera_alt,
+                  size: AppIconSizes.sm,
+                  color: scheme.onPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _defaultContent(ColorScheme scheme, textTheme) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_a_photo, size: AppIconSizes.xl, color: scheme.primary),
+        AppSpacing.vGapXs,
+        Text(
+          'Add Photo',
+          style: context.textTheme.bodySmall?.copyWith(
+            color: scheme.primary,
+            fontWeight: AppTypography.semiBold,
+          ),
+        ),
+      ],
     );
   }
 }

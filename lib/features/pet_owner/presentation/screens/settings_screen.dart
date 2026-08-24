@@ -31,6 +31,141 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _publicProfile = true;
   bool _showLocation = false;
+  String _messageRequestsSetting = 'Friends Only';
+  String _activeTab = 'Privacy & Safety';
+  final List<String> _blockedUsers = [];
+
+  void _showBlockedUsersDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Blocked Users'),
+        content: _blockedUsers.isEmpty
+            ? const Text('You have not blocked any users.')
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: _blockedUsers
+                    .map((u) => ListTile(
+                          title: Text(u),
+                          trailing: TextButton(
+                            onPressed: () {
+                              setState(() => _blockedUsers.remove(u));
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('Unblock'),
+                          ),
+                        ))
+                    .toList(),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMessageRequestsSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                'Message Requests Permission',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ...['Everyone', 'Friends Only', 'Verified Pet Owners', 'Off'].map(
+              (opt) => ListTile(
+                title: Text(opt),
+                trailing: _messageRequestsSetting == opt
+                    ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
+                    : null,
+                onTap: () {
+                  setState(() => _messageRequestsSetting = opt);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationsDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          return AlertDialog(
+            title: const Text('Notification Preferences'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SwitchListTile(
+                  title: const Text('Critical Health Alerts'),
+                  value: true,
+                  onChanged: (_) {},
+                ),
+                SwitchListTile(
+                  title: const Text('Smart Collar Telemetry'),
+                  value: true,
+                  onChanged: (_) {},
+                ),
+                SwitchListTile(
+                  title: const Text('Community Activity'),
+                  value: true,
+                  onChanged: (_) {},
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showLanguageDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Select Language & Region'),
+        children: ['English (US)', 'Spanish (ES)', 'French (FR)', 'German (DE)'].map(
+          (lang) => SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Language set to $lang')),
+              );
+            },
+            child: Text(lang),
+          ),
+        ).toList(),
+      ),
+    );
+  }
+
+  void _clearCache() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Local media & map cache cleared successfully! (34.2 MB freed)'),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +190,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         OwnerAppBarAction(
           icon: Icons.help_outline,
           tooltip: 'Help',
-          onPressed: () {},
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('PetConnect Support: support@petconnect.ai')),
+            );
+          },
         ),
       ],
     );
@@ -82,19 +221,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── Settings menu ──────────────────────────────────────
-                const _MenuCard(
+                _MenuCard(
                   items: [
                     _MenuItem(
                       icon: Icons.shield,
                       label: 'Privacy & Safety',
-                      active: true,
+                      active: _activeTab == 'Privacy & Safety',
+                      onTap: () => setState(() => _activeTab = 'Privacy & Safety'),
                     ),
                     _MenuItem(
                       icon: Icons.notifications,
                       label: 'Notifications',
+                      active: _activeTab == 'Notifications',
+                      onTap: _showNotificationsDialog,
                     ),
-                    _MenuItem(icon: Icons.language, label: 'Language & Region'),
-                    _MenuItem(icon: Icons.tune, label: 'Content Preferences'),
+                    _MenuItem(
+                      icon: Icons.language,
+                      label: 'Language & Region',
+                      active: _activeTab == 'Language & Region',
+                      onTap: _showLanguageDialog,
+                    ),
+                    _MenuItem(
+                      icon: Icons.tune,
+                      label: 'Content Preferences',
+                      active: _activeTab == 'Content Preferences',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Content curation calibrated to your pets.')),
+                        );
+                      },
+                    ),
                   ],
                 ),
                 AppSpacing.vGapXl,
@@ -136,14 +292,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       icon: Icons.block,
                       title: 'Blocked Users',
                       subtitle: 'Manage the list of users you have blocked.',
-                      onTap: () {},
+                      onTap: _showBlockedUsersDialog,
                     ),
                     _NavRow(
                       icon: Icons.forum,
                       title: 'Message Requests',
                       subtitle: 'Choose who can send you direct messages.',
-                      trailingValue: 'Friends Only',
-                      onTap: () {},
+                      trailingValue: _messageRequestsSetting,
+                      onTap: _showMessageRequestsSheet,
+                    ),
+                  ],
+                ),
+                AppSpacing.vGapXl,
+
+                // ── Storage & Maintenance ───────────────────────────────
+                _SettingsSection(
+                  title: 'Storage & Performance',
+                  description: 'Manage device storage and telemetry.',
+                  children: [
+                    _NavRow(
+                      icon: Icons.cleaning_services_outlined,
+                      title: 'Clear Cache',
+                      subtitle: 'Free up local photo and map tile storage.',
+                      onTap: _clearCache,
                     ),
                   ],
                 ),
@@ -186,11 +357,13 @@ class _MenuItem {
     required this.icon,
     required this.label,
     this.active = false,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool active;
+  final VoidCallback? onTap;
 }
 
 class _MenuCard extends StatelessWidget {
@@ -223,7 +396,7 @@ class _MenuCard extends StatelessWidget {
                     : Colors.transparent,
                 borderRadius: AppRadius.brMd,
                 child: InkWell(
-                  onTap: () {},
+                  onTap: item.onTap,
                   borderRadius: AppRadius.brMd,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(

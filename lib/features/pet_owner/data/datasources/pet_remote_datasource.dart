@@ -156,12 +156,21 @@ class PetRemoteDataSourceImpl implements PetRemoteDataSource {
         );
       }
 
-      // Perform soft delete
-      await _client
-          .from('pets')
-          .update({'deleted_at': DateTime.now().toIso8601String()})
-          .eq('id', id)
-          .eq('owner_id', user.id);
+      // Try soft delete first, fallback to direct delete if RLS restricts soft delete update
+      try {
+        await _client
+            .from('pets')
+            .update({'deleted_at': DateTime.now().toIso8601String()})
+            .eq('id', id)
+            .eq('owner_id', user.id);
+      } on PostgrestException catch (_) {
+        // Fallback to direct DELETE which is explicitly granted to authenticated owner
+        await _client
+            .from('pets')
+            .delete()
+            .eq('id', id)
+            .eq('owner_id', user.id);
+      }
     } on AuthException catch (e) {
       throw core_exceptions.AuthException(e.message, cause: e);
     } on PostgrestException catch (e) {

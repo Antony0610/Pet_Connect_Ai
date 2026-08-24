@@ -207,7 +207,7 @@ class EmergencyOperationsCenterScreen extends StatelessWidget {
                 context,
                 theme,
                 colorScheme,
-                title: 'Buddy - Golden Retriever (High Risk Storm Drain)',
+                title: 'Archie - Golden Retriever (High Risk Storm Drain)',
                 location: 'Riverfront Park, North Trail',
                 time: 'Lost 4h ago',
                 status: 'EOC Escalated',

@@ -80,7 +80,37 @@ class _NearbyRescueRequestsScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.tune),
-            onPressed: () {},
+            onPressed: () {
+              showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Filter Dispatch Radius'),
+                  content: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.near_me),
+                        title: Text('Within 5 miles (Urban)'),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.radar),
+                        title: Text('Within 15 miles (Suburban)'),
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.public),
+                        title: Text('Within 30 miles (Regional)'),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Apply'),
+                    ),
+                  ],
+                ),
+              );
+            },
             tooltip: 'Filter Radius',
           ),
         ],

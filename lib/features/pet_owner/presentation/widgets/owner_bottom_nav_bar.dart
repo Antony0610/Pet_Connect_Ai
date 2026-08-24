@@ -30,11 +30,11 @@ enum OwnerTab {
     activeIcon: Icons.groups,
     routeName: RouteNames.ownerCommunity,
   ),
-  notifications(
-    label: 'Notifications',
-    icon: Icons.notifications_outlined,
-    activeIcon: Icons.notifications,
-    routeName: RouteNames.ownerNotifications,
+  collar(
+    label: 'Smart Collar',
+    icon: Icons.podcasts_outlined,
+    activeIcon: Icons.podcasts,
+    routeName: RouteNames.ownerCollar,
   ),
   profile(
     label: 'Profile',

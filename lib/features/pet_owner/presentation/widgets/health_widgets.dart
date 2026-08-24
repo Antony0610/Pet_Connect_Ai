@@ -19,9 +19,7 @@ import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 
-/// The featured pet across the frozen health comps ("Buddy").
-const String kHealthPetPhotoUrl =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDAxfTvenWKVtwB-grFwZuhHc5SFWE9GAkouJdryUqMJkXF7oUoBAgsf1G71O2gXLSpxiw6zhsGL3T-9qrsYhL-YdgFRxGcpjlTLAtWVtOqiQgpuXuVnReIx19qI7KLm1A6mY3EQOcTMcbIP4PsK2IxuiWGKotKvo7u3mvmWvFmlpfuxdsS_t08QRYzs_v_dTj61EhFGfM60uIgcSTis_8njKUj_M0YI7bjqqfCDJ6xBKqDwQnlCo62pw';
+
 
 /// Builds the frozen health glass app bar: a back button, a `primary` bold
 /// title and a trailing bordered pet avatar that taps through to Profile.
@@ -54,9 +52,15 @@ OwnerGlassAppBar healthAppBar(BuildContext context, {required String title}) {
 
 /// A circular pet avatar with a soft `primary` rim, used in the health app bar.
 class HealthPetAvatar extends StatelessWidget {
-  const HealthPetAvatar({required this.size, this.onTap, super.key});
+  const HealthPetAvatar({
+    required this.size,
+    this.imageUrl,
+    this.onTap,
+    super.key,
+  });
 
   final double size;
+  final String? imageUrl;
   final VoidCallback? onTap;
 
   @override
@@ -74,28 +78,32 @@ class HealthPetAvatar extends StatelessWidget {
         ),
       ),
       child: ClipOval(
-        child: Image.network(
-          kHealthPetPhotoUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => ColoredBox(
-            color: scheme.secondaryContainer,
-            child: Icon(
-              Icons.pets_rounded,
-              size: size * 0.5,
-              color: scheme.onSecondaryContainer,
-            ),
-          ),
-        ),
+        child: imageUrl != null && imageUrl!.isNotEmpty
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _fallback(scheme),
+              )
+            : _fallback(scheme),
       ),
     );
 
     if (onTap == null) return avatar;
     return InkWell(
       onTap: onTap,
-      customBorder: const CircleBorder(),
+      borderRadius: BorderRadius.circular(size),
       child: avatar,
     );
   }
+
+  Widget _fallback(ColorScheme scheme) => ColoredBox(
+        color: scheme.secondaryContainer,
+        child: Icon(
+          Icons.pets_rounded,
+          size: size * 0.55,
+          color: scheme.onSecondaryContainer,
+        ),
+      );
 }
 
 /// The frozen emerald call-to-action button used across the health screens

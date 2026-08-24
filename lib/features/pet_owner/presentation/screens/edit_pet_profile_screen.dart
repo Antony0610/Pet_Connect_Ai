@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
 class EditPetProfileScreen extends ConsumerStatefulWidget {
@@ -21,9 +24,6 @@ class EditPetProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
-  static const String _photoUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCebTvJKADcoc5qnRfZm9Zz8piAyM9XY4feJdNuTMlpSLxUy3RJULukgrawNI8hfHRNv9mMJfKunQ8JgHMSIoM368hwqlwAJ0k7dzUiLfrTEFucAXHDb6qoqfWeusOGlYMRz6SpUF87znQlQ5QDYPlQv7UgoZenpcCEkweQP1Ly2HRIJgKbn2LTRJmZ9_7zFZjhspGSQ18RJJPwev9VB9S9-IVTZx0pwpNuOv8hzTL_kJQ-RaOhXKRvYQ';
-
   late final TextEditingController _nameController;
   late final TextEditingController _breedController;
   late final TextEditingController _weightController;
@@ -31,8 +31,68 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
 
   bool _initialized = false;
   bool _isSaving = false;
+  bool _isUploadingPhoto = false;
   bool _aiHealthTracking = true;
+  String? _uploadedPhotoUrl;
   Pet? _currentPet;
+
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1024,
+    );
+    if (pickedFile == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+
+    try {
+      final bytes = await pickedFile.readAsBytes();
+      final userId = ref.read(currentUserProfileProvider).valueOrNull?.id ?? 'anon';
+      final petId = _currentPet?.id ?? 'pending';
+
+      final repo = ref.read(storageRepositoryProvider);
+      final result = await repo.uploadPetAvatar(
+        userId: userId,
+        petId: petId,
+        bytes: bytes,
+        fileName: 'avatar.jpg',
+        mimeType: 'image/jpeg',
+      );
+
+      result.fold(
+        (failure) {
+          if (mounted) context.showErrorSnack(failure.message);
+          if (mounted) setState(() => _isUploadingPhoto = false);
+        },
+        (url) {
+          if (mounted) {
+            setState(() {
+              _uploadedPhotoUrl = url;
+              _isUploadingPhoto = false;
+            });
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        context.showErrorSnack('Failed to upload photo: $e');
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
+  static Widget _photoFallback(ColorScheme scheme) => Container(
+        width: 128,
+        height: 128,
+        color: scheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.pets,
+          size: AppIconSizes.xl,
+          color: scheme.onSurfaceVariant,
+        ),
+      );
 
   Future<void> _pickBirthday() async {
     final picked = await showDatePicker(
@@ -117,6 +177,7 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
           ? _breedController.text.trim()
           : null,
       weightKg: double.tryParse(_weightController.text.trim()),
+      imageUrl: _uploadedPhotoUrl ?? _currentPet!.imageUrl,
     );
 
     final result = await ref.read(updatePetUseCaseProvider)(updated);
@@ -125,10 +186,57 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
     setState(() => _isSaving = false);
 
     result.fold((failure) => context.showErrorSnack(failure.message), (_) {
-      ref.read(petsProvider.notifier).refreshPets();
+            ref.invalidate(petsProvider);
       ref.invalidate(petDetailProvider(_currentPet!.id));
       GoRouter.of(context).pop();
     });
+  }
+
+  Future<void> _archiveOrDeletePet() async {
+    if (_currentPet == null) return;
+    final pet = _currentPet!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Archive ${pet.name}?'),
+        content: Text(
+          'Are you sure you want to remove ${pet.name} from active companions? This action will archive or remove the pet profile.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Archive / Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final deleteUseCase = ref.read(deletePetUseCaseProvider);
+      final result = await deleteUseCase(pet.id);
+      if (mounted) {
+        result.fold(
+          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to archive: ${failure.message}')),
+          ),
+          (_) {
+                  ref.invalidate(petsProvider);
+            ref.invalidate(petDetailProvider(pet.id));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${pet.name} was successfully archived.')),
+            );
+            GoRouter.of(context).pop();
+          },
+        );
+      }
+    }
   }
 
   @override
@@ -189,23 +297,32 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
                       Stack(
                         children: [
                           ClipOval(
-                            child: Image.network(
-                              _photoUrl,
-                              width: 128,
-                              height: 128,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 128,
-                                height: 128,
-                                color: scheme.surfaceContainerHighest,
-                                child: Icon(
-                                  Icons.pets,
-                                  size: AppIconSizes.xl,
-                                  color: scheme.onSurfaceVariant,
+                            child: (_uploadedPhotoUrl ?? _currentPet?.imageUrl) != null &&
+                                    (_uploadedPhotoUrl ?? _currentPet?.imageUrl)!.isNotEmpty
+                                ? Image.network(
+                                    _uploadedPhotoUrl ?? _currentPet!.imageUrl!,
+                                    width: 128,
+                                    height: 128,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => _photoFallback(scheme),
+                                  )
+                                : _photoFallback(scheme),
+                          ),
+                          if (_isUploadingPhoto)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -231,9 +348,9 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
                       ),
                       AppSpacing.vGapSm,
                       TextButton(
-                        onPressed: () {},
+                        onPressed: _isUploadingPhoto ? null : _pickAndUploadPhoto,
                         child: Text(
-                          'Change Photo',
+                          _isUploadingPhoto ? 'Uploading…' : 'Change Photo',
                           style: text.labelLarge?.copyWith(
                             color: scheme.primary,
                             fontWeight: AppTypography.semiBold,
@@ -367,7 +484,7 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
                 // ── Archive action ─────────────────────────────────────
                 Center(
                   child: TextButton.icon(
-                    onPressed: () {},
+                    onPressed: _archiveOrDeletePet,
                     icon: Icon(Icons.archive_outlined, color: scheme.error),
                     label: Text(
                       'Archive Pet Profile',

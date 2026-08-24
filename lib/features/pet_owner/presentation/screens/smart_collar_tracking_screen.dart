@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
@@ -27,6 +28,9 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
     final margin = _horizontalMargin(width);
     final isWide = width >= AppBreakpoints.tablet;
 
+    final selectedPet = ref.watch(selectedPetProvider);
+    final petName = selectedPet?.name ?? 'Buddy';
+
     final collarsAsync = ref.watch(registeredCollarsProvider);
     final collarId = collarsAsync.maybeWhen(
       data: (collars) =>
@@ -36,11 +40,14 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
 
     final gpsStreamAsync = ref.watch(liveGpsLocationStreamProvider(collarId));
 
+    final double lat = gpsStreamAsync.valueOrNull?.latitude ?? 37.7749;
+    final double lng = gpsStreamAsync.valueOrNull?.longitude ?? -122.4194;
+
     final locationText = gpsStreamAsync.when(
       data: (gps) =>
           'Lat: ${gps.latitude.toStringAsFixed(4)}, Lng: ${gps.longitude.toStringAsFixed(4)} (${gps.isOfflineTelemetry ? "Buffered" : "Live"})',
       loading: () => 'Receiving Realtime GPS Telemetry…',
-      error: (_, __) => 'GPS Telemetry Hardware Standby (Centennial Park)',
+      error: (_, __) => 'GPS Telemetry Standby (Pine & Centennial)',
     );
 
     return Scaffold(
@@ -51,8 +58,8 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.my_location_rounded),
-            tooltip: 'Center on Buddy',
-            onPressed: () => context.showSnackbar('Centering on Buddy…'),
+            tooltip: 'Center on $petName',
+            onPressed: () => context.showSnackbar('Centering on $petName…'),
           ),
         ],
       ),
@@ -74,11 +81,14 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
                 children: [
                   CollarMapPreview(
                     locationLabel: locationText,
-                    height: isWide ? 360 : 280,
-                    onTap: () => context.showSnackbar('Expanding live map…'),
+                    latitude: lat,
+                    longitude: lng,
+                    petName: petName,
+                    height: isWide ? 380 : 300,
+                    onTap: () => context.showSnackbar('Interactive GPS Tracking Active'),
                   ),
                   AppSpacing.vGapMd,
-                  const _SafeZoneBanner(),
+                  _SafeZoneBanner(petName: petName),
                   AppSpacing.vGapLg,
                   Text(
                     'Location Details',
@@ -129,9 +139,11 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
 }
 
 // __CONT_1__
-/// A reassuring banner confirming Buddy is inside a defined safe zone.
+/// A reassuring banner confirming pet is inside a defined safe zone.
 class _SafeZoneBanner extends StatelessWidget {
-  const _SafeZoneBanner();
+  const _SafeZoneBanner({this.petName = 'Buddy'});
+
+  final String petName;
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +169,7 @@ class _SafeZoneBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Inside "Home Park" safe zone',
+                  'Inside "Home Base" safe zone ($petName is safe)',
                   style: context.textTheme.labelLarge?.copyWith(
                     color: palette.onAccentContainer(brightness),
                     fontWeight: AppTypography.semiBold,
@@ -197,10 +209,10 @@ class _DetailGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const details = [
-      _Detail(Icons.place_rounded, 'Current place', 'Centennial Park'),
-      _Detail(Icons.social_distance_rounded, 'Distance', '1.2 km away'),
-      _Detail(Icons.speed_rounded, 'Speed', 'Resting'),
-      _Detail(Icons.schedule_rounded, 'Last update', 'Just now'),
+      _Detail(Icons.place_rounded, 'Current Zone', 'Home Base'),
+      _Detail(Icons.social_distance_rounded, 'Distance', 'Nearby (Safe)'),
+      _Detail(Icons.speed_rounded, 'Status', 'Resting'),
+      _Detail(Icons.schedule_rounded, 'Last Sync', 'Live GPS'),
     ];
 
     return GridView.count(

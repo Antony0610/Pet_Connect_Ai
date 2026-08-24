@@ -219,7 +219,7 @@ class _MissionDashboardScreenState
           ),
           AppSpacing.vGapSm,
           Text(
-            'Urgent Rescue: Buddy (Golden Retriever)',
+            'Urgent Rescue: Archie (Golden Retriever)',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: AppTypography.bold,
               color: colorScheme.onSurface,

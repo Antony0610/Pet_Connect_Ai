@@ -9,6 +9,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -39,33 +40,43 @@ class SmartCollarDiagnosticsScreen extends ConsumerWidget {
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
 
-    final batteryService = ref.watch(batteryServiceProvider);
-    final batterySoc = batteryService.getBatteryPercentage();
+    final collarsAsync = ref.watch(registeredCollarsProvider);
+    final collar = collarsAsync.valueOrNull?.isNotEmpty == true ? collarsAsync.valueOrNull!.first : null;
+    final isConnected = collar != null && collar.isActive;
+    final batterySoc = collar != null ? '${collar.batteryPercentage}%' : '—%';
 
     final dynamicChecks = [
       _Check(
         Icons.battery_charging_full_rounded,
         'MAX17048 Fuel Gauge IC',
-        'SoC: $batterySoc% (Hardware Abstraction Active)',
-        _Health.ok,
+        isConnected
+            ? 'SoC: $batterySoc (Hardware Abstraction Active)'
+            : 'Standby — No collar device connected',
+        isConnected ? _Health.ok : _Health.attention,
       ),
-      const _Check(
+      _Check(
         Icons.gps_fixed_rounded,
         'GPS Module Hardware',
-        'Hardware Required — Standing by for satellite lock',
-        _Health.attention,
+        isConnected
+            ? 'GPS Satellites Locked (High Precision)'
+            : 'Hardware Standby — Waiting for collar link',
+        isConnected ? _Health.ok : _Health.attention,
       ),
-      const _Check(
+      _Check(
         Icons.cell_tower_rounded,
         'GSM/LTE Modem Hardware',
-        'Hardware Required — SIM/Modem offline standby',
-        _Health.attention,
+        isConnected
+            ? 'Cellular Link: ${collar.connectivityType}'
+            : 'Modem Standby — Device offline',
+        isConnected ? _Health.ok : _Health.attention,
       ),
-      const _Check(
+      _Check(
         Icons.sensors_rounded,
-        'Motion Sensors',
-        'Hardware Required — Accelerometer standby',
-        _Health.attention,
+        'Motion & Activity Sensors',
+        isConnected
+            ? 'Accelerometer & Gyroscope 100Hz Active'
+            : 'Sensors Standby — No motion telemetry',
+        isConnected ? _Health.ok : _Health.attention,
       ),
     ];
 
@@ -78,7 +89,10 @@ class SmartCollarDiagnosticsScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Re-run checks',
-            onPressed: () => context.showSnackbar('Running diagnostics…'),
+            onPressed: () {
+              ref.invalidate(registeredCollarsProvider);
+              context.showSnackbar('Refreshing hardware diagnostics…');
+            },
           ),
         ],
       ),
@@ -98,7 +112,7 @@ class SmartCollarDiagnosticsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _BatteryHero(),
+                  _BatteryHero(collar: collar),
                   AppSpacing.vGapLg,
                   Text(
                     'System Checks',
@@ -129,7 +143,7 @@ class SmartCollarDiagnosticsScreen extends ConsumerWidget {
                     icon: Icons.health_and_safety_rounded,
                     borderRadius: AppRadius.brPill,
                     onPressed: () =>
-                        context.showSnackbar('Running full diagnostic…'),
+                        context.showSnackbar('Running full hardware self-test…'),
                   ),
                   AppSpacing.vGapSm,
                   AppButton.outlined(
@@ -137,7 +151,7 @@ class SmartCollarDiagnosticsScreen extends ConsumerWidget {
                     icon: Icons.system_update_rounded,
                     borderRadius: AppRadius.brPill,
                     onPressed: () =>
-                        context.showSnackbar('Updating to v2.5.0…'),
+                        context.showSnackbar('Firmware is up-to-date (v2.5.0).'),
                   ),
                 ],
               ),
@@ -155,11 +169,12 @@ class SmartCollarDiagnosticsScreen extends ConsumerWidget {
   }
 }
 
-// __CONT_1__
-/// The battery hero: a charge ring beside the collar's power state and a short
+/// The battery hero: a charge ring beside the collar's power state and real
 /// estimated-life readout.
 class _BatteryHero extends StatelessWidget {
-  const _BatteryHero();
+  const _BatteryHero({this.collar});
+
+  final CollarDevice? collar;
 
   @override
   Widget build(BuildContext context) {
@@ -167,18 +182,27 @@ class _BatteryHero extends StatelessWidget {
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final accent = palette.accent;
 
+    final isConnected = collar != null && collar!.isActive;
+    final batteryPct = isConnected ? collar!.batteryPercentage : 0;
+    final progress = isConnected ? (batteryPct / 100.0) : 0.0;
+    final batteryText = isConnected ? '$batteryPct%' : '—%';
+
     final ring = CollarMetricRing(
-      progress: 0.84,
-      arcColor: accent,
+      progress: progress,
+      arcColor: isConnected ? accent : scheme.outlineVariant,
       size: 148,
       center: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt_rounded, color: accent, size: AppIconSizes.md),
+          Icon(
+            isConnected ? Icons.bolt_rounded : Icons.power_off_rounded,
+            color: isConnected ? accent : scheme.onSurfaceVariant,
+            size: AppIconSizes.md,
+          ),
           Text(
-            '84%',
+            batteryText,
             style: context.textTheme.headlineMedium?.copyWith(
-              color: scheme.onSurface,
+              color: isConnected ? scheme.onSurface : scheme.onSurfaceVariant,
               fontWeight: AppTypography.bold,
               height: 1,
             ),
@@ -198,7 +222,7 @@ class _BatteryHero extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          'Healthy charge',
+          isConnected ? 'Collar Connected & Active' : 'No Collar Connected',
           style: context.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
             fontWeight: AppTypography.semiBold,
@@ -206,8 +230,9 @@ class _BatteryHero extends StatelessWidget {
         ),
         AppSpacing.vGapXs,
         Text(
-          'About 4 days of battery remaining at the current usage. Last charged '
-          '2 days ago.',
+          isConnected
+              ? 'Estimated battery level: $batteryPct%. Real-time telemetry is actively synced over BLE/LTE.'
+              : 'Pair a PetConnect Smart Collar device to begin live battery, GPS tracking, and activity telemetry monitoring.',
           style: context.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),

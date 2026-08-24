@@ -18,9 +18,6 @@ import 'package:petconnect_ai/shared/widgets/cards/glass_card.dart';
 class PetProfileDetailScreen extends ConsumerWidget {
   const PetProfileDetailScreen({super.key});
 
-  static const String _heroPhotoUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBGFV_pbjsU4U9lQQlVb4lf8p6GQm10sWarSnNaGQGtjicsgw8LVzLV7QpWOf-KGYW3l1aArnjMBekTnWbCEq9XRjz0xBVmeCcuPdRQ4Ds38Cfswj6c5xxTQYP6S_q0h3rGWiElYbKZ38w-jJwdbRPrarYLGUlDgHWzjiyCA2GeA9c2P4324UWuP4q69-a6PEJIAPB8H-y76ICEqHg0f54akaEvC3OWdAkYv83E_YBhcn67k6FER6BtVQ';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = PortalPalettes.of(AppPortal.petOwner);
@@ -107,12 +104,15 @@ class PetProfileDetailScreen extends ConsumerWidget {
                       children: [
                         AspectRatio(
                           aspectRatio: isWide ? 21 / 9 : 4 / 3,
-                          child: Image.network(
-                            _heroPhotoUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _HeroFallback(wide: isWide),
-                          ),
+                          child: pet?.imageUrl != null &&
+                                  pet!.imageUrl!.isNotEmpty
+                              ? Image.network(
+                                  pet.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _HeroFallback(wide: isWide),
+                                )
+                              : _HeroFallback(wide: isWide),
                         ),
                         if (!isWide)
                           Positioned.fill(
@@ -612,7 +612,8 @@ class _TimelinePreviewCard extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () =>
+                    context.goNamed(RouteNames.ownerHealthTimeline),
                 style: TextButton.styleFrom(
                   foregroundColor: context.colorScheme.primary,
                   padding: EdgeInsets.zero,

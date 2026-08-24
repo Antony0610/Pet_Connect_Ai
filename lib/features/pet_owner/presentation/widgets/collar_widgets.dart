@@ -19,14 +19,9 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/widgets/smart_collar_real_map.dart';
 
-/// The Golden Retriever ("Buddy") shown across the frozen collar comps.
-const String kCollarPetPhotoUrl =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCI5qkh5FjxUyriLU_B7zPwH7HZmZiujG_kALQMIGu6rEc_4dY4Pe6f415aYA1ECUMP0wumrDhVRDzVnFNeewMkpIYUq_K17s70VPTXI4RAL0rnW7TePRKabTi6tf9CeqmqdkPqpa6gc0im5uhpxqKIqKqZvSaxVnCm7cSyz3ye547nx0dMlNhkY4Rao1ncRVbOrzuhfMPdwZWtbLUo-4uMzECgdT8Jhm1XfezqSykirY2knK3vAlbfyQ';
 
-/// The map preview used on the collar dashboard & tracking screens.
-const String kCollarMapUrl =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCtOD2nrva9aijMTdzbndbcFvwWMwWF14h41w95ZOqW9Fca3aLmcPa2yNgep7kciUrvXbFhRuOcB-fcWBLP10RdbiPsYWn5YzZqAgTE3176MmaBljGmMOTBS8sxJ9LWi4G0PBX7Au64KC7UiYWfbz6PBl_R93yIiS9a0Bg5iuVCesGpRxldJJlDKvzMTyXoDd1vHR3OoWx9cTlTCzuQD5X2AomLDPcopWa95oMHTMZ19Qpg-0NlVYBrhQ';
 
 /// Builds the frozen collar glass app bar: a back button, a `primary` bold
 /// title and optional trailing [actions].
@@ -243,57 +238,41 @@ class CollarActionTile extends StatelessWidget {
   }
 }
 
-/// A rounded live-map preview with a floating location pill and a centred pet
-/// pin. Reused by the dashboard mini-map and the live-tracking hero.
+/// A rounded live-map preview with interactive vector cartography, pulsing GPS
+/// radar pin and geofence overlays. Reused by the dashboard mini-map and tracking screens.
 class CollarMapPreview extends StatelessWidget {
   const CollarMapPreview({
     required this.locationLabel,
     this.height = 192,
+    this.latitude = 37.7749,
+    this.longitude = -122.4194,
+    this.petName = 'Buddy',
+    this.safeZones = const [],
+    this.breadcrumbs = const [],
     this.onTap,
     super.key,
   });
 
   final String locationLabel;
   final double height;
+  final double latitude;
+  final double longitude;
+  final String petName;
+  final List<MapSafeZone> safeZones;
+  final List<MapBreadcrumb> breadcrumbs;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return ClipRRect(
-      borderRadius: AppRadius.brSection,
-      child: SizedBox(
-        height: height,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              kCollarMapUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  ColoredBox(color: scheme.surfaceContainerHigh),
-            ),
-            // Bottom scrim + location pill.
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: CollarLivePill(label: locationLabel),
-              ),
-            ),
-            // Centre pet pin.
-            const Center(child: _MapPin()),
-            if (onTap != null)
-              Positioned.fill(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(onTap: onTap),
-                ),
-              ),
-          ],
-        ),
-      ),
+    return SmartCollarRealMap(
+      height: height,
+      locationLabel: locationLabel,
+      latitude: latitude,
+      longitude: longitude,
+      petName: petName,
+      safeZones: safeZones,
+      breadcrumbs: breadcrumbs,
+      onTap: onTap,
     );
   }
 }
@@ -341,51 +320,6 @@ class CollarLivePill extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _MapPin extends StatelessWidget {
-  const _MapPin();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: scheme.surface, width: 2),
-          ),
-          child: ClipOval(
-            child: Image.network(
-              kCollarPetPhotoUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => ColoredBox(
-                color: scheme.primaryContainer,
-                child: Icon(
-                  Icons.pets_rounded,
-                  size: AppIconSizes.sm,
-                  color: scheme.onPrimaryContainer,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Transform.translate(
-          offset: const Offset(0, -4),
-          child: Icon(
-            Icons.location_on_rounded,
-            color: scheme.primary,
-            size: AppIconSizes.lg,
-          ),
-        ),
-      ],
     );
   }
 }

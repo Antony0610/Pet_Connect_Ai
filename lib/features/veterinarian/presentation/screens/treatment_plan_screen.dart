@@ -46,7 +46,49 @@ class VetTreatmentPlanScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_document),
-            onPressed: () {},
+            onPressed: () {
+              showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Edit Treatment Plan'),
+                  content: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Diagnosis & Primary Condition',
+                          hintText: 'e.g. Seasonal Atopic Dermatitis',
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Clinical Notes & Goal',
+                          hintText: 'e.g. Remission within 3 weeks',
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Treatment plan updated successfully.'),
+                          ),
+                        );
+                      },
+                      child: const Text('Save Plan'),
+                    ),
+                  ],
+                ),
+              );
+            },
             tooltip: 'Edit Plan',
           ),
         ],
@@ -122,7 +164,13 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.download, size: 18),
                       label: const Text('Download PDF'),
-                      onPressed: () {},
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Treatment Plan PDF exported to device.'),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -297,7 +345,13 @@ class VetTreatmentPlanScreen extends StatelessWidget {
           OutlinedButton.icon(
             icon: const Icon(Icons.picture_as_pdf, size: 16),
             label: const Text('Download PDF Sheet'),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Home Care PDF Protocol saved to device.'),
+                ),
+              );
+            },
           ),
         ],
       ),

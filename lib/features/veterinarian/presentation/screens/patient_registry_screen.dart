@@ -16,6 +16,7 @@ class PatientRegistryScreen extends StatefulWidget {
 
 class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
   String _searchQuery = '';
+  String _selectedLetter = 'ALL';
 
   final List<Map<String, dynamic>> _patients = [
     {
@@ -60,22 +61,136 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
     },
   ];
 
+  void _openRegisterPatientDialog() async {
+    final nameCtrl = TextEditingController();
+    final breedCtrl = TextEditingController();
+    final ownerCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    String status = 'Stable';
+
+    final registered = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          title: const Text('Register New Patient'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Pet / Patient Name',
+                    hintText: 'e.g. Cooper, Daisy, Thor',
+                    prefixIcon: Icon(Icons.pets),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: breedCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Species & Breed',
+                    hintText: 'e.g. Beagle / Canine',
+                    prefixIcon: Icon(Icons.category_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ownerCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Owner / Guardian Name',
+                    hintText: 'e.g. Sarah Jenkins',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Owner Phone Number',
+                    hintText: 'e.g. +1 (555) 019-2834',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: status,
+                  decoration: const InputDecoration(
+                    labelText: 'Initial Clinical Status',
+                    prefixIcon: Icon(Icons.medical_services_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Stable', child: Text('Stable (Optimal)')),
+                    DropdownMenuItem(value: 'Monitoring', child: Text('Monitoring (Routine Care)')),
+                    DropdownMenuItem(value: 'Post-Op Alert', child: Text('Post-Op Alert (Critical Care)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDlgState(() => status = val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Register Patient'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (registered == true && nameCtrl.text.trim().isNotEmpty) {
+      final statusColor = status == 'Stable'
+          ? AppColors.success
+          : (status == 'Monitoring' ? AppColors.warning : AppColors.lightError);
+
+      setState(() {
+        _patients.insert(0, {
+          'id': 'p_${DateTime.now().millisecondsSinceEpoch}',
+          'name': nameCtrl.text.trim(),
+          'breed': breedCtrl.text.trim().isNotEmpty ? breedCtrl.text.trim() : 'Companion',
+          'status': status,
+          'statusColor': statusColor,
+          'owner': ownerCtrl.text.trim().isNotEmpty ? ownerCtrl.text.trim() : 'Patient Guardian',
+          'lastVisit': 'Today (New Intake)',
+          'avatarColor': AppColors.info,
+        });
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Patient "${nameCtrl.text.trim()}" registered successfully!'),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     final filtered = _patients.where((p) {
-      return _searchQuery.isEmpty ||
-          p['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          p['breed'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          p['owner'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
+      final name = p['name'].toString().toLowerCase();
+      final breed = p['breed'].toString().toLowerCase();
+      final owner = p['owner'].toString().toLowerCase();
+      final q = _searchQuery.toLowerCase();
+      final matchesQuery = _searchQuery.isEmpty ||
+          name.contains(q) ||
+          breed.contains(q) ||
+          owner.contains(q);
+      final matchesLetter = _selectedLetter == 'ALL' ||
+          p['name'].toString().toUpperCase().startsWith(_selectedLetter);
+      return matchesQuery && matchesLetter;
     }).toList();
 
     return Scaffold(
@@ -110,9 +225,9 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add_alt_1_outlined),
-            onPressed: () {},
-            tooltip: 'Register Patient',
+            icon: const Icon(Icons.person_add_alt_1),
+            onPressed: _openRegisterPatientDialog,
+            tooltip: 'Register New Patient',
           ),
         ],
       ),
@@ -142,7 +257,13 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
                     .map(
                       (char) => Padding(
                         padding: const EdgeInsets.only(right: 6),
-                        child: ActionChip(label: Text(char), onPressed: () {}),
+                        child: ChoiceChip(
+                          label: Text(char),
+                          selected: _selectedLetter == char,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _selectedLetter = char);
+                          },
+                        ),
                       ),
                     )
                     .toList(),

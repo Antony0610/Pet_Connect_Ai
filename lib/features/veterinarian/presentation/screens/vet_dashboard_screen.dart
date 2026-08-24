@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -44,14 +46,33 @@ class VetDashboardScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-            tooltip: 'Notifications',
-          ),
-          IconButton(
             icon: const Icon(Icons.account_circle_outlined),
             onPressed: () => context.push(RoutePaths.vetProfile),
             tooltip: 'Vet Profile',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign Out',
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Sign Out'),
+                  content: const Text('Sign out of Veterinarian Portal?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text('Sign Out', style: TextStyle(color: colorScheme.error)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true && context.mounted) {
+                await ref.read(signOutProvider)(const NoParams());
+                if (context.mounted) context.go(RoutePaths.login);
+              }
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -63,7 +84,7 @@ class VetDashboardScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome Banner
-              _buildHeaderBanner(context, theme, colorScheme),
+              _buildHeaderBanner(context, theme, colorScheme, ref),
               const SizedBox(height: 16),
 
               // Summary Metrics Row
@@ -97,7 +118,13 @@ class VetDashboardScreen extends ConsumerWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    WidgetRef ref,
   ) {
+    final userProfile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final doctorName = (userProfile != null && userProfile.fullName.isNotEmpty)
+        ? (userProfile.fullName.startsWith('Dr.') ? userProfile.fullName : 'Dr. ${userProfile.fullName}')
+        : (userProfile != null && userProfile.email.isNotEmpty ? 'Dr. ${userProfile.email.split('@').first}' : 'Dr. Practitioner');
+
     return AppCard(
       color: colorScheme.primaryContainer.withValues(alpha: 0.4),
       padding: const EdgeInsets.all(16),
@@ -108,15 +135,17 @@ class VetDashboardScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome, Dr. Miller',
+                  'Welcome, $doctorName',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Ready for a busy day? You have 8 patients in the queue.',
+                  'VetOps Clinical Workspace is active and ready for patient consultations.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -322,7 +351,7 @@ class VetDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: () {},
+                onPressed: () => context.push('/vet/patients/p1'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   side: BorderSide(color: colorScheme.error),

@@ -21,6 +21,7 @@ import 'package:petconnect_ai/features/auth/domain/usecases/sign_out.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/upsert_user_profile.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/verify_email_otp.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ──────────────────────────────────────────────────────────────────
 // Data sources
@@ -103,17 +104,35 @@ final selectedPortalProvider = StateProvider<AppPortal>(
   (ref) => AppPortal.petOwner,
 );
 
+/// Stream provider that listens to auth state changes.
+final authStateChangesProvider = StreamProvider<AuthState>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return client.auth.onAuthStateChange;
+});
+
 /// Asynchronously resolves the currently authenticated user's profile.
 final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
-  final getCurrentSession = ref.watch(getCurrentSessionProvider);
-  final sessionResult = await getCurrentSession(const NoParams());
-  final session = sessionResult.fold((_) => null, (s) => s);
+  // Watch auth changes so switching accounts immediately reloads the active profile.
+  ref.watch(authStateChangesProvider);
 
-  if (session == null) return null;
+  final client = ref.watch(supabaseClientProvider);
+  final user = client.auth.currentUser;
+  if (user == null) return null;
 
   final getUserProfile = ref.watch(getUserProfileProvider);
-  final profileResult = await getUserProfile(session.userId);
-  return profileResult.fold((_) => null, (profile) => profile);
+  final profileResult = await getUserProfile(user.id);
+  return profileResult.fold(
+    (_) => UserProfile(
+      id: user.id,
+      email: user.email ?? '',
+      fullName: (user.userMetadata?['full_name'] as String?) ?? (user.email?.split('@').first ?? 'User'),
+      role: AppPortal.petOwner,
+      avatarUrl: user.userMetadata?['avatar_url'] as String?,
+      createdAt: DateTime.tryParse(user.createdAt) ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+    ),
+    (profile) => profile,
+  );
 });
 
 /// Resolves the Splash screen's destination.

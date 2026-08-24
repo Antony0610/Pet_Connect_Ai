@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/features/realtime/domain/entities/user_notification.dart';
 import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
@@ -134,9 +135,6 @@ class _NotifData {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   _NotifFilter _selected = _NotifFilter.all;
 
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDjI16jwSuB84Xzdt7-YtGGD8cXKVStGaG8oZWrTEE2O1-goYOuDRZcqSyPad1CPYiOtNpmKHsFuDGF1XWYq6EKqov84OOWCPHJxPpXKLuqTC6Q477BNMLO-6HiNHsNS4xCTdLYf92lsegzNK54T942Rm3uKfjS8--dRESAdQBH0TVmbgyvaZ_C4SsdIEjuXC5yT77JIkjPqIRey1hLpRcoeWF2RBXnU1DgCs_q6PoFUKKDG2FrJRTLfA';
-
   Future<void> _markAllRead() async {
     try {
       await ref.read(userNotificationsProvider.notifier).markAllRead();
@@ -170,10 +168,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
 
     final notificationsAsync = ref.watch(userNotificationsProvider);
+    final userProfile = ref.watch(currentUserProfileProvider).valueOrNull;
 
     final appBar = OwnerGlassAppBar(
       leading: _AvatarButton(
-        imageUrl: _avatarUrl,
+        imageUrl: userProfile?.avatarUrl ?? '',
         onTap: () => context.goNamed(RouteNames.ownerProfile),
       ),
       title: Text(
@@ -198,7 +197,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         context.viewPadding.bottom + AppSpacing.xxl * 2 + AppSpacing.md;
 
     return OwnerScaffold(
-      currentTab: OwnerTab.notifications,
+      currentTab: OwnerTab.home,
       appBar: appBar,
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(

@@ -24,9 +24,6 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
 class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   static const int _codeLength = 6;
   static const int _resendDelaySeconds = 30;
-  static const String _illustrationUrl =
-      'https://lh3.googleusercontent.com/aida-public/'
-      'AB6AXuB79BMuXy3t-94BVRsLXVLCKVL5x69bySMn-UmIxvUVV2tWvmXX8KlSA1Jkmzqn7FoQIsfOG5wkKGFFaSB_HzrfaRrwyZXqF0Q573eFACEpmMvB-F1xEy1t0TnjOkY8x2GobjtxoSYOLQk5oiWIA10d51wJKvn06dMUsuXafxmTVMtAusOmSSBYXQXoPy9kc3wZn_JFVh5wIyoLLa5Lf4DLN004_InrySy1HY0L6z63B1WB8yb4sQjf1A';
 
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
@@ -235,7 +232,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 ),
                 child: Column(
                   children: [
-                    const _MailIllustration(url: _illustrationUrl),
+                    const _MailIllustration(),
                     AppSpacing.vGapLg,
                     Text(
                       'Check Your Email',
@@ -301,37 +298,28 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 }
 
 class _MailIllustration extends StatelessWidget {
-  const _MailIllustration({required this.url});
-
-  final String url;
+  const _MailIllustration();
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     return SizedBox(
-      width: 160,
-      height: 160,
+      width: 120,
+      height: 120,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: scheme.secondaryContainer.withValues(alpha: 0.5),
+                color: scheme.primaryContainer.withValues(alpha: 0.35),
                 shape: BoxShape.circle,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: ClipOval(
-                  child: Image.network(
-                    url,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.mark_email_read_outlined,
-                      size: 64,
-                      color: scheme.primary,
-                    ),
-                  ),
+              child: Center(
+                child: Icon(
+                  Icons.mark_email_read_outlined,
+                  size: 56,
+                  color: scheme.primary,
                 ),
               ),
             ),

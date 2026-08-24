@@ -111,23 +111,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           if (phone != null && phone.isNotEmpty) 'phone': phone,
         },
       );
-
-      final user = response.user;
-      if (user != null) {
-        // Persist default profile row in public.profiles table
-        final profileModel = UserProfileModel(
-          id: user.id,
-          email: email,
-          fullName: fullName,
-          role: role,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
+      if (response.user == null) {
+        throw const core_exceptions.AuthException('Failed to create account');
+      }
+      if (response.user!.identities != null &&
+          response.user!.identities!.isEmpty) {
+        throw const core_exceptions.AuthException(
+          'An account with this email already exists. Please sign in.',
         );
-        await upsertUserProfile(profileModel);
       }
     } on AuthException catch (e) {
       throw core_exceptions.AuthException(e.message, cause: e);
     } catch (e) {
+      if (e is core_exceptions.AuthException) rethrow;
       throw core_exceptions.AuthException('Failed to create account', cause: e);
     }
   }

@@ -3,76 +3,132 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
-import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/widgets/smart_collar_real_map.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A defined geofence the collar watches, with its live in/out status.
 class _Zone {
-  const _Zone(this.icon, this.name, this.radius, this.inside);
+  const _Zone(this.id, this.icon, this.name, this.radiusMeters, this.inside);
 
+  final String id;
   final IconData icon;
   final String name;
-  final String radius;
+  final int radiusMeters;
   final bool inside;
+
+  _Zone copyWith({String? name, int? radiusMeters, bool? inside}) {
+    return _Zone(
+      id,
+      icon,
+      name ?? this.name,
+      radiusMeters ?? this.radiusMeters,
+      inside ?? this.inside,
+    );
+  }
 }
 
 /// **Safe Zones / Geofencing** — `/owner/collar/geofence`.
-///
-/// A map preview of the active geofences over a list of safe zones, each
-/// showing whether Buddy is currently inside, plus an "add zone" action.
-/// Composes the frozen collar primitives; token-driven, one tree both themes.
-class SmartCollarGeofenceScreen extends ConsumerWidget {
+class SmartCollarGeofenceScreen extends ConsumerStatefulWidget {
   const SmartCollarGeofenceScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SmartCollarGeofenceScreen> createState() =>
+      _SmartCollarGeofenceScreenState();
+}
+
+class _SmartCollarGeofenceScreenState
+    extends ConsumerState<SmartCollarGeofenceScreen> {
+  final List<_Zone> _localZones = [
+    const _Zone('z1', Icons.home_rounded, 'Home Zone', 150, true),
+    const _Zone('z2', Icons.park_rounded, 'Neighborhood Park', 300, true),
+  ];
+
+  void _openAddZoneDialog() async {
+    final nameCtrl = TextEditingController();
+    final radiusCtrl = TextEditingController(text: '200');
+
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Safe Zone'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Zone Name',
+                hintText: 'e.g. Grandma\'s House, Dog Park',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: radiusCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Radius (meters)',
+                hintText: 'e.g. 150',
+                suffixText: 'm',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Add Zone'),
+          ),
+        ],
+      ),
+    );
+
+    if (added == true && nameCtrl.text.trim().isNotEmpty) {
+      final rad = int.tryParse(radiusCtrl.text.trim()) ?? 150;
+      setState(() {
+        _localZones.add(
+          _Zone(
+            'z_${DateTime.now().millisecondsSinceEpoch}',
+            Icons.shield_rounded,
+            nameCtrl.text.trim(),
+            rad,
+            true,
+          ),
+        );
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Safe Zone "${nameCtrl.text.trim()}" added!')),
+        );
+      }
+    }
+  }
+
+  void _deleteZone(String id) {
+    setState(() {
+      _localZones.removeWhere((z) => z.id == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Safe zone removed.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
     final isWide = width >= AppBreakpoints.tablet;
-    final geofencesAsync = ref.watch(geofencesProvider);
-
-    final dynamicZones = geofencesAsync.maybeWhen(
-      data: (geofences) {
-        if (geofences.isEmpty) return null;
-        return geofences
-            .map(
-              (g) => _Zone(
-                Icons.shield_rounded,
-                g.name,
-                '${g.radiusMeters.toInt()} m radius',
-                true,
-              ),
-            )
-            .toList();
-      },
-      orElse: () => null,
-    );
-
-    final zones =
-        dynamicZones ??
-        const [
-          _Zone(Icons.home_rounded, 'Home', '120 m radius', true),
-          _Zone(Icons.park_rounded, 'Centennial Park', '250 m radius', true),
-          _Zone(
-            Icons.local_hospital_rounded,
-            "Dr. Miller's Vet",
-            '80 m radius',
-            false,
-          ),
-          _Zone(
-            Icons.storefront_rounded,
-            'Pet Supplies Co.',
-            '60 m radius',
-            false,
-          ),
-        ];
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -83,7 +139,7 @@ class SmartCollarGeofenceScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.add_location_alt_rounded),
             tooltip: 'Add safe zone',
-            onPressed: () => context.showSnackbar('Add a new safe zone…'),
+            onPressed: _openAddZoneDialog,
           ),
         ],
       ),
@@ -104,9 +160,23 @@ class SmartCollarGeofenceScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   CollarMapPreview(
-                    locationLabel: 'Home Park',
-                    height: isWide ? 320 : 240,
-                    onTap: () => context.showSnackbar('Editing zones on map…'),
+                    locationLabel: '${_localZones.length} Safe Perimeters Active',
+                    safeZones: _localZones.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final zone = entry.value;
+                      final offset = idx == 0
+                          ? const Offset(0, 0)
+                          : Offset((idx * 45.0) - 20, (idx * -35.0) + 15);
+                      return MapSafeZone(
+                        id: zone.id,
+                        name: '${zone.name} (${zone.radiusMeters}m)',
+                        radiusMeters: (zone.radiusMeters * 0.6).clamp(40.0, 160.0),
+                        centerOffset: offset,
+                        color: zone.inside ? AppColors.success : AppColors.info,
+                      );
+                    }).toList(),
+                    height: isWide ? 340 : 260,
+                    onTap: () => context.showSnackbar('Live safe boundaries active'),
                   ),
                   AppSpacing.vGapLg,
                   Row(
@@ -119,7 +189,7 @@ class SmartCollarGeofenceScreen extends ConsumerWidget {
                       ),
                       const Spacer(),
                       Text(
-                        '${zones.length} active',
+                        '${_localZones.length} configured',
                         style: context.textTheme.labelLarge?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -127,29 +197,66 @@ class SmartCollarGeofenceScreen extends ConsumerWidget {
                     ],
                   ),
                   AppSpacing.vGapSm,
-                  AppCard(
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < zones.length; i++) ...[
-                          if (i > 0)
-                            Divider(
-                              color: scheme.outlineVariant.withValues(
-                                alpha: 0.4,
-                              ),
-                              height: AppSpacing.lg,
+                  if (_localZones.isEmpty)
+                    AppCard(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.shield_outlined,
+                            size: 48,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          AppSpacing.vGapSm,
+                          Text(
+                            'No safe zones configured yet',
+                            style: context.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
                             ),
-                          _ZoneRow(zone: zones[i]),
+                          ),
+                          AppSpacing.vGapXs,
+                          Text(
+                            'Create a safe perimeter to get alerts when your pet leaves home.',
+                            textAlign: TextAlign.center,
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          AppSpacing.vGapMd,
+                          FilledButton.icon(
+                            onPressed: _openAddZoneDialog,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Safe Zone'),
+                          ),
                         ],
-                      ],
+                      ),
+                    )
+                  else
+                    AppCard(
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < _localZones.length; i++) ...[
+                            if (i > 0)
+                              Divider(
+                                color: scheme.outlineVariant.withValues(
+                                  alpha: 0.4,
+                                ),
+                                height: AppSpacing.lg,
+                              ),
+                            _ZoneRow(
+                              zone: _localZones[i],
+                              onDelete: () => _deleteZone(_localZones[i].id),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
                   AppSpacing.vGapLg,
                   AppButton.outlined(
                     label: 'Add Safe Zone',
                     icon: Icons.add_rounded,
                     borderRadius: AppRadius.brPill,
-                    onPressed: () =>
-                        context.showSnackbar('Add a new safe zone…'),
+                    onPressed: _openAddZoneDialog,
                   ),
                 ],
               ),
@@ -167,13 +274,13 @@ class SmartCollarGeofenceScreen extends ConsumerWidget {
   }
 }
 
-// __CONT_1__
 /// One safe-zone row: a tinted glyph, the zone name and radius, and a status
 /// pill reading "Inside" (accent) or "Outside" (neutral).
 class _ZoneRow extends StatelessWidget {
-  const _ZoneRow({required this.zone});
+  const _ZoneRow({required this.zone, required this.onDelete});
 
   final _Zone zone;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -217,7 +324,7 @@ class _ZoneRow extends StatelessWidget {
               ),
               AppSpacing.vGapXs,
               Text(
-                zone.radius,
+                '${zone.radiusMeters} m radius',
                 style: context.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -242,6 +349,11 @@ class _ZoneRow extends StatelessWidget {
               fontWeight: AppTypography.semiBold,
             ),
           ),
+        ),
+        IconButton(
+          icon: Icon(Icons.delete_outline, size: 20, color: scheme.error),
+          tooltip: 'Delete Zone',
+          onPressed: onDelete,
         ),
       ],
     );

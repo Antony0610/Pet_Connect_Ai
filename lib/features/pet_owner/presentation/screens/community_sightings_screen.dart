@@ -6,6 +6,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Community Sightings**
@@ -260,7 +261,7 @@ class _CommunitySightingsScreenState extends State<CommunitySightingsScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: AppButton.outlined(
-              onPressed: () {},
+              onPressed: () => context.goNamed(RouteNames.ownerCollarTracking),
               size: AppButtonSize.small,
               child: const Row(
                 mainAxisSize: MainAxisSize.min,

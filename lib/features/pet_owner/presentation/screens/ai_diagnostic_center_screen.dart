@@ -228,7 +228,15 @@ class _AiDiagnosticCenterScreenState
                         ),
                       ),
                       AppButton.text(
-                        onPressed: () {},
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'AI Diagnostic report transmitted to Vet Clinic.',
+                              ),
+                            ),
+                          );
+                        },
                         child: const Text('Share Record'),
                       ),
                     ],

@@ -52,6 +52,125 @@ class _AppointmentManagementScreenState
     },
   ];
 
+  void _openAddAppointmentDialog() async {
+    final nameCtrl = TextEditingController();
+    final breedCtrl = TextEditingController(text: 'Canine / Feline');
+    final reasonCtrl = TextEditingController(text: 'Comprehensive Checkup');
+    final timeCtrl = TextEditingController(text: '03:30 PM');
+    String duration = '30 min';
+
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          title: const Text('Add Clinical Appointment'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Patient Name',
+                    hintText: 'e.g. Bella, Milo, Rocky',
+                    prefixIcon: Icon(Icons.pets),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: breedCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Breed / Species',
+                    hintText: 'e.g. Golden Retriever',
+                    prefixIcon: Icon(Icons.category_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason for Visit',
+                    hintText: 'e.g. Vaccination, Post-Op Check',
+                    prefixIcon: Icon(Icons.medical_information_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: timeCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Appointment Time',
+                    hintText: 'e.g. 10:30 AM',
+                    prefixIcon: Icon(Icons.access_time),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: duration,
+                  decoration: const InputDecoration(
+                    labelText: 'Duration',
+                    prefixIcon: Icon(Icons.timer_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: '15 min', child: Text('15 min (Brief)')),
+                    DropdownMenuItem(value: '30 min', child: Text('30 min (Standard)')),
+                    DropdownMenuItem(value: '45 min', child: Text('45 min (Extended)')),
+                    DropdownMenuItem(value: '60 min', child: Text('60 min (Procedure)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDlgState(() => duration = val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Schedule Appointment'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (added == true && nameCtrl.text.trim().isNotEmpty) {
+      setState(() {
+        _appointments.insert(0, {
+          'time': timeCtrl.text.trim(),
+          'duration': duration,
+          'patientName': nameCtrl.text.trim(),
+          'breed': breedCtrl.text.trim(),
+          'reason': reasonCtrl.text.trim(),
+          'doctor': 'Dr. Practitioner',
+          'status': 'Confirmed',
+          'statusColor': AppColors.success,
+        });
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Appointment scheduled for ${nameCtrl.text.trim()} at ${timeCtrl.text.trim()}!',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _deleteAppointment(int index) {
+    setState(() {
+      _appointments.removeAt(index);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Appointment cancelled.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -80,7 +199,7 @@ class _AppointmentManagementScreenState
               ),
             ),
             Text(
-              'October 2023',
+              'Active Appointments (${_appointments.length})',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -89,20 +208,16 @@ class _AppointmentManagementScreenState
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.print_outlined),
-            onPressed: () {},
-            tooltip: 'Print Schedule',
-          ),
-          IconButton(
             icon: const Icon(Icons.add_task),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('New Appointment Dialog')),
-              );
-            },
+            onPressed: _openAddAppointmentDialog,
             tooltip: 'Add Appointment',
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openAddAppointmentDialog,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Appointment'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -133,7 +248,7 @@ class _AppointmentManagementScreenState
                   ),
                   AppButton(
                     text: '+ New',
-                    onPressed: () {},
+                    onPressed: _openAddAppointmentDialog,
                     backgroundColor: colorScheme.primary,
                     textColor: colorScheme.onPrimary,
                     height: 36,
@@ -175,24 +290,48 @@ class _AppointmentManagementScreenState
     );
   }
 
+  DateTime _calendarDate = DateTime.now();
+
   Widget _buildMonthHeader(
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final monthStr = '${months[_calendarDate.month - 1]} ${_calendarDate.year}';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'October 2023',
+          monthStr,
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         Row(
           children: [
-            IconButton(icon: const Icon(Icons.chevron_left), onPressed: () {}),
-            IconButton(icon: const Icon(Icons.chevron_right), onPressed: () {}),
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              tooltip: 'Previous Month',
+              onPressed: () {
+                setState(() {
+                  _calendarDate = DateTime(_calendarDate.year, _calendarDate.month - 1);
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              tooltip: 'Next Month',
+              onPressed: () {
+                setState(() {
+                  _calendarDate = DateTime(_calendarDate.year, _calendarDate.month + 1);
+                });
+              },
+            ),
           ],
         ),
       ],
@@ -366,10 +505,23 @@ class _AppointmentManagementScreenState
                   ),
                 ],
               ),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.assignment_outlined, size: 16),
-                label: const Text('Open Chart'),
-                onPressed: () => context.push('/vet/patients/p1'),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.assignment_outlined, size: 16),
+                    label: const Text('Open Chart'),
+                    onPressed: () => context.push('/vet/patients/p1'),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(Icons.close, size: 18, color: colorScheme.error),
+                    tooltip: 'Cancel Appointment',
+                    onPressed: () {
+                      final idx = _appointments.indexOf(appt);
+                      if (idx != -1) _deleteAppointment(idx);
+                    },
+                  ),
+                ],
               ),
             ],
           ),

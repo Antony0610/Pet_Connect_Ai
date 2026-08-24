@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
+import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
 /// Veterinarian Practitioner & Clinic Profile Screen (Stitch ID: `c883012ed473494bb6e61222ffe0e472`).
-///
-/// Public practitioner profile and clinic details screen. Displays doctor credentials,
-/// specialization badges, operating hours, service capabilities, and appointment booking actions.
-class VetProfileScreen extends StatelessWidget {
+class VetProfileScreen extends ConsumerWidget {
   const VetProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -27,6 +30,11 @@ class VetProfileScreen extends StatelessWidget {
           onPressed: () => context.pop(),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Vet Settings',
+            onPressed: () => context.push(RoutePaths.vetSettings),
+          ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: () {
@@ -47,7 +55,7 @@ class VetProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Clinic Identity Banner ───────────────────────────
-                _buildProfileBanner(theme, colorScheme),
+                _buildProfileBanner(theme, colorScheme, ref),
 
                 AppSpacing.vGapLg,
 
@@ -102,6 +110,39 @@ class VetProfileScreen extends StatelessWidget {
                   ],
                 ),
 
+                AppSpacing.vGapLg,
+
+                // ── Sign Out Card ───────────────────────────────────
+                OutlinedButton.icon(
+                  icon: Icon(Icons.logout, color: colorScheme.error),
+                  label: Text('Sign Out of Veterinarian Portal', style: TextStyle(color: colorScheme.error)),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+                    shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
+                  ),
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Sign Out'),
+                        content: const Text('Sign out of Veterinarian Portal?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text('Sign Out', style: TextStyle(color: colorScheme.error)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true && context.mounted) {
+                      await ref.read(signOutProvider)(const NoParams());
+                      if (context.mounted) context.go(RoutePaths.login);
+                    }
+                  },
+                ),
+
                 AppSpacing.vGapXl,
               ],
             ),
@@ -111,7 +152,15 @@ class VetProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileBanner(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildProfileBanner(ThemeData theme, ColorScheme colorScheme, WidgetRef ref) {
+    final userProfile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final doctorName = (userProfile != null && userProfile.fullName.isNotEmpty)
+        ? (userProfile.fullName.startsWith('Dr.') ? userProfile.fullName : 'Dr. ${userProfile.fullName}')
+        : (userProfile != null && userProfile.email.isNotEmpty ? 'Dr. ${userProfile.email.split('@').first}' : 'Dr. Practitioner');
+    final clinicName = (userProfile != null && userProfile.fullName.isNotEmpty)
+        ? '${userProfile.fullName} Veterinary Practice'
+        : 'PetConnect Certified Veterinary Clinic';
+
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
@@ -134,7 +183,7 @@ class VetProfileScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Oakridge Veterinary Clinic',
+                        clinicName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
@@ -148,7 +197,7 @@ class VetProfileScreen extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  'Dr. Emily Watson, DVM • Senior Veterinary Surgeon',
+                  '$doctorName, DVM • Licensed Veterinary Practitioner',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -159,7 +208,7 @@ class VetProfileScreen extends StatelessWidget {
                     const Icon(Icons.star, color: Colors.amber, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '4.9 (128 reviews)',
+                      '5.0 (Active Practicing)',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: AppTypography.bold,
                       ),
@@ -175,12 +224,76 @@ class VetProfileScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                AppSpacing.vGapSm,
+                OutlinedButton.icon(
+                  onPressed: () => _openEditVetProfileDialog(theme, ref, userProfile),
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Edit Practitioner Profile'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _openEditVetProfileDialog(
+    ThemeData theme,
+    WidgetRef ref,
+    UserProfile? currentProfile,
+  ) async {
+    final nameCtrl = TextEditingController(text: currentProfile?.fullName ?? '');
+
+    final saved = await showDialog<bool>(
+      context: ref.context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Practitioner Profile'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Doctor Full Name',
+                  hintText: 'e.g. Dr. Sarah Jenkins',
+                  prefixIcon: Icon(Icons.badge_outlined),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save Profile'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved == true && nameCtrl.text.trim().isNotEmpty && currentProfile != null) {
+      final updated = currentProfile.copyWith(
+        fullName: nameCtrl.text.trim(),
+      );
+      await ref.read(upsertUserProfileProvider)(updated);
+      ref.invalidate(currentUserProfileProvider);
+      if (ref.context.mounted) {
+        ScaffoldMessenger.of(ref.context).showSnackBar(
+          SnackBar(
+            content: Text('Profile updated for ${nameCtrl.text.trim()}!'),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildHoursLocationCard(ThemeData theme, ColorScheme colorScheme) {

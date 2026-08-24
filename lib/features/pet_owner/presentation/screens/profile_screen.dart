@@ -1,51 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
-import 'package:petconnect_ai/shared/widgets/layout/section_header.dart';
 
-/// The Pet Owner **Profile** screen (frozen "Community Profile", Light master).
+/// The Pet Owner **Profile** screen.
 ///
-/// The owner's own community profile: a glass header card (avatar, name, bio,
-/// meta and an Edit action), a quick-stats pair, a "Recent Activity" post feed,
-/// a "Top Badges" grid, "Joined Groups" and "Upcoming Events". All colors,
-/// spacing, radii and type come from the theme / design tokens so one widget
-/// tree serves both Light and Dark.
-class ProfileScreen extends StatelessWidget {
+/// Displays real user data from [currentUserProfileProvider].
+/// - Avatar, full name, email loaded live from Supabase.
+/// - Edit Profile opens a bottom sheet that saves via [upsertUserProfileProvider].
+/// - Settings icon in AppBar navigates to [SettingsScreen].
+/// - Logout button visible directly from this screen.
+/// - Pets section shows real pets from [petsProvider].
+/// - NO hardcoded posts, badges, groups or events.
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDjI16jwSuB84Xzdt7-YtGGD8cXKVStGaG8oZWrTEE2O1-goYOuDRZcqSyPad1CPYiOtNpmKHsFuDGF1XWYq6EKqov84OOWCPHJxPpXKLuqTC6Q477BNMLO-6HiNHsNS4xCTdLYf92lsegzNK54T942Rm3uKfjS8--dRESAdQBH0TVmbgyvaZ_C4SsdIEjuXC5yT77JIkjPqIRey1hLpRcoeWF2RBXnU1DgCs_q6PoFUKKDG2FrJRTLfA';
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
-    final text = context.textTheme;
+    final profileAsync = ref.watch(currentUserProfileProvider);
+
+    final avatarUrl = profileAsync.valueOrNull?.avatarUrl;
 
     final appBar = OwnerGlassAppBar(
-      leading: const UserAvatar(imageUrl: _avatarUrl, size: 40),
+      leading: UserAvatar(imageUrl: avatarUrl ?? '', size: 40),
       title: Text(
-        'PetConnect AI',
-        overflow: TextOverflow.ellipsis,
-        style: text.titleLarge?.copyWith(
+        'My Profile',
+        style: context.textTheme.titleLarge?.copyWith(
           color: scheme.primary,
           fontWeight: AppTypography.bold,
         ),
       ),
       actions: [
         OwnerAppBarAction(
-          icon: Icons.smart_toy,
-          tooltip: 'AI Assistant',
-          onPressed: () => context.goNamed(RouteNames.ownerAiAssistant),
+          icon: Icons.settings_outlined,
+          tooltip: 'Settings',
+          onPressed: () => context.goNamed(RouteNames.ownerSettings),
         ),
       ],
     );
@@ -57,444 +63,385 @@ class ProfileScreen extends StatelessWidget {
     return OwnerScaffold(
       currentTab: OwnerTab.profile,
       appBar: appBar,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.marginMobile,
-          topPad + AppSpacing.md,
-          AppSpacing.marginMobile,
-          bottomPad,
+      body: profileAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Text(
+            'Unable to load profile: $e',
+            style: context.textTheme.bodyMedium
+                ?.copyWith(color: scheme.error),
+          ),
         ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppBreakpoints.maxContentWidth,
+        data: (profile) {
+          if (profile == null) {
+            return Center(
+              child: Text(
+                'Profile not found. Please sign out and sign in again.',
+                textAlign: TextAlign.center,
+                style: context.textTheme.bodyMedium,
+              ),
+            );
+          }
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.marginMobile,
+              topPad + AppSpacing.md,
+              AppSpacing.marginMobile,
+              bottomPad,
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.maxContentWidth,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ProfileHeaderCard(profile: profile),
+                    AppSpacing.vGapLg,
+                    _MyPetsSection(),
+                    AppSpacing.vGapXl,
+                    _LogoutSection(),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Profile Header Card
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _ProfileHeaderCard extends ConsumerStatefulWidget {
+  const _ProfileHeaderCard({required this.profile});
+
+  final UserProfile profile;
+
+  @override
+  ConsumerState<_ProfileHeaderCard> createState() =>
+      _ProfileHeaderCardState();
+}
+
+class _ProfileHeaderCardState extends ConsumerState<_ProfileHeaderCard> {
+  bool _uploadingAvatar = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final profile = widget.profile;
+
+    return Card(
+      elevation: 0,
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.brSection,
+        side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.20)),
+      ),
+      child: Padding(
+        padding: AppSpacing.cardPaddingPremium,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Avatar with tap-to-upload
+            Stack(
+              alignment: Alignment.bottomRight,
               children: [
-                _ProfileHeaderCard(avatarUrl: _avatarUrl),
-                AppSpacing.vGapLg,
-                _QuickStats(),
-                AppSpacing.vGapXl,
-                SectionHeader(title: 'Recent Activity'),
-                AppSpacing.vGapMd,
-                _ActivityPost(
-                  title: 'Best hiking trails for senior dogs?',
-                  group: 'Active Pets',
-                  time: '2 hours ago',
-                  body:
-                      'Looking for some low-impact trails around the city that '
-                      'are great for older dogs. My golden is 10 now and I want '
-                      'to keep him moving without overdoing it. Any favorites?',
-                  likes: 24,
-                  comments: 8,
+                GestureDetector(
+                  onTap: _uploadingAvatar ? null : _pickAndUploadAvatar,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      UserAvatar(
+                          imageUrl: profile.avatarUrl ?? '', size: 88),
+                      if (_uploadingAvatar)
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        ),
+                    ],
+                  ),
                 ),
-                AppSpacing.vGapMd,
-                _ActivityPost(
-                  title: 'Graduation Day! 🎓',
-                  group: 'Training Triumphs',
-                  time: 'Yesterday',
-                  body:
-                      'So proud — we finally finished our advanced obedience '
-                      'course. Positive reinforcement really does pay off.',
-                  likes: 156,
-                  comments: 32,
-                  liked: true,
-                  imageUrl:
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuDjI16jwSuB84Xzdt7-YtGGD8cXKVStGaG8oZWrTEE2O1-goYOuDRZcqSyPad1CPYiOtNpmKHsFuDGF1XWYq6EKqov84OOWCPHJxPpXKLuqTC6Q477BNMLO-6HiNHsNS4xCTdLYf92lsegzNK54T942Rm3uKfjS8--dRESAdQBH0TVmbgyvaZ_C4SsdIEjuXC5yT77JIkjPqIRey1hLpRcoeWF2RBXnU1DgCs_q6PoFUKKDG2FrJRTLfA',
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.base),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scheme.surface, width: 2),
+                  ),
+                  child: const Icon(Icons.camera_alt,
+                      color: Colors.white, size: AppIconSizes.xs),
                 ),
-                AppSpacing.vGapXl,
-                _TopBadges(),
-                AppSpacing.vGapXl,
-                _JoinedGroups(),
-                AppSpacing.vGapXl,
-                _UpcomingEvents(),
               ],
             ),
-          ),
+            AppSpacing.vGapMd,
+
+            // Full name
+            Text(
+              profile.fullName.isEmpty ? 'No name set' : profile.fullName,
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: AppTypography.bold,
+              ),
+            ),
+            AppSpacing.vGapXs,
+
+            // Email
+            Text(
+              profile.email,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            AppSpacing.vGapXs,
+
+            // Role badge
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer.withValues(alpha: 0.30),
+                borderRadius: AppRadius.brPill,
+              ),
+              child: Text(
+                _roleLabel(profile.role.toDbRole()),
+                style: context.textTheme.labelMedium?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+            AppSpacing.vGapLg,
+
+            // Edit Profile Button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit Profile'),
+                onPressed: () => _showEditProfileSheet(context, profile),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: scheme.primary,
+                  side: BorderSide(color: scheme.primary),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.brCard),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.md),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 512,
+    );
+    if (picked == null) return;
+
+    setState(() => _uploadingAvatar = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final storageRepo = ref.read(storageRepositoryProvider);
+      final userId = widget.profile.id;
+
+      // Upload to user-avatars bucket using the domain method
+      final uploadResult = await storageRepo.uploadUserAvatar(
+        userId: userId,
+        bytes: bytes,
+        fileName: 'avatar.jpg',
+        mimeType: 'image/jpeg',
+      );
+
+      await uploadResult.fold(
+        (failure) async {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Upload failed: ${failure.message}')),
+            );
+          }
+        },
+        (newUrl) async {
+          // Update profile with new avatar URL
+          final upsert = ref.read(upsertUserProfileProvider);
+          await upsert(widget.profile.copyWith(avatarUrl: newUrl));
+          // Refresh profile provider
+          ref.invalidate(currentUserProfileProvider);
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Avatar upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
+    }
+  }
+
+  void _showEditProfileSheet(BuildContext context, UserProfile profile) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xxl)),
+      ),
+      builder: (_) => _EditProfileSheet(profile: profile),
+    );
+  }
+
+  static String _roleLabel(String dbRole) {
+    return switch (dbRole) {
+      'veterinarian' => 'Veterinarian',
+      'volunteer_rescue' => 'Rescue Volunteer',
+      'administrator' => 'Administrator',
+      _ => 'Pet Owner',
+    };
+  }
 }
-// ── Header card ──────────────────────────────────────────────────────────
 
-class _ProfileHeaderCard extends ConsumerWidget {
-  const _ProfileHeaderCard({required this.avatarUrl});
+// ═══════════════════════════════════════════════════════════════════════════════
+// Edit Profile Bottom Sheet
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  final String avatarUrl;
+class _EditProfileSheet extends ConsumerStatefulWidget {
+  const _EditProfileSheet({required this.profile});
+
+  final UserProfile profile;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
+  late final TextEditingController _nameController;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController =
+        TextEditingController(text: widget.profile.fullName);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = 'Name cannot be empty.');
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    final upsert = ref.read(upsertUserProfileProvider);
+    final result = await upsert(widget.profile.copyWith(fullName: name));
+
+    result.fold(
+      (failure) {
+        setState(() {
+          _error = failure.message;
+          _saving = false;
+        });
+      },
+      (_) {
+        ref.invalidate(currentUserProfileProvider);
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile updated successfully.')),
+          );
+        }
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final text = context.textTheme;
-    final userProfileAsync = ref.watch(currentUserProfileProvider);
-    final userProfile = userProfileAsync.valueOrNull;
 
-    final displayName = userProfile?.fullName.isNotEmpty == true
-        ? userProfile!.fullName
-        : 'Alex Mercer';
-    final displayBio = userProfile?.email.isNotEmpty == true
-        ? userProfile!.email
-        : 'Golden Retriever Enthusiast & Local Guide';
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLowest,
-        borderRadius: AppRadius.brSection,
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.10),
-        ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar with surface ring + verified badge.
-              SizedBox(
-                width: 96,
-                height: 96,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: scheme.surface, width: 4),
-                      ),
-                      child: UserAvatar(imageUrl: avatarUrl, size: 88),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.base),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: scheme.primary,
-                          border: Border.all(color: scheme.surface, width: 2),
-                        ),
-                        child: Icon(
-                          Icons.verified,
-                          size: AppIconSizes.xs,
-                          color: scheme.onPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              AppSpacing.hGapLg,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppSpacing.vGapSm,
-                    Text(
-                      displayName,
-                      style: text.headlineSmall?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                    AppSpacing.vGapXs,
-                    Text(
-                      displayBio,
-                      style: text.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          AppSpacing.vGapLg,
           Text(
-            'Passionate about dog training and exploring new trails. Always '
-            'happy to share tips on positive reinforcement and finding the '
-            'best pet-friendly cafes in town.',
-            style: text.bodyMedium?.copyWith(color: scheme.onSurface),
-          ),
-          AppSpacing.vGapMd,
-          const Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              _MetaPill(icon: Icons.location_on, label: 'Seattle, WA'),
-              _MetaPill(icon: Icons.calendar_month, label: 'Joined 2021'),
-            ],
-          ),
-          AppSpacing.vGapLg,
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.edit, size: AppIconSizes.sm),
-              label: const Text('Edit Profile'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetaPill extends StatelessWidget {
-  const _MetaPill({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final text = context.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: AppRadius.brPill,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: AppIconSizes.xs, color: scheme.onSurfaceVariant),
-          AppSpacing.hGapXs,
-          Text(
-            label,
-            style: text.labelMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontWeight: AppTypography.medium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Quick stats ──────────────────────────────────────────────────────────
-
-class _QuickStats extends StatelessWidget {
-  const _QuickStats();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            icon: Icons.favorite,
-            iconColor: scheme.primary,
-            value: '4.2k',
-            label: 'Helpful Votes',
-          ),
-        ),
-        AppSpacing.hGapMd,
-        Expanded(
-          child: _StatCard(
-            icon: Icons.military_tech,
-            iconColor: scheme.tertiary,
-            value: '12',
-            label: 'Badges Earned',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.iconColor,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final text = context.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLowest,
-        borderRadius: AppRadius.brCard,
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.10),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: AppIconSizes.md, color: iconColor),
-          AppSpacing.vGapMd,
-          Text(
-            value,
-            style: text.headlineMedium?.copyWith(
-              color: scheme.onSurface,
+            'Edit Profile',
+            style: context.textTheme.titleLarge?.copyWith(
               fontWeight: AppTypography.bold,
             ),
           ),
-          AppSpacing.vGapXs,
-          Text(
-            label,
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
-}
-// ── Activity post ──────────────────────────────────────────────────────────
-
-class _ActivityPost extends StatelessWidget {
-  const _ActivityPost({
-    required this.title,
-    required this.group,
-    required this.time,
-    required this.body,
-    required this.likes,
-    required this.comments,
-    this.liked = false,
-    this.imageUrl,
-  });
-
-  final String title;
-  final String group;
-  final String time;
-  final String body;
-  final int likes;
-  final int comments;
-  final bool liked;
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final text = context.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLowest,
-        borderRadius: AppRadius.brCard,
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.10),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: text.titleMedium?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                    AppSpacing.vGapXs,
-                    Text.rich(
-                      TextSpan(
-                        style: text.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Posted in '),
-                          TextSpan(
-                            text: group,
-                            style: TextStyle(
-                              color: scheme.primary,
-                              fontWeight: AppTypography.semiBold,
-                            ),
-                          ),
-                          TextSpan(text: ' • $time'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.more_horiz,
-                size: AppIconSizes.md,
-                color: scheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-          AppSpacing.vGapMd,
-          Text(body, style: text.bodyMedium?.copyWith(color: scheme.onSurface)),
-          if (imageUrl != null) ...[
-            AppSpacing.vGapMd,
-            ClipRRect(
-              borderRadius: AppRadius.brMd,
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: scheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.image_outlined,
-                      color: scheme.onSurfaceVariant,
-                      size: AppIconSizes.lg,
-                    ),
-                  ),
-                ),
-              ),
+          AppSpacing.vGapLg,
+          TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              labelText: 'Full Name',
+              hintText: 'Your display name',
+              errorText: _error,
+              border: const OutlineInputBorder(
+                  borderRadius: AppRadius.brCard),
             ),
-          ],
-          AppSpacing.vGapMd,
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: scheme.outlineVariant.withValues(alpha: 0.10),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _save(),
           ),
           AppSpacing.vGapMd,
-          Row(
-            children: [
-              _PostStat(
-                icon: liked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                label: '$likes',
-                color: liked ? scheme.primary : scheme.onSurfaceVariant,
-              ),
-              AppSpacing.hGapLg,
-              _PostStat(
-                icon: Icons.chat_bubble_outline,
-                label: '$comments',
-                color: scheme.onSurfaceVariant,
-              ),
-              const Spacer(),
-              _PostStat(
-                icon: Icons.share_outlined,
-                label: 'Share',
-                color: scheme.onSurfaceVariant,
-              ),
-            ],
+          Text(
+            'Email: ${widget.profile.email}',
+            style: context.textTheme.bodySmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          AppSpacing.vGapLg,
+          FilledButton(
+            onPressed: _saving ? null : _save,
+            style: FilledButton.styleFrom(
+              padding:
+                  const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.brCard),
+            ),
+            child: _saving
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Text('Save Changes'),
           ),
         ],
       ),
@@ -502,236 +449,82 @@ class _ActivityPost extends StatelessWidget {
   }
 }
 
-class _PostStat extends StatelessWidget {
-  const _PostStat({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
+// ═══════════════════════════════════════════════════════════════════════════════
+// My Pets Section
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  final IconData icon;
-  final String label;
-  final Color color;
-
+class _MyPetsSection extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    final text = context.textTheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: AppIconSizes.sm, color: color),
-        AppSpacing.hGapXs,
-        Text(
-          label,
-          style: text.labelLarge?.copyWith(
-            color: color,
-            fontWeight: AppTypography.semiBold,
-          ),
-        ),
-      ],
-    );
-  }
-}
-// ── Top badges ─────────────────────────────────────────────────────────────
-
-class _TopBadges extends StatelessWidget {
-  const _TopBadges();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final petsAsync = ref.watch(petsProvider);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(
-          title: 'Top Badges',
-          actionLabel: 'View All',
-          onAction: () {},
-        ),
-        AppSpacing.vGapMd,
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: _BadgeTile(
-                icon: Icons.local_fire_department,
-                color: scheme.tertiary,
-                label: 'Hot Streak',
+            Text(
+              'My Pets',
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: AppTypography.semiBold,
               ),
             ),
-            AppSpacing.hGapMd,
-            Expanded(
-              child: _BadgeTile(
-                icon: Icons.forum,
-                color: scheme.secondary,
-                label: 'Top Replier',
-              ),
-            ),
-            AppSpacing.hGapMd,
-            Expanded(
-              child: _BadgeTile(
-                icon: Icons.pets,
-                color: scheme.primary,
-                label: 'Pet Expert',
-              ),
+            TextButton.icon(
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add'),
+              onPressed: () => context.goNamed(RouteNames.ownerPetAdd),
             ),
           ],
         ),
-      ],
-    );
-  }
-}
-
-class _BadgeTile extends StatelessWidget {
-  const _BadgeTile({
-    required this.icon,
-    required this.color,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final text = context.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: AppSpacing.lg,
-        horizontal: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
-        borderRadius: AppRadius.brLg,
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: AppIconSizes.lg, color: color),
-          AppSpacing.vGapSm,
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: text.labelMedium?.copyWith(
-              color: scheme.onSurface,
-              fontWeight: AppTypography.semiBold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Joined groups ────────────────────────────────────────────────────────
-
-class _JoinedGroups extends StatelessWidget {
-  const _JoinedGroups();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    const rows = [
-      _GroupData(name: 'Positive Reinforcement Pros', members: '1.2k Members'),
-      _GroupData(name: 'Seattle Dog Walkers', members: '850 Members'),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SectionHeader(title: 'Joined Groups'),
         AppSpacing.vGapMd,
-        Container(
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerLowest,
-            borderRadius: AppRadius.brCard,
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.10),
-            ),
+        petsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => Text(
+            'Unable to load pets.',
+            style: context.textTheme.bodyMedium
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              for (var i = 0; i < rows.length; i++) ...[
-                _GroupRow(data: rows[i]),
-                if (i != rows.length - 1)
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: scheme.outlineVariant.withValues(alpha: 0.10),
-                  ),
+          data: (pets) {
+            if (pets.isEmpty) {
+              return _EmptyPetsCard();
+            }
+            return Column(
+              children: [
+                for (final pet in pets) _PetProfileRow(pet: pet),
               ],
-            ],
-          ),
+            );
+          },
         ),
       ],
     );
   }
 }
 
-class _GroupData {
-  const _GroupData({required this.name, required this.members});
-  final String name;
-  final String members;
-}
-
-class _GroupRow extends StatelessWidget {
-  const _GroupRow({required this.data});
-
-  final _GroupData data;
-
+class _EmptyPetsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final text = context.textTheme;
-
-    return InkWell(
-      onTap: () {},
+    return Card(
+      color: scheme.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.brCard,
+        side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.25)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: AppSpacing.cardPadding,
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: scheme.secondaryContainer,
-                borderRadius: AppRadius.brMd,
-              ),
-              child: Icon(
-                Icons.groups,
-                color: scheme.onSecondaryContainer,
-                size: AppIconSizes.md,
-              ),
-            ),
+            Icon(Icons.pets_rounded,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.50)),
             AppSpacing.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data.name,
-                    style: text.titleSmall?.copyWith(
-                      color: scheme.onSurface,
-                      fontWeight: AppTypography.semiBold,
-                    ),
-                  ),
-                  Text(
-                    data.members,
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: scheme.onSurfaceVariant,
-              size: AppIconSizes.md,
+            Text(
+              'No pets added yet.',
+              style: context.textTheme.bodyMedium
+                  ?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -739,150 +532,141 @@ class _GroupRow extends StatelessWidget {
     );
   }
 }
-// ── Upcoming events ──────────────────────────────────────────────────────
 
-class _UpcomingEvents extends StatelessWidget {
-  const _UpcomingEvents();
+class _PetProfileRow extends StatelessWidget {
+  const _PetProfileRow({required this.pet});
+  final Pet pet;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final text = context.textTheme;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      elevation: 0,
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.brCard,
+        side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.20)),
+      ),
+      child: ListTile(
+        onTap: () =>
+            context.goNamed(RouteNames.ownerPetDetail, pathParameters: {
+          'petId': pet.id,
+        }),
+        leading: CircleAvatar(
+          radius: 22,
+          backgroundColor: scheme.secondaryContainer,
+          backgroundImage: pet.imageUrl != null && pet.imageUrl!.isNotEmpty
+              ? NetworkImage(pet.imageUrl!)
+              : null,
+          child:
+              pet.imageUrl == null || pet.imageUrl!.isEmpty
+                  ? Icon(Icons.pets_rounded,
+                      color: scheme.onSecondaryContainer,
+                      size: AppIconSizes.sm)
+                  : null,
+        ),
+        title: Text(pet.name,
+            style: context.textTheme.labelLarge
+                ?.copyWith(fontWeight: FontWeight.w600)),
+        subtitle: Text(
+          pet.breedLine,
+          style: context.textTheme.bodySmall
+              ?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+        trailing: Icon(Icons.chevron_right,
+            color: scheme.onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Logout Section
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _LogoutSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionHeader(title: 'Upcoming Events'),
-        AppSpacing.vGapMd,
-        Container(
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerLow,
+        // Settings row
+        ListTile(
+          shape: RoundedRectangleBorder(
             borderRadius: AppRadius.brCard,
-            border: Border(left: BorderSide(color: scheme.primary, width: 4)),
+            side: BorderSide(
+                color: scheme.outlineVariant.withValues(alpha: 0.20)),
           ),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Agility Course Basics',
-                      style: text.titleMedium?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                  ),
-                  AppSpacing.hGapSm,
-                  _GoingPill(),
-                ],
-              ),
-              AppSpacing.vGapSm,
-              Row(
-                children: [
-                  Icon(
-                    Icons.event,
-                    size: AppIconSizes.sm,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  AppSpacing.hGapXs,
-                  Text(
-                    'Oct 12 • 10:00 AM',
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-              AppSpacing.vGapMd,
-              Row(
-                children: [
-                  const _AttendeeStack(),
-                  AppSpacing.hGapSm,
-                  Text(
-                    '+12 going',
-                    style: text.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: AppTypography.medium,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          tileColor: scheme.surface,
+          leading:
+              Icon(Icons.settings_outlined, color: scheme.onSurfaceVariant),
+          title: const Text('Settings'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.goNamed(RouteNames.ownerSettings),
+        ),
+        AppSpacing.vGapSm,
+
+        // Sign out button
+        OutlinedButton.icon(
+          icon: Icon(Icons.logout, color: scheme.error),
+          label: Text('Sign Out',
+              style: TextStyle(color: scheme.error)),
+          onPressed: () => _confirmSignOut(context, ref),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: scheme.error,
+            side: BorderSide(color: scheme.error.withValues(alpha: 0.50)),
+            shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.brCard),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           ),
         ),
       ],
     );
   }
-}
 
-class _GoingPill extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final text = context.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.base,
-      ),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: AppRadius.brPill,
-      ),
-      child: Text(
-        'GOING',
-        style: text.labelSmall?.copyWith(
-          color: scheme.onPrimaryContainer,
-          fontWeight: AppTypography.bold,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-class _AttendeeStack extends StatelessWidget {
-  const _AttendeeStack();
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    Widget dot(IconData icon, Color bg, Color fg) => Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: bg,
-        border: Border.all(color: scheme.surface, width: 2),
-      ),
-      child: Icon(icon, size: AppIconSizes.xs - 4, color: fg),
-    );
-
-    return SizedBox(
-      width: 48,
-      height: 28,
-      child: Stack(
-        children: [
-          dot(
-            Icons.person,
-            scheme.secondaryContainer,
-            scheme.onSecondaryContainer,
-          ),
-          Positioned(
-            left: 20,
-            child: dot(
-              Icons.person,
-              scheme.tertiaryContainer,
-              scheme.onTertiaryContainer,
-            ),
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign Out'),
+        content:
+            const Text('Are you sure you want to sign out of PetConnect AI?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Sign Out',
+                style: TextStyle(
+                    color: Theme.of(ctx).colorScheme.error)),
           ),
         ],
       ),
+    );
+
+    if (confirmed != true) return;
+
+    final signOut = ref.read(signOutProvider);
+    final result = await signOut(const NoParams());
+    result.fold(
+      (failure) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Sign out failed: ${failure.message}')),
+          );
+        }
+      },
+      (_) {
+        if (context.mounted) {
+          context.go(RoutePaths.login);
+        }
+      },
     );
   }
 }

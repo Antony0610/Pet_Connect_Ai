@@ -7,18 +7,70 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/sign_in_with_password.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/router/route_guard.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-/// Login screen — email/password sign in for a returning user.
+class _RoleOption {
+  const _RoleOption({
+    required this.portal,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.demoEmail,
+  });
+
+  final AppPortal portal;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String demoEmail;
+}
+
+const _roleOptions = [
+  _RoleOption(
+    portal: AppPortal.petOwner,
+    title: 'Pet Owner',
+    subtitle: 'Pets & Health',
+    icon: Icons.pets,
+    color: Color(0xFF10B981),
+    demoEmail: 'owner@petconnect.ai',
+  ),
+  _RoleOption(
+    portal: AppPortal.veterinarian,
+    title: 'Veterinarian',
+    subtitle: 'Clinical & EHR',
+    icon: Icons.local_hospital,
+    color: Color(0xFF06B6D4),
+    demoEmail: 'vet@petconnect.ai',
+  ),
+  _RoleOption(
+    portal: AppPortal.volunteerRescue,
+    title: 'Rescue & Vol.',
+    subtitle: 'Rescue Missions',
+    icon: Icons.volunteer_activism,
+    color: Color(0xFFF59E0B),
+    demoEmail: 'rescue@petconnect.ai',
+  ),
+  _RoleOption(
+    portal: AppPortal.administrator,
+    title: 'Administrator',
+    subtitle: 'Governance & Ops',
+    icon: Icons.admin_panel_settings,
+    color: Color(0xFF8B5CF6),
+    demoEmail: 'admin@petconnect.ai',
+  ),
+];
+
+/// Login screen — independent portal authentication with dedicated accounts.
 ///
-/// Built pixel-faithfully from the frozen Stitch Light Theme (glass panel,
-/// pets logo, floating-label fields, emerald pill CTA, social options). The
-/// same widget tree renders Light and Dark: every color resolves through
-/// [ColorScheme]; only the emerald "Sign In" accent is a fixed brand color
-/// (Pet Owner identity), read from [PortalPalette.accent] — never hardcoded.
+/// Features direct portal selection so users with dedicated Pet Owner,
+/// Veterinarian, Volunteer/Rescue, or Administrator accounts can sign in
+/// straight into their respective workspace.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -31,8 +83,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  AppPortal _selectedPortal = AppPortal.petOwner;
   bool _obscurePassword = true;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPortal = ref.read(selectedPortalProvider);
+  }
 
   @override
   void dispose() {
@@ -54,6 +113,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return null;
   }
 
+  void _onRoleChanged(AppPortal portal) {
+    setState(() => _selectedPortal = portal);
+    ref.read(selectedPortalProvider.notifier).state = portal;
+  }
+
+  void _fillDemo(String email) {
+    _emailController.text = email;
+    _passwordController.text = 'Password123!';
+  }
+
   Future<void> _submit() async {
     if (_isSubmitting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -68,23 +137,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    result.fold((failure) => context.showErrorSnack(failure.message), (
-      session,
-    ) async {
-      final profileResult = await ref.read(getUserProfileProvider)(
-        session.userId,
-      );
-      final profile = profileResult.fold((_) => null, (p) => p);
-      final portal = profile?.role ?? AppPortal.petOwner;
-      final targetPath = RouteGuard.portalHome(portal);
-      if (mounted) context.go(targetPath);
-    });
+    result.fold(
+      (failure) => context.showErrorSnack(failure.message),
+      (session) async {
+        ref.invalidate(currentUserProfileProvider);
+        ref.invalidate(petsProvider);
+        ref.read(selectedPetIdProvider.notifier).state = null;
+        ref.read(selectedPortalProvider.notifier).state = _selectedPortal;
+        final targetPath = RouteGuard.portalHome(_selectedPortal);
+        if (mounted) context.go(targetPath);
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final activeOption = _roleOptions.firstWhere(
+      (o) => o.portal == _selectedPortal,
+      orElse: () => _roleOptions.first,
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -92,14 +165,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.marginMobile,
-              vertical: AppSpacing.xl,
+              vertical: AppSpacing.lg,
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: 0.85),
+                  color: scheme.surface.withValues(alpha: 0.90),
                   borderRadius: AppRadius.brSection,
                   border: Border.all(
                     color: scheme.outlineVariant.withValues(alpha: 0.4),
@@ -115,32 +188,140 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _Logo(),
-                    const SizedBox(height: AppSpacing.lg),
+                    _Logo(color: activeOption.color),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Welcome back',
+                      '${activeOption.title} Portal',
                       textAlign: TextAlign.center,
                       style: textTheme.headlineMedium?.copyWith(
                         color: scheme.onSurface,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    AppSpacing.vGapSm,
+                    AppSpacing.vGapXs,
                     Text(
-                      'Sign in to continue to PetConnect AI',
+                      'Sign in with your dedicated ${activeOption.title.toLowerCase()} account',
                       textAlign: TextAlign.center,
-                      style: textTheme.bodyLarge?.copyWith(
+                      style: textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    AppSpacing.vGapLg,
+
+                    // ── Portal Account Selector ───────────────────────────
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Select Portal to Access',
+                              style: context.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => _fillDemo(activeOption.demoEmail),
+                              child: Text(
+                                'Quick Demo Fill',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: activeOption.color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        AppSpacing.vGapSm,
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: AppSpacing.sm,
+                          mainAxisSpacing: AppSpacing.sm,
+                          childAspectRatio: 2.1,
+                          children: _roleOptions.map((opt) {
+                            final isSelected = opt.portal == _selectedPortal;
+                            return InkWell(
+                              onTap: () => _onRoleChanged(opt.portal),
+                              borderRadius: AppRadius.brCard,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm,
+                                  vertical: AppSpacing.xs,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? opt.color.withValues(alpha: 0.15)
+                                      : scheme.surfaceContainerLow,
+                                  borderRadius: AppRadius.brCard,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? opt.color
+                                        : scheme.outlineVariant.withValues(alpha: 0.3),
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: opt.color.withValues(alpha: 0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        opt.icon,
+                                        color: opt.color,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    AppSpacing.hGapSm,
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            opt.title,
+                                            style: TextStyle(
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                              color: isSelected ? opt.color : scheme.onSurface,
+                                              fontSize: 12,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Text(
+                                            opt.subtitle,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
                     Form(
                       key: _formKey,
                       child: Column(
                         children: [
                           AppTextField(
                             controller: _emailController,
-                            labelText: 'Email address',
+                            labelText: '${activeOption.title} Email Address',
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             prefixIcon: Icons.mail_outline,
@@ -173,9 +354,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           AppSpacing.vGapXs,
-                          _EmeraldCta(
+                          _CustomAccentCta(
+                            accentColor: activeOption.color,
                             child: AppButton.filled(
-                              label: 'Sign In',
+                              label: 'Sign In to ${activeOption.title}',
                               isFullWidth: true,
                               size: AppButtonSize.large,
                               isLoading: _isSubmitting,
@@ -186,9 +368,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    const _OrDivider(label: 'or continue with'),
                     const SizedBox(height: AppSpacing.lg),
+                    const _OrDivider(label: 'or continue with'),
+                    const SizedBox(height: AppSpacing.md),
                     AppButton.outlined(
                       label: 'Continue with Face ID',
                       icon: Icons.face,
@@ -199,7 +381,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         'Biometric sign in is coming soon.',
                       ),
                     ),
-                    AppSpacing.vGapMd,
+                    AppSpacing.vGapSm,
                     AppButton.outlined(
                       label: 'Continue with Google',
                       icon: Icons.account_circle_outlined,
@@ -210,8 +392,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         'Google sign in is coming soon.',
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    _SignUpPrompt(onTap: () => context.go(RoutePaths.register)),
+                    const SizedBox(height: AppSpacing.lg),
+                    _SignUpPrompt(
+                      portalTitle: activeOption.title,
+                      onTap: () {
+                        ref.read(selectedPortalProvider.notifier).state = _selectedPortal;
+                        context.go(RoutePaths.register);
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -223,21 +411,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-/// Recolors a descendant filled button to the Pet Owner emerald brand accent.
-///
-/// The frozen Login design paints the primary CTA emerald (Pet Owner identity)
-/// rather than the shared purple primary. Rather than fork [AppButton], we
-/// scope a [FilledButtonTheme] override here so the shared widget stays
-/// canonical and the accent is sourced from [PortalPalette.accent] — never a
-/// literal hex. The accent is a fixed brand color, constant across Light/Dark.
-class _EmeraldCta extends StatelessWidget {
-  const _EmeraldCta({required this.child});
+/// Dynamic accent wrapper that matches the selected role portal.
+class _CustomAccentCta extends StatelessWidget {
+  const _CustomAccentCta({
+    required this.accentColor,
+    required this.child,
+  });
 
+  final Color accentColor;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final emerald = PortalPalettes.of(AppPortal.petOwner).accent;
     final baseStyle =
         Theme.of(context).filledButtonTheme.style ?? const ButtonStyle();
     return FilledButtonTheme(
@@ -245,9 +430,9 @@ class _EmeraldCta extends StatelessWidget {
         style: baseStyle.copyWith(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
-              return emerald.withValues(alpha: 0.5);
+              return accentColor.withValues(alpha: 0.5);
             }
-            return emerald;
+            return accentColor;
           }),
           foregroundColor: const WidgetStatePropertyAll(Colors.white),
         ),
@@ -259,17 +444,21 @@ class _EmeraldCta extends StatelessWidget {
 
 /// Circular brand mark: a filled `pets` glyph on the primary container.
 class _Logo extends StatelessWidget {
+  const _Logo({required this.color});
+
+  final Color color;
+
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
     return Container(
-      width: 80,
-      height: 80,
+      width: 68,
+      height: 68,
       decoration: BoxDecoration(
-        color: scheme.primaryContainer,
+        color: color.withValues(alpha: 0.15),
         shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
       ),
-      child: Icon(Icons.pets, size: 40, color: scheme.onPrimaryContainer),
+      child: Icon(Icons.pets, size: 34, color: color),
     );
   }
 }
@@ -308,8 +497,12 @@ class _OrDivider extends StatelessWidget {
 
 /// "Don't have an account? Create Account" footer.
 class _SignUpPrompt extends StatelessWidget {
-  const _SignUpPrompt({required this.onTap});
+  const _SignUpPrompt({
+    required this.portalTitle,
+    required this.onTap,
+  });
 
+  final String portalTitle;
   final VoidCallback onTap;
 
   @override
@@ -319,7 +512,7 @@ class _SignUpPrompt extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          "Don't have an account? ",
+          'Need a $portalTitle account? ',
           style: context.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),

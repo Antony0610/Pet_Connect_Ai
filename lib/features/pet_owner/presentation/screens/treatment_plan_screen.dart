@@ -212,7 +212,13 @@ class _TreatmentPlanScreenState extends ConsumerState<TreatmentPlanScreen> {
                         ),
                       ),
                       AppButton.outlined(
-                        onPressed: () {},
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Dialing Metro Vet Clinic: (555) 019-2834…'),
+                            ),
+                          );
+                        },
                         size: AppButtonSize.small,
                         child: const Text('Call Clinic'),
                       ),

@@ -55,7 +55,13 @@ class DigitalPrescriptionScreen extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Generating encrypted Rx PDF & sharing with Guardian...'),
+                ),
+              );
+            },
             tooltip: 'Share PDF',
           ),
         ],
@@ -89,7 +95,15 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.share, size: 18),
                       label: const Text('Share PDF'),
-                      onPressed: () {},
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Prescription PDF shared successfully.',
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),

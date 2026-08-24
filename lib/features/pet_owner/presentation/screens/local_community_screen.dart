@@ -197,7 +197,13 @@ class _LocalCommunityScreenState extends State<LocalCommunityScreen> {
                           ),
                           const Spacer(),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('RSVP confirmed for Golden Retriever Meetup!'),
+                                ),
+                              );
+                            },
                             child: const Text('RSVP'),
                           ),
                         ],

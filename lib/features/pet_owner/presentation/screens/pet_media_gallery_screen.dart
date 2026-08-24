@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -7,106 +8,60 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
-import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/features/storage/domain/entities/pet_gallery_media.dart';
+import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 
 /// The Pet Owner **Pet Media Gallery** screen.
 ///
-/// A faithful Flutter rendering of the frozen Stitch "Pet Gallery" (Light
-/// master): a glass header, a Grid / Timeline view toggle, a horizontal
-/// "Featured Moments" carousel and a bento "All Photos" grid (mixing large,
-/// standard, video and panoramic tiles). Every color, spacing, radius and
-/// type comes from the theme / design tokens so one widget tree serves both
-/// Light and Dark.
-class PetMediaGalleryScreen extends StatefulWidget {
+/// Fully wired to live Supabase backend via [petGalleryMediaProvider] & [storageRepositoryProvider].
+/// - Grid and Timeline views for real photos.
+/// - Upload button with [ImagePicker] support.
+/// - Tap to view / delete photo.
+/// - ZERO mock/hardcoded image URLs.
+class PetMediaGalleryScreen extends ConsumerStatefulWidget {
   const PetMediaGalleryScreen({super.key});
 
   @override
-  State<PetMediaGalleryScreen> createState() => _PetMediaGalleryScreenState();
+  ConsumerState<PetMediaGalleryScreen> createState() =>
+      _PetMediaGalleryScreenState();
 }
 
 enum _GalleryView { grid, timeline }
 
-class _PetMediaGalleryScreenState extends State<PetMediaGalleryScreen> {
+class _PetMediaGalleryScreenState extends ConsumerState<PetMediaGalleryScreen> {
   _GalleryView _view = _GalleryView.grid;
-
-  static const String _avatarUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuD4c2_Eyxn1W2w0wYumuTsucRL2spHlmLqjxK2zOJe-gfj2N_9Neg00JYQ7OmrhYEdrwa8yRBbwnC8hpcvsFQpo7qDA6-mfKhbEnOTIXfYoWXNcB86RIAkZdUbQIfZuvOMvUvUPUsApmFCp3I-2fswOYehvZl7OViwwyBAk2x1q1c5ScOMwydNF0PeEUgXB1sOBd7Tvyl4jtJiMh-kBj7Qz1MBu6HwK85h3EMDdxLCHFnfpSza2Iika_A';
-
-  static const List<_Moment> _moments = [
-    _Moment(
-      title: 'The Great Leap',
-      date: 'Oct 12, 2023',
-      icon: Icons.calendar_today,
-      url:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAUvxT7Y1p-rbxU4l25SLtWP3CNgcs0ro5RB93ZUtR3h7kYzI3moorx-DgjZ-R4I7tTncw8i3StSXph-06mCAh-cfkwbNipq51X-QhnPQt5NKlIpbyYVGa8j1482ehOej-Uw2VQGTC1tWH6A69ZrziZMX54PvKmjWXNpmM4ZS1VIheizgd4cEaoWgLz6LwETgiKKTyv1TTOFlgpC1-5VztyBZRZxCaoXWDG2VFMluxGjmh5UgmibdZNQg',
-    ),
-    _Moment(
-      title: 'Nap Time Buddies',
-      date: 'Sep 28, 2023',
-      icon: Icons.favorite,
-      url:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDJ6MShsxBv8ytWA-QfSKJzgXa1bJIGQJN_dvGBd-eDKiwyooxg1WI3l7QtDRpN2OAAVhBYFOfGoYTAiwQE9ary9kwueV85pc0HLSMHDi_BPPuME1AQ1fX_MQmzGoBGRsiau9DazsXVDIwgqLFNW4vZkERwSPR5dB-FDp99F0saLAQi9ehhmn-VZWAj_d4Flw06mIPmgrYcGHCRnWg5B8pKRNQdPdMnq8lKUEfAfa24ibSGgpmLYugwOQ',
-    ),
-    _Moment(
-      title: 'Lake Day Splash',
-      date: 'Sep 15, 2023',
-      icon: Icons.water_drop,
-      url:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCOR-wpKUbsL1n6p1-Wr7--ZBProIgrua2YbEJzrzHXkZMWq0Be1XfiTVeZr0coOf_ZtYa77Sc0v1t9AkLrXZloPq5KWYMDdRpLz3sd5px_yUwmEZxh8nELPfG5KqAp3djaCg92jmt04dNXt7v6necjdx-MNoTQv-xT64mOxNvrWvd6OFU5FmBAzH6SAldGYNbtGd83rzdb2ijeGgcfS84pH72yE-VsUlHVgH0sEzqg6voMS8kfPuPoBw',
-    ),
-  ];
-
-  static const String _photoLarge =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuC88AIA2j3Imx7K7RohO6sKbkCQvfcPZ5KuN7ETxkCKecmz-8ZRlVHr90uSC675ctb0wAzdkEqGZDEy4KjviHN7dS88YX6TKINQn8dvou5ocBOlBCu_oygHktxCjdY9TKDqlsp5EpZwe6SvpYUAPTrbM1c2Op1V0x1W-0ECFjOknVsmg1obvIkSUyNzAnT34KZynB7rSRGbp304fnJEXRi4PIqrx3SvA-N0HhNQUzeetu9ezilRJ_k_5g';
-  static const String _photoA =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBqFYhoY1oM0t-tD_p8ybomOoqhsVgQPY6lY__qnqo57oUDKGlTtKT5UIHtn22qYkNMeih1CrtojrEAoN9M0QZXfPrTDnF96rOKzxkGe4oCJnI8UibCC65XE00DfcDOxArA5WYzwd6ZPezYn01jrvj6FKG9eqUNY4S6eQodBGt-WehH0rsHQpM-pHkgnObCCplhsrx8B0OhH3VLkj54cAiFjqvnEJCSWzl2Ty9t9HfpKf9UpnttuJlLUA';
-  static const String _photoB =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAqNyvNSdOUZ7wm2w6ZUWTYnnMzi1uhTxUtHwHzfv9xnlrw1lLFPFgTUar7CGWUP2GtxilmzdBCANXUgDSKrsv_QAzKGi4CelQnwTJYG2rAM0zoAVjZhZZGcHm2A5AesSzUviTikx4X3pCFKUyJHHarqkIltTnIgpjbfu5fCw8C1zQcbbPhuoLzG6UETJ1DZxKvotnCwnQ15a08z1gWcAExp7IHnnyVDKpZlIW0IFpA5lke4wy_6j3Z1w';
-  static const String _photoVideo =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAq1L0d_i7qMFaE8enCZC7Tw1sYWeG9-gNcbmagzkcn3X-HSbY6dHemFVWpfIh0h-nr-N1HaX1v94TPdvaJDKjYN3WCG2zrcbJbB2YhYomhS62kVAboMjOfZCfcTvzBEhbKzDMtcKFt1D17GGCTjk4mgLvv40IQyBRpNst8FcOvhjcvJc3DoYX6DOib-WUJYVN5fdbBbMtSUKgi_otz3eP1wm1BnC_2iZaHuK-iT8TrO_dbpQfqH_8AgQ';
-  static const String _photoC =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCUgvVdi13CtZZe6mCPOXfZT4CAb2Rty10fjAe_oOZ7nnzG25wPHIMt1YlaNngLFJ3BN3FabOurR_RYJQ7oCPI9rKADWIu_6j-CfjVoUdoHas-rNZcXcvXOMfwok9Mnc5dLe8aJT9-g8i3ADvb_iEpix-FSlxXAss1IpxbUNJrDlc4v65Bu9Ior9z7WehvlXtD5wglFDnANYZ-XOFo8P9mO3yTRos-ZL-2Qf12E_aWFXvuKBC9CfRYvhA';
-  static const String _photoBanner =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBc3zy77PxL_LSVb9uYafChDRo8ud8y8V3dDE_OJ7dZ0yiwaJp0fkIUolhFTtUxhQzlAlmTXOFuREi7dZHgZPTTDD6OqyNNaQWM12i6tugxs3tGYpwx-7a2m_XwgRHSXEd-56sknlcJPTqs8mR7OsBYn3Wr4LjgQ2vwqYZD2CqihgHVvpsDDMZ0WRonwZBPY6gGEer8xCZQKYQ3OJD6-fJden1MFmAHXNem5WBzv36Gw4LfsSxFADs2lQ';
+  bool _uploading = false;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final text = context.textTheme;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final petId = selectedPet?.id ?? '';
+
+    final galleryAsync = ref.watch(petGalleryMediaProvider(petId));
 
     final appBar = OwnerGlassAppBar(
-      leading: ClipOval(
-        child: Image.network(
-          _avatarUrl,
-          width: 40,
-          height: 40,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            width: 40,
-            height: 40,
-            color: scheme.surfaceContainerHighest,
-            child: Icon(
-              Icons.pets,
-              size: AppIconSizes.sm,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        tooltip: 'Back',
+        onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        'PetConnect AI',
-        style: text.headlineSmall?.copyWith(
+        selectedPet != null ? '${selectedPet.name}’s Gallery' : 'Gallery',
+        style: text.titleLarge?.copyWith(
           color: scheme.primary,
           fontWeight: AppTypography.bold,
-          letterSpacing: -0.25,
         ),
       ),
       actions: [
         OwnerAppBarAction(
-          icon: Icons.smart_toy,
-          tooltip: 'AI Assistant',
-          onPressed: () => context.goNamed(RouteNames.ownerAiAssistant),
+          icon: Icons.add_a_photo_outlined,
+          tooltip: 'Add Photo',
+          onPressed: _uploading ? () {} : () => _pickAndUploadPhoto(petId),
         ),
       ],
     );
@@ -118,120 +73,423 @@ class _PetMediaGalleryScreenState extends State<PetMediaGalleryScreen> {
       appBar: appBar,
       showAiFab: false,
       body: SingleChildScrollView(
-        padding: EdgeInsets.only(top: topPad + AppSpacing.sm),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.marginMobile,
+          topPad + AppSpacing.sm,
+          AppSpacing.marginMobile,
+          AppSpacing.xxl,
+        ),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1440),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.marginMobile,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Title + view toggle ────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Gallery',
-                        style: text.headlineMedium?.copyWith(
-                          color: scheme.onSurface,
-                          fontWeight: AppTypography.semiBold,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Title + view toggle ────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Photos & Media',
+                      style: text.headlineSmall?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: AppTypography.semiBold,
                       ),
-                      _ViewToggle(
-                        value: _view,
-                        onChanged: (v) => setState(() => _view = v),
-                      ),
-                    ],
-                  ),
-                  AppSpacing.vGapLg,
-
-                  // ── Featured Moments ───────────────────────────────
-                  Text(
-                    'Featured Moments',
-                    style: text.headlineSmall?.copyWith(
-                      color: scheme.onSurface,
-                      fontWeight: AppTypography.semiBold,
                     ),
-                  ),
-                  AppSpacing.vGapMd,
-                  SizedBox(
-                    height: 210,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      clipBehavior: Clip.none,
-                      itemCount: _moments.length,
-                      separatorBuilder: (_, __) => AppSpacing.hGapSm,
-                      itemBuilder: (context, i) =>
-                          _MomentCard(moment: _moments[i]),
+                    _ViewToggle(
+                      value: _view,
+                      onChanged: (v) => setState(() => _view = v),
                     ),
-                  ),
-                  AppSpacing.vGapXl,
+                  ],
+                ),
+                AppSpacing.vGapLg,
 
-                  // ── All Photos ─────────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'All Photos',
-                        style: text.headlineSmall?.copyWith(
-                          color: scheme.onSurface,
-                          fontWeight: AppTypography.semiBold,
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {},
-                        iconAlignment: IconAlignment.end,
-                        icon: const Icon(
-                          Icons.filter_list,
-                          size: AppIconSizes.sm,
-                        ),
-                        label: const Text('Filter'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: scheme.primary,
-                          textStyle: text.labelLarge?.copyWith(
-                            fontWeight: AppTypography.semiBold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                if (_uploading) ...[
+                  const LinearProgressIndicator(),
                   AppSpacing.vGapMd,
-                  const _BentoGrid(
-                    large: _photoLarge,
-                    a: _photoA,
-                    b: _photoB,
-                    video: _photoVideo,
-                    c: _photoC,
-                    banner: _photoBanner,
-                  ),
                 ],
-              ),
+
+                galleryAsync.when(
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.xxl),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (e, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'Unable to load media: $e',
+                        style: text.bodyMedium?.copyWith(color: scheme.error),
+                      ),
+                    ),
+                  ),
+                  data: (mediaList) {
+                    if (mediaList.isEmpty) {
+                      return _EmptyGalleryCard(
+                        petName: selectedPet?.name ?? 'your pet',
+                        onUpload: () => _pickAndUploadPhoto(petId),
+                      );
+                    }
+
+                    if (_view == _GalleryView.timeline) {
+                      return _TimelineGallery(
+                        mediaList: mediaList,
+                        onDelete: (item) => _deleteMedia(item, petId),
+                      );
+                    }
+
+                    return _GridGallery(
+                      mediaList: mediaList,
+                      onDelete: (item) => _deleteMedia(item, petId),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
+
+  Future<void> _pickAndUploadPhoto(String petId) async {
+    if (petId.isEmpty) {
+      context.showErrorSnack('Please select a pet first.');
+      return;
+    }
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1920,
+    );
+    if (picked == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final userId =
+          ref.read(currentUserProfileProvider).valueOrNull?.id ?? 'anon';
+      final fileName =
+          'gallery_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final repo = ref.read(storageRepositoryProvider);
+      final result = await repo.uploadGalleryMedia(
+        userId: userId,
+        petId: petId,
+        bytes: bytes,
+        fileName: fileName,
+        mimeType: 'image/jpeg',
+      );
+
+      result.fold(
+        (failure) => context.showErrorSnack('Upload failed: ${failure.message}'),
+        (item) {
+          ref.invalidate(petGalleryMediaProvider(petId));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Photo added to gallery!')),
+            );
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        context.showErrorSnack('Failed to upload photo: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _deleteMedia(PetGalleryMedia item, String petId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Photo'),
+        content: const Text('Are you sure you want to remove this photo?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final repo = ref.read(storageRepositoryProvider);
+    final result = await repo.deleteGalleryMedia(item.id, item.storagePath);
+    result.fold(
+      (failure) => context.showErrorSnack('Delete failed: ${failure.message}'),
+      (_) {
+        ref.invalidate(petGalleryMediaProvider(petId));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Photo deleted.')),
+          );
+        }
+      },
+    );
+  }
 }
 
-class _Moment {
-  const _Moment({
-    required this.title,
-    required this.date,
-    required this.icon,
-    required this.url,
+// ═══════════════════════════════════════════════════════════════════
+// Empty State Card
+// ═══════════════════════════════════════════════════════════════════
+
+class _EmptyGalleryCard extends StatelessWidget {
+  const _EmptyGalleryCard({
+    required this.petName,
+    required this.onUpload,
   });
 
-  final String title;
-  final String date;
-  final IconData icon;
-  final String url;
+  final String petName;
+  final VoidCallback onUpload;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final text = context.textTheme;
+
+    return Container(
+      padding: AppSpacing.cardPaddingPremium,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: AppRadius.brSection,
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.20),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.photo_library_outlined,
+            size: AppIconSizes.xxl,
+            color: scheme.primary.withValues(alpha: 0.50),
+          ),
+          AppSpacing.vGapMd,
+          Text(
+            'No Photos Yet',
+            style: text.titleLarge?.copyWith(
+              fontWeight: AppTypography.semiBold,
+            ),
+          ),
+          AppSpacing.vGapXs,
+          Text(
+            'Capture and upload memorable moments with $petName.',
+            textAlign: TextAlign.center,
+            style: text.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          AppSpacing.vGapLg,
+          FilledButton.icon(
+            onPressed: onUpload,
+            icon: const Icon(Icons.add_a_photo),
+            label: const Text('Add First Photo'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-/// The Grid / Timeline pill segmented control.
+// ═══════════════════════════════════════════════════════════════════
+// Grid Gallery View
+// ═══════════════════════════════════════════════════════════════════
+
+class _GridGallery extends StatelessWidget {
+  const _GridGallery({
+    required this.mediaList,
+    required this.onDelete,
+  });
+
+  final List<PetGalleryMedia> mediaList;
+  final ValueChanged<PetGalleryMedia> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = context.screenWidth >= AppBreakpoints.tablet;
+    final crossAxisCount = isWide ? 4 : 2;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: AppSpacing.sm,
+        mainAxisSpacing: AppSpacing.sm,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: mediaList.length,
+      itemBuilder: (context, index) {
+        final item = mediaList[index];
+        return _MediaItemTile(
+          item: item,
+          onDelete: () => onDelete(item),
+        );
+      },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Timeline Gallery View
+// ═══════════════════════════════════════════════════════════════════
+
+class _TimelineGallery extends StatelessWidget {
+  const _TimelineGallery({
+    required this.mediaList,
+    required this.onDelete,
+  });
+
+  final List<PetGalleryMedia> mediaList;
+  final ValueChanged<PetGalleryMedia> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final text = context.textTheme;
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: mediaList.length,
+      separatorBuilder: (_, __) => AppSpacing.vGapLg,
+      itemBuilder: (context, index) {
+        final item = mediaList[index];
+        final dateStr =
+            '${item.createdAt.year}-${item.createdAt.month.toString().padLeft(2, '0')}-${item.createdAt.day.toString().padLeft(2, '0')}';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: AppIconSizes.xs,
+                  color: scheme.primary,
+                ),
+                AppSpacing.hGapXs,
+                Text(
+                  dateStr,
+                  style: text.labelMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  color: scheme.error,
+                  onPressed: () => onDelete(item),
+                ),
+              ],
+            ),
+            AppSpacing.vGapXs,
+            ClipRRect(
+              borderRadius: AppRadius.brCard,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  item.mediaUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: scheme.surfaceContainerHighest,
+                    child: const Icon(Icons.broken_image),
+                  ),
+                ),
+              ),
+            ),
+            if (item.caption != null && item.caption!.isNotEmpty) ...[
+              AppSpacing.vGapXs,
+              Text(
+                item.caption!,
+                style: text.bodyMedium?.copyWith(color: scheme.onSurface),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Media Item Tile with Preview & Delete
+// ═══════════════════════════════════════════════════════════════════
+
+class _MediaItemTile extends StatelessWidget {
+  const _MediaItemTile({
+    required this.item,
+    required this.onDelete,
+  });
+
+  final PetGalleryMedia item;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
+    return ClipRRect(
+      borderRadius: AppRadius.brCard,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            item.mediaUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => ColoredBox(
+              color: scheme.surfaceContainerHighest,
+              child: Icon(
+                Icons.image_outlined,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Positioned(
+            top: AppSpacing.xs,
+            right: AppSpacing.xs,
+            child: Material(
+              color: Colors.black45,
+              shape: const CircleBorder(),
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline,
+                    color: Colors.white, size: 16),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 28,
+                  minHeight: 28,
+                ),
+                onPressed: onDelete,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// View Toggle (Grid / Timeline)
+// ═══════════════════════════════════════════════════════════════════
+
 class _ViewToggle extends StatelessWidget {
   const _ViewToggle({required this.value, required this.onChanged});
 
@@ -316,271 +574,6 @@ class _ViewChip extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// A featured-moment carousel card: image, bottom gradient, date + title.
-class _MomentCard extends StatelessWidget {
-  const _MomentCard({required this.moment});
-
-  final _Moment moment;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = context.textTheme;
-    final width = context.screenWidth >= AppBreakpoints.tablet ? 350.0 : 280.0;
-
-    return SizedBox(
-      width: width,
-      child: _GalleryTile(
-        url: moment.url,
-        overlay: Align(
-          alignment: Alignment.bottomLeft,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(moment.icon, size: 14, color: Colors.white70),
-                    AppSpacing.hGapXs,
-                    Text(
-                      moment.date,
-                      style: text.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ),
-                AppSpacing.vGapXs,
-                Text(
-                  moment.title,
-                  style: text.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: AppTypography.medium,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        gradient: true,
-      ),
-    );
-  }
-}
-
-/// The bento-style "All Photos" layout: a large tile, a 2×2 cluster of
-/// standard tiles (one is a video), and a full-width panoramic banner.
-class _BentoGrid extends StatelessWidget {
-  const _BentoGrid({
-    required this.large,
-    required this.a,
-    required this.b,
-    required this.video,
-    required this.c,
-    required this.banner,
-  });
-
-  final String large;
-  final String a;
-  final String b;
-  final String video;
-  final String c;
-  final String banner;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Large tile (2×2).
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: _GalleryTile(
-                  url: large,
-                  overlay: const Align(
-                    alignment: Alignment.topRight,
-                    child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.xs),
-                      child: _GlassChip(icon: Icons.more_vert),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            AppSpacing.hGapSm,
-            // 2×2 cluster.
-            Expanded(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: _SquareTile(url: a)),
-                      AppSpacing.hGapSm,
-                      Expanded(child: _SquareTile(url: b)),
-                    ],
-                  ),
-                  AppSpacing.vGapSm,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SquareTile(
-                          url: video,
-                          badge: const _VideoBadge(duration: '0:15'),
-                        ),
-                      ),
-                      AppSpacing.hGapSm,
-                      Expanded(child: _SquareTile(url: c)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        AppSpacing.vGapSm,
-        // Panoramic banner (2:1).
-        AspectRatio(
-          aspectRatio: 2 / 1,
-          child: _GalleryTile(url: banner),
-        ),
-      ],
-    );
-  }
-}
-
-class _SquareTile extends StatelessWidget {
-  const _SquareTile({required this.url, this.badge});
-
-  final String url;
-  final Widget? badge;
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: _GalleryTile(
-        url: url,
-        overlay: badge == null
-            ? null
-            : Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xs),
-                  child: badge,
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-/// A rounded, bordered gallery image tile with an optional overlay + gradient.
-class _GalleryTile extends StatelessWidget {
-  const _GalleryTile({required this.url, this.overlay, this.gradient = false});
-
-  final String url;
-  final Widget? overlay;
-  final bool gradient;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return ClipRRect(
-      borderRadius: AppRadius.brCard,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.10),
-          ),
-          borderRadius: AppRadius.brCard,
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              url,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => ColoredBox(
-                color: scheme.surfaceContainerHighest,
-                child: Icon(
-                  Icons.image_outlined,
-                  color: scheme.onSurfaceVariant,
-                  size: AppIconSizes.lg,
-                ),
-              ),
-            ),
-            if (gradient)
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.black54, Colors.transparent],
-                  ),
-                ),
-              ),
-            if (overlay != null) overlay!,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GlassChip extends StatelessWidget {
-  const _GlassChip({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: scheme.surface.withValues(alpha: 0.80),
-      ),
-      child: Icon(icon, size: AppIconSizes.sm, color: scheme.onSurface),
-    );
-  }
-}
-
-class _VideoBadge extends StatelessWidget {
-  const _VideoBadge({required this.duration});
-
-  final String duration;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = context.textTheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.base,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.black54,
-        borderRadius: AppRadius.brPill,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.play_arrow, size: 14, color: Colors.white),
-          AppSpacing.hGapXs,
-          Text(duration, style: text.bodySmall?.copyWith(color: Colors.white)),
-        ],
       ),
     );
   }

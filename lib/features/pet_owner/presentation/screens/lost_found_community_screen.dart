@@ -162,7 +162,8 @@ class _LostFoundCommunityScreenState extends State<LostFoundCommunityScreen> {
                       ),
                       AppSpacing.vGapMd,
                       AppButton.filled(
-                        onPressed: () {},
+                        onPressed: () =>
+                            context.goNamed(RouteNames.ownerCommunitySightings),
                         size: AppButtonSize.small,
                         child: const Text('Review Match'),
                       ),
@@ -198,7 +199,15 @@ class _LostFoundCommunityScreenState extends State<LostFoundCommunityScreen> {
                           const Spacer(),
                           IconButton(
                             icon: const Icon(Icons.share_outlined, size: 18),
-                            onPressed: () {},
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Lost pet emergency alert broadcast link copied.',
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

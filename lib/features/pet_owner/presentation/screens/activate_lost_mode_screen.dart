@@ -63,20 +63,24 @@ class ActivateLostModeScreen extends StatelessWidget {
 class _MapBackground extends StatelessWidget {
   const _MapBackground();
 
-  static const String _mapUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBZ2C688crIoEbkyFkJJIDeN4PFyxeyUqeRk1Z8kQgZ2nzQT9EBQmQq-5rWnpRRJ6LWpSIYZ3ExwgW0YCqzeAvzPhTT0Z4BYbLKqWUjEhcFHtoIrkLG7ibzguH5xKv6UR6B03PqO2QpVoH0pQRi6iW2278PsbDgGoNB1F0PR9iyZqQoRH4CHrFGkuCHPhsZANmWI9zsx0NNIRMFBlgw93ivDla5neQ8kiIjXMt6TSCEwQpMYUT1_v8PrQ';
-
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
     return Opacity(
       opacity: 0.40,
-      child: Image.network(
-        _mapUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) =>
-            ColoredBox(color: scheme.surfaceContainer),
+      child: Container(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.2,
+            colors: [
+              scheme.errorContainer.withValues(alpha: 0.20),
+              scheme.surfaceContainerHighest,
+            ],
+          ),
+        ),
       ),
     );
   }

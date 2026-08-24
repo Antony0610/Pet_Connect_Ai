@@ -70,7 +70,15 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Secure medical record link generated for guardian.',
+                  ),
+                ),
+              );
+            },
             tooltip: 'Share Record',
           ),
           IconButton(

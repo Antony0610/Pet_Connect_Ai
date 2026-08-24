@@ -89,6 +89,7 @@ abstract final class RoutePaths {
   static const String vetPharmacy = '/vet/pharmacy';
   static const String vetAnalytics = '/vet/analytics';
   static const String vetProfile = '/vet/profile';
+  static const String vetSettings = '/vet/settings';
 
   // ── Volunteer & Rescue portal ──────────────────────────────────
   static const String rescueHome = '/rescue';
@@ -205,6 +206,7 @@ abstract final class RouteNames {
   static const String vetPharmacy = 'vetPharmacy';
   static const String vetAnalytics = 'vetAnalytics';
   static const String vetProfile = 'vetProfile';
+  static const String vetSettings = 'vetSettings';
 
   static const String rescueHome = 'rescueHome';
   static const String rescueOperations = 'rescueOperations';

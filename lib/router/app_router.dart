@@ -84,6 +84,7 @@ import 'package:petconnect_ai/features/veterinarian/presentation/screens/todays_
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/treatment_plan_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_dashboard_screen.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_profile_screen.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/screens/vet_settings_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/active_rescue_operations_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/emergency_operations_center_screen.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/screens/mission_accepted_screen.dart';
@@ -529,6 +530,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'profile',
             name: RouteNames.vetProfile,
             builder: (context, state) => const VetProfileScreen(),
+          ),
+          GoRoute(
+            path: 'settings',
+            name: RouteNames.vetSettings,
+            builder: (context, state) => const VetSettingsScreen(),
           ),
         ],
       ),

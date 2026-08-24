@@ -126,7 +126,64 @@ class _ConsultationWorkspaceScreenState
                       ActionChip(
                         avatar: const Icon(Icons.flash_on, size: 14),
                         label: const Text('Templates'),
-                        onPressed: () {},
+                        onPressed: () {
+                          showDialog<void>(
+                            context: context,
+                            builder: (ctx) => SimpleDialog(
+                              title: const Text('Insert Clinical SOAP Template'),
+                              children: [
+                                SimpleDialogOption(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    setState(() {
+                                      _subjectiveController.text =
+                                          'Patient active at home, appetite normal, no coughing or vomiting noted by owner.';
+                                      _objectiveController.text =
+                                          'T: 101.4°F, HR: 95 bpm, RR: 22 bpm. Mucous membranes pink, CRT < 2s. Lungs clear bilaterally. Heart rate regular with no murmur.';
+                                      _assessmentController.text =
+                                          'Healthy canine adult. Routine wellness examination passed with optimal metrics.';
+                                      _planController.text =
+                                          'Administer annual DHPP + Rabies booster. Continue monthly flea/tick preventative.';
+                                    });
+                                  },
+                                  child: const Text('📋 Routine Wellness Examination'),
+                                ),
+                                SimpleDialogOption(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    setState(() {
+                                      _subjectiveController.text =
+                                          'Owner reports pruritus, licking paws, and redness on ventral abdomen over past 7 days.';
+                                      _objectiveController.text =
+                                          'Erythema and mild alopecia on lower abdomen. No pustules or open ulcerations observed.';
+                                      _assessmentController.text =
+                                          'Seasonal atopic dermatitis with mild secondary bacterial colonization.';
+                                      _planController.text =
+                                          'Prescribe Apoquel 16mg BID x 14d, medicated chlorhexidine bath 2x weekly.';
+                                    });
+                                  },
+                                  child: const Text('🌿 Dermatology Workup & Pruritus'),
+                                ),
+                                SimpleDialogOption(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    setState(() {
+                                      _subjectiveController.text =
+                                          'Post-operative day 3. Patient eating soft food, urinating normally, mild lethargy.';
+                                      _objectiveController.text =
+                                          'Surgical incision clean, dry, and intact with no dehiscence or discharge. Mild peri-incisional swelling.';
+                                      _assessmentController.text =
+                                          'Healing appropriately post-surgery without infection.';
+                                      _planController.text =
+                                          'Continue carprofen 50mg SID for pain control, maintain E-collar for 7 more days.';
+                                    });
+                                  },
+                                  child: const Text('🩹 Post-Op Follow-up & Incision Check'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -321,7 +378,14 @@ class _ConsultationWorkspaceScreenState
             child: OutlinedButton.icon(
               icon: const Icon(Icons.auto_awesome, size: 16),
               label: const Text('Generate Draft Treatment Plan'),
-              onPressed: () {},
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('AI draft treatment plan generated for Buster.'),
+                  ),
+                );
+                context.push(RoutePaths.vetTreatmentPlan);
+              },
             ),
           ),
         ],

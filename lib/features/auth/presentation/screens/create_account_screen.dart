@@ -167,6 +167,54 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                                 color: scheme.onSurfaceVariant,
                               ),
                             ),
+                            AppSpacing.vGapMd,
+                            InkWell(
+                              onTap: () => context.go(RoutePaths.roleSelection),
+                              borderRadius: AppRadius.brPill,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.xs,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: scheme.primaryContainer.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  borderRadius: AppRadius.brPill,
+                                  border: Border.all(
+                                    color: scheme.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.person_pin,
+                                      size: 16,
+                                      color: scheme.primary,
+                                    ),
+                                    const SizedBox(width: AppSpacing.xs),
+                                    Text(
+                                      'Role: ${ref.watch(selectedPortalProvider).name.toUpperCase()}',
+                                      style: textTheme.labelMedium?.copyWith(
+                                        color: scheme.primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.xs),
+                                    Text(
+                                      '(Change)',
+                                      style: textTheme.labelSmall?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                             const SizedBox(height: AppSpacing.xl),
                             _buildForm(scheme, textTheme),
                             const SizedBox(height: AppSpacing.xl),
