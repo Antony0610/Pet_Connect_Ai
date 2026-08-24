@@ -29,14 +29,16 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
     final isWide = width >= AppBreakpoints.tablet;
 
     final selectedPet = ref.watch(selectedPetProvider);
-    final petName = selectedPet?.name ?? 'Buddy';
+    final petName = selectedPet?.name ?? 'Companion';
+    final petsAsync = ref.watch(petsProvider);
 
     final collarsAsync = ref.watch(registeredCollarsProvider);
-    final collarId = collarsAsync.maybeWhen(
-      data: (collars) =>
-          collars.isNotEmpty ? collars.first.id : 'demo-collar-id',
-      orElse: () => 'demo-collar-id',
-    );
+    final collars = collarsAsync.valueOrNull ?? [];
+    final matchingCollars = collars.where((c) => c.petId == selectedPet?.id);
+    final CollarDevice? collar = matchingCollars.isNotEmpty
+        ? matchingCollars.first
+        : (collars.isNotEmpty ? collars.first : null);
+    final collarId = collar?.id ?? 'demo-collar-id';
 
     final gpsStreamAsync = ref.watch(liveGpsLocationStreamProvider(collarId));
 
@@ -79,6 +81,48 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Pet Switcher
+                  petsAsync.maybeWhen(
+                    data: (pets) {
+                      if (pets.isEmpty) return const SizedBox.shrink();
+                      final selectedId = selectedPet?.id ?? pets.first.id;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              for (final p in pets) ...[
+                                Padding(
+                                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                                  child: FilterChip(
+                                    avatar: CircleAvatar(
+                                      backgroundImage: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                          ? NetworkImage(p.imageUrl!)
+                                          : null,
+                                      child: (p.imageUrl == null || p.imageUrl!.isEmpty)
+                                          ? const Icon(Icons.pets, size: 14)
+                                          : null,
+                                    ),
+                                    label: Text(p.name),
+                                    selected: p.id == selectedId,
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        ref.read(selectedPetIdProvider.notifier).state = p.id;
+                                      }
+                                    },
+                                    selectedColor: scheme.primaryContainer,
+                                    checkmarkColor: scheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    orElse: () => const SizedBox.shrink(),
+                  ),
                   CollarMapPreview(
                     locationLabel: locationText,
                     latitude: lat,

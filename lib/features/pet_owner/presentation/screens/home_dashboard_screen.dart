@@ -1115,37 +1115,38 @@ class _QuickActionTile extends StatelessWidget {
     final scheme = context.colorScheme;
     final accentColor = spec.color;
 
-    return ClipRRect(
+    return Material(
+      color: Colors.transparent,
       borderRadius: AppRadius.brSection,
-      child: Material(
-        color: scheme.surfaceContainerLowest,
-        child: InkWell(
-          onTap: onTap,
-          splashColor: accentColor.withValues(alpha: 0.15),
-          highlightColor: accentColor.withValues(alpha: 0.08),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.brSection,
-              border: Border.all(
-                color: spec.isDanger
-                    ? scheme.error.withValues(alpha: 0.40)
-                    : accentColor.withValues(alpha: 0.28),
-                width: 1.4,
-              ),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  accentColor.withValues(alpha: 0.10),
-                  scheme.surfaceContainerLowest,
-                ],
-              ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.brSection,
+        splashColor: accentColor.withValues(alpha: 0.18),
+        highlightColor: accentColor.withValues(alpha: 0.10),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.brSection,
+            border: Border.all(
+              color: spec.isDanger
+                  ? scheme.error.withValues(alpha: 0.40)
+                  : accentColor.withValues(alpha: 0.28),
+              width: 1.4,
             ),
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accentColor.withValues(alpha: 0.10),
+                scheme.surfaceContainerLowest,
+              ],
+            ),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

@@ -122,16 +122,30 @@ final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
   final getUserProfile = ref.watch(getUserProfileProvider);
   final profileResult = await getUserProfile(user.id);
   return profileResult.fold(
-    (_) => UserProfile(
-      id: user.id,
-      email: user.email ?? '',
-      fullName: (user.userMetadata?['full_name'] as String?) ?? (user.email?.split('@').first ?? 'User'),
-      role: AppPortal.petOwner,
-      avatarUrl: user.userMetadata?['avatar_url'] as String?,
-      createdAt: DateTime.tryParse(user.createdAt) ?? DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    (profile) => profile,
+    (_) {
+      final email = user.email ?? '';
+      final role = (email.toLowerCase().trim() == 'antonythomson06@gmail.com')
+          ? AppPortal.administrator
+          : AppPortal.petOwner;
+      return UserProfile(
+        id: user.id,
+        email: email,
+        fullName: (user.userMetadata?['full_name'] as String?) ??
+            (email.split('@').first),
+        role: role,
+        avatarUrl: user.userMetadata?['avatar_url'] as String?,
+        createdAt: DateTime.tryParse(user.createdAt) ?? DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    },
+    (profile) {
+      if (profile != null &&
+          profile.email.toLowerCase().trim() == 'antonythomson06@gmail.com' &&
+          profile.role != AppPortal.administrator) {
+        return profile.copyWith(role: AppPortal.administrator);
+      }
+      return profile;
+    },
   );
 });
 

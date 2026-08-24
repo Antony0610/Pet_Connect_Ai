@@ -40,6 +40,27 @@ class UserProfileModel implements Model {
     );
   }
 
+  /// Creates a copy of this model with updated values.
+  UserProfileModel copyWith({
+    String? id,
+    String? email,
+    String? fullName,
+    AppPortal? role,
+    String? avatarUrl,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return UserProfileModel(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   /// Maps this DTO to domain entity.
   UserProfile toEntity() => UserProfile(
     id: id,

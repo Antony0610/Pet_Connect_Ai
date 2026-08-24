@@ -62,6 +62,8 @@ class SmartCollarDashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const _CollarPetSwitcher(),
+                  AppSpacing.vGapMd,
                   const _DeviceStatusCard(),
                   AppSpacing.vGapLg,
                   if (isWide)
@@ -96,6 +98,58 @@ class SmartCollarDashboardScreen extends StatelessWidget {
   }
 }
 
+/// Horizontal Pet Switcher Bar for Smart Collar Telemetry
+class _CollarPetSwitcher extends ConsumerWidget {
+  const _CollarPetSwitcher();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final petsAsync = ref.watch(petsProvider);
+    final selectedPet = ref.watch(selectedPetProvider);
+
+    return petsAsync.maybeWhen(
+      data: (pets) {
+        if (pets.isEmpty) return const SizedBox.shrink();
+        final selectedId = selectedPet?.id ?? pets.first.id;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final pet in pets) ...[
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                  child: FilterChip(
+                    avatar: CircleAvatar(
+                      backgroundImage: (pet.imageUrl != null && pet.imageUrl!.isNotEmpty)
+                          ? NetworkImage(pet.imageUrl!)
+                          : null,
+                      child: (pet.imageUrl == null || pet.imageUrl!.isEmpty)
+                          ? const Icon(Icons.pets, size: 14)
+                          : null,
+                    ),
+                    label: Text(pet.name),
+                    selected: pet.id == selectedId,
+                    onSelected: (selected) {
+                      if (selected) {
+                        ref.read(selectedPetIdProvider.notifier).state = pet.id;
+                      }
+                    },
+                    selectedColor: scheme.primaryContainer,
+                    checkmarkColor: scheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
 /// The glass device-status hero: the pet's photo with an online indicator, the
 /// name and connection line, and a Location / Battery / Signal stat grid.
 class _DeviceStatusCard extends ConsumerWidget {
@@ -111,7 +165,10 @@ class _DeviceStatusCard extends ConsumerWidget {
 
     return collarsAsync.when(
       data: (collars) {
-        final CollarDevice? collar = collars.isNotEmpty ? collars.first : null;
+        final matchingCollars = collars.where((c) => c.petId == selectedPet?.id);
+        final CollarDevice? collar = matchingCollars.isNotEmpty
+            ? matchingCollars.first
+            : (collars.isNotEmpty ? collars.first : null);
         final petName = selectedPet?.name ??
             (collar != null ? 'Collar ${collar.deviceId}' : 'No Collar Paired');
         final isConnected = collar != null && collar.isActive;

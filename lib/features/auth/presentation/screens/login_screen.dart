@@ -128,18 +128,63 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isSubmitting = true);
+    final email = _emailController.text.trim();
     final result = await ref.read(signInWithPasswordProvider)(
       SignInParams(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
       ),
     );
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    result.fold(
-      (failure) => context.showErrorSnack(failure.message),
+    await result.fold(
+      (failure) async {
+        if (mounted) context.showErrorSnack(failure.message);
+      },
       (session) async {
+        // 1. Fetch user's registered database role profile
+        final getUserProfile = ref.read(getUserProfileProvider);
+        final profileResult = await getUserProfile(session.userId);
+        final profile = profileResult.fold((_) => null, (p) => p);
+
+        final registeredRole = (email.toLowerCase() == 'antonythomson06@gmail.com')
+            ? AppPortal.administrator
+            : (profile?.role ?? _selectedPortal);
+
+        // 2. Administrator Access Control
+        if (_selectedPortal == AppPortal.administrator &&
+            email.toLowerCase() != 'antonythomson06@gmail.com' &&
+            registeredRole != AppPortal.administrator) {
+          await ref.read(signOutProvider)(const NoParams());
+          if (mounted) {
+            context.showErrorSnack(
+              'Access restricted: Only authorized administrators can access the Administrator Portal.',
+            );
+          }
+          return;
+        }
+
+        // 3. Strict Single-Portal Role Enforcement
+        if (registeredRole != _selectedPortal) {
+          await ref.read(signOutProvider)(const NoParams());
+          final registeredName = switch (registeredRole) {
+            AppPortal.petOwner => 'Pet Owner',
+            AppPortal.veterinarian => 'Veterinarian',
+            AppPortal.volunteerRescue => 'Volunteer & Rescue',
+            AppPortal.administrator => 'Administrator',
+          };
+          if (mounted) {
+            setState(() => _selectedPortal = registeredRole);
+            ref.read(selectedPortalProvider.notifier).state = registeredRole;
+            context.showErrorSnack(
+              'This email is registered under the $registeredName Portal. Please sign in via the $registeredName Portal.',
+            );
+          }
+          return;
+        }
+
+        // 4. Successful authenticated entry into matching portal
         ref.invalidate(currentUserProfileProvider);
         ref.invalidate(petsProvider);
         ref.read(selectedPetIdProvider.notifier).state = null;

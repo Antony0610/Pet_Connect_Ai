@@ -44,12 +44,6 @@ const _roleOptions = <_RoleOption>[
     description: 'Help pets in need and coordinate rescues.',
     icon: Icons.volunteer_activism,
   ),
-  _RoleOption(
-    portal: AppPortal.administrator,
-    title: 'Administrator',
-    description: 'Manage the platform and analytics.',
-    icon: Icons.admin_panel_settings,
-  ),
 ];
 
 class RoleSelectionScreen extends ConsumerStatefulWidget {
