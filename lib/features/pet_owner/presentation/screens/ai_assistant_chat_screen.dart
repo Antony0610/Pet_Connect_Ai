@@ -523,20 +523,6 @@ class _AiCard extends StatelessWidget {
               ),
             ),
           ],
-          if (sources.isNotEmpty) ...[
-            AppSpacing.vGapSm,
-            Wrap(
-              spacing: 6,
-              children: sources
-                  .map(
-                    (s) => Chip(
-                      label: Text(s, style: const TextStyle(fontSize: 10)),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
         ],
       ),
     );

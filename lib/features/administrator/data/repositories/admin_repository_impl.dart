@@ -108,6 +108,99 @@ class AdminRepositoryImpl implements AdminRepository {
     }
   }
 
+  @override
+  ResultFuture<AdminUserEntry> updateUserRole(
+    String userId,
+    String newRole,
+  ) async {
+    try {
+      final updated = await _remote.updateUserRole(userId, newRole);
+      return Right(updated);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> suspendUser(String userId, bool isSuspended) async {
+    try {
+      await _remote.suspendUser(userId, isSuspended);
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> resetUserPassword(String email) async {
+    try {
+      await _remote.resetUserPassword(email);
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> createUserAccount({
+    required String email,
+    required String fullName,
+    required String role,
+    required String password,
+  }) async {
+    try {
+      await _remote.createUserAccount(
+        email: email,
+        fullName: fullName,
+        role: role,
+        password: password,
+      );
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<List<Map<String, dynamic>>> getFlaggedContent() async {
+    try {
+      final list = await _remote.getFlaggedContent();
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> moderateContent({
+    required String contentId,
+    required String contentType,
+    required String action,
+  }) async {
+    try {
+      await _remote.moderateContent(
+        contentId: contentId,
+        contentType: contentType,
+        action: action,
+      );
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
   // Analytics (Phase 11)
   @override
   ResultFuture<PlatformReportSummary?> getPlatformReports() async {

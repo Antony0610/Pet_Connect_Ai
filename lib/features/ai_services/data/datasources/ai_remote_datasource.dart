@@ -218,13 +218,22 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
   ) {
     final lower = prompt.toLowerCase().trim();
 
-    // 1. Multi-Pet Inventory & Profile Queries
+    // 1. Multi-Pet Inventory & Profile Queries (typo tolerant: 'by pets', 'which are by pets', etc.)
     if (lower.contains('which are my pets') ||
+        lower.contains('which are by pets') ||
         lower.contains('what are my pets') ||
+        lower.contains('what are by pets') ||
         lower.contains('who are my pets') ||
+        lower.contains('who are by pets') ||
         lower.contains('list my pets') ||
+        lower.contains('list by pets') ||
         lower.contains('my pets') ||
+        lower.contains('by pets') ||
         lower.contains('my pet') ||
+        lower.contains('by pet') ||
+        lower.contains('what pets') ||
+        lower.contains('which pets') ||
+        lower.contains('all pets') ||
         lower.contains('what pets do i have') ||
         lower.contains('how many pets') ||
         lower.contains("pet's name") ||

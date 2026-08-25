@@ -21,6 +21,23 @@ abstract class AdminRepository {
   );
 
   ResultFuture<List<AdminUserEntry>> getAdminUserDirectory();
+  ResultFuture<AdminUserEntry> updateUserRole(String userId, String newRole);
+  ResultFuture<void> suspendUser(String userId, bool isSuspended);
+  ResultFuture<void> resetUserPassword(String email);
+  ResultFuture<void> createUserAccount({
+    required String email,
+    required String fullName,
+    required String role,
+    required String password,
+  });
+
+  // Moderation
+  ResultFuture<List<Map<String, dynamic>>> getFlaggedContent();
+  ResultFuture<void> moderateContent({
+    required String contentId,
+    required String contentType,
+    required String action,
+  });
 
   // Analytics (Phase 11)
   ResultFuture<PlatformReportSummary?> getPlatformReports();

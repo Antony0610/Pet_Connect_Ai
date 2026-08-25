@@ -72,50 +72,65 @@ You have multiple capabilities:
 5. CONVERSATIONAL & OPEN-ENDED: Respond naturally, warmly, and helpfully to any everyday question without forcing rigid triage headers unless medically relevant.`;
 
     if (geminiApiKey) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: "user",
-                  parts: [
-                    {
-                      text: `${clinicalSystemPrompt}\n\nUser Query: ${prompt}`,
-                    },
-                  ],
-                },
-              ],
-              generationConfig: {
-                temperature: 0.6,
-                maxOutputTokens: 900,
-              },
-            }),
-          }
-        );
+      const modelsToTry = [
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+      ];
 
-        if (response.ok) {
-          const data = await response.json();
-          reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      for (const model of modelsToTry) {
+        if (reply) break;
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: "user",
+                    parts: [
+                      {
+                        text: `${clinicalSystemPrompt}\n\nUser Query: ${prompt}`,
+                      },
+                    ],
+                  },
+                ],
+                generationConfig: {
+                  temperature: 0.7,
+                  maxOutputTokens: 1000,
+                },
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        } catch (_e) {
+          // Continue to next model or fallback
         }
-      } catch (_e) {
-        // Fall back to intelligent rule-based engine
       }
     }
 
     if (!reply) {
       const lower = prompt.toLowerCase().trim();
       
-      // 1. Multi-Pet Inventory Queries
+      // 1. Multi-Pet Inventory Queries (with typo tolerance: 'by pets', 'my pets', 'list pets', etc.)
       if (lower.includes("which are my pets") ||
+          lower.includes("which are by pets") ||
           lower.includes("what are my pets") ||
           lower.includes("who are my pets") ||
+          lower.includes("who are by pets") ||
           lower.includes("list my pets") ||
           lower.includes("my pets") ||
+          lower.includes("by pets") ||
           lower.includes("my pet") ||
+          lower.includes("by pet") ||
+          lower.includes("what pets") ||
+          lower.includes("which pets") ||
           lower.includes("what pets do i have") ||
           lower.includes("how many pets") ||
           lower.includes("pet's name") ||
@@ -132,9 +147,9 @@ You have multiple capabilities:
             const allergies = p.allergies ? (Array.isArray(p.allergies) ? p.allergies.join(", ") : p.allergies) : "None reported";
             return `🐾 **${name}**\n  • **Type & Breed**: ${breed}\n  • **Age & Weight**: ${age} • ${weight}\n  • **Allergies**: ${allergies}`;
           }).join("\n\n");
-          reply = `Here are your registered companions in PetConnect AI:\n\n${formatted}\n\nHow can I help care for them today?`;
+          reply = `Here are your registered companions in PetConnect AI:\n\n${formatted}\n\nHow can I assist you with their health, nutrition, or daily routine today?`;
         } else if (petName) {
-          reply = `Your active pet registered in PetConnect AI is **${petName}**${petBreed ? ` (a wonderful ${petBreed} ${petSpecies})` : ` (${petSpecies})`}.${petAge ? ` ${petName} is ${petAge}.` : ''}${petWeight ? ` Current recorded weight is ${petWeight}.` : ''}${petAllergies && petAllergies !== 'None reported' ? ` Known allergies: ${petAllergies}.` : ''}\n\nHow is ${petName} doing today?`;
+          reply = `Your active registered pet in PetConnect AI is **${petName}**${petBreed ? ` (a wonderful ${petBreed} ${petSpecies})` : ` (${petSpecies})`}.${petAge ? ` ${petName} is ${petAge}.` : ''}${petWeight ? ` Current recorded weight is ${petWeight}.` : ''}${petAllergies && petAllergies !== 'None reported' ? ` Known allergies: ${petAllergies}.` : ''}\n\nHow is ${petName} doing today?`;
         } else {
           reply = "You do not have any pets registered in your profile yet. You can tap **Add Pet** on your Home Dashboard or in your Profile to set up their health records and smart collar!";
         }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -993,6 +994,7 @@ class _QuickActionsGrid extends StatelessWidget {
       tag: 'Passport',
       path: RoutePaths.ownerHealth,
       color: Color(0xFF10B981),
+      isTab: true,
     ),
     _QuickActionSpec(
       icon: Icons.podcasts_rounded,
@@ -1001,6 +1003,7 @@ class _QuickActionsGrid extends StatelessWidget {
       tag: 'GPS Live',
       path: RoutePaths.ownerCollar,
       color: Color(0xFF06B6D4),
+      isTab: true,
     ),
     _QuickActionSpec(
       icon: Icons.notifications_active_rounded,
@@ -1009,6 +1012,7 @@ class _QuickActionsGrid extends StatelessWidget {
       tag: 'Alerts',
       path: RoutePaths.ownerNotifications,
       color: Color(0xFF8B5CF6),
+      isTab: false,
     ),
     _QuickActionSpec(
       icon: Icons.campaign_rounded,
@@ -1018,6 +1022,7 @@ class _QuickActionsGrid extends StatelessWidget {
       path: RoutePaths.ownerLostMode,
       color: Color(0xFFEF4444),
       isDanger: true,
+      isTab: false,
     ),
     _QuickActionSpec(
       icon: Icons.groups_rounded,
@@ -1026,14 +1031,16 @@ class _QuickActionsGrid extends StatelessWidget {
       tag: 'Social',
       path: RoutePaths.ownerCommunity,
       color: Color(0xFF3B82F6),
+      isTab: true,
     ),
     _QuickActionSpec(
       icon: Icons.auto_awesome_rounded,
       title: 'AI Diagnostic Hub',
       subtitle: 'Triage & Diagnostics',
       tag: 'Gemini AI',
-      path: RoutePaths.ownerAiAssistant,
+      path: RoutePaths.ownerAiChat,
       color: Color(0xFFEC4899),
+      isTab: false,
     ),
   ];
 
@@ -1074,7 +1081,11 @@ class _QuickActionsGrid extends StatelessWidget {
               _QuickActionTile(
                 spec: spec,
                 onTap: () {
-                  context.push(spec.path);
+                  if (spec.isTab) {
+                    context.go(spec.path);
+                  } else {
+                    context.push(spec.path);
+                  }
                 },
               ),
           ],
@@ -1093,6 +1104,7 @@ class _QuickActionSpec {
     required this.path,
     required this.color,
     this.isDanger = false,
+    this.isTab = false,
   });
 
   final IconData icon;
@@ -1102,6 +1114,7 @@ class _QuickActionSpec {
   final String path;
   final Color color;
   final bool isDanger;
+  final bool isTab;
 }
 
 class _QuickActionTile extends StatelessWidget {
@@ -1115,105 +1128,119 @@ class _QuickActionTile extends StatelessWidget {
     final scheme = context.colorScheme;
     final accentColor = spec.color;
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: AppRadius.brSection,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.brSection,
-        splashColor: accentColor.withValues(alpha: 0.18),
-        highlightColor: accentColor.withValues(alpha: 0.10),
-        child: Ink(
-          decoration: BoxDecoration(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: AppRadius.brSection,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onTap();
+            },
             borderRadius: AppRadius.brSection,
-            border: Border.all(
-              color: spec.isDanger
-                  ? scheme.error.withValues(alpha: 0.40)
-                  : accentColor.withValues(alpha: 0.28),
-              width: 1.4,
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                accentColor.withValues(alpha: 0.10),
-                scheme.surfaceContainerLowest,
-              ],
-            ),
-          ),
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+            splashColor: accentColor.withValues(alpha: 0.18),
+            highlightColor: accentColor.withValues(alpha: 0.10),
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: AppRadius.brSection,
+                border: Border.all(
+                  color: spec.isDanger
+                      ? scheme.error.withValues(alpha: 0.40)
+                      : accentColor.withValues(alpha: 0.28),
+                  width: 1.4,
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    accentColor.withValues(alpha: 0.10),
+                    scheme.surfaceContainerLowest,
+                  ],
+                ),
+              ),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: accentColor.withValues(alpha: 0.40),
-                        width: 1.2,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.16),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: accentColor.withValues(alpha: 0.40),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Icon(
+                          spec.icon,
+                          color: accentColor,
+                          size: AppIconSizes.md,
+                        ),
                       ),
-                    ),
-                    child: Icon(
-                      spec.icon,
-                      color: accentColor,
-                      size: AppIconSizes.md,
-                    ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentColor.withValues(alpha: 0.14),
+                          borderRadius: AppRadius.brPill,
+                        ),
+                        child: Text(
+                          spec.tag,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: accentColor,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.14),
-                      borderRadius: AppRadius.brPill,
-                    ),
-                    child: Text(
-                      spec.tag,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.bold,
-                        color: accentColor,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        spec.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color:
+                              spec.isDanger ? scheme.error : scheme.onSurface,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 3),
+                      Text(
+                        spec.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    spec.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: spec.isDanger ? scheme.error : scheme.onSurface,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    spec.subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

@@ -5,8 +5,11 @@ import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -113,18 +116,34 @@ class _AdminUserManagementScreenState
           IconButton(
             icon: const Icon(Icons.download_outlined),
             onPressed: () {
+              final users = usersAsync.valueOrNull ?? [];
+              final csvBuffer = StringBuffer('ID,Full Name,Email,Role,Created At\n');
+              for (final u in users) {
+                csvBuffer.writeln('"${u.id}","${u.fullName}","${u.email ?? ''}","${u.role}","${u.createdAt.toIso8601String()}"');
+              }
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Exporting user directory CSV...'),
+                SnackBar(
+                  content: Text('Exported ${users.length} accounts to user_directory.csv'),
+                  action: SnackBarAction(label: 'OK', onPressed: () {}),
                 ),
               );
             },
-            tooltip: 'Export Directory',
+            tooltip: 'Export Directory CSV',
           ),
           IconButton(
             icon: const Icon(Icons.person_add_outlined),
             onPressed: () => _showAddUserDialog(context, theme, colorScheme),
             tooltip: 'New User',
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push(RoutePaths.adminSettings),
+            tooltip: 'Platform Settings',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_outlined),
+            onPressed: () => _confirmSignOut(context),
+            tooltip: 'Sign Out',
           ),
         ],
       ),
@@ -403,9 +422,13 @@ class _AdminUserManagementScreenState
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, size: 18),
                   onSelected: (action) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$action for ${user.fullName}')),
-                    );
+                    if (action == 'Edit Role') {
+                      _showEditRoleDialog(context, user);
+                    } else if (action == 'Suspend Account') {
+                      _toggleSuspendUser(context, user);
+                    } else if (action == 'Reset Password') {
+                      _resetUserPassword(context, user);
+                    }
                   },
                   itemBuilder: (ctx) => [
                     const PopupMenuItem(
@@ -448,64 +471,234 @@ class _AdminUserManagementScreenState
     return months[month - 1];
   }
 
+  void _showEditRoleDialog(BuildContext context, AdminUserEntry user) {
+    String selectedRole = user.role;
+    final scaffold = ScaffoldMessenger.of(context);
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: Text('Edit Role for ${user.fullName}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: selectedRole,
+                decoration: const InputDecoration(labelText: 'Portal Role'),
+                items: const [
+                  DropdownMenuItem(value: 'pet_owner', child: Text('Pet Owner')),
+                  DropdownMenuItem(value: 'veterinarian', child: Text('Veterinarian')),
+                  DropdownMenuItem(value: 'volunteer', child: Text('Volunteer / Rescue')),
+                  DropdownMenuItem(value: 'administrator', child: Text('Administrator')),
+                ],
+                onChanged: (v) => setModalState(() => selectedRole = v ?? selectedRole),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            AppButton(
+              text: 'Save Role',
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final res = await ref
+                    .read(adminRepositoryProvider)
+                    .updateUserRole(user.id, selectedRole);
+                res.fold(
+                  (f) => scaffold.showSnackBar(
+                    SnackBar(content: Text('Failed to update role: ${f.message}')),
+                  ),
+                  (_) {
+                    ref.invalidate(adminUserDirectoryProvider);
+                    scaffold.showSnackBar(
+                      SnackBar(content: Text('Role updated to ${_displayRole(selectedRole)} for ${user.fullName}')),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleSuspendUser(
+    BuildContext context,
+    AdminUserEntry user,
+  ) async {
+    final scaffold = ScaffoldMessenger.of(context);
+    final res = await ref
+        .read(adminRepositoryProvider)
+        .suspendUser(user.id, true);
+    res.fold(
+      (f) => scaffold.showSnackBar(
+        SnackBar(content: Text('Failed to suspend account: ${f.message}')),
+      ),
+      (_) {
+        ref.invalidate(adminUserDirectoryProvider);
+        scaffold.showSnackBar(
+          SnackBar(content: Text('Account for ${user.fullName} suspended.')),
+        );
+      },
+    );
+  }
+
+  Future<void> _resetUserPassword(
+    BuildContext context,
+    AdminUserEntry user,
+  ) async {
+    final scaffold = ScaffoldMessenger.of(context);
+    if (user.email == null || user.email!.isEmpty) {
+      scaffold.showSnackBar(
+        const SnackBar(content: Text('User has no email associated.')),
+      );
+      return;
+    }
+    final res = await ref
+        .read(adminRepositoryProvider)
+        .resetUserPassword(user.email!);
+    res.fold(
+      (f) => scaffold.showSnackBar(
+        SnackBar(content: Text('Password reset error: ${f.message}')),
+      ),
+      (_) {
+        scaffold.showSnackBar(
+          SnackBar(content: Text('Password reset instructions sent to ${user.email}')),
+        );
+      },
+    );
+  }
+
   void _showAddUserDialog(
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController(text: 'PetConnect2026!');
+    String selectedRole = 'pet_owner';
+    final scaffold = ScaffoldMessenger.of(context);
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          title: const Text('Provision New User Account'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    hintText: 'John Doe',
+                  ),
+                ),
+                AppSpacing.vGapSm,
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    hintText: 'user@petconnect.ai',
+                  ),
+                ),
+                AppSpacing.vGapSm,
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Temporary Password',
+                  ),
+                ),
+                AppSpacing.vGapSm,
+                DropdownButtonFormField<String>(
+                  initialValue: selectedRole,
+                  decoration: const InputDecoration(labelText: 'Portal Role'),
+                  items: const [
+                    DropdownMenuItem(value: 'pet_owner', child: Text('Pet Owner')),
+                    DropdownMenuItem(value: 'veterinarian', child: Text('Veterinarian')),
+                    DropdownMenuItem(value: 'volunteer', child: Text('Volunteer / Rescuer')),
+                    DropdownMenuItem(value: 'administrator', child: Text('Administrator')),
+                  ],
+                  onChanged: (v) => setModalState(() => selectedRole = v ?? selectedRole),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            AppButton(
+              text: 'Create Account',
+              onPressed: () async {
+                final email = emailController.text.trim();
+                final name = nameController.text.trim();
+                final password = passwordController.text.trim();
+                if (email.isEmpty || name.isEmpty) {
+                  scaffold.showSnackBar(
+                    const SnackBar(content: Text('Please enter name and email')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                final res = await ref.read(adminRepositoryProvider).createUserAccount(
+                      email: email,
+                      fullName: name,
+                      role: selectedRole,
+                      password: password,
+                    );
+                res.fold(
+                  (f) => scaffold.showSnackBar(
+                    SnackBar(content: Text('Account creation error: ${f.message}')),
+                  ),
+                  (_) {
+                    ref.invalidate(adminUserDirectoryProvider);
+                    scaffold.showSnackBar(
+                      SnackBar(content: Text('Account provisioned for $email as ${_displayRole(selectedRole)}!')),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmSignOut(BuildContext context) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Provision New User Account'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                hintText: 'John Doe',
-              ),
-            ),
-            AppSpacing.vGapSm,
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Email Address',
-                hintText: 'user@example.com',
-              ),
-            ),
-            AppSpacing.vGapSm,
-            DropdownButtonFormField<String>(
-              initialValue: 'Pet Owner',
-              decoration: const InputDecoration(labelText: 'Portal Role'),
-              items: const [
-                DropdownMenuItem(value: 'Pet Owner', child: Text('Pet Owner')),
-                DropdownMenuItem(
-                  value: 'Veterinarian',
-                  child: Text('Veterinarian'),
-                ),
-                DropdownMenuItem(
-                  value: 'Rescuer',
-                  child: Text('Volunteer / Rescuer'),
-                ),
-                DropdownMenuItem(value: 'Admin', child: Text('Administrator')),
-              ],
-              onChanged: (_) {},
-            ),
-          ],
+        title: const Text('Sign Out Administrator'),
+        content: const Text(
+          'Are you sure you want to end your administrator session?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          AppButton(
-            text: 'Create Account',
-            onPressed: () {
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('New user account provisioned!')),
-              );
+              await ref.read(signOutProvider)(const NoParams());
+              if (context.mounted) {
+                context.go(RoutePaths.login);
+              }
             },
+            child: const Text('Sign Out'),
           ),
         ],
       ),

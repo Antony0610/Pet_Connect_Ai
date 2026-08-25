@@ -439,13 +439,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    _SignUpPrompt(
-                      portalTitle: activeOption.title,
-                      onTap: () {
-                        ref.read(selectedPortalProvider.notifier).state = _selectedPortal;
-                        context.go(RoutePaths.register);
-                      },
-                    ),
+                    if (_selectedPortal != AppPortal.administrator)
+                      _SignUpPrompt(
+                        portalTitle: activeOption.title,
+                        onTap: () {
+                          ref.read(selectedPortalProvider.notifier).state = _selectedPortal;
+                          context.go(RoutePaths.register);
+                        },
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Administrator accounts are managed via system governance.',
+                          textAlign: TextAlign.center,
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: context.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

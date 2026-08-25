@@ -128,6 +128,40 @@ class _AdminPlatformSettingsScreenState
             },
             tooltip: 'Reload Settings',
           ),
+          IconButton(
+            icon: const Icon(Icons.logout_outlined),
+            onPressed: () {
+              showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Sign Out Administrator'),
+                  content: const Text(
+                    'Are you sure you want to end your administrator session?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await ref.read(signOutProvider)(const NoParams());
+                        if (context.mounted) {
+                          context.go(RoutePaths.login);
+                        }
+                      },
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            tooltip: 'Sign Out',
+          ),
         ],
       ),
       body: settingsAsync.when(

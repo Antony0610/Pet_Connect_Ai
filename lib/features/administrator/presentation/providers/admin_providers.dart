@@ -73,3 +73,14 @@ final adminSecurityPostureProvider =
         (posture) => posture,
       );
     });
+
+/// Live Flagged Content Moderation Queue provider.
+final adminFlaggedContentProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+      final repo = ref.watch(adminRepositoryProvider);
+      final result = await repo.getFlaggedContent();
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (items) => items,
+      );
+    });

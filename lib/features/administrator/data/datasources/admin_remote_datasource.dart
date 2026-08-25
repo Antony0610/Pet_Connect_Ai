@@ -1,4 +1,4 @@
-import 'package:petconnect_ai/core/error/exceptions.dart';
+import 'package:petconnect_ai/core/error/exceptions.dart' hide AuthException;
 import 'package:petconnect_ai/features/administrator/data/models/admin_user_entry_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/audit_log_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/platform_report_summary_model.dart';
@@ -22,6 +22,22 @@ abstract class AdminRemoteDataSource {
 
   Future<List<AdminUserEntryModel>> getAdminUserDirectory();
   Future<AdminUserEntryModel> updateUserRole(String userId, String newRole);
+  Future<void> suspendUser(String userId, bool isSuspended);
+  Future<void> resetUserPassword(String email);
+  Future<void> createUserAccount({
+    required String email,
+    required String fullName,
+    required String role,
+    required String password,
+  });
+
+  // Moderation
+  Future<List<Map<String, dynamic>>> getFlaggedContent();
+  Future<void> moderateContent({
+    required String contentId,
+    required String contentType,
+    required String action,
+  });
 
   // Phase 11 — Analytics
   Future<PlatformReportSummaryModel?> getPlatformReports();
@@ -197,6 +213,121 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to update user role: $e');
+    }
+  }
+
+  @override
+  Future<void> suspendUser(String userId, bool isSuspended) async {
+    try {
+      await _client.from('profiles').update({
+        'is_suspended': isSuspended,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', userId);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to update account status: $e');
+    }
+  }
+
+  @override
+  Future<void> resetUserPassword(String email) async {
+    try {
+      await _client.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException('Failed to send password reset email: $e');
+    }
+  }
+
+  @override
+  Future<void> createUserAccount({
+    required String email,
+    required String fullName,
+    required String role,
+    required String password,
+  }) async {
+    try {
+      final res = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'full_name': fullName,
+          'role': role,
+        },
+      );
+      if (res.user != null) {
+        await _client.from('profiles').upsert({
+          'id': res.user!.id,
+          'email': email,
+          'full_name': fullName,
+          'role': role,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        });
+      }
+    } on AuthException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException('Failed to provision account: $e');
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getFlaggedContent() async {
+    try {
+      final posts = await _client
+          .from('community_posts')
+          .select('id, title, content, category, author_id, is_flagged, created_at')
+          .eq('is_flagged', true)
+          .order('created_at', ascending: false);
+
+      final postList = posts as List<dynamic>;
+      return postList.map((dynamic item) {
+        final p = item as Map<String, dynamic>;
+        final authorId = p['author_id']?.toString();
+        final createdAt = p['created_at']?.toString();
+        final content = p['content']?.toString() ?? p['title']?.toString() ?? 'Flagged community post';
+        return <String, dynamic>{
+          'id': p['id']?.toString() ?? '',
+          'author': authorId != null ? 'Author #${authorId.substring(0, authorId.length > 6 ? 6 : authorId.length)}' : 'Community Member',
+          'time': createdAt != null ? DateTime.tryParse(createdAt)?.toLocal().toString().substring(0, 16) ?? 'Recently' : 'Recently',
+          'reason': 'Flagged by Community Filter',
+          'content': content,
+          'priority': 'MEDIUM',
+          'type': 'Post',
+        };
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<void> moderateContent({
+    required String contentId,
+    required String contentType,
+    required String action,
+  }) async {
+    try {
+      if (action == 'approve') {
+        await _client
+            .from('community_posts')
+            .update({'is_flagged': false})
+            .eq('id', contentId);
+      } else if (action == 'remove') {
+        await _client
+            .from('community_posts')
+            .delete()
+            .eq('id', contentId);
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw ServerException('Failed to execute moderation action: $e');
     }
   }
 
