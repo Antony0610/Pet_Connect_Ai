@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_dosage_calculator_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -36,7 +38,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'RX-9824-A • Buddy',
+              'Rx #RX-2024-8841',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -45,23 +47,31 @@ class DigitalPrescriptionScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.calculate_outlined),
+            tooltip: 'Dosage Calculator',
+            onPressed: () {
+              VetDosageCalculatorModal.show(
+                context,
+                initialWeightKg: 28.5,
+                initialSpecies: 'Canine',
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.print_outlined),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Printing Prescription...')),
+                const SnackBar(content: Text('Printing encrypted Prescription...')),
               );
             },
             tooltip: 'Print Rx',
           ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Generating encrypted Rx PDF & sharing with Guardian...'),
-                ),
-              );
-            },
+            onPressed: () => ExternalActions.shareText(
+              '🐾 PetConnect AI Digital Veterinary Prescription\nRx #RX-2024-8841\nAuthorized by Dr. Smith (DVM)\nVerified clinical protocol & dosing instructions.',
+              subject: 'Digital Prescription #RX-2024-8841',
+            ),
             tooltip: 'Share PDF',
           ),
         ],
@@ -171,13 +181,13 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '123 Wellness Way, Suite 100, Metropolis, NY 10001',
+                      'Koramangala 4th Block, Bengaluru, Karnataka 560034',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
-                      'Phone: (555) 123-4567 | DEA: AB1234567',
+                      'Phone: +91 98450 12345 | VCI Reg: VCI/KA/2026/8924',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.primary,
                       ),
@@ -240,7 +250,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
             ),
           ),
           Text(
-            'Weight: 32 kg (70.5 lbs)',
+            'Weight: 32 kg',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -260,7 +270,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '456 Maple Drive, Metropolis, NY 10002 • (555) 987-6543',
+            'Indiranagar, Bengaluru, Karnataka 560038 • +91 98765 43210',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

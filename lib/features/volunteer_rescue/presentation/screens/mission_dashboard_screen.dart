@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
@@ -403,7 +404,10 @@ class _MissionDashboardScreenState
     required String path,
   }) {
     return AppCard(
-      onTap: () => context.push(path),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        context.push(path);
+      },
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [

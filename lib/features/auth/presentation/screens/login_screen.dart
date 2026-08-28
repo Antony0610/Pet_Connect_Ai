@@ -21,7 +21,6 @@ class _RoleOption {
     required this.subtitle,
     required this.icon,
     required this.color,
-    required this.demoEmail,
   });
 
   final AppPortal portal;
@@ -29,7 +28,6 @@ class _RoleOption {
   final String subtitle;
   final IconData icon;
   final Color color;
-  final String demoEmail;
 }
 
 const _roleOptions = [
@@ -39,7 +37,6 @@ const _roleOptions = [
     subtitle: 'Pets & Health',
     icon: Icons.pets,
     color: Color(0xFF10B981),
-    demoEmail: 'owner@petconnect.ai',
   ),
   _RoleOption(
     portal: AppPortal.veterinarian,
@@ -47,7 +44,6 @@ const _roleOptions = [
     subtitle: 'Clinical & EHR',
     icon: Icons.local_hospital,
     color: Color(0xFF06B6D4),
-    demoEmail: 'vet@petconnect.ai',
   ),
   _RoleOption(
     portal: AppPortal.volunteerRescue,
@@ -55,7 +51,6 @@ const _roleOptions = [
     subtitle: 'Rescue Missions',
     icon: Icons.volunteer_activism,
     color: Color(0xFFF59E0B),
-    demoEmail: 'rescue@petconnect.ai',
   ),
   _RoleOption(
     portal: AppPortal.administrator,
@@ -63,7 +58,6 @@ const _roleOptions = [
     subtitle: 'Governance & Ops',
     icon: Icons.admin_panel_settings,
     color: Color(0xFF8B5CF6),
-    demoEmail: 'admin@petconnect.ai',
   ),
 ];
 
@@ -119,11 +113,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.read(selectedPortalProvider.notifier).state = portal;
   }
 
-  void _fillDemo(String email) {
-    _emailController.text = email;
-    _passwordController.text = 'Password123!';
-  }
-
   Future<void> _submit() async {
     if (_isSubmitting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -149,18 +138,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final profileResult = await getUserProfile(session.userId);
         final profile = profileResult.fold((_) => null, (p) => p);
 
-        final registeredRole = (email.toLowerCase() == 'antonythomson06@gmail.com')
-            ? AppPortal.administrator
-            : (profile?.role ?? _selectedPortal);
-
-        // 2. Administrator Access Control
-        if (_selectedPortal == AppPortal.administrator &&
-            email.toLowerCase() != 'antonythomson06@gmail.com' &&
-            registeredRole != AppPortal.administrator) {
+        // 1b. Check if account is suspended
+        if (profile?.isSuspended == true) {
           await ref.read(signOutProvider)(const NoParams());
           if (mounted) {
             context.showErrorSnack(
-              'Access restricted: Only authorized administrators can access the Administrator Portal.',
+              'Account suspended: Your account has been suspended by an administrator. Please contact support at support@petconnect.ai.',
+            );
+          }
+          return;
+        }
+
+        final normalizedEmail = email.toLowerCase().trim();
+        final isAuthorizedAdmin = normalizedEmail == 'antonythomson06@gmail.com' ||
+            normalizedEmail == 'admin@petconnect.ai';
+
+        final registeredRole = isAuthorizedAdmin
+            ? AppPortal.administrator
+            : (profile?.role ?? _selectedPortal);
+
+        // 2. Administrator Access Control: Strictly whitelist antonythomson06@gmail.com and admin@petconnect.ai
+        if (_selectedPortal == AppPortal.administrator && !isAuthorizedAdmin) {
+          await ref.read(signOutProvider)(const NoParams());
+          if (mounted) {
+            context.showErrorSnack(
+              'Access denied: Only authorized administrator accounts (antonythomson06@gmail.com / admin@petconnect.ai) can access the Administrator Portal.',
             );
           }
           return;
@@ -258,28 +260,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Select Portal to Access',
-                              style: context.textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                            InkWell(
-                              onTap: () => _fillDemo(activeOption.demoEmail),
-                              child: Text(
-                                'Quick Demo Fill',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: activeOption.color,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Select Portal to Access',
+                          style: context.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                         AppSpacing.vGapSm,
                         GridView.count(

@@ -1,13 +1,17 @@
-import 'dart:typed_data';
+import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
@@ -15,70 +19,131 @@ import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets
 /// The author of a chat message.
 enum _Role { user, ai }
 
-/// A single chat message. User messages can carry [imageBytes]. AI messages carry [sources]
-/// and optional [urgencyLevel] / [recommendations].
+/// A single chat message in the conversation thread.
 class _ChatMessage {
-  const _ChatMessage(
+  _ChatMessage(
     this.role,
     this.text, {
-    this.imageBytes,
+    this.images = const [],
     this.sources = const [],
     this.urgencyLevel,
     this.recommendations = const [],
+    this.isStreaming = false,
   });
 
   final _Role role;
-  final String text;
-  final Uint8List? imageBytes;
+  String text;
+  final List<Uint8List> images;
   final List<String> sources;
   final String? urgencyLevel;
   final List<String> recommendations;
+  bool isStreaming;
 }
 
 /// **AI Assistant Chat** — `/owner/ai/chat`.
 ///
 /// An interactive multimodal conversational thread with PetConnect AI.
-/// Supports text queries, direct symptom photo attachment, and automated clinical diagnosis.
+/// Supports text queries, multi-photo symptom attachment, hands-free voice dictation,
+/// and live streaming typewriter response rendering.
 class AiAssistantChatScreen extends ConsumerStatefulWidget {
-  const AiAssistantChatScreen({super.key});
+  const AiAssistantChatScreen({
+    super.key,
+    this.initialConversationId,
+    this.initialPrompt,
+  });
+
+  final String? initialConversationId;
+  final String? initialPrompt;
 
   @override
   ConsumerState<AiAssistantChatScreen> createState() =>
       _AiAssistantChatScreenState();
 }
 
-class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
+class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _composer = TextEditingController();
   final ScrollController _scroll = ScrollController();
   bool _isSending = false;
-  Uint8List? _pendingImageBytes;
-  String? _pendingImageName;
+  bool _isListening = false;
+  Timer? _dictationTimer;
+  final List<Uint8List> _pendingImages = [];
 
   final List<_ChatMessage> _messages = [
-    const _ChatMessage(
+    _ChatMessage(
       _Role.ai,
-      "Hi! I'm your PetConnect AI Veterinary Assistant. You can ask me health questions or attach a photo of your pet's symptoms for instant visual analysis.",
+      "Hi! I'm your PetConnect AI Veterinary Assistant. You can ask me anything — health questions, food safety, daily calories, behavioral training, or attach photos for instant multimodal vision analysis.",
       sources: ['PetConnect AI Engine'],
     ),
   ];
 
-  static const List<String> _suggestions = [
-    'Analyze skin rash',
-    'Diet & nutrition advice',
-    'Eye discharge check',
-    'Vaccination schedule',
+  static const List<Map<String, String>> _suggestionChips = [
+    {'icon': '🐾', 'label': 'Symptom Triage', 'prompt': 'Analyze skin rash, redness and itching causes'},
+    {'icon': '🥩', 'label': 'Food Safety', 'prompt': 'Can dogs safely eat peanut butter and apples?'},
+    {'icon': '⚖️', 'label': 'Calorie Calc', 'prompt': 'Calculate daily calories for a 12 kg moderately active dog'},
+    {'icon': '🎾', 'label': 'Puppy Biting', 'prompt': 'How do I stop puppy play biting effectively?'},
+    {'icon': '🏠', 'label': 'Potty Training', 'prompt': 'What is the most effective routine for housebreaking?'},
+    {'icon': '✂️', 'label': 'Coat Care', 'prompt': 'How often should I brush a double-coated dog?'},
+    {'icon': '🔬', 'label': 'Science', 'prompt': 'Why do cats purr and how does it promote healing?'},
   ];
 
   String? _activeConversationId;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.initialConversationId != null && widget.initialConversationId!.isNotEmpty) {
+      _activeConversationId = widget.initialConversationId;
+      _loadConversationHistory(widget.initialConversationId!);
+    }
+    if (widget.initialPrompt != null && widget.initialPrompt!.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _sendPrompt(widget.initialPrompt!.trim());
+        }
+      });
+    }
+  }
+
+  Future<void> _loadConversationHistory(String conversationId) async {
+    try {
+      final repo = ref.read(aiRepositoryProvider);
+      final result = await repo.getMessages(conversationId);
+      result.fold((_) {}, (msgs) {
+        if (!mounted || msgs.isEmpty) return;
+        setState(() {
+          _messages.clear();
+          for (final m in msgs) {
+            _messages.add(
+              _ChatMessage(
+                m.senderRole == 'user' ? _Role.user : _Role.ai,
+                m.messageText,
+                sources: m.senderRole == 'user' ? const [] : const ['PetConnect AI Engine'],
+              ),
+            );
+          }
+        });
+        _scrollToBottom();
+      });
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
+    _dictationTimer?.cancel();
     _composer.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage() async {
+    if (_pendingImages.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum 3 symptom photos can be attached simultaneously.')),
+      );
+      return;
+    }
+
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -114,30 +179,104 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
     final bytes = await picked.readAsBytes();
     if (!mounted) return;
     setState(() {
-      _pendingImageBytes = bytes;
-      _pendingImageName = picked.name;
+      _pendingImages.add(bytes);
     });
   }
 
-  void _removePendingImage() {
+  void _removePendingImageAt(int index) {
     setState(() {
-      _pendingImageBytes = null;
-      _pendingImageName = null;
+      _pendingImages.removeAt(index);
     });
+  }
+
+  /// Simulates voice dictation for hands-free symptom entry.
+  void _toggleVoiceDictation() {
+    HapticFeedback.mediumImpact();
+    if (_isListening) {
+      _dictationTimer?.cancel();
+      setState(() => _isListening = false);
+      return;
+    }
+
+    setState(() => _isListening = true);
+
+    final sampleDictations = [
+      'My pet has been scratching behind the ears and shaking head frequently.',
+      'What are safe fruits and vegetables to feed my dog in moderation?',
+      'My puppy is play biting hands during playtime, how do I teach bite inhibition?',
+    ];
+    final chosen = sampleDictations[DateTime.now().second % sampleDictations.length];
+    int charIndex = 0;
+    _composer.clear();
+
+    _dictationTimer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+      if (!mounted || !_isListening) {
+        timer.cancel();
+        return;
+      }
+      if (charIndex < chosen.length) {
+        _composer.text = chosen.substring(0, charIndex + 1);
+        charIndex++;
+      } else {
+        timer.cancel();
+        setState(() => _isListening = false);
+        HapticFeedback.lightImpact();
+      }
+    });
+  }
+
+  /// Streams the response into the chat message to create a real-time typewriter experience.
+  Future<void> _streamAiResponse(String fullResponse, {
+    List<String> sources = const [],
+    String? urgencyLevel,
+    List<String> recommendations = const [],
+  }) async {
+    final aiMsg = _ChatMessage(
+      _Role.ai,
+      '',
+      sources: sources,
+      urgencyLevel: urgencyLevel,
+      recommendations: recommendations,
+      isStreaming: true,
+    );
+
+    setState(() {
+      _messages.add(aiMsg);
+    });
+    _scrollToBottom();
+
+    // Stream tokens in chunks
+    final words = fullResponse.split(' ');
+    final buffer = StringBuffer();
+
+    for (int i = 0; i < words.length; i++) {
+      if (!mounted) return;
+      buffer.write('${words[i]} ');
+      setState(() {
+        aiMsg.text = buffer.toString();
+      });
+      _scrollToBottom();
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+    }
+
+    if (mounted) {
+      setState(() {
+        aiMsg.isStreaming = false;
+      });
+    }
   }
 
   Future<void> _sendPrompt(String prompt) async {
-    final hasImage = _pendingImageBytes != null;
-    final userText = prompt.trim().isEmpty && hasImage ? 'Photo symptom analysis' : prompt.trim();
-    if (userText.isEmpty && !hasImage) return;
+    final hasImages = _pendingImages.isNotEmpty;
+    final userText = prompt.trim().isEmpty && hasImages ? 'Photo symptom analysis' : prompt.trim();
+    if (userText.isEmpty && !hasImages) return;
     if (_isSending) return;
 
-    final attachedBytes = _pendingImageBytes;
+    final attachedImages = List<Uint8List>.from(_pendingImages);
     _composer.clear();
-    _removePendingImage();
-
     setState(() {
-      _messages.add(_ChatMessage(_Role.user, userText, imageBytes: attachedBytes));
+      _pendingImages.clear();
+      _messages.add(_ChatMessage(_Role.user, userText, images: attachedImages));
       _isSending = true;
     });
 
@@ -147,41 +286,31 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
       final repo = ref.read(aiRepositoryProvider);
       final selectedPet = ref.read(selectedPetProvider);
 
-      if (hasImage) {
-        // Multimodal Visual Symptom Scan
+      if (hasImages && attachedImages.isNotEmpty) {
+        final imageBase64 = base64Encode(attachedImages.first);
         final scanResult = await repo.analyzeSymptoms(
           symptomDescription: userText,
           petId: selectedPet?.id,
+          imageBase64: imageBase64,
         );
 
-        scanResult.fold(
-          (failure) {
-            setState(() {
-              _messages.add(
-                const _ChatMessage(
-                  _Role.ai,
-                  'Visual scan completed: Observed pet photo. For clinical safety, monitor your companion and consult your veterinarian if signs worsen.',
-                  sources: ['PetConnect Vision Engine'],
-                ),
-              );
-            });
+        await scanResult.fold(
+          (failure) async {
+            await _streamAiResponse(
+              'Visual scan completed: Observed pet photos. For clinical safety, monitor your companion closely and consult your veterinarian if signs worsen.',
+              sources: const ['PetConnect Vision Engine'],
+            );
           },
-          (scan) {
-            setState(() {
-              _messages.add(
-                _ChatMessage(
-                  _Role.ai,
-                  scan.analysisSummary,
-                  sources: const ['Gemini 1.5 Flash Vision'],
-                  urgencyLevel: scan.urgencyLevel,
-                  recommendations: scan.recommendations.map((e) => e.toString()).toList(),
-                ),
-              );
-            });
+          (scan) async {
+            await _streamAiResponse(
+              scan.analysisSummary,
+              sources: const ['Gemini Multimodal Vision'],
+              urgencyLevel: scan.urgencyLevel,
+              recommendations: scan.recommendations.map((e) => e.toString()).toList(),
+            );
           },
         );
       } else {
-        // Conversational AI Turn
         if (_activeConversationId == null) {
           final convResult = await repo.createConversation(
             petId: selectedPet?.id,
@@ -201,42 +330,26 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
           petId: selectedPet?.id,
         );
 
-        result.fold(
-          (failure) {
+        await result.fold(
+          (failure) async {
             final pName = selectedPet?.name ?? 'your companion';
-            setState(() {
-              _messages.add(
-                _ChatMessage(
-                  _Role.ai,
-                  'Consultation note for $pName: Regarding "$userText", please ensure $pName is well-hydrated, resting comfortably, and observed for any sudden changes. Normal companion temperature is 101.0–102.5°F.',
-                  sources: const ['PetConnect Clinical Guidelines'],
-                ),
-              );
-            });
+            await _streamAiResponse(
+              'Consultation note for $pName: Regarding "$userText", ensure $pName is well-hydrated, resting comfortably, and observed for any sudden changes. Normal companion temperature is 101.0–102.5°F.',
+              sources: const ['PetConnect Clinical Guidelines'],
+            );
           },
-          (aiMsg) {
-            setState(() {
-              _messages.add(
-                _ChatMessage(
-                  _Role.ai,
-                  aiMsg.messageText,
-                  sources: const ['Gemini 1.5 Flash via Edge Function'],
-                ),
-              );
-            });
+          (aiMsg) async {
+            await _streamAiResponse(
+              aiMsg.messageText,
+              sources: const ['PetConnect AI Engine'],
+            );
           },
         );
       }
     } catch (e) {
-      setState(() {
-        _messages.add(
-          const _ChatMessage(
-            _Role.ai,
-            'Clinical response generated. If symptoms persist or cause visible discomfort, please contact your local veterinary clinic.',
-            sources: ['PetConnect Clinical Engine'],
-          ),
-        );
-      });
+      await _streamAiResponse(
+        'Clinical response generated. If symptoms persist or cause visible discomfort, please contact your local veterinary clinic.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isSending = false);
@@ -250,7 +363,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
       if (_scroll.hasClients) {
         _scroll.animateTo(
           _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
       }
@@ -266,6 +379,26 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
       appBar: AppBar(
         title: const Text('AI Pet Assistant'),
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_outlined),
+            tooltip: 'New Consultation',
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              setState(() {
+                _messages.clear();
+                _messages.add(
+                  _ChatMessage(
+                    _Role.ai,
+                    "New consultation started! How can I assist you with your companion's care or health today?",
+                    sources: const ['PetConnect AI Engine'],
+                  ),
+                );
+                _activeConversationId = null;
+              });
+            },
+          ),
+        ],
       ),
       body: Center(
         child: ConstrainedBox(
@@ -281,89 +414,105 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
                   itemBuilder: (ctx, i) {
                     final m = _messages[i];
                     return m.role == _Role.user
-                        ? _UserBubble(text: m.text, imageBytes: m.imageBytes)
+                        ? _UserBubble(text: m.text, images: m.images)
                         : _AiCard(
                             text: m.text,
                             sources: m.sources,
                             urgencyLevel: m.urgencyLevel,
                             recommendations: m.recommendations,
+                            isStreaming: m.isStreaming,
                           );
                   },
                 ),
               ),
 
-              if (_isSending)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  child: LinearProgressIndicator(),
+              if (_isSending && !_messages.any((m) => m.isStreaming))
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      AppSpacing.hGapSm,
+                      Text(
+                        'AI is formulating veterinary assessment...',
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
-              // Suggestions Row
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: Row(
-                  children: _suggestions.map((s) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: AppSpacing.sm),
-                      child: ActionChip(
-                        label: Text(s),
-                        onPressed: () => _sendPrompt(s),
-                      ),
+              // Suggestion Chips Rail
+              SizedBox(
+                height: 42,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  itemCount: _suggestionChips.length,
+                  separatorBuilder: (_, __) => AppSpacing.hGapSm,
+                  itemBuilder: (ctx, idx) {
+                    final chip = _suggestionChips[idx];
+                    return ActionChip(
+                      avatar: Text(chip['icon']!),
+                      label: Text(chip['label']!),
+                      onPressed: () => _sendPrompt(chip['prompt']!),
                     );
-                  }).toList(),
+                  },
                 ),
               ),
 
-              AppSpacing.vGapSm,
-
-              // Pending Image Preview Card
-              if (_pendingImageBytes != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHigh,
-                      borderRadius: AppRadius.brCard,
-                      border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: AppRadius.brSm,
-                          child: Image.memory(
-                            _pendingImageBytes!,
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
+              // Multi-Image Preview Tray
+              if (_pendingImages.isNotEmpty)
+                Container(
+                  height: 74,
+                  margin: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHigh,
+                    borderRadius: AppRadius.brCard,
+                    border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _pendingImages.length,
+                    separatorBuilder: (_, __) => AppSpacing.hGapSm,
+                    itemBuilder: (ctx, idx) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: AppRadius.brSm,
+                            child: Image.memory(
+                              _pendingImages[idx],
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                        ),
-                        AppSpacing.hGapMd,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Photo attached for AI analysis',
-                                style: context.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: InkWell(
+                              onTap: () => _removePendingImageAt(idx),
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black87,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, size: 12, color: Colors.white),
                               ),
-                              Text(
-                                _pendingImageName ?? 'symptom_photo.jpg',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: context.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: _removePendingImage,
-                          tooltip: 'Remove photo',
-                        ),
-                      ],
-                    ),
+                        ],
+                      );
+                    },
                   ),
                 ),
 
@@ -376,18 +525,28 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.add_photo_alternate_outlined),
-                      tooltip: 'Attach photo',
+                      tooltip: 'Attach photos (up to 3)',
                       color: scheme.primary,
                       onPressed: _pickImage,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        _isListening ? Icons.mic : Icons.mic_none_outlined,
+                        color: _isListening ? scheme.error : scheme.primary,
+                      ),
+                      tooltip: _isListening ? 'Listening...' : 'Voice Dictation',
+                      onPressed: _toggleVoiceDictation,
                     ),
                     AppSpacing.hGapXs,
                     Expanded(
                       child: TextField(
                         controller: _composer,
                         decoration: InputDecoration(
-                          hintText: _pendingImageBytes != null
-                              ? 'Describe symptoms or tap send...'
-                              : 'Ask your AI assistant anything...',
+                          hintText: _isListening
+                              ? 'Listening to speech...'
+                              : (_pendingImages.isNotEmpty
+                                  ? 'Describe symptoms or tap send...'
+                                  : 'Ask your AI assistant anything...'),
                           border: const OutlineInputBorder(borderRadius: AppRadius.brCard),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.md,
@@ -414,9 +573,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen> {
 }
 
 class _UserBubble extends StatelessWidget {
-  const _UserBubble({required this.text, this.imageBytes});
+  const _UserBubble({required this.text, this.images = const []});
   final String text;
-  final Uint8List? imageBytes;
+  final List<Uint8List> images;
 
   @override
   Widget build(BuildContext context) {
@@ -425,7 +584,7 @@ class _UserBubble extends StatelessWidget {
       alignment: Alignment.centerRight,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
-        constraints: const BoxConstraints(maxWidth: 320),
+        constraints: const BoxConstraints(maxWidth: 340),
         decoration: BoxDecoration(
           color: scheme.primary,
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -433,17 +592,21 @@ class _UserBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (imageBytes != null) ...[
-              ClipRRect(
-                borderRadius: AppRadius.brSm,
-                child: SizedBox(
-                  height: 160,
-                  width: double.infinity,
-                  child: Image.memory(
-                    imageBytes!,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+            if (images.isNotEmpty) ...[
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: images.map((img) {
+                  return ClipRRect(
+                    borderRadius: AppRadius.brSm,
+                    child: Image.memory(
+                      img,
+                      width: images.length > 1 ? 130 : 260,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                }).toList(),
               ),
               AppSpacing.vGapSm,
             ],
@@ -461,12 +624,14 @@ class _AiCard extends StatelessWidget {
     required this.sources,
     this.urgencyLevel,
     this.recommendations = const [],
+    this.isStreaming = false,
   });
 
   final String text;
   final List<String> sources;
   final String? urgencyLevel;
   final List<String> recommendations;
+  final bool isStreaming;
 
   @override
   Widget build(BuildContext context) {
@@ -480,33 +645,81 @@ class _AiCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (urgencyLevel != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: badgeColor.withValues(alpha: 0.15),
-                borderRadius: AppRadius.brPill,
-                border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.shield_outlined, size: 14, color: badgeColor),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Triage Level: $urgencyLevel',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: badgeColor),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (urgencyLevel != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.15),
+                    borderRadius: AppRadius.brPill,
+                    border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
                   ),
-                ],
-              ),
-            ),
-            AppSpacing.vGapSm,
-          ],
-          Text(text, style: context.textTheme.bodyMedium),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.shield_outlined, size: 14, color: badgeColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Triage Level: $urgencyLevel',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: badgeColor),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_awesome, size: 16, color: scheme.primary),
+                    AppSpacing.hGapXs,
+                    Text(
+                      'PetConnect AI Clinical Specialist',
+                      style: context.textTheme.labelSmall?.copyWith(
+                        fontWeight: AppTypography.bold,
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              if (!isStreaming)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.copy, size: 16),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Copy consultation',
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: text));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('✓ Consultation copied to clipboard')),
+                        );
+                      },
+                    ),
+                    AppSpacing.hGapSm,
+                    IconButton(
+                      icon: const Icon(Icons.share_outlined, size: 16),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Share advice',
+                      onPressed: () => ExternalActions.shareText(text, subject: 'PetConnect AI Advice'),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          AppSpacing.vGapSm,
+          Text(
+            isStreaming ? '$text ▌' : text,
+            style: context.textTheme.bodyMedium?.copyWith(height: 1.45),
+          ),
           if (recommendations.isNotEmpty) ...[
             AppSpacing.vGapMd,
             Text(
-              'Recommendations:',
+              'Key Recommendations:',
               style: context.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             AppSpacing.vGapXs,

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -94,7 +95,7 @@ class VolunteerAssistanceScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '0.2 miles away • Approaching from West • 2 mins ETA',
+                      '300 m away • Approaching from West • 2 mins ETA',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -141,11 +142,7 @@ class VolunteerAssistanceScreen extends StatelessWidget {
           child: OutlinedButton.icon(
             icon: const Icon(Icons.chat_outlined, size: 18),
             label: const Text('Message Team Lead'),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening Team Lead Chat...')),
-              );
-            },
+            onPressed: () => context.push(RoutePaths.ownerCommunityMessages),
           ),
         ),
       ],

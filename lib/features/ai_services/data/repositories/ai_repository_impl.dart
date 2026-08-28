@@ -85,6 +85,7 @@ class AiRepositoryImpl implements AiRepository {
     String? petId,
     required String symptomDescription,
     String? imageUrl,
+    String? imageBase64,
   }) async {
     try {
       final scan = await _remote.invokeSymptomScan(
@@ -92,6 +93,7 @@ class AiRepositoryImpl implements AiRepository {
         petId: petId,
         symptomDescription: symptomDescription,
         imageUrl: imageUrl,
+        imageBase64: imageBase64,
       );
       return Right(scan);
     } on AppException catch (e) {

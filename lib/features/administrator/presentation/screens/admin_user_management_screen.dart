@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
@@ -45,8 +46,9 @@ class _AdminUserManagementScreenState
         return 'Administrator';
       case 'veterinarian':
         return 'Veterinarian';
+      case 'volunteer_rescue':
       case 'volunteer':
-        return 'Volunteer';
+        return 'Rescue / Volunteer';
       case 'pet_owner':
       default:
         return 'Pet Owner';
@@ -61,7 +63,7 @@ class _AdminUserManagementScreenState
       case 'Veterinarians':
         return user.role == 'veterinarian';
       case 'Rescuers':
-        return user.role == 'volunteer';
+        return user.role == 'volunteer_rescue' || user.role == 'volunteer';
       case 'Staff':
         return user.role == 'administrator';
       default:
@@ -174,7 +176,7 @@ class _AdminUserManagementScreenState
     // Compute live stats from actual data
     final totalUsers = allUsers.length;
     final activeVets = allUsers.where((u) => u.role == 'veterinarian').length;
-    final rescuers = allUsers.where((u) => u.role == 'volunteer').length;
+    final rescuers = allUsers.where((u) => u.role == 'volunteer_rescue' || u.role == 'volunteer').length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -365,89 +367,110 @@ class _AdminUserManagementScreenState
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: colorScheme.primaryContainer,
-              backgroundImage: user.avatarUrl != null
-                  ? NetworkImage(user.avatarUrl!)
-                  : null,
-              child: user.avatarUrl == null
-                  ? Icon(Icons.person, color: colorScheme.primary)
-                  : null,
-            ),
-            AppSpacing.hGapSm,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: () => _showEditRoleDialog(context, user),
+          child: AppCard(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: colorScheme.primaryContainer,
+                  backgroundImage: user.avatarUrl != null
+                      ? NetworkImage(user.avatarUrl!)
+                      : null,
+                  child: user.avatarUrl == null
+                      ? Icon(Icons.person, color: colorScheme.primary)
+                      : null,
+                ),
+                AppSpacing.hGapSm,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        user.fullName,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: AppTypography.bold,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            user.fullName,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: AppTypography.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '• ${_displayRole(user.role)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
                       Text(
-                        '• ${_displayRole(user.role)}',
+                        '${user.email ?? 'No email'} • Joined $joined',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                  Text(
-                    '${user.email ?? 'No email'} • Joined $joined',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                AppChip(
-                  label: 'Active',
-                  backgroundColor: AppColors.success.withValues(alpha: 0.15),
-                  textColor: AppColors.success,
                 ),
-                AppSpacing.vGapXs,
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, size: 18),
-                  onSelected: (action) {
-                    if (action == 'Edit Role') {
-                      _showEditRoleDialog(context, user);
-                    } else if (action == 'Suspend Account') {
-                      _toggleSuspendUser(context, user);
-                    } else if (action == 'Reset Password') {
-                      _resetUserPassword(context, user);
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem(
-                      value: 'Edit Role',
-                      child: Text('Edit Role'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    AppChip(
+                      label: user.isSuspended ? 'Suspended' : 'Active',
+                      backgroundColor: user.isSuspended
+                          ? colorScheme.error.withValues(alpha: 0.15)
+                          : colorScheme.primary.withValues(alpha: 0.15),
+                      textColor: user.isSuspended
+                          ? colorScheme.error
+                          : colorScheme.primary,
                     ),
-                    const PopupMenuItem(
-                      value: 'Suspend Account',
-                      child: Text('Suspend Account'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'Reset Password',
-                      child: Text('Reset Password'),
+                    AppSpacing.vGapXs,
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, size: 18),
+                      onSelected: (action) {
+                        if (action == 'Edit Role') {
+                          _showEditRoleDialog(context, user);
+                        } else if (action == 'Suspend Account') {
+                          _toggleSuspendUser(context, user);
+                        } else if (action == 'Reset Password') {
+                          _resetUserPassword(context, user);
+                        } else if (action == 'Delete Account') {
+                          _showDeleteUserDialog(context, user);
+                        }
+                      },
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(
+                          value: 'Edit Role',
+                          child: Text('Edit Role'),
+                        ),
+                        PopupMenuItem(
+                          value: 'Suspend Account',
+                          child: Text(user.isSuspended ? 'Reactivate Account' : 'Suspend Account'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'Reset Password',
+                          child: Text('Reset Password'),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'Delete Account',
+                          child: Text(
+                            'Delete Account',
+                            style: TextStyle(color: colorScheme.error),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -484,12 +507,12 @@ class _AdminUserManagementScreenState
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                initialValue: selectedRole,
+                initialValue: (selectedRole == 'volunteer') ? 'volunteer_rescue' : selectedRole,
                 decoration: const InputDecoration(labelText: 'Portal Role'),
                 items: const [
                   DropdownMenuItem(value: 'pet_owner', child: Text('Pet Owner')),
                   DropdownMenuItem(value: 'veterinarian', child: Text('Veterinarian')),
-                  DropdownMenuItem(value: 'volunteer', child: Text('Volunteer / Rescue')),
+                  DropdownMenuItem(value: 'volunteer_rescue', child: Text('Volunteer / Rescue')),
                   DropdownMenuItem(value: 'administrator', child: Text('Administrator')),
                 ],
                 onChanged: (v) => setModalState(() => selectedRole = v ?? selectedRole),
@@ -532,17 +555,24 @@ class _AdminUserManagementScreenState
     AdminUserEntry user,
   ) async {
     final scaffold = ScaffoldMessenger.of(context);
+    final targetSuspended = !user.isSuspended;
     final res = await ref
         .read(adminRepositoryProvider)
-        .suspendUser(user.id, true);
+        .suspendUser(user.id, targetSuspended);
     res.fold(
       (f) => scaffold.showSnackBar(
-        SnackBar(content: Text('Failed to suspend account: ${f.message}')),
+        SnackBar(content: Text('Failed to update account status: ${f.message}')),
       ),
       (_) {
         ref.invalidate(adminUserDirectoryProvider);
         scaffold.showSnackBar(
-          SnackBar(content: Text('Account for ${user.fullName} suspended.')),
+          SnackBar(
+            content: Text(
+              targetSuspended
+                  ? 'Account for ${user.fullName} suspended.'
+                  : 'Account for ${user.fullName} reactivated.',
+            ),
+          ),
         );
       },
     );
@@ -571,6 +601,58 @@ class _AdminUserManagementScreenState
           SnackBar(content: Text('Password reset instructions sent to ${user.email}')),
         );
       },
+    );
+  }
+
+  void _showDeleteUserDialog(BuildContext context, AdminUserEntry user) {
+    final scaffold = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: colorScheme.error),
+            const SizedBox(width: 8),
+            const Text('Delete User Account'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete the account for "${user.fullName}" (${user.email ?? 'No email'})?\n\nThis action cannot be undone and will permanently remove all associated pets, health logs, and access.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final res = await ref
+                  .read(adminRepositoryProvider)
+                  .deleteUser(user.id);
+              res.fold(
+                (f) => scaffold.showSnackBar(
+                  SnackBar(content: Text('Failed to delete account: ${f.message}')),
+                ),
+                (_) {
+                  ref.invalidate(adminUserDirectoryProvider);
+                  scaffold.showSnackBar(
+                    SnackBar(content: Text('Account for ${user.fullName} has been permanently deleted.')),
+                  );
+                },
+              );
+            },
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -618,12 +700,12 @@ class _AdminUserManagementScreenState
                 ),
                 AppSpacing.vGapSm,
                 DropdownButtonFormField<String>(
-                  initialValue: selectedRole,
+                  initialValue: (selectedRole == 'volunteer') ? 'volunteer_rescue' : selectedRole,
                   decoration: const InputDecoration(labelText: 'Portal Role'),
                   items: const [
                     DropdownMenuItem(value: 'pet_owner', child: Text('Pet Owner')),
                     DropdownMenuItem(value: 'veterinarian', child: Text('Veterinarian')),
-                    DropdownMenuItem(value: 'volunteer', child: Text('Volunteer / Rescuer')),
+                    DropdownMenuItem(value: 'volunteer_rescue', child: Text('Volunteer / Rescuer')),
                     DropdownMenuItem(value: 'administrator', child: Text('Administrator')),
                   ],
                   onChanged: (v) => setModalState(() => selectedRole = v ?? selectedRole),

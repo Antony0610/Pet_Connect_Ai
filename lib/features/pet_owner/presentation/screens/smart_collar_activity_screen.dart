@@ -6,6 +6,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
@@ -122,12 +123,16 @@ class SmartCollarActivityScreen extends ConsumerWidget {
 
 // __CONT_1__
 /// The daily-goal hero: the step ring beside a short "goal progress" readout.
-class _GoalHero extends StatelessWidget {
+class _GoalHero extends ConsumerWidget {
   const _GoalHero();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final allPets = ref.watch(petsProvider).asData?.value;
+    final pet = selectedPet ?? (allPets != null && allPets.isNotEmpty ? allPets.first : null);
+    final petName = pet?.name ?? 'Companion';
 
     final readout = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +147,7 @@ class _GoalHero extends StatelessWidget {
         ),
         AppSpacing.vGapXs,
         Text(
-          '6,540 of 10,000 steps — Buddy is 65% of the way to today’s goal '
+          '6,540 of 10,000 steps — $petName is 65% of the way to today’s goal '
           'with plenty of daylight left.',
           style: context.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,

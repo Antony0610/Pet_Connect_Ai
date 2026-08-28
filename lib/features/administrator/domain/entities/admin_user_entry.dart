@@ -8,6 +8,7 @@ class AdminUserEntry extends Equatable {
     this.email,
     required this.role,
     this.avatarUrl,
+    this.isSuspended = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -17,6 +18,7 @@ class AdminUserEntry extends Equatable {
   final String? email;
   final String role;
   final String? avatarUrl;
+  final bool isSuspended;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -27,6 +29,7 @@ class AdminUserEntry extends Equatable {
     email,
     role,
     avatarUrl,
+    isSuspended,
     createdAt,
     updatedAt,
   ];

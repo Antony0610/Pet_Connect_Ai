@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,8 +12,15 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/services/health_passport_exporter.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/medication_adherence_provider.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/health_widgets.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/pet_emergency_qr_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -37,6 +45,18 @@ class HealthPassportDashboardScreen extends ConsumerWidget {
       appBar: healthAppBar(
         context,
         title: selectedPet != null ? "${selectedPet.name}'s Health" : 'Health',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_2_rounded),
+            tooltip: 'Emergency Pet ID & QR',
+            onPressed: () => _showEmergencyMedicalPass(context, selectedPet),
+          ),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Export Health Passport',
+            onPressed: () => _exportHealthPassport(context, ref, selectedPet),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -67,6 +87,39 @@ class HealthPassportDashboardScreen extends ConsumerWidget {
     if (width < AppBreakpoints.desktop) return AppSpacing.marginTablet;
     return AppSpacing.marginDesktop;
   }
+
+  void _showEmergencyMedicalPass(BuildContext context, Pet? pet) {
+    if (pet != null) {
+      PetEmergencyQrModal.show(context, pet);
+    } else {
+      context.showSnackbar('Please select a pet to generate an Emergency Pass.');
+    }
+  }
+
+  Future<void> _exportHealthPassport(
+    BuildContext context,
+    WidgetRef ref,
+    Pet? pet,
+  ) async {
+    if (pet == null) {
+      context.showSnackbar('Please select a pet to export the Health Passport.');
+      return;
+    }
+
+    final owner = ref.read(currentUserProfileProvider).valueOrNull;
+    final vaccinations = ref.read(vaccinationsProvider(pet.id)).valueOrNull ?? [];
+    final healthRecords = ref.read(healthRecordsProvider(pet.id)).valueOrNull ?? [];
+    final weightLogs = ref.read(petWeightLogsProvider(pet.id)).valueOrNull ?? [];
+
+    await HealthPassportExporter.exportAndShare(
+      context: context,
+      pet: pet,
+      owner: owner,
+      vaccinations: vaccinations,
+      healthRecords: healthRecords,
+      weightLogs: weightLogs,
+    );
+  }
 }
 
 class _DashboardBody extends ConsumerWidget {
@@ -91,13 +144,11 @@ class _DashboardBody extends ConsumerWidget {
           container: palette.accentContainer(brightness),
           onContainer: palette.onAccentContainer(brightness),
         ),
-        AppSpacing.vGapLg,
-        _AiInsightCard(
-          accent: accent,
-          container: palette.accentContainer(brightness),
-          onContainer: palette.onAccentContainer(brightness),
-        ),
-        AppSpacing.vGapLg,
+        AppSpacing.vGapMd,
+        if (petId != null && petId!.isNotEmpty) ...[
+          _MedicationAdherenceCard(petId: petId!),
+          AppSpacing.vGapMd,
+        ],
         _QuickActionRail(accent: accent),
         AppSpacing.vGapLg,
         const _StatGrid(),
@@ -106,6 +157,157 @@ class _DashboardBody extends ConsumerWidget {
         AppSpacing.vGapLg,
         const _ArticleCard(),
       ],
+    );
+  }
+}
+
+class _MedicationAdherenceCard extends ConsumerWidget {
+  const _MedicationAdherenceCard({required this.petId});
+
+  final String petId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final items = ref.watch(medicationAdherenceProvider(petId));
+    final notifier = ref.read(medicationAdherenceProvider(petId).notifier);
+    final completedCount = items.where((i) => i.isCompleted).length;
+    final totalCount = items.length;
+    final isAllDone = totalCount > 0 && completedCount == totalCount;
+
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.5),
+                      borderRadius: AppRadius.brMd,
+                    ),
+                    child: Icon(
+                      Icons.medication_liquid_rounded,
+                      color: scheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  AppSpacing.hGapSm,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Daily Care & Medication',
+                        style: context.textTheme.titleMedium?.copyWith(
+                          fontWeight: AppTypography.bold,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      Text(
+                        '$completedCount of $totalCount completed today',
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (isAllDone)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    borderRadius: AppRadius.brPill,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, size: 14, color: Colors.green.shade800),
+                      AppSpacing.hGapXs,
+                      Text(
+                        'ALL DONE',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          AppSpacing.vGapMd,
+          ...items.map((item) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Material(
+                color: item.isCompleted
+                    ? scheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                    : scheme.surfaceContainerLowest,
+                borderRadius: AppRadius.brMd,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    notifier.toggleItem(item.id);
+                  },
+                  borderRadius: AppRadius.brMd,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: item.isCompleted,
+                          activeColor: scheme.primary,
+                          onChanged: (_) {
+                            HapticFeedback.lightImpact();
+                            notifier.toggleItem(item.id);
+                          },
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                style: context.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: AppTypography.semiBold,
+                                  decoration: item.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  color: item.isCompleted
+                                      ? scheme.onSurfaceVariant
+                                      : scheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                '${item.scheduledTime} • ${item.dosage}',
+                                style: context.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 }
@@ -192,7 +394,7 @@ class _WellnessCard extends ConsumerWidget {
           ),
           AppSpacing.vGapSm,
           Text(
-            'Last updated 2 hours ago',
+            selectedPet != null ? 'Health profile active' : 'No pet selected',
             style: context.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -203,8 +405,19 @@ class _WellnessCard extends ConsumerWidget {
             icon: Icons.share_rounded,
             accent: accent,
             onAccent: onAccent,
-            onPressed: () =>
-                context.showSnackbar('Sharing wellness milestone…'),
+            onPressed: () {
+              if (selectedPet != null) {
+                ExternalActions.shareMilestone(
+                  context: context,
+                  petName: selectedPet.name,
+                  species: selectedPet.breed ?? selectedPet.species,
+                  status: selectedPet.healthStatus,
+                  weightKg: selectedPet.weightKg,
+                );
+              } else {
+                context.showSnackbar('Please select a pet to share milestones.');
+              }
+            },
           ),
         ],
       ),
@@ -263,81 +476,7 @@ class _WellnessGaugePainter extends CustomPainter {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// AI insight
-// ═══════════════════════════════════════════════════════════════════
 
-class _AiInsightCard extends ConsumerWidget {
-  const _AiInsightCard({
-    required this.accent,
-    required this.container,
-    required this.onContainer,
-  });
-
-  final Color accent;
-  final Color container;
-  final Color onContainer;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = context.colorScheme;
-    final selectedPet = ref.watch(selectedPetProvider);
-    final petName = selectedPet?.name ?? 'your pet';
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: AppRadius.brSection,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            container.withValues(alpha: 0.6),
-            scheme.surfaceContainerLow,
-          ],
-        ),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              HealthCircleIcon(
-                icon: Icons.auto_awesome_rounded,
-                background: container,
-                foreground: onContainer,
-                size: 40,
-              ),
-              AppSpacing.hGapSm,
-              Expanded(
-                child: Text(
-                  'Health & Wellness Status',
-                  style: context.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTypography.semiBold,
-                  ),
-                ),
-              ),
-              HealthCategoryChip(
-                label: 'AI Monitored',
-                background: container,
-                foreground: onContainer,
-              ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          Text(
-            selectedPet != null
-                ? '$petName’s health profile is registered. Use AI Symptom Scan or chat with the AI Vet Assistant to check symptoms or get health advice.'
-                : 'Select a pet to view customized AI health insights and recommendations.',
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // Quick actions
@@ -354,27 +493,27 @@ class _QuickActionRail extends StatelessWidget {
       _QuickAction(
         Icons.vaccines_rounded,
         'Vaccines',
-        () => context.goNamed(RouteNames.ownerHealthVaccinations),
+        () => context.push(RoutePaths.ownerHealthVaccinations),
       ),
       _QuickAction(
         Icons.history_rounded,
         'History',
-        () => context.goNamed(RouteNames.ownerHealthMedical),
+        () => context.push(RoutePaths.ownerHealthMedical),
       ),
       _QuickAction(
         Icons.monitor_weight_rounded,
         'Weight',
-        () => context.goNamed(RouteNames.ownerHealthGrowth),
+        () => context.push(RoutePaths.ownerHealthGrowth),
       ),
       _QuickAction(
         Icons.medication_rounded,
         'Treatment Plan',
-        () => context.goNamed(RouteNames.ownerHealthTreatment),
+        () => context.push(RoutePaths.ownerHealthTreatment),
       ),
       _QuickAction(
         Icons.folder_shared_rounded,
         'Doc Vault',
-        () => context.goNamed(RouteNames.ownerHealthVault),
+        () => context.push(RoutePaths.ownerHealthVault),
       ),
     ];
 
@@ -424,33 +563,40 @@ class _QuickActionTile extends StatelessWidget {
 
     return SizedBox(
       width: 80,
-      child: InkWell(
-        onTap: action.onTap,
+      child: Material(
+        color: Colors.transparent,
         borderRadius: AppRadius.brCard,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHigh,
-                shape: BoxShape.circle,
-                border: Border.all(color: accent.withValues(alpha: 0.2)),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            action.onTap();
+          },
+          borderRadius: AppRadius.brCard,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accent.withValues(alpha: 0.2)),
+                ),
+                child: Icon(action.icon, color: accent, size: AppIconSizes.md),
               ),
-              child: Icon(action.icon, color: accent, size: AppIconSizes.md),
-            ),
-            AppSpacing.vGapXs,
-            Text(
-              action.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: AppTypography.semiBold,
+              AppSpacing.vGapXs,
+              Text(
+                action.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: AppTypography.semiBold,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -467,15 +613,25 @@ class _StatGrid extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedPet = ref.watch(selectedPetProvider);
+    final petId = selectedPet?.id ?? '';
+    final vaxAsync = petId.isNotEmpty ? ref.watch(vaccinationsProvider(petId)) : null;
+    final treatmentsAsync = petId.isNotEmpty ? ref.watch(treatmentPlansProvider(petId)) : null;
+
+    final vaxCount = vaxAsync?.valueOrNull?.length ?? 0;
+    final vaxStr = vaxCount > 0 ? '$vaxCount Logged' : '0 Recorded';
+    
+    final medCount = treatmentsAsync?.valueOrNull?.where((t) => t.status.toLowerCase() == 'active').length ?? 0;
+    final medStr = '$medCount Active';
+
     final weightStr = selectedPet?.weightKg != null
         ? '${selectedPet!.weightKg} kg'
         : '—';
 
     final stats = [
-      const _Stat(Icons.vaccines_rounded, 'Vaccinations', 'Up to date'),
+      _Stat(Icons.vaccines_rounded, 'Vaccinations', vaxStr),
       const _Stat(Icons.event_rounded, 'Next Appt', '—'),
       _Stat(Icons.monitor_weight_rounded, 'Weight', weightStr),
-      const _Stat(Icons.medication_rounded, 'Medication', '0 Active'),
+      _Stat(Icons.medication_rounded, 'Medication', medStr),
     ];
 
     return GridView.count(
@@ -537,12 +693,22 @@ class _StatTile extends StatelessWidget {
 // Recent event + article
 // ═══════════════════════════════════════════════════════════════════
 
-class _RecentEventCard extends StatelessWidget {
+class _RecentEventCard extends ConsumerWidget {
   const _RecentEventCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final petId = selectedPet?.id ?? '';
+    final eventsAsync = petId.isNotEmpty ? ref.watch(healthTimelineEventsProvider(petId)) : null;
+    final recordsAsync = petId.isNotEmpty ? ref.watch(healthRecordsProvider(petId)) : null;
+
+    final recentEvent = eventsAsync?.valueOrNull?.firstOrNull;
+    final recentRecord = recordsAsync?.valueOrNull?.firstOrNull;
+
+    final title = recentEvent?.title ?? recentRecord?.title;
+    final meta = recentEvent?.description ?? recentRecord?.diagnosis ?? (recentRecord != null ? 'Recorded by ${recentRecord.veterinarianName ?? 'Clinic'}' : null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,19 +724,45 @@ class _RecentEventCard extends StatelessWidget {
         ),
         AppCard(
           onTap: () => context.goNamed(RouteNames.ownerHealthTimeline),
-          child: HealthRecordRow(
-            leading: HealthCircleIcon(
-              icon: Icons.vaccines_rounded,
-              background: scheme.secondaryContainer,
-              foreground: scheme.onSecondaryContainer,
-            ),
-            title: 'Annual Rabies Booster',
-            meta: const [HealthMetaLine('Administered by Dr. Smith')],
-            trailing: Icon(
-              Icons.chevron_right_rounded,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
+          child: title != null
+              ? HealthRecordRow(
+                  leading: HealthCircleIcon(
+                    icon: Icons.health_and_safety_rounded,
+                    background: scheme.secondaryContainer,
+                    foreground: scheme.onSecondaryContainer,
+                  ),
+                  title: title,
+                  meta: [if (meta != null) HealthMetaLine(meta)],
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  child: Row(
+                    children: [
+                      HealthCircleIcon(
+                        icon: Icons.event_note_rounded,
+                        background: scheme.surfaceContainerHigh,
+                        foreground: scheme.onSurfaceVariant,
+                      ),
+                      AppSpacing.hGapMd,
+                      Expanded(
+                        child: Text(
+                          'No health events recorded yet',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

@@ -23,7 +23,11 @@ import 'package:petconnect_ai/router/route_paths.dart';
 
 /// Builds the frozen health glass app bar: a back button, a `primary` bold
 /// title and a trailing bordered pet avatar that taps through to Profile.
-OwnerGlassAppBar healthAppBar(BuildContext context, {required String title}) {
+OwnerGlassAppBar healthAppBar(
+  BuildContext context, {
+  required String title,
+  List<Widget>? actions,
+}) {
   return OwnerGlassAppBar(
     leading: IconButton(
       icon: const Icon(Icons.arrow_back),
@@ -39,6 +43,7 @@ OwnerGlassAppBar healthAppBar(BuildContext context, {required String title}) {
       ),
     ),
     actions: [
+      if (actions != null) ...actions,
       Padding(
         padding: const EdgeInsets.only(right: AppSpacing.sm),
         child: HealthPetAvatar(

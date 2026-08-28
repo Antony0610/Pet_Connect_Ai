@@ -136,6 +136,18 @@ class AdminRepositoryImpl implements AdminRepository {
   }
 
   @override
+  ResultFuture<void> deleteUser(String userId) async {
+    try {
+      await _remote.deleteUser(userId);
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
   ResultFuture<void> resetUserPassword(String email) async {
     try {
       await _remote.resetUserPassword(email);

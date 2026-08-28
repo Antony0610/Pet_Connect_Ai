@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -64,7 +65,10 @@ class GlassCard extends StatelessWidget {
       content = Material(
         type: MaterialType.transparency,
         child: InkWell(
-          onTap: onTap,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap!();
+          },
           borderRadius: borderRadius,
           child: content,
         ),

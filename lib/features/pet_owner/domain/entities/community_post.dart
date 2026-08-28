@@ -34,6 +34,11 @@ class CommunityPost extends Equatable {
 
   factory CommunityPost.fromJson(Map<String, dynamic> json) {
     final profiles = json['profiles'] as Map<String, dynamic>?;
+    final rawName = profiles?['full_name'] as String?;
+    final rawEmail = profiles?['email'] as String?;
+    final resolvedAuthorName = (rawName != null && rawName.trim().isNotEmpty)
+        ? rawName.trim()
+        : (rawEmail != null && rawEmail.contains('@') ? rawEmail.split('@').first : null);
 
     return CommunityPost(
       id: json['id'] as String,
@@ -49,8 +54,8 @@ class CommunityPost extends Equatable {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
-      authorName: profiles?['full_name'] as String?,
-      authorAvatarUrl: profiles?['avatar_url'] as String?,
+      authorName: resolvedAuthorName ?? (json['author_name'] as String?) ?? 'Community Member',
+      authorAvatarUrl: profiles?['avatar_url'] as String? ?? json['author_avatar_url'] as String?,
     );
   }
 

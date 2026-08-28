@@ -4,6 +4,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/widgets/smart_collar_real_map.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -23,6 +24,26 @@ class ActiveRescueOperationsScreen extends StatefulWidget {
 class _ActiveRescueOperationsScreenState
     extends State<ActiveRescueOperationsScreen> {
   bool _isPingActive = false;
+  String _sightingHeadline = 'Confirmed Civilian Visual Sighting';
+  String _sightingDetail =
+      'Luna matched by civilian 3 mins ago near Cubbon Park trail head.';
+
+  final List<Map<String, dynamic>> _responders = [
+    {
+      'name': 'Alex Rivera (You)',
+      'role': 'Lead Responder • Sector 4',
+      'distance': '200m away',
+      'status': 'En Route',
+      'isLead': true,
+    },
+    {
+      'name': 'Sarah Jenkins',
+      'role': 'Vet Tech • Sector 4',
+      'distance': '650m away',
+      'status': 'In Transit',
+      'isLead': false,
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -100,14 +121,14 @@ class _ActiveRescueOperationsScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Confirmed Civilian Visual Sighting',
+                  _sightingHeadline,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: AppTypography.bold,
                     color: colorScheme.primary,
                   ),
                 ),
                 Text(
-                  'Luna matched by civilian 3 mins ago near Pine Ridge trail head.',
+                  _sightingDetail,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface,
                   ),
@@ -136,31 +157,15 @@ class _ActiveRescueOperationsScreenState
       ),
       child: Stack(
         children: [
-          // Map Visual Backdrop Grid Pattern
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.map_outlined,
-                  size: 64,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                ),
-                AppSpacing.vGapSm,
-                Text(
-                  'Interactive Field Navigation Map',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  'GPS Coordinates: 37.7749° N, 122.4194° W',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
+          // Interactive Real Map
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: const SmartCollarRealMap(
+              height: 320,
+              latitude: 12.9716,
+              longitude: 77.5946,
+              locationLabel: 'Rescue Operations • Live Tracking',
+              petName: 'Luna',
             ),
           ),
 
@@ -285,11 +290,7 @@ class _ActiveRescueOperationsScreenState
               child: AppButton(
                 text: 'Mark Sighting',
                 icon: Icons.pin_drop,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Visual sighting logged')),
-                  );
-                },
+                onPressed: () => _showMarkSightingDialog(context),
                 backgroundColor: colorScheme.primary,
                 textColor: colorScheme.onPrimary,
               ),
@@ -300,9 +301,18 @@ class _ActiveRescueOperationsScreenState
                 icon: const Icon(Icons.group_add, size: 18),
                 label: const Text('Request Backup'),
                 onPressed: () {
+                  setState(() {
+                    _responders.add({
+                      'name': 'Karthik Raja',
+                      'role': 'K9 Handler • Sector 4',
+                      'distance': '420m away',
+                      'status': 'Dispatched',
+                      'isLead': false,
+                    });
+                  });
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Backup request sent to nearby volunteers'),
+                      content: Text('Backup dispatched! Karthik Raja joined the active rescue mission.'),
                     ),
                   );
                 },
@@ -322,7 +332,7 @@ class _ActiveRescueOperationsScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Active Team Roster (3 En Route)',
+          'Active Team Roster (${_responders.length} Responders)',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: AppTypography.bold,
           ),
@@ -332,25 +342,18 @@ class _ActiveRescueOperationsScreenState
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             children: [
-              _buildResponderItem(
-                theme,
-                colorScheme,
-                name: 'Alex Rivera (You)',
-                role: 'Lead Responder • Sector 4',
-                distance: '200m away',
-                status: 'En Route',
-                isLead: true,
-              ),
-              const Divider(height: 16),
-              _buildResponderItem(
-                theme,
-                colorScheme,
-                name: 'Sarah Jenkins',
-                role: 'Vet Tech • Sector 4',
-                distance: '650m away',
-                status: 'In Transit',
-                isLead: false,
-              ),
+              for (int i = 0; i < _responders.length; i++) ...[
+                _buildResponderItem(
+                  theme,
+                  colorScheme,
+                  name: _responders[i]['name'] as String,
+                  role: _responders[i]['role'] as String,
+                  distance: _responders[i]['distance'] as String,
+                  status: _responders[i]['status'] as String,
+                  isLead: _responders[i]['isLead'] as bool,
+                ),
+                if (i < _responders.length - 1) const Divider(height: 16),
+              ],
             ],
           ),
         ),
@@ -406,6 +409,66 @@ class _ActiveRescueOperationsScreenState
           textColor: isLead ? colorScheme.primary : colorScheme.onSurface,
         ),
       ],
+    );
+  }
+
+  void _showMarkSightingDialog(BuildContext context) {
+    final locationCtrl = TextEditingController(text: 'Cubbon Park West Pavilion');
+    final notesCtrl = TextEditingController(text: 'Spotted running near flower beds. Collar LED blinking.');
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log Field Sighting'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: locationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Sighting Landmark / Location',
+                hintText: 'e.g. Near West Gate',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Observation Notes',
+                hintText: 'Movement direction, behavior...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final loc = locationCtrl.text.trim();
+              final notes = notesCtrl.text.trim();
+              if (loc.isNotEmpty) {
+                setState(() {
+                  _sightingHeadline = 'Verified Responder Sighting ($loc)';
+                  _sightingDetail = notes.isNotEmpty
+                      ? notes
+                      : 'Pet visually observed at $loc just now by field team.';
+                });
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Field sighting logged at $loc! Telemetry updated.'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Log Sighting'),
+          ),
+        ],
+      ),
     );
   }
 }

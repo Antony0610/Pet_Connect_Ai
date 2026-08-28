@@ -109,7 +109,7 @@ class _PatientRegistryScreenState extends State<PatientRegistryScreen> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Owner Phone Number',
-                    hintText: 'e.g. +1 (555) 019-2834',
+                    hintText: 'e.g. +91 98450 12345',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                 ),

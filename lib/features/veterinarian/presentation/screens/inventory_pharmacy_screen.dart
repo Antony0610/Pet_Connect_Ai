@@ -110,11 +110,7 @@ class _InventoryPharmacyScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Add Inventory Item')),
-              );
-            },
+            onPressed: () => _showAddItemDialog(context),
             tooltip: 'Add Item',
           ),
         ],
@@ -404,6 +400,100 @@ class _InventoryPharmacyScreenState
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAddItemDialog(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final skuCtrl = TextEditingController();
+    final stockCtrl = TextEditingController();
+    String category = 'Pharmacy';
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Add Inventory Item'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Item Name',
+                    hintText: 'e.g. Amoxicillin 250mg',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: skuCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'SKU / Code',
+                    hintText: 'e.g. PH-3091',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: stockCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Initial Stock Quantity',
+                    hintText: 'e.g. 50 units',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: const [
+                    DropdownMenuItem(value: 'Pharmacy', child: Text('Pharmacy')),
+                    DropdownMenuItem(value: 'Biologics', child: Text('Biologics / Vaccines')),
+                    DropdownMenuItem(value: 'Preventatives', child: Text('Preventatives')),
+                    DropdownMenuItem(value: 'Surgical', child: Text('Surgical Supplies')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => category = val);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = nameCtrl.text.trim();
+                final sku = skuCtrl.text.trim();
+                final stock = stockCtrl.text.trim();
+                if (name.isNotEmpty) {
+                  setState(() {
+                    _inventoryItems.insert(0, {
+                      'name': name,
+                      'category': category,
+                      'sku': sku.isNotEmpty ? sku : 'SKU-${DateTime.now().millisecondsSinceEpoch % 10000}',
+                      'stock': stock.isNotEmpty ? (stock.contains(' ') ? stock : '$stock units') : '25 units',
+                      'status': 'Optimal',
+                      'statusColor': AppColors.success,
+                      'isCritical': false,
+                    });
+                  });
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Item "$name" added to inventory!')),
+                  );
+                }
+              },
+              child: const Text('Add Item'),
+            ),
+          ],
+        ),
       ),
     );
   }

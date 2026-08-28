@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
@@ -37,27 +38,38 @@ class _OwnerActionFabState extends State<OwnerActionFab> {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    final button = GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onPressed,
-      child: AnimatedScale(
-        scale: _pressed ? 0.95 : 1,
-        duration: AppDurations.short3,
-        curve: AppDurations.standard,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: scheme.primary,
+    final button = AnimatedScale(
+      scale: _pressed ? 0.95 : 1,
+      duration: AppDurations.short3,
+      curve: AppDurations.standard,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          borderRadius: AppRadius.brCard,
+          boxShadow: AppElevation.shadowGlow,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: AppRadius.brCard,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTapDown: (_) => setState(() => _pressed = true),
+            onTapUp: (_) => setState(() => _pressed = false),
+            onTapCancel: () => setState(() => _pressed = false),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              widget.onPressed();
+            },
             borderRadius: AppRadius.brCard,
-            boxShadow: AppElevation.shadowGlow,
-          ),
-          child: Icon(
-            widget.icon,
-            color: scheme.onPrimary,
-            size: AppIconSizes.lg,
+            child: Center(
+              child: Icon(
+                widget.icon,
+                color: scheme.onPrimary,
+                size: AppIconSizes.lg,
+              ),
+            ),
           ),
         ),
       ),

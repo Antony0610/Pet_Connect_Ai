@@ -347,13 +347,7 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
               ),
               AppButton(
                 text: priority == 'HIGH' ? 'Begin Triage' : 'Review Details',
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Starting session for ${item['name']}'),
-                    ),
-                  );
-                },
+                onPressed: () => context.push('/vet/consultation/${item['id']}'),
                 backgroundColor: priorityColor,
                 textColor: priority == 'HIGH'
                     ? colorScheme.onError

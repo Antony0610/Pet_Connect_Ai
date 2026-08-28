@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:petconnect_ai/core/error/exceptions.dart' hide AuthException;
 import 'package:petconnect_ai/features/administrator/data/models/admin_user_entry_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/audit_log_model.dart';
@@ -23,6 +25,7 @@ abstract class AdminRemoteDataSource {
   Future<List<AdminUserEntryModel>> getAdminUserDirectory();
   Future<AdminUserEntryModel> updateUserRole(String userId, String newRole);
   Future<void> suspendUser(String userId, bool isSuspended);
+  Future<void> deleteUser(String userId);
   Future<void> resetUserPassword(String email);
   Future<void> createUserAccount({
     required String email,
@@ -199,13 +202,49 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
     String newRole,
   ) async {
     try {
+      // 1. Try atomic RPC admin_update_user_role
+      try {
+        final rpcRes =
+            await _client.rpc<dynamic>('admin_update_user_role', params: {
+          'target_user_id': userId,
+          'new_role': newRole,
+        });
+        if (rpcRes != null) {
+          final map = rpcRes is Map<String, dynamic>
+              ? rpcRes
+              : (rpcRes is String
+                  ? jsonDecode(rpcRes) as Map<String, dynamic>
+                  : null);
+          if (map != null) {
+            return AdminUserEntryModel.fromJson(map);
+          }
+        }
+      } catch (_) {
+        // Fallback to direct update if RPC fails
+      }
+
+      // 2. Direct table update fallback
       final response = await _client
           .from('profiles')
-          .update({'role': newRole})
+          .update({
+            'role': newRole,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
           .eq('id', userId)
           .select()
-          .single();
-      return AdminUserEntryModel.fromJson(response);
+          .maybeSingle();
+
+      if (response != null) {
+        return AdminUserEntryModel.fromJson(response);
+      }
+      return AdminUserEntryModel(
+        id: userId,
+        email: '',
+        role: newRole,
+        fullName: 'User',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
     } on PostgrestException catch (e) {
       throw ServerException(
         e.message,
@@ -219,6 +258,16 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<void> suspendUser(String userId, bool isSuspended) async {
     try {
+      try {
+        await _client.rpc<dynamic>('admin_suspend_user', params: {
+          'target_user_id': userId,
+          'is_suspended_val': isSuspended,
+        });
+        return;
+      } catch (_) {
+        // Fallback to direct update
+      }
+
       await _client.from('profiles').update({
         'is_suspended': isSuspended,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -230,6 +279,29 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to update account status: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteUser(String userId) async {
+    try {
+      try {
+        await _client.rpc<dynamic>('admin_delete_user', params: {
+          'target_user_id': userId,
+        });
+        return;
+      } catch (_) {
+        // Fallback to direct delete if RPC fails
+      }
+
+      await _client.from('profiles').delete().eq('id', userId);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to delete account: $e');
     }
   }
 

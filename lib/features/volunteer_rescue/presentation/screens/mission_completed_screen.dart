@@ -11,10 +11,24 @@ import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 ///
 /// Rescue debrief and reunion summary view. Displays duration metrics, distance covered,
 /// owner gratitude quote, photo proof placeholder, and return to dashboard action.
-class MissionCompletedScreen extends StatelessWidget {
+class MissionCompletedScreen extends StatefulWidget {
   const MissionCompletedScreen({super.key, this.missionId = 'm1'});
 
   final String missionId;
+
+  @override
+  State<MissionCompletedScreen> createState() => _MissionCompletedScreenState();
+}
+
+class _MissionCompletedScreenState extends State<MissionCompletedScreen> {
+  bool _photoAttached = false;
+  final TextEditingController _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +147,7 @@ class MissionCompletedScreen extends StatelessWidget {
           child: _buildMetricTile(
             theme,
             colorScheme,
-            value: '1.2 Miles',
+            value: '1.9 km',
             label: 'Covered',
             icon: Icons.route_outlined,
           ),
@@ -232,41 +246,102 @@ class MissionCompletedScreen extends StatelessWidget {
   ) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.add_a_photo_outlined,
-            color: colorScheme.primary,
-            size: 28,
+          Row(
+            children: [
+              Icon(
+                _photoAttached ? Icons.check_circle : Icons.add_a_photo_outlined,
+                color: _photoAttached ? AppColors.success : colorScheme.primary,
+                size: 28,
+              ),
+              AppSpacing.hGapSm,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _photoAttached ? 'Reunion Photo Attached' : 'Reunion Photo & Proof',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: AppTypography.bold,
+                      ),
+                    ),
+                    Text(
+                      _photoAttached
+                          ? 'Photo uploaded to community field records.'
+                          : 'Upload photo for community field records.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _photoAttached
+                  ? OutlinedButton.icon(
+                      icon: const Icon(Icons.check, size: 16, color: AppColors.success),
+                      label: const Text('Change'),
+                      onPressed: () {
+                        setState(() => _photoAttached = false);
+                      },
+                    )
+                  : FilledButton.icon(
+                      icon: const Icon(Icons.camera_alt, size: 16),
+                      label: const Text('Attach'),
+                      onPressed: () {
+                        setState(() => _photoAttached = true);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Reunion photo attached successfully!')),
+                        );
+                      },
+                    ),
+            ],
           ),
-          AppSpacing.hGapSm,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Reunion Photo & Proof',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: AppTypography.bold,
+          if (_photoAttached) ...[
+            AppSpacing.vGapMd,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      color: colorScheme.primaryContainer,
+                      child: Icon(Icons.pets, color: colorScheme.primary),
+                    ),
                   ),
-                ),
-                Text(
-                  'Upload photo for community field records.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'reunion_luna_cubbon_park.jpg',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Captured by Alex Rivera • GPS verified',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          OutlinedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Reunion photo attached')),
-              );
-            },
-            child: const Text('Attach'),
-          ),
+          ],
         ],
       ),
     );

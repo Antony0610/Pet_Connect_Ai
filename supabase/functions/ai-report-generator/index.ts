@@ -11,16 +11,16 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { pet_id, pet_name, pet_species, pet_breed } = await req.json();
+    const { pet_id, pet_name, pet_species, pet_breed, gemini_api_key } = await req.json();
 
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY");
     let overall_health_score = 92;
     let key_insights: string[] = [];
     let dietary_recommendations = "";
 
     if (geminiApiKey) {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

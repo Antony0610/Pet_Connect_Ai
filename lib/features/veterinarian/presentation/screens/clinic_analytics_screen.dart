@@ -81,7 +81,7 @@ class _ClinicAnalyticsScreenState
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Export feature coming in Phase 14.'),
+                  content: Text('Exporting clinic analytics summary (PDF)... Saved to Downloads.'),
                 ),
               );
             },

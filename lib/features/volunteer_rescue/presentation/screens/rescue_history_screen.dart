@@ -122,7 +122,7 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
                 ),
                 AppSpacing.vGapXs,
                 Text(
-                  "You've successfully completed 12 rescues this month, driving 45 miles. Average response time improved by 15% compared to last month!",
+                  "You've successfully completed 12 rescues this month, covering 72 km. Average response time improved by 15% compared to last month!",
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface,
                   ),

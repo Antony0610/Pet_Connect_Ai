@@ -1,5 +1,8 @@
+// @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+declare const Deno: any;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +15,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { prompt, conversation_id, pet_id, rag_context, pets } = await req.json();
+    const { prompt, conversation_id, pet_id, rag_context, pets, history, gemini_api_key } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -23,36 +26,30 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
+    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY") || "";
 
     // 1. Fetch pet profile context if available
     let petContext = rag_context || "";
     let petList: any[] = Array.isArray(pets) ? pets : [];
-    let petName = "";
-    let petSpecies = "";
-    let petBreed = "";
-    let petAge = "";
-    let petWeight = "";
-    let petAllergies = "";
 
     if (supabaseUrl && supabaseServiceKey && pet_id && !petContext) {
       try {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         const { data: pet } = await supabase
           .from("pets")
-          .select("name, species, breed, age, weight, allergies, is_spayed_neutered")
+          .select("id, name, species, breed, gender, date_of_birth, weight_kg, health_status")
           .eq("id", pet_id)
           .maybeSingle();
 
         if (pet) {
-          petName = pet.name || "";
-          petSpecies = pet.species || "pet";
-          petBreed = pet.breed || "";
-          petAge = pet.age ? `${pet.age} years old` : "";
-          petWeight = pet.weight ? `${pet.weight} kg` : "";
-          petAllergies = pet.allergies ? pet.allergies.join(", ") : "None reported";
+          const petName = pet.name || "Companion";
+          const petSpecies = pet.species || "Pet";
+          const petBreed = pet.breed || petSpecies;
+          const petGender = pet.gender || "Not specified";
+          const petWeight = pet.weight_kg ? `${pet.weight_kg} kg` : "Not recorded";
+          const healthStatus = pet.health_status || "Optimal";
 
-          petContext = `Active Pet Profile: Name: ${petName}, Species: ${petSpecies}, Breed: ${petBreed}, Age: ${petAge}, Weight: ${petWeight}, Allergies: ${petAllergies}.`;
+          petContext = `Active Pet Profile: Name: ${petName}, Species: ${petSpecies}, Breed: ${petBreed}, Gender: ${petGender}, Weight: ${petWeight}, Health: ${healthStatus}.`;
         }
       } catch (_e) {
         // Continue without blocking if pet fetch fails
@@ -61,22 +58,41 @@ Deno.serve(async (req: Request) => {
 
     let reply = "";
 
-    const clinicalSystemPrompt = `You are PetConnect AI, an intelligent, empathetic, and certified veterinary & companion pet assistant.
-${petContext ? `[RAG PET CONTEXT]: ${petContext}` : "The user is asking about their companion animals."}
+    const clinicalSystemPrompt = `You are PetConnect AI, an intelligent, empathetic, certified veterinary specialist, companion animal scientist, and universal AI assistant.
+${petContext ? `[ACTIVE PET CONTEXT]: ${petContext}` : "The user is interacting with PetConnect AI regarding their pets and general inquiries."}
 
-You have multiple capabilities:
-1. PET IDENTITY: If the user asks about their pets (e.g. "which are my pets", "who are my pets", "what pets do I have"), answer accurately using the [RAG PET CONTEXT] above. List each pet with their breed, age, weight, and health status.
-2. WEATHER & WALKS: If the user asks about weather, walks, or outdoor conditions, provide practical safety tips (pavement 7-second heat check, hydration, rain/cold protection, exercise duration).
-3. NUTRITION & CARE: Provide evidence-based WSAVA/AAHA nutrition, grooming, training, and wellness advice.
-4. MEDICAL & TOXICITY TRIAGE: Provide structured medical guidance for emergencies (toxicities like chocolate/grapes/xylitol/lilies, GDV bloat, seizures, respiratory distress).
-5. CONVERSATIONAL & OPEN-ENDED: Respond naturally, warmly, and helpfully to any everyday question without forcing rigid triage headers unless medically relevant.`;
+CORE INSTRUCTIONS & CAPABILITIES:
+1. UNIVERSAL ANSWERING: Answer ANY question accurately, effectively, and concisely:
+   • Clinical Veterinary Medicine, Symptom Triage, First Aid, Pharmacology & Poisoning.
+   • WSAVA Animal Nutrition, Safe/Unsafe Foods, Caloric Math, Homemade Diets.
+   • Adoption, Rescue, Foster Preparation, Supplies Checklist.
+   • Behavioral Psychology, Puppy Biting/Mouthing, Leash Manners, Crate & Potty Routines, Separation Anxiety, Grooming, Travel.
+   • General Science, Biology, History, Mathematics, Calculations, Technology, Creative Writing, and Multi-language Translation.
+2. TONE & CONCISENESS:
+   • For greetings (e.g. "hi", "hello", "നമസ്കാരം"), reply warmly and concisely in 1-2 sentences.
+   • For adoption questions ("where can I adopt a dog"), provide structured steps, verified adoption resources, and preparation tips.
+   • If the user asks in Malayalam (മലയാളം), reply in fluent, natural Malayalam.
+   • Never output repetitive generic template disclaimers or vital signs dumps unless the user actually asks for clinical vital signs. Provide direct, evidence-based answers immediately.`;
 
+    // Try Gemini API if key is configured
     if (geminiApiKey) {
       const modelsToTry = [
         "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-1.5-pro",
+        "gemini-2.0-flash-exp",
       ];
+
+      const conversationContents = [];
+      if (Array.isArray(history) && history.length > 0) {
+        for (const h of history) {
+          if (h.role && h.parts) conversationContents.push(h);
+        }
+      }
+      conversationContents.push({
+        role: "user",
+        parts: [{ text: `${clinicalSystemPrompt}\n\nUser Query: ${prompt}` }],
+      });
 
       for (const model of modelsToTry) {
         if (reply) break;
@@ -87,19 +103,10 @@ You have multiple capabilities:
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                contents: [
-                  {
-                    role: "user",
-                    parts: [
-                      {
-                        text: `${clinicalSystemPrompt}\n\nUser Query: ${prompt}`,
-                      },
-                    ],
-                  },
-                ],
+                contents: conversationContents,
                 generationConfig: {
                   temperature: 0.7,
-                  maxOutputTokens: 1000,
+                  maxOutputTokens: 1500,
                 },
               }),
             }
@@ -115,104 +122,189 @@ You have multiple capabilities:
       }
     }
 
+    // Comprehensive Dynamic Offline Knowledge Engine
     if (!reply) {
       const lower = prompt.toLowerCase().trim();
-      
-      // 1. Multi-Pet Inventory Queries (with typo tolerance: 'by pets', 'my pets', 'list pets', etc.)
-      if (lower.includes("which are my pets") ||
-          lower.includes("which are by pets") ||
-          lower.includes("what are my pets") ||
-          lower.includes("who are my pets") ||
-          lower.includes("who are by pets") ||
-          lower.includes("list my pets") ||
-          lower.includes("my pets") ||
-          lower.includes("by pets") ||
-          lower.includes("my pet") ||
-          lower.includes("by pet") ||
-          lower.includes("what pets") ||
-          lower.includes("which pets") ||
-          lower.includes("what pets do i have") ||
-          lower.includes("how many pets") ||
-          lower.includes("pet's name") ||
-          lower.includes("pets name") ||
-          lower.includes("my dog's name") ||
-          lower.includes("my cat's name") ||
-          lower.includes("how old is my")) {
-        if (petList.length > 0) {
-          const formatted = petList.map((p: any) => {
-            const name = p.name || "Companion";
-            const breed = p.breed || p.species || "Pet";
-            const age = p.age ? `${p.age} years old` : "Age not specified";
-            const weight = p.weight ? `${p.weight} kg` : "Weight not specified";
-            const allergies = p.allergies ? (Array.isArray(p.allergies) ? p.allergies.join(", ") : p.allergies) : "None reported";
-            return `🐾 **${name}**\n  • **Type & Breed**: ${breed}\n  • **Age & Weight**: ${age} • ${weight}\n  • **Allergies**: ${allergies}`;
-          }).join("\n\n");
-          reply = `Here are your registered companions in PetConnect AI:\n\n${formatted}\n\nHow can I assist you with their health, nutrition, or daily routine today?`;
-        } else if (petName) {
-          reply = `Your active registered pet in PetConnect AI is **${petName}**${petBreed ? ` (a wonderful ${petBreed} ${petSpecies})` : ` (${petSpecies})`}.${petAge ? ` ${petName} is ${petAge}.` : ''}${petWeight ? ` Current recorded weight is ${petWeight}.` : ''}${petAllergies && petAllergies !== 'None reported' ? ` Known allergies: ${petAllergies}.` : ''}\n\nHow is ${petName} doing today?`;
+      const isMalayalam = /[\u0D00-\u0D7F]/.test(prompt);
+
+      if (isMalayalam) {
+        // Malayalam Knowledge Base
+        if (/^(നമസ്കാരം|ഹലോ|ഹായ്|സുഖമാണോ|ഗുഡ് മോർണിംഗ്)[!.,? ]*$/.test(prompt) || /നമസ്കാരം|ഹലോ|ഹായ്/.test(prompt)) {
+          reply = `നമസ്കാരം! 👋 ഞാൻ നിങ്ങളുടെ PetConnect AI അസിസ്റ്റന്റാണ്. നിങ്ങളുടെ വളർത്തുമൃഗങ്ങളുടെ ആരോഗ്യം, ഭക്ഷണം, പെരുമാറ്റ പരിശീലനം, ദത്തെടുക്കൽ, അല്ലെങ്കിൽ ഏതൊരു ചോദ്യങ്ങൾക്കും ഞാൻ ഇവിടെയുണ്ട്. എനിക്ക് എങ്ങനെ സഹായിക്കാനാകും?`;
+        } else if (/ദത്തെടുക്കൽ|പട്ടിയെ ലഭിക്കാൻ|പൂച്ചയെ ലഭിക്കാൻ|എവിടെ നിന്ന് വാങ്ങാം|adopt|adoption/.test(prompt)) {
+          reply = `🐶 **വളർത്തുമൃഗങ്ങളെ ദത്തെടുക്കുന്നതിനുള്ള വഴികൾ**:\n\n` +
+            `1. **അനിമൽ ഷെൽട്ടറുകൾ & റെസ്ക്യൂ സംഘടനകൾ**: പ്രാദേശിക അനിമൽ റെസ്ക്യൂ സെന്ററുകൾ (People For Animals, സ്നേഹക്കൂട്ടായ്മകൾ) സന്ദർശിക്കുക.\n` +
+            `2. **PetConnect കമ്മ്യൂണിറ്റി അഡോപ്ഷൻ ഹബ്**: നമ്മുടെ ആപ്പിലെ **Community Hub $\\rightarrow$ Adoption** ടാബിൽ പരിശോധിച്ചാൽ ദത്തെടുക്കാൻ ലഭ്യമായ നായ്ക്കളെയും പൂച്ചകളെയും കണ്ടെത്താം.\n` +
+            `3. **ആവശ്യമായ മുൻകരുതലുകൾ**: ആവശ്യത്തിന് ഭക്ഷണം, വെള്ള പാത്രങ്ങൾ, വാക്സിനേഷൻ രേഖകൾ എന്നിവ മുൻകൂട്ടി തയ്യാറാക്കുക.`;
+        } else if (/ഭക്ഷണം|തീറ്റ|എന്ത് നൽകണം|കഴിക്കാൻ|വിഷം|ചോക്ലേറ്റ്/.test(prompt)) {
+          reply = `🥗 **വളർത്തുമൃഗങ്ങളുടെ ഭക്ഷണ മാർഗ്ഗനിർദ്ദേശങ്ങൾ**:\n\n` +
+            `• **നല്ല ഭക്ഷണങ്ങൾ**: വേവിച്ച കോഴിയിറച്ചി (എല്ലില്ലാത്തത്), വേവിച്ച ചോറ്, ക്യാരറ്റ്, മത്തങ്ങ, ആപ്പിൾ (കുരു ഒഴിവാക്കിയത്).\n` +
+            `• **ഒഴിവാക്കേണ്ട വിഷാംശമുള്ള ഭക്ഷണങ്ങൾ**: ചോക്ലേറ്റ്, മുന്തിരി, ഉണക്കമുന്തിരി, ഉള്ളി, വെളുത്തുള്ളി, ചായ/കാപ്പി, മധുരപലഹാരങ്ങൾ.\n` +
+            `• എപ്പോഴും ശുദ്ധമായ കുടിവെള്ളം ലഭ്യമാക്കുക.`;
+        } else if (/ഛർദ്ദി|വയറിളക്കം|വയറുവേദന|പനി|അസുഖം/.test(prompt)) {
+          reply = `🩺 **രോഗലക്ഷണങ്ങളും പ്രാഥമിക ശുശ്രൂഷയും**:\n\n` +
+            `• **ഭക്ഷണം ക്രമീകരിക്കുക**: 8–12 മണിക്കൂർ കട്ടി ആഹാരം ഒഴിവാക്കി ശുദ്ധജലം മാത്രം നൽകുക.\n` +
+            `• **ലഘു ഭക്ഷണം**: പിന്നീട് ചെറിയ അളവിൽ വേവിച്ച ചോറും വേവിച്ച ചിക്കനും നൽകുക.\n` +
+            `• ഛർദ്ദി തുടരുകയോ ക്ഷീണം കൂടുകയോ ചെയ്താൽ ഉടൻ അടുത്തുള്ള വെറ്ററിനറി ഡോക്ടറെ കാണിക്കുക.`;
+        } else if (/കുര|കടിക്കുക|പരിശീലനം|ട്രെയിനിംഗ്/.test(prompt)) {
+          reply = `🐕 **വളർത്തുമൃഗങ്ങളുടെ പരിശീലന രീതികൾ**:\n\n` +
+            `• **പോസിറ്റീവ് റിവാർഡ്**: നല്ല പെരുമാറ്റത്തിന് മാത്രം ട്രീറ്റുകളും സ്നേഹവും നൽകുക.\n` +
+            `• **കടി മാറ്റാൻ**: കൈകളിൽ കടിക്കുമ്പോൾ പെട്ടെന്ന് "നോ" എന്ന് പറഞ്ഞ് കളിപ്പാട്ടങ്ങളിലേക്ക് ശ്രദ്ധ മാറ്റുക.\n` +
+            `• ദിവസവും 15–20 മിനിറ്റ് വ്യായാമവും നടത്തവും നൽകുക.`;
         } else {
-          reply = "You do not have any pets registered in your profile yet. You can tap **Add Pet** on your Home Dashboard or in your Profile to set up their health records and smart collar!";
+          reply = `🐾 **PetConnect AI വിവരങ്ങൾ**:\n\n` +
+            `"${prompt}" എന്ന വിഷയത്തെക്കുറിച്ച്:\n\n` +
+            `വളർത്തുമൃഗങ്ങളുടെ സംരക്ഷണത്തിലും പൊതുവിജ്ഞാനത്തിലും നിങ്ങൾക്ക് ആവശ്യമായ എല്ലാ വിവരങ്ങളും നൽകാൻ ഞാൻ തയ്യാറാണ്. കൂടുതൽ കൃത്യമായ വിവരങ്ങൾക്കായി ചോദ്യം വിശദീകരിക്കാമോ?`;
         }
-      }
-      // 2. Weather & Walk Queries
-      else if (lower.includes("weather") || lower.includes("wheather") || lower.includes("walk") || lower.includes("outside") || lower.includes("outdoor") || lower.includes("rain") || lower.includes("hot") || lower.includes("cold") || lower.includes("temperature")) {
-        const targetName = petName || (petList.length > 0 ? petList.map((p: any) => p.name).join(" and ") : "your companion");
-        reply = `⛅ **Outdoor & Walk Safety Advice for ${targetName}**:\n\n` +
-          `• **Temperature & Asphalt Check**: Before walking on sunny days, place the back of your hand firmly against the pavement for 7 seconds. If it's too hot for your hand, it's too hot for ${targetName}'s paw pads!\n` +
-          `• **Hydration**: Always carry fresh water and a collapsible bowl for walks longer than 15 minutes.\n` +
-          `• **Exercise Duration**: 20–30 minutes of moderate sniffing and walking is ideal for mental stimulation and joint health.\n` +
-          `• **Weather Cautions**: In heavy rain or snow, dry their paws thoroughly after coming inside to prevent interdigital dermatitis.`;
-      }
-      // 3. Dermatological & Rash
-      else if (lower.includes("skin rash") || lower.includes("rash") || lower.includes("itch") || lower.includes("scratching") || lower.includes("hotspot")) {
-        reply = `🔍 **Dermatological Assessment — Skin Irritation & Rash**:\n\n` +
-          `• **Common Triggers**: Contact allergens (grass/fertilizers), flea bite hypersensitivity, food allergies, or bacterial/yeast infections.\n` +
-          `• **Home Care**: Prevent scratching or licking with an Elizabethan collar. Avoid human hydrocortisone or tea tree oil (toxic if ingested).\n` +
-          `• **When to Consult Vet**: If you observe open weeping sores, bleeding pustules, intense redness, or foul odor, schedule an in-person veterinary exam.`;
-      }
-      // 4. Ophthalmic & Eye Discharge
-      else if (lower.includes("eye discharge") || lower.includes("eye") || lower.includes("squinting") || lower.includes("conjunctivitis")) {
-        reply = `👁️ **Ophthalmic Assessment — Eye Discharge & Irritation**:\n\n` +
-          `• **Discharge Appearance**: Clear watery discharge often stems from dust, wind, or allergies. Green, yellow, or thick mucoid discharge indicates bacterial infection or corneal abrasion.\n` +
-          `• **Home Care**: Gently clean eye corners with warm sterile saline gauze. Never apply human medicated eye drops without a vet exam.\n` +
-          `• **Emergency Signs**: Seek prompt veterinary care if there is corneal cloudiness, severe squinting, or swelling.`;
-      }
-      // 5. Toxicities & Poison
-      else if (lower.includes("chocolate") || lower.includes("grape") || lower.includes("raisin") || lower.includes("xylitol") || lower.includes("lily") || lower.includes("lilies") || lower.includes("poison") || lower.includes("toxic") || lower.includes("onion") || lower.includes("garlic")) {
-        reply = `🚨 **[TRIAGE: EMERGENCY - POTENTIAL TOXIC INGESTION]**\n\n` +
-          `Immediate Protocol for ${petName ? petName : 'your pet'}:\n` +
-          `1. **Do NOT induce vomiting** unless directly instructed by an emergency toxicologist or veterinarian (corrosives cause secondary esophageal burns).\n` +
-          `2. **Preserve packaging & quantify**: Note the exact amount ingested and time elapsed.\n` +
-          `3. **Immediate Action**: Contact Pet Poison Helpline or transport to the nearest 24/7 Veterinary Emergency Hospital.\n` +
-          `• *Critical Note*: Xylitol (birch sweetener) triggers severe hypoglycemia in 30 minutes; Lilies cause fatal acute renal failure in felines.`;
-      }
-      // 6. Critical Respiratory / Seizures
-      else if (lower.includes("breath") || lower.includes("chok") || lower.includes("seiz") || lower.includes("collapse") || lower.includes("pale gum") || lower.includes("unconscious")) {
-        reply = `🚨 **[TRIAGE: CRITICAL EMERGENCY]**\n\n` +
-          `Immediate Life-Support Measures:\n` +
-          `• **Breathing Distress**: Keep ${petName ? petName : 'the animal'} calm and cool in a well-ventilated space. Open-mouth breathing in felines is always a critical emergency.\n` +
-          `• **Seizures**: Clear hard objects away from the area. Do NOT place hands inside the mouth. Time the episode. If it lasts > 2 minutes, transport immediately with a cool damp cloth over the body.\n` +
-          `• **Pale/Blue Gums**: Indicates circulatory shock or hypoxia—proceed immediately to veterinary ER.`;
-      }
-      // 7. Greetings & Intro
-      else if (lower.includes("hi") || lower.includes("hello") || lower.includes("hey") || lower.includes("how are you") || lower.includes("who are you")) {
-        reply = `Hello! I am your **PetConnect AI Assistant**, trained on AAHA & WSAVA companion animal guidelines.${petName ? ` I'm currently tracking **${petName}**'s wellness.` : ''}\n\nI can help you with:\n• Daily care, weather & exercise recommendations\n• Nutrition & dietary advice\n• Symptom checks & emergency triage\n• Smart collar activity & health trends\n\nHow can I help you and ${petName ? petName : 'your companion'} today?`;
-      }
-      // 8. Food & Nutrition
-      else if (lower.includes("food") || lower.includes("diet") || lower.includes("eat") || lower.includes("feed") || lower.includes("nutrition") || lower.includes("treat")) {
-        reply = `🥗 **WSAVA Nutrition & Feeding Guidelines${petName ? ` for ${petName}` : ''}**:\n\n` +
-          `• Ensure complete, balanced AAFCO-compliant meals formulated for their specific life stage.\n` +
-          `• Treat calories should never exceed 10% of total daily caloric intake to prevent obesity and pancreatitis.\n` +
-          `• Safe Healthy Treats: Plain cooked pumpkin, peeled carrots, blueberries, green beans, and cooked lean poultry.\n` +
-          `• Never feed: Grapes, raisins, onions, garlic, chocolate, avocado, macadamia nuts, or artificially sweetened baked goods.`;
-      }
-      // 9. General Care
-      else {
-        reply = `🐾 **PetConnect AI Care Insight${petName ? ` for ${petName}` : ''}**:\n\n` +
-          `Regarding "${prompt}":\n` +
-          `• Keep an eye on ${petName ? petName : 'your companion'}'s energy levels, appetite, water intake, and normal daily routine.\n` +
-          `• Normal canine/feline vital ranges: Temperature 101.0–102.5°F (38.3–39.2°C), healthy pink gums with capillary refill in under 2 seconds.\n\n` +
-          `Feel free to ask for specific advice on symptoms, training, exercise, or attach a photo for visual analysis!`;
+      } else {
+        // English Universal Knowledge Base
+
+        // 1. Casual Greetings & Pleasantries
+        if (/^(hi|hello|hey|greetings|good morning|good afternoon|good evening|howdy|sup|whats up|what's up|hi there|hello there|hola)[!.,? ]*$/i.test(lower)) {
+          const names = (petList && petList.length > 0)
+            ? petList.map((p: any) => p.name).join(' and ')
+            : 'your companions';
+          reply = `Hello! 👋 How can I assist you with ${names} today? Feel free to ask about health symptoms, puppy training, food safety, adoption guidance, or any general questions!`;
+        }
+
+        // 2. Pet Adoption, Rescue, Acquiring a Dog/Cat
+        else if (/\b(where can i adopt|how can i adopt|want to adopt|need to adopt|adopt a dog|adopt a cat|adopt a puppy|adopt a kitten|get a dog|get a cat|get a puppy|get a kitten|buy a dog|buy a cat|rescue a dog|rescue a cat|shelter|animal shelter|adoption center|adoption process)\b/i.test(lower)) {
+          reply = `🐶 **Pet Adoption & Rescue Guidance**:\n\n` +
+            `Adopting a pet is a wonderful decision! Here is how and where you can adopt:\n\n` +
+            `1. **In-App PetConnect Adoption Hub**:\n` +
+            `   • Check the **Community $\\rightarrow$ Adoption Hub** tab in this app to browse verified rescue dogs and cats looking for loving forever homes near you.\n\n` +
+            `2. **Local Animal Shelters & Rescue NGOs**:\n` +
+            `   • Visit local humane societies, SPCAs, or rescue organizations (like PFA, CUPA, Charlie's Animal Rescue, or local municipal shelters).\n` +
+            `   • Adoption coordinators typically conduct a brief home assessment and interview to match your lifestyle.\n\n` +
+            `3. **Key Checklist Before Bringing Your Pet Home**:\n` +
+            `   • **Living Space**: Safe pet-proofed room, chew-proof cords, secure gates/balcony nets.\n` +
+            `   • **Essential Supplies**: Stainless steel food/water bowls, age-appropriate food, crate/bed, leash/collar with ID tag, and grooming brush.\n` +
+            `   • **Initial Veterinary Check**: Schedule a booster vaccination, deworming, and microchip registration.\n\n` +
+            `Would you like breed recommendations matching your living space (apartment vs. house) or puppy vs. adult dog advice?`;
+        }
+
+        // 3. Puppy Biting, Mouthing & Teething
+        else if (/\b(play bit|mouthing|puppy bite|puppy biting|stop biting|bite inhibition|teething|chewing furniture|chew shoes)\b/i.test(lower)) {
+          reply = `🐾 **Effective Puppy Play Biting & Teething Solutions**:\n\n` +
+            `1. **The "Ouch & Freeze" Technique**:\n` +
+            `   • The moment puppy teeth touch skin, make a high-pitched "Ouch!" sound and immediately freeze movement for 5–10 seconds. This mimics littermate bite feedback.\n\n` +
+            `2. **Instant Toy Redirection**:\n` +
+            `   • Keep a durable rubber toy (Kong, Nylabone) in hand. Swap your hand with the toy the split-second they open their mouth to play.\n\n` +
+            `3. **Reverse Time-Outs**:\n` +
+            `   • If biting escalates, calmly stand up and step out of the room/behind a baby gate for 30–60 seconds. This teaches that biting ends all fun and attention.\n\n` +
+            `4. **Soothe Teething Gums**:\n` +
+            `   • Soak a clean washcloth in bone broth, twist, and freeze it, or offer frozen raw carrots to relieve gum irritation.`;
+        }
+
+        // 4. Excessive Barking & Separation Anxiety
+        else if (/\b(barking|barks|bark at door|separation anxiety|cries when left alone|howling|whining)\b/i.test(lower)) {
+          reply = `🐕 **Barking & Separation Anxiety Solutions**:\n\n` +
+            `• **Alert Barking**: Block window sightlines with opaque privacy film or blinds to remove visual triggers.\n` +
+            `• **Separation Anxiety**: Desensitize departure cues (jingling keys, putting on jackets without leaving). Begin with 1-2 minute micro-absences, gradually extending time.\n` +
+            `• **High-Value Lick Enrichment**: Provide a frozen peanut butter Kong or Lick Mat 5 minutes before leaving (licking releases endorphins that reduce cortisol).\n` +
+            `• **Teach the "Quiet" Cue**: Acknowledge the alert, place a treat near their nose to interrupt barking, count 3 seconds of silence, then reward "Quiet".`;
+        }
+
+        // 5. Potty & Crate Training
+        else if (/\b(potty train|house train|peeing inside|pooping inside|crate train|crate training|litter box|litter training)\b/i.test(lower)) {
+          reply = `🚽 **Structured Housebreaking & Crate Training Protocol**:\n\n` +
+            `1. **The 3-Key Potty Windows**:\n` +
+            `   • Take your companion outside immediately upon waking, 15 minutes after each meal, and right after vigorous play sessions.\n\n` +
+            `2. **Designate a Fixed Elimination Spot**:\n` +
+            `   • Take them to the exact same outdoor grassy spot on-leash. Stay calm and praise with a high-value treat within 2 seconds of completion.\n\n` +
+            `3. **Crate Sizing Rule**:\n` +
+            `   • The crate should only be large enough for them to stand, turn around, and lie down comfortably. If too large, they may eliminate in one corner.\n\n` +
+            `4. **Enzymatic Cleaning**:\n` +
+            `   • Clean indoor accidents strictly with enzymatic cleaners to eliminate pheromone scent markers.`;
+        }
+
+        // 6. Food Safety & WSAVA Nutrition
+        else if (/\b(can (dogs|cats|pets) eat|can my dog eat|can my cat eat|safe for dogs|safe for cats|apple|apples|banana|watermelon|blueberry|blueberries|carrot|carrots|pumpkin|egg|eggs|rice|chicken|bread|cheese|milk)\b/i.test(lower)) {
+          reply = `🍏 **Companion Food Safety & Nutritional Guidance**:\n\n` +
+            `• **✅ Safe & Nutritious Human Foods (In Moderation)**:\n` +
+            `  - **Cooked Lean Meats**: Plain boiled boneless chicken, turkey, or lean beef (no seasoning, onions, or garlic).\n` +
+            `  - **Vegetables**: Steamed carrots, green beans, boiled sweet potato, and plain canned pumpkin (great for digestive fiber).\n` +
+            `  - **Fruits**: Sliced seedless apples, blueberries, seedless watermelon, and banana slices.\n` +
+            `  - **Eggs & Dairy**: Fully cooked eggs; small plain yogurt in moderation (avoid if lactose intolerant).\n\n` +
+            `• **❌ Strictly Toxic / Harmful Foods**:\n` +
+            `  - Chocolate, Grapes & Raisins (kidney toxin), Onions & Garlic, Xylitol/Birch Bark sweetener, Macadamia Nuts, Cooked Bones, Coffee & Alcohol.\n\n` +
+            `• **Portion Rule**: Treats and toppers should never exceed 10% of your pet's daily caloric intake.`;
+        }
+
+        // 7. Toxic Ingestion Emergency
+        else if (/\b(ate chocolate|ate grapes|ate raisins|ate xylitol|ate onion|ate garlic|ate lily|poisoned|swallowed battery|swallowed sock|swallowed toy|bleach|rat poison)\b/i.test(lower)) {
+          reply = `🚨 **[TRIAGE: EMERGENCY - POTENTIAL TOXIC INGESTION]**\n\n` +
+            `Immediate Life-Saving Steps:\n\n` +
+            `1. **Do NOT induce vomiting with salt or hydrogen peroxide** unless directly instructed by an emergency veterinary toxicologist (risk of fatal aspiration and gastric rupture).\n` +
+            `2. **Identify & Quantify**: Save the packaging, active chemical ingredients (e.g. cocoa %, xylitol grams), animal weight, and time elapsed.\n` +
+            `3. **Transport Immediately**: Proceed to the nearest 24/7 Emergency Animal Hospital or call the Pet Poison Helpline immediately.\n\n` +
+            `*Critical Note*: True lilies cause irreversible acute renal failure in felines within 24-72 hours. Immediate IV fluid therapy is required.`;
+        }
+
+        // 8. Gastrointestinal Distress (Vomiting & Diarrhea)
+        else if (/\b(vomit|vomiting|threw up|throwing up|diarrhea|loose stool|upset stomach|nausea|constipated|constipation)\b/i.test(lower)) {
+          reply = `🩺 **Clinical Triage: Gastrointestinal Upset**:\n\n` +
+            `• **Triage Evaluation**: A single episode with bright energy is common (dietary indiscretion). However, repeated vomiting within 6 hours, black/bloody stool, or severe lethargy warrants immediate veterinary examination.\n` +
+            `• **Bland Diet Protocol**: Withhold rich food for 8–12 hours (maintain full access to clean fresh water). Then feed small portions of boiled boneless chicken breast and plain white rice (2:1 ratio) or 1 tbsp plain pumpkin puree.\n` +
+            `• **Emergency Red Flags**: Distended firm abdomen, unproductive retching (GDV bloat risk), pale gums, or suspected foreign body ingestion.`;
+        }
+
+        // 9. Respiratory, Seizures, Trauma Emergencies
+        else if (/\b(breath|breathing|gasping|chok|choking|seiz|seizure|collapse|collapsed|unconscious|hit by car|bleeding heavily)\b/i.test(lower)) {
+          reply = `🚨 **[TRIAGE: CRITICAL LIFE-SUPPORT EMERGENCY]**\n\n` +
+            `Immediate Actions for your companion:\n\n` +
+            `• **Respiratory Distress**: Keep the animal calm, upright, and in an air-conditioned vehicle. Open-mouth breathing in felines is always a critical emergency.\n` +
+            `• **Seizure Protocol**: Move sharp furniture away. Do NOT place your fingers inside the mouth. Dim the lights. If the seizure lasts > 2 minutes, transport immediately covered in a light towel.\n` +
+            `• **Airway Obstruction / Choking**: Inspect oral cavity carefully without risking a bite. For conscious animals, apply upward modified Heimlich pressure behind the ribcage.\n` +
+            `• **Hemorrhage**: Apply firm, continuous direct pressure with a clean towel.`;
+        }
+
+        // 10. Multi-Pet Inventory & Companion Lookup
+        else if (/^(who|which|what|list|show|how many)\b.*\b(pets|pet|animals|companions)\b|\b(who are my pets|what are my pets|which are my pets|what pets do i have|list my pets|show my pets|my pets list|how many pets do i have|all my pets|registered pets)\b/i.test(lower)) {
+          if (petList && petList.length > 0) {
+            const listText = petList.map((p: any) => {
+              const name = p.name || 'Companion';
+              const species = p.species || 'Pet';
+              const breed = p.breed || species;
+              const gender = p.gender || 'Not specified';
+              const age = p.age || 'Age not specified';
+              const weight = p.weight || 'Weight not specified';
+              const status = p.health_status || 'Optimal';
+              return `🐾 **${name}**\n  • **Species & Breed**: ${breed} (${species})\n  • **Gender & Health**: ${gender} • Status: ${status}\n  • **Age & Weight**: ${age} • ${weight}`;
+            }).join('\n\n');
+
+            reply = `Here are your registered companions in PetConnect AI:\n\n${listText}\n\nYou can access their individual Health Passports, medical records, or smart collar telemetry anytime. How can I assist you with their care today?`;
+          } else {
+            reply = `You do not have any pets registered in your profile yet.\n\nYou can easily add your companion by tapping **Add Pet** on the Home Dashboard or in your Profile to unlock personalized health tracking, smart collar telemetry, and dietary guidance!`;
+          }
+        }
+
+        // 11. General Science, Math, Biology, Tech & Universal Knowledge
+        else if (/\b(what is|why is|how does|why do|calculate|solve|convert|who was|explain|tell me about|history of|photosynthesis|gravity|dna|universe|ai|flutter|dart)\b/i.test(lower)) {
+          if (lower.includes('photosynthesis')) {
+            reply = `🌿 **Photosynthesis Overview**:\n\nPhotosynthesis is the biological process by which green plants, algae, and certain bacteria convert sunlight, water, and carbon dioxide ($6CO_2 + 6H_2O \\xrightarrow{light} C_6H_{12}O_6 + 6O_2$) into chemical energy (glucose) and oxygen, fueling terrestrial and aquatic ecosystems.`;
+          } else if (lower.includes('purr')) {
+            reply = `🐱 **Why Cats Purr**:\n\nCats produce purring via rapid rhythmic twitching of their laryngeal muscles and diaphragm at 25–150 Hz. While commonly a sign of contentment, purring also releases endorphins that promote bone density repair and tissue regeneration during stress or recovery.`;
+          } else {
+            reply = `💡 **Knowledge & Insights on "${prompt}"**:\n\n` +
+              `Regarding your inquiry:\n\n` +
+              `• **Core Concept**: Whether you are exploring scientific principles, biological processes, mathematics, or companion animal science, PetConnect AI provides structured, evidence-based explanations.\n` +
+              `• **Specific Details**: If you would like a deeper breakdown, step-by-step mathematical proof, or clinical correlation, let me know!`;
+          }
+        }
+
+        // 12. Thank You & Pleasantries
+        else if (/\b(thank you|thanks|thx|appreciate it|great help|awesome|good job)\b/i.test(lower)) {
+          reply = `You are very welcome! 😊 I am always here to support you and your pets with trusted veterinary guidance, training tips, nutrition advice, and answers to any questions. Wishing you and your companion a wonderful day!`;
+        }
+
+        // 13. Dynamic Universal Intelligent Fallback
+        else {
+          reply = `🐾 **PetConnect AI Assistance**:\n\n` +
+            `Regarding your inquiry about "${prompt}":\n\n` +
+            `• **Practical Guidance**: For optimal companion wellness, maintain a consistent daily routine of balanced nutrition, positive mental enrichment, and regular veterinary health check-ups.\n` +
+            `• **Tailored Support**: I can provide detailed guidance on specific medical symptoms, WSAVA nutrition, puppy/kitten training, adoption resources, or general science topics. What specific details would you like to explore next?`;
+        }
       }
     }
 
@@ -220,9 +312,7 @@ You have multiple capabilities:
       JSON.stringify({
         reply,
         conversation_id,
-        pet_id,
-        confidence: geminiApiKey ? 0.98 : 0.90,
-        model: "gemini-1.5-flash",
+        timestamp: new Date().toISOString(),
       }),
       {
         headers: {

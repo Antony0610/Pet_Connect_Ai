@@ -1,7 +1,9 @@
 import 'package:dartz/dartz.dart';
 import 'package:petconnect_ai/core/error/failures.dart';
+import 'package:petconnect_ai/core/services/notification_service.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/community_post.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/community_post_comment.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/repositories/community_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,58 +13,15 @@ class CommunityRepositoryImpl implements CommunityRepository {
   final SupabaseClient _supabase;
   final List<CommunityPost> _localPosts = [];
 
-  static final List<CommunityPost> _defaultStarterPosts = [
-    CommunityPost(
-      id: 'post-starter-1',
-      userId: 'user-sample-1',
-      category: 'Health',
-      title: 'Summer Hydration Tips for Active Dogs',
-      content: 'Always carry a collapsible water bowl on midday hikes! We add a few ice cubes and a dash of bone broth to encourage fluid intake after agility training.',
-      imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
-      location: 'Riverside Dog Park',
-      tags: const ['DogCare', 'Hydration', 'SummerTips'],
-      likesCount: 24,
-      createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-      authorName: 'Sarah & Cooper',
-      authorAvatarUrl: null,
-    ),
-    CommunityPost(
-      id: 'post-starter-2',
-      userId: 'user-sample-2',
-      category: 'Photo/Video',
-      title: 'First Beach Trip Milestone!',
-      content: 'Luna conquered the waves today! It took a few treats and lots of encouragement, but she ended up sprinting along the shoreline with joy.',
-      imageUrl: 'https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?w=800',
-      location: 'Sunny Dunes Beach',
-      tags: const ['GoldenRetriever', 'BeachDay', 'PuppyLife'],
-      likesCount: 38,
-      createdAt: DateTime.now().subtract(const Duration(hours: 8)),
-      authorName: 'Marcus T.',
-      authorAvatarUrl: null,
-    ),
-    CommunityPost(
-      id: 'post-starter-3',
-      userId: 'user-sample-3',
-      category: 'Question',
-      title: 'Best Harness for Pulling on Leash?',
-      content: 'Looking for recommendations for front-clip no-pull harnesses that are gentle on shoulders. Any favorite durable brands for medium sized dogs?',
-      imageUrl: null,
-      location: 'North Suburbs',
-      tags: const ['Training', 'Gear', 'Advice'],
-      likesCount: 15,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      authorName: 'Elena Chen',
-      authorAvatarUrl: null,
-    ),
-  ];
-
   @override
   ResultFuture<List<CommunityPost>> getCommunityPosts({
     String? category,
     int limit = 30,
   }) async {
     try {
-      var query = _supabase.from('community_posts').select('*');
+      var query = _supabase
+          .from('community_posts')
+          .select('*, profiles(full_name, avatar_url, email)');
 
       if (category != null && category != 'All' && category != 'All Topics') {
         query = query.eq('category', category);
@@ -91,20 +50,10 @@ class CommunityRepositoryImpl implements CommunityRepository {
         }
       }
 
-      if (allPosts.isEmpty) {
-        final filteredStarters = (category == null || category == 'All' || category == 'All Topics')
-            ? _defaultStarterPosts
-            : _defaultStarterPosts.where((p) => p.category == category).toList();
-        return Right(filteredStarters);
-      }
-
       return Right(allPosts);
     } catch (e) {
-      // Return local and starter posts on offline / query issues
-      final filtered = _localPosts.isNotEmpty
-          ? _localPosts
-          : _defaultStarterPosts;
-      return Right(filtered);
+      // Return local posts on offline / query issues
+      return Right(_localPosts);
     }
   }
 
@@ -160,7 +109,7 @@ class CommunityRepositoryImpl implements CommunityRepository {
         final data = await _supabase
             .from('community_posts')
             .insert(payload)
-            .select('*')
+            .select('*, profiles(full_name, avatar_url, email)')
             .single();
 
         final remotePost = CommunityPost.fromJson(data);
@@ -189,7 +138,49 @@ class CommunityRepositoryImpl implements CommunityRepository {
       }
       try {
         await _supabase.rpc<void>('increment_post_likes', params: {'post_id': postId});
+      } catch (_) {
+        // Direct update fallback if RPC encounters network issue
+        try {
+          await _supabase.from('community_posts').update({
+            'likes_count': ((_localPosts.where((p) => p.id == postId).firstOrNull?.likesCount) ?? 1)
+          }).eq('id', postId);
+        } catch (_) {}
+      }
+
+      // Send in-app & live notification to post creator
+      try {
+        final postData = await _supabase
+            .from('community_posts')
+            .select('user_id, title')
+            .eq('id', postId)
+            .maybeSingle();
+
+        final currentUserId = _supabase.auth.currentUser?.id;
+        final currentUserName = _supabase.auth.currentUser?.userMetadata?['full_name'] as String? ?? 'Someone';
+
+        if (postData != null) {
+          final postOwnerId = postData['user_id'] as String?;
+          final postTitle = postData['title'] as String? ?? 'your post';
+
+          if (postOwnerId != null && postOwnerId.isNotEmpty && postOwnerId != currentUserId) {
+            await _supabase.from('user_notifications').insert({
+              'user_id': postOwnerId,
+              'title': 'New Like on your post! ❤️',
+              'body': '$currentUserName loved your post "$postTitle"',
+              'notification_type': 'community_like',
+              'is_read': false,
+              'payload': {'post_id': postId},
+            });
+          }
+
+          // Trigger local tray notification
+          await NotificationService.instance.showCommunityLikeNotification(
+            authorName: currentUserName,
+            postTitle: postTitle,
+          );
+        }
       } catch (_) {}
+
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Failed to like post: $e'));
@@ -256,6 +247,168 @@ class CommunityRepositoryImpl implements CommunityRepository {
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Failed to delete post: $e'));
+    }
+  }
+
+  final Map<String, List<CommunityPostComment>> _localCommentsByPost = {};
+
+  @override
+  ResultFuture<List<CommunityPostComment>> getPostComments(String postId) async {
+    try {
+      final data = await _supabase
+          .from('community_post_comments')
+          .select('*, profiles(full_name, avatar_url, email)')
+          .eq('post_id', postId)
+          .order('created_at', ascending: true);
+
+      final comments = (data as List<dynamic>)
+          .map((json) => CommunityPostComment.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      final topLevel = <CommunityPostComment>[];
+      final repliesByParent = <String, List<CommunityPostComment>>{};
+
+      for (final c in comments) {
+        if (c.parentCommentId != null && c.parentCommentId!.isNotEmpty) {
+          repliesByParent.putIfAbsent(c.parentCommentId!, () => []).add(c);
+        } else {
+          topLevel.add(c);
+        }
+      }
+
+      final resolved = topLevel.map((parent) {
+        final replies = repliesByParent[parent.id] ?? const <CommunityPostComment>[];
+        return parent.copyWith(replies: replies);
+      }).toList();
+
+      _localCommentsByPost[postId] = resolved;
+      return Right(resolved);
+    } catch (e) {
+      final cached = _localCommentsByPost[postId] ?? const [];
+      return Right(cached);
+    }
+  }
+
+  @override
+  ResultFuture<CommunityPostComment> addComment({
+    required String postId,
+    required String userId,
+    required String content,
+    String? parentCommentId,
+  }) async {
+    try {
+      final authUser = _supabase.auth.currentUser;
+      final safeUserId = authUser?.id ??
+          (RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(userId)
+              ? userId
+              : '00000000-0000-0000-0000-000000000001');
+
+      final newComment = CommunityPostComment(
+        id: 'comment-local-${DateTime.now().millisecondsSinceEpoch}',
+        postId: postId,
+        userId: safeUserId,
+        parentCommentId: parentCommentId,
+        content: content,
+        likesCount: 0,
+        createdAt: DateTime.now(),
+        authorName: authUser?.userMetadata?['full_name'] as String? ?? 'Pet Owner',
+        authorAvatarUrl: authUser?.userMetadata?['avatar_url'] as String?,
+      );
+
+      try {
+        final payload = {
+          'post_id': postId,
+          'user_id': safeUserId,
+          'content': content,
+          if (parentCommentId != null && parentCommentId.isNotEmpty) 'parent_comment_id': parentCommentId,
+          'likes_count': 0,
+        };
+
+        final data = await _supabase
+            .from('community_post_comments')
+            .insert(payload)
+            .select('*, profiles(full_name, avatar_url, email)')
+            .single();
+
+        final remoteComment = CommunityPostComment.fromJson(data);
+
+        // Notify post creator
+        try {
+          final postData = await _supabase
+              .from('community_posts')
+              .select('user_id, title')
+              .eq('id', postId)
+              .maybeSingle();
+
+          final authorName = authUser?.userMetadata?['full_name'] as String? ?? 'Community Member';
+          if (postData != null) {
+            final postOwnerId = postData['user_id'] as String?;
+            final postTitle = postData['title'] as String? ?? 'your post';
+
+            if (postOwnerId != null && postOwnerId.isNotEmpty && postOwnerId != safeUserId) {
+              await _supabase.from('user_notifications').insert({
+                'user_id': postOwnerId,
+                'title': 'New Comment on your post! 💬',
+                'body': '$authorName wrote: "$content"',
+                'notification_type': 'community_comment',
+                'is_read': false,
+                'payload': {'post_id': postId, 'comment': content},
+              });
+            }
+
+            // Trigger local notification
+            await NotificationService.instance.showCommunityCommentNotification(
+              commenterName: authorName,
+              commentSnippet: '$authorName commented on "$postTitle": $content',
+            );
+          }
+        } catch (_) {}
+
+        return Right(remoteComment);
+      } catch (_) {
+        // Even offline or local fallback, trigger notification for UI responsiveness
+        try {
+          final authorName = authUser?.userMetadata?['full_name'] as String? ?? 'You';
+          await NotificationService.instance.showCommunityCommentNotification(
+            commenterName: authorName,
+            commentSnippet: '$authorName commented: $content',
+          );
+        } catch (_) {}
+        return Right(newComment);
+      }
+    } catch (e) {
+      return Left(ServerFailure('Failed to add comment: $e'));
+    }
+  }
+
+  @override
+  ResultFuture<void> likeComment(String commentId) async {
+    try {
+      try {
+        final current = await _supabase
+            .from('community_post_comments')
+            .select('likes_count')
+            .eq('id', commentId)
+            .single();
+        final count = (current['likes_count'] as num?)?.toInt() ?? 0;
+        await _supabase
+            .from('community_post_comments')
+            .update({'likes_count': count + 1})
+            .eq('id', commentId);
+      } catch (_) {}
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure('Failed to like comment: $e'));
+    }
+  }
+
+  @override
+  ResultFuture<void> deleteComment(String commentId) async {
+    try {
+      await _supabase.from('community_post_comments').delete().eq('id', commentId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure('Failed to delete comment: $e'));
     }
   }
 }

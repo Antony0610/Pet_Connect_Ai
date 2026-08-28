@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -60,6 +61,7 @@ class _AiHealthAnalysisScreenState
       final result = await repo.analyzeSymptoms(
         symptomDescription: 'Visual symptom photo upload for clinical evaluation.',
         petId: selectedPet?.id,
+        imageBase64: base64Encode(bytes),
       );
 
       result.fold(

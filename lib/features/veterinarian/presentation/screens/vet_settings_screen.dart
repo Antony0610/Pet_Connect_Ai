@@ -18,8 +18,8 @@ class VetSettingsScreen extends StatefulWidget {
 }
 
 class _VetSettingsScreenState extends State<VetSettingsScreen> {
-  final _clinicNameController = TextEditingController(text: 'Oakwood Veterinary Center');
-  final _consultationFeeController = TextEditingController(text: '65.00');
+  final _clinicNameController = TextEditingController(text: 'Oakwood Veterinary Centre');
+  final _consultationFeeController = TextEditingController(text: '800.00');
   bool _acceptEmergencyCases = true;
   bool _telehealthEnabled = true;
   bool _smsAlerts = true;
@@ -95,8 +95,8 @@ class _VetSettingsScreenState extends State<VetSettingsScreen> {
                         controller: _consultationFeeController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: const InputDecoration(
-                          labelText: 'Standard Consultation Rate (\$ USD)',
-                          prefixIcon: Icon(Icons.attach_money),
+                          labelText: 'Standard Consultation Rate (₹ INR)',
+                          prefixIcon: Icon(Icons.currency_rupee),
                           border: OutlineInputBorder(),
                         ),
                       ),

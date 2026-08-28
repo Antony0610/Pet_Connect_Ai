@@ -37,6 +37,7 @@ import 'package:petconnect_ai/features/pet_owner/presentation/screens/community_
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/community_hub_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/community_messages_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/community_search_screen.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/screens/community_settings_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/community_sightings_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/create_post_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/delete_pet_confirmation_screen.dart';
@@ -288,7 +289,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'chat',
                 name: RouteNames.ownerAiChat,
-                builder: (context, state) => const AiAssistantChatScreen(),
+                builder: (context, state) {
+                  final convId = state.uri.queryParameters['conversationId'];
+                  final prompt = state.uri.queryParameters['prompt'] ?? state.uri.queryParameters['q'];
+                  return AiAssistantChatScreen(
+                    initialConversationId: convId,
+                    initialPrompt: prompt,
+                  );
+                },
               ),
               GoRoute(
                 path: 'insights',
@@ -435,6 +443,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'live-feed',
                 name: RouteNames.ownerCommunityLiveFeed,
                 builder: (context, state) => const LiveActivityFeedScreen(),
+              ),
+              GoRoute(
+                path: 'settings',
+                name: RouteNames.ownerCommunitySettings,
+                builder: (context, state) => const CommunitySettingsScreen(),
               ),
             ],
           ),

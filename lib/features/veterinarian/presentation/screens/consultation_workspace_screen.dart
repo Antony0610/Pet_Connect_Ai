@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_dosage_calculator_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -73,7 +74,7 @@ class _ConsultationWorkspaceScreenState
               ),
             ),
             Text(
-              'Bella • Golden Retriever',
+              'Bella • Golden Retriever (28.5 kg)',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -81,6 +82,23 @@ class _ConsultationWorkspaceScreenState
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calculate_outlined),
+            tooltip: 'Rx Dosage Calculator',
+            onPressed: () {
+              VetDosageCalculatorModal.show(
+                context,
+                initialWeightKg: 28.5,
+                initialSpecies: 'Canine',
+                onApplyDosage: (dosageInstruction) {
+                  setState(() {
+                    _planController.text =
+                        '${_planController.text}\n• $dosageInstruction';
+                  });
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.history_outlined),
             onPressed: () => context.push('/vet/patients/p1'),
@@ -242,11 +260,7 @@ class _ConsultationWorkspaceScreenState
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.vaccines, size: 18),
                       label: const Text('Issue Rx'),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Prescription Modal')),
-                        );
-                      },
+                      onPressed: () => context.push(RoutePaths.vetPrescription),
                     ),
                   ),
                   const SizedBox(width: 10),

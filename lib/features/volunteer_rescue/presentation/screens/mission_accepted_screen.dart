@@ -4,6 +4,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 
@@ -23,10 +24,10 @@ class MissionAcceptedScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mission Assigned'),
+        title: const Text('Mission Accepted'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/rescue'),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
@@ -37,20 +38,18 @@ class MissionAcceptedScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Assignment Success Banner ───────────────────────
-                _buildAssignedBanner(theme, colorScheme),
+                // ── Hero Banner ──────────────────────────────────────
+                _buildHeroBanner(theme, colorScheme),
 
                 AppSpacing.vGapLg,
 
-                // ── Pre-Mission Readiness Checklist ─────────────────
-                _buildPreMissionChecklist(context, theme, colorScheme),
-
-                AppSpacing.vGapLg,
-
-                // ── Primary Navigation & Complete Action Buttons ────
-                _buildActionButtons(context, colorScheme),
+                // ── Mission Readiness Checklist ──────────────────────
+                _buildChecklist(context, theme, colorScheme),
 
                 AppSpacing.vGapXl,
+
+                // ── Launch Action Buttons ────────────────────────────
+                _buildActionButtons(context, colorScheme),
               ],
             ),
           ),
@@ -59,27 +58,26 @@ class MissionAcceptedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAssignedBanner(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildHeroBanner(ThemeData theme, ColorScheme colorScheme) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.15),
+        color: AppColors.success.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: AppColors.success.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: const BoxDecoration(
               color: AppColors.success,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.check_circle,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: const Icon(Icons.check, color: Colors.white, size: 28),
           ),
           AppSpacing.hGapMd,
           Expanded(
@@ -87,16 +85,17 @@ class MissionAcceptedScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Mission Assigned Successfully!',
+                  'Mission Accepted & Dispatched',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: AppTypography.bold,
                     color: AppColors.success,
                   ),
                 ),
+                AppSpacing.vGapXs,
                 Text(
-                  "Luna's owner has been notified and is awaiting your arrival.",
+                  'Owner notified that you are en route. GPS telemetry channel synchronized.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -107,7 +106,7 @@ class MissionAcceptedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPreMissionChecklist(
+  Widget _buildChecklist(
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
@@ -116,7 +115,7 @@ class MissionAcceptedScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Pre-Mission Readiness Checklist',
+          'Pre-Departure Checklist',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: AppTypography.bold,
           ),
@@ -133,11 +132,7 @@ class MissionAcceptedScreen extends StatelessWidget {
                 title: 'Contact Owner',
                 subtitle: 'Confirm ETA (approx. 8 mins) and location details.',
                 icon: Icons.call,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Calling Sarah Connor...')),
-                  );
-                },
+                onTap: () => ExternalActions.callPhoneNumber('+15551234567'),
               ),
               const Divider(height: 20),
               _buildChecklistItem(

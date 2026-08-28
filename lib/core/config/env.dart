@@ -11,13 +11,24 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 abstract final class Env {
   const Env._();
 
-  static String _get(String key, {String fallback = ''}) =>
-      dotenv.maybeGet(key) ?? fallback;
+  static String _get(String key, {String fallback = ''}) {
+    try {
+      if (!dotenv.isInitialized) return fallback;
+      return dotenv.maybeGet(key) ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
 
   static bool _getBool(String key, {bool fallback = false}) {
-    final raw = dotenv.maybeGet(key)?.toLowerCase().trim();
-    if (raw == null || raw.isEmpty) return fallback;
-    return raw == 'true' || raw == '1' || raw == 'yes';
+    try {
+      if (!dotenv.isInitialized) return fallback;
+      final raw = dotenv.maybeGet(key)?.toLowerCase().trim();
+      if (raw == null || raw.isEmpty) return fallback;
+      return raw == 'true' || raw == '1' || raw == 'yes';
+    } catch (_) {
+      return fallback;
+    }
   }
 
   // ── App / Flavor ───────────────────────────────────────────────
@@ -31,8 +42,9 @@ abstract final class Env {
   // ── Google Maps ────────────────────────────────────────────────
   static String get googleMapsApiKey => _get('GOOGLE_MAPS_API_KEY');
 
-  // ── AI (Gemini via Supabase Edge Function) ─────────────────────
+  // ── AI (Gemini via Supabase Edge Function or Direct) ──────────
   static String get aiEdgeFunctionUrl => _get('AI_EDGE_FUNCTION_URL');
+  static String get geminiApiKey => _get('GEMINI_API_KEY');
 
   // ── Firebase Cloud Messaging ───────────────────────────────────
   static String get fcmSenderId => _get('FCM_SENDER_ID');

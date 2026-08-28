@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
@@ -43,8 +44,8 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
 
     final gpsStreamAsync = ref.watch(liveGpsLocationStreamProvider(collarId));
 
-    final double lat = gpsStreamAsync.valueOrNull?.latitude ?? 37.7749;
-    final double lng = gpsStreamAsync.valueOrNull?.longitude ?? -122.4194;
+    final double lat = gpsStreamAsync.valueOrNull?.latitude ?? 12.9716;
+    final double lng = gpsStreamAsync.valueOrNull?.longitude ?? 77.5946;
 
     final locationText = gpsStreamAsync.when(
       data: (gps) =>
@@ -151,8 +152,12 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
                           label: 'Get Directions',
                           icon: Icons.directions_rounded,
                           borderRadius: AppRadius.brPill,
-                          onPressed: () =>
-                              context.showSnackbar('Opening directions…'),
+                          onPressed: () => ExternalActions.openMapDirections(
+                            latitude: lat,
+                            longitude: lng,
+                            label: '$petName Live Location',
+                            context: context,
+                          ),
                         ),
                       ),
                       AppSpacing.hGapSm,

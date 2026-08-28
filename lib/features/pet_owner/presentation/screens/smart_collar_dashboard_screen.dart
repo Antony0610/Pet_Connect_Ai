@@ -523,7 +523,7 @@ class _QuickActions extends StatelessWidget {
                 label: 'Live Tracking',
                 background: scheme.primaryContainer,
                 foreground: scheme.onPrimaryContainer,
-                onTap: () => context.goNamed(RouteNames.ownerCollarTracking),
+                onTap: () => context.push(RoutePaths.ownerCollarTracking),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -533,7 +533,7 @@ class _QuickActions extends StatelessWidget {
                 label: 'Safe Zones',
                 background: scheme.secondaryContainer,
                 foreground: scheme.onSecondaryContainer,
-                onTap: () => context.goNamed(RouteNames.ownerCollarGeofence),
+                onTap: () => context.push(RoutePaths.ownerCollarGeofence),
               ),
             ),
           ],
@@ -547,7 +547,7 @@ class _QuickActions extends StatelessWidget {
                 label: 'Activity',
                 background: scheme.tertiaryContainer,
                 foreground: scheme.onTertiaryContainer,
-                onTap: () => context.goNamed(RouteNames.ownerCollarActivity),
+                onTap: () => context.push(RoutePaths.ownerCollarActivity),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -557,7 +557,7 @@ class _QuickActions extends StatelessWidget {
                 label: 'Diagnostics',
                 background: scheme.errorContainer,
                 foreground: scheme.onErrorContainer,
-                onTap: () => context.goNamed(RouteNames.ownerCollarDiagnostics),
+                onTap: () => context.push(RoutePaths.ownerCollarDiagnostics),
               ),
             ),
           ],
@@ -578,13 +578,13 @@ class _MiniMap extends ConsumerWidget {
 
     String locationLabel = 'No collar connected';
 
-    double lat = 37.7749;
-    double lng = -122.4194;
+    double lat = 12.9716;
+    double lng = 77.5946;
 
     if (collar != null) {
       final locationAsync = ref.watch(liveGpsLocationStreamProvider(collar.id));
-      lat = locationAsync.valueOrNull?.latitude ?? 37.7749;
-      lng = locationAsync.valueOrNull?.longitude ?? -122.4194;
+      lat = locationAsync.valueOrNull?.latitude ?? 12.9716;
+      lng = locationAsync.valueOrNull?.longitude ?? 77.5946;
       locationLabel = locationAsync.when(
         data: (loc) =>
             '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)} • Live',
@@ -594,7 +594,7 @@ class _MiniMap extends ConsumerWidget {
     }
 
     final selectedPet = ref.watch(selectedPetProvider);
-    final petName = selectedPet?.name ?? 'Buddy';
+    final petName = selectedPet?.name ?? 'Companion';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

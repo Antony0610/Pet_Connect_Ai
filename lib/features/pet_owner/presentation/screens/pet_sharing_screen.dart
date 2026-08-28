@@ -1,55 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A faithful Flutter rendering of the frozen Stitch **Pet Sharing & Permissions**
-/// (Light Theme design authority, ID `9b11253106194b159b35b62b1a8d051f`).
+/// (Light Theme design authority, ID `1c015bbf71cb46c5a0890bf6216960d7`).
 ///
-/// Enables pet owners to invite co-owners, manage pet sitter access levels,
-/// grant veterinary record permissions, and revoke access tokens.
-class PetSharingScreen extends StatefulWidget {
+/// Multi-user pet management screen allowing owners to invite co-owners,
+/// family members, pet sitters, or veterinarians with granular RBAC permissions.
+class PetSharingScreen extends ConsumerStatefulWidget {
   const PetSharingScreen({super.key});
 
   @override
-  State<PetSharingScreen> createState() => _PetSharingScreenState();
+  ConsumerState<PetSharingScreen> createState() => _PetSharingScreenState();
 }
 
-class _PetSharingScreenState extends State<PetSharingScreen> {
+class _PetSharingScreenState extends ConsumerState<PetSharingScreen> {
   static const double _maxContentWidth = 1000;
   final _emailController = TextEditingController();
   String _selectedRole = 'Co-Owner';
 
-  final List<_SharingMemberItem> _members = const [
-    _SharingMemberItem(
-      name: 'Sarah Jenkins',
-      role: 'Primary Owner',
-      access: 'Full Access (Manage profile, health, collar)',
-      isPrimary: true,
-    ),
-    _SharingMemberItem(
-      name: 'David Chen',
-      role: 'Co-Owner',
-      access: 'Edit Access (Log medications, telemetry, posts)',
-      isPrimary: false,
-    ),
-    _SharingMemberItem(
-      name: 'Dr. Emily Carter',
-      role: 'Veterinarian',
-      access: 'Medical Access (Health passport, lab reports)',
-      isPrimary: false,
-    ),
-    _SharingMemberItem(
-      name: 'Metro Pet Sitters',
-      role: 'Pet Sitter',
-      access: 'Temporary Access (Expires in 3 days • Collar & feeding)',
-      isPrimary: false,
-    ),
-  ];
+  late List<_SharingMemberItem> _members;
+
+  @override
+  void initState() {
+    super.initState();
+    _members = [
+      const _SharingMemberItem(
+        name: 'Sarah Jenkins',
+        role: 'Primary Owner',
+        access: 'Full Access (Manage profile, health, collar)',
+        isPrimary: true,
+      ),
+      const _SharingMemberItem(
+        name: 'David Chen',
+        role: 'Co-Owner',
+        access: 'Edit Access (Log medications, telemetry, posts)',
+        isPrimary: false,
+      ),
+      const _SharingMemberItem(
+        name: 'Dr. Emily Carter',
+        role: 'Veterinarian',
+        access: 'Medical Access (Health passport, lab reports)',
+        isPrimary: false,
+      ),
+      const _SharingMemberItem(
+        name: 'Metro Pet Sitters',
+        role: 'Pet Sitter',
+        access: 'Temporary Access (Expires in 3 days • Collar & feeding)',
+        isPrimary: false,
+      ),
+    ];
+  }
 
   @override
   void dispose() {
@@ -60,6 +68,10 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final allPets = ref.watch(petsProvider).asData?.value;
+    final pet = selectedPet ?? (allPets != null && allPets.isNotEmpty ? allPets.first : null);
+    final petName = pet?.name ?? 'Companion';
 
     return Scaffold(
       appBar: OwnerGlassAppBar(
@@ -88,7 +100,7 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
               children: [
                 // ── Subtitle ──────────────────────────────────────
                 Text(
-                  "Manage who can view, edit, or track Buddy's health passport, smart collar telemetry, and daily activities.",
+                  "Manage who can view, edit, or track $petName's health passport, smart collar telemetry, and daily activities.",
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -158,13 +170,32 @@ class _PetSharingScreenState extends State<PetSharingScreen> {
                           AppSpacing.hGapSm,
                           AppButton.filled(
                             onPressed: () {
-                              if (_emailController.text.isNotEmpty) {
-                                if (!context.mounted) return;
+                              final text = _emailController.text.trim();
+                              if (text.isNotEmpty) {
+                                final accessDesc = switch (_selectedRole) {
+                                  'Veterinarian' => 'Medical Access (Health passport, lab reports)',
+                                  'Pet Sitter' => 'Temporary Access (Collar & feeding)',
+                                  'Read Only' => 'View Only Access',
+                                  _ => 'Edit Access (Log medications, telemetry, posts)',
+                                };
+
+                                setState(() {
+                                  _members.add(
+                                    _SharingMemberItem(
+                                      name: text,
+                                      role: _selectedRole,
+                                      access: accessDesc,
+                                      isPrimary: false,
+                                    ),
+                                  );
+                                });
+
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      'Invitation sent to ${_emailController.text}',
+                                      'Invitation sent to $text for $petName as $_selectedRole.',
                                     ),
+                                    backgroundColor: Colors.green.shade700,
                                   ),
                                 );
                                 _emailController.clear();

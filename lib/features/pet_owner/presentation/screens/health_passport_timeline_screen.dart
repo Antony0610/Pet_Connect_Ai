@@ -3,20 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/health_timeline_event.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/health_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Health Passport Timeline** — `/owner/health/timeline`.
 ///
-/// Frozen Stitch comp: category filter chips over a center-line vertical
-/// timeline. Each event is color-coded by category (Medical=error,
-/// AI=primary, Growth=tertiary, Vaccine=secondary) with an icon node, a card
-/// with title/detail/timestamp and — for growth — a weight-trend line.
+/// Connected to live Supabase `health_timeline_events` & `health_records`.
+/// ZERO dummy/hardcoded data.
 class HealthPassportTimelineScreen extends ConsumerStatefulWidget {
   const HealthPassportTimelineScreen({super.key});
 
@@ -36,18 +36,45 @@ class _HealthPassportTimelineScreenState
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
     final selectedPet = ref.watch(selectedPetProvider);
+    final petId = selectedPet?.id ?? '';
+    final petName = selectedPet?.name ?? 'Companion';
 
-    final events = _events(context);
+    final eventsAsync = petId.isNotEmpty ? ref.watch(healthTimelineEventsProvider(petId)) : null;
+    final recordsAsync = petId.isNotEmpty ? ref.watch(healthRecordsProvider(petId)) : null;
+
+    final eventsList = eventsAsync?.valueOrNull ?? <HealthTimelineEvent>[];
+    final recordsList = recordsAsync?.valueOrNull ?? <HealthRecord>[];
+
+    // Combine timeline events and medical records
+    final combinedEvents = <_DisplayEvent>[
+      ...eventsList.map((e) => _DisplayEvent(
+        category: e.category,
+        title: e.title,
+        detail: e.description ?? '',
+        timestamp: e.eventDate.toIso8601String().split('T').first,
+        icon: _iconForCategory(e.category),
+        color: _colorForCategory(e.category, scheme),
+      )),
+      ...recordsList.map((r) => _DisplayEvent(
+        category: r.category,
+        title: r.title,
+        detail: r.diagnosis ?? r.notes ?? 'Recorded by ${r.veterinarianName ?? 'Clinic'}',
+        timestamp: r.recordDate.toIso8601String().split('T').first,
+        icon: Icons.medical_services_rounded,
+        color: scheme.primary,
+      )),
+    ];
+
     final visible = _selected == 0
-        ? events
-        : events.where((e) => e.category == _filters[_selected]).toList();
+        ? combinedEvents
+        : combinedEvents.where((e) => e.category.toLowerCase() == _filters[_selected].toLowerCase()).toList();
 
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: healthAppBar(
         context,
         title: selectedPet != null
-            ? "${selectedPet.name}'s Timeline"
+            ? "$petName's Timeline"
             : 'Timeline',
       ),
       body: SingleChildScrollView(
@@ -83,11 +110,50 @@ class _HealthPassportTimelineScreenState
                     ),
                   ),
                   AppSpacing.vGapLg,
-                  for (var i = 0; i < visible.length; i++)
-                    _TimelineNode(
-                      event: visible[i],
-                      isLast: i == visible.length - 1,
+                  if (visible.isNotEmpty) ...[
+                    for (var i = 0; i < visible.length; i++)
+                      _TimelineNode(
+                        event: visible[i],
+                        isLast: i == visible.length - 1,
+                      ),
+                  ] else ...[
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xxl),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: scheme.surfaceContainerHigh,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.timeline_rounded,
+                              size: AppIconSizes.xl,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          AppSpacing.vGapLg,
+                          Text(
+                            'No Timeline Events Yet',
+                            style: context.textTheme.titleLarge?.copyWith(
+                              fontWeight: AppTypography.bold,
+                            ),
+                          ),
+                          AppSpacing.vGapSm,
+                          Text(
+                            'No health events or checkups have been logged yet for $petName. Completed vaccinations, vet visits, and weigh-ins will automatically appear in this timeline.',
+                            textAlign: TextAlign.center,
+                            style: context.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -97,49 +163,20 @@ class _HealthPassportTimelineScreenState
     );
   }
 
-  List<_TimelineEvent> _events(BuildContext context) {
-    final scheme = context.colorScheme;
-    return [
-      _TimelineEvent(
-        category: 'Medical',
-        color: scheme.error,
-        onColor: scheme.onError,
-        icon: Icons.medical_services_rounded,
-        title: 'Neutering Procedure',
-        detail: 'Routine surgery completed successfully at PetCare Clinic.',
-        timestamp: 'Oct 12, 2023 · 9:30 AM',
-      ),
-      _TimelineEvent(
-        category: 'AI',
-        color: scheme.primary,
-        onColor: scheme.onPrimary,
-        icon: Icons.smart_toy_rounded,
-        title: 'AI Wellness Analysis',
-        detail: "Buddy's vitals are trending positively. Activity up 12%.",
-        timestamp: 'Sep 28, 2023 · 2:15 PM',
-        gradient: true,
-      ),
-      _TimelineEvent(
-        category: 'Growth',
-        color: scheme.tertiary,
-        onColor: scheme.onTertiary,
-        icon: Icons.monitor_weight_rounded,
-        title: 'Weight Check',
-        detail: 'Logged at home assessment.',
-        timestamp: 'Sep 15, 2023 · 8:00 AM',
-        weight: '64.5 lbs',
-        weightTrend: '-0.5 lbs',
-      ),
-      _TimelineEvent(
-        category: 'Vaccines',
-        color: scheme.secondary,
-        onColor: scheme.onSecondary,
-        icon: Icons.vaccines_rounded,
-        title: 'Bordetella Vaccine',
-        detail: 'Administered by Dr. Smith.',
-        timestamp: 'Aug 05, 2023 · 11:00 AM',
-      ),
-    ];
+  static IconData _iconForCategory(String category) {
+    final lower = category.toLowerCase();
+    if (lower.contains('vax') || lower.contains('vaccin')) return Icons.vaccines_rounded;
+    if (lower.contains('grow') || lower.contains('weight')) return Icons.monitor_weight_rounded;
+    if (lower.contains('ai')) return Icons.smart_toy_rounded;
+    return Icons.medical_services_rounded;
+  }
+
+  static Color _colorForCategory(String category, ColorScheme scheme) {
+    final lower = category.toLowerCase();
+    if (lower.contains('vax') || lower.contains('vaccin')) return scheme.secondary;
+    if (lower.contains('grow') || lower.contains('weight')) return scheme.tertiary;
+    if (lower.contains('ai')) return scheme.primary;
+    return scheme.error;
   }
 
   static double _horizontalMargin(double width) {
@@ -149,36 +186,28 @@ class _HealthPassportTimelineScreenState
   }
 }
 
-class _TimelineEvent {
-  const _TimelineEvent({
+class _DisplayEvent {
+  const _DisplayEvent({
     required this.category,
-    required this.color,
-    required this.onColor,
-    required this.icon,
     required this.title,
     required this.detail,
     required this.timestamp,
-    this.gradient = false,
-    this.weight,
-    this.weightTrend,
+    required this.icon,
+    required this.color,
   });
 
   final String category;
-  final Color color;
-  final Color onColor;
-  final IconData icon;
   final String title;
   final String detail;
   final String timestamp;
-  final bool gradient;
-  final String? weight;
-  final String? weightTrend;
+  final IconData icon;
+  final Color color;
 }
 
 class _TimelineNode extends StatelessWidget {
   const _TimelineNode({required this.event, required this.isLast});
 
-  final _TimelineEvent event;
+  final _DisplayEvent event;
   final bool isLast;
 
   @override
@@ -192,18 +221,13 @@ class _TimelineNode extends StatelessWidget {
           Column(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: event.color,
+                  color: event.color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
-                  border: Border.all(color: scheme.surface, width: 3),
                 ),
-                child: Icon(
-                  event.icon,
-                  color: event.onColor,
-                  size: AppIconSizes.sm,
-                ),
+                child: Icon(event.icon, color: event.color, size: AppIconSizes.sm),
               ),
               if (!isLast)
                 Expanded(
@@ -214,104 +238,49 @@ class _TimelineNode extends StatelessWidget {
           AppSpacing.hGapMd,
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.lg),
-              child: _EventCard(event: event),
+              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
+              child: AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            event.title,
+                            style: context.textTheme.titleSmall?.copyWith(
+                              fontWeight: AppTypography.semiBold,
+                            ),
+                          ),
+                        ),
+                        HealthCategoryChip(
+                          label: event.category,
+                          background: event.color.withValues(alpha: 0.15),
+                          foreground: event.color,
+                        ),
+                      ],
+                    ),
+                    AppSpacing.vGapXs,
+                    Text(
+                      event.timestamp,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    AppSpacing.vGapSm,
+                    Text(
+                      event.detail,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _EventCard extends StatelessWidget {
-  const _EventCard({required this.event});
-
-  final _TimelineEvent event;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                event.title,
-                style: context.textTheme.titleSmall?.copyWith(
-                  fontWeight: AppTypography.semiBold,
-                ),
-              ),
-            ),
-            HealthCategoryChip(
-              label: event.category,
-              background: event.color.withValues(alpha: 0.15),
-              foreground: event.color,
-            ),
-          ],
-        ),
-        AppSpacing.vGapXs,
-        Text(
-          event.detail,
-          style: context.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-        if (event.weight != null) ...[
-          AppSpacing.vGapSm,
-          Row(
-            children: [
-              Text(
-                event.weight!,
-                style: context.textTheme.titleMedium?.copyWith(
-                  color: event.color,
-                  fontWeight: AppTypography.bold,
-                ),
-              ),
-              AppSpacing.hGapSm,
-              if (event.weightTrend != null)
-                Text(
-                  event.weightTrend!,
-                  style: context.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: AppTypography.semiBold,
-                  ),
-                ),
-            ],
-          ),
-        ],
-        AppSpacing.vGapSm,
-        Text(
-          event.timestamp,
-          style: context.textTheme.labelSmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-
-    if (!event.gradient) {
-      return AppCard(child: content);
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: AppRadius.brCard,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            event.color.withValues(alpha: 0.12),
-            scheme.surfaceContainerLow,
-          ],
-        ),
-        border: Border.all(color: event.color.withValues(alpha: 0.25)),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: content,
     );
   }
 }

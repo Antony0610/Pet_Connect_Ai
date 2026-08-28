@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/core/utils/geo_distance_helper.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/lost_pet_poster_dialog.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/widgets/smart_collar_real_map.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -16,10 +24,25 @@ class MissionDetailsScreen extends StatelessWidget {
 
   final String missionId;
 
+  static const double targetLat = 12.9716;
+  static const double targetLng = 77.5946;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    const missionPet = Pet(
+      id: 'pet_rescue_luna',
+      ownerId: 'owner_sarah',
+      name: 'Luna',
+      species: 'dog',
+      breed: 'Siberian Husky',
+      gender: 'female',
+      weightKg: 21.0,
+      microchipId: '985141002349812',
+      healthStatus: 'urgent',
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -30,12 +53,37 @@ class MissionDetailsScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined),
+            icon: const Icon(Icons.print_outlined),
+            tooltip: 'Generate Rescue Poster',
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Mission dispatch link copied')),
+              HapticFeedback.lightImpact();
+              LostPetPosterDialog.show(
+                context,
+                pet: missionPet,
+                lastSeenLocation: 'Cubbon Park Trailhead, Sector 4',
+                rewardAmount: '\$500',
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.navigation_outlined),
+            tooltip: 'Launch Turn-by-Turn GPS',
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              ExternalActions.openMapDirections(
+                latitude: targetLat,
+                longitude: targetLng,
+                label: 'Luna (Mission #$missionId)',
+                context: context,
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => ExternalActions.shareText(
+              '🚨 Urgent Rescue Mission #$missionId on PetConnect AI!\nSearch and rescue operations active for lost pet.\nJoin the rescue response team.',
+              subject: 'Rescue Mission #$missionId',
+            ),
             tooltip: 'Share Mission',
           ),
         ],
@@ -64,7 +112,7 @@ class MissionDetailsScreen extends StatelessWidget {
                 AppSpacing.vGapLg,
 
                 // ── Sighting Telemetry & Field Notes ────────────────
-                _buildIncidentTelemetryCard(theme, colorScheme),
+                _buildIncidentTelemetryCard(context, theme, colorScheme),
 
                 AppSpacing.vGapXl,
 
@@ -139,7 +187,7 @@ class MissionDetailsScreen extends StatelessWidget {
           child: _buildMetricTile(
             theme,
             colorScheme,
-            title: '0.8 Miles',
+            title: '1.3 km',
             label: 'Distance Away',
             icon: Icons.near_me,
             color: colorScheme.primary,
@@ -241,20 +289,12 @@ class MissionDetailsScreen extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.call, color: AppColors.success),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Calling Sarah Connor...')),
-                  );
-                },
+                onPressed: () => ExternalActions.callPhoneNumber('+15551234567'),
                 tooltip: 'Call Owner',
               ),
               IconButton(
                 icon: Icon(Icons.chat, color: colorScheme.primary),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Opening Owner Chat...')),
-                  );
-                },
+                onPressed: () => context.push(RoutePaths.ownerCommunityMessages),
                 tooltip: 'Message Owner',
               ),
             ],
@@ -264,7 +304,11 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildIncidentTelemetryCard(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildIncidentTelemetryCard(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -284,7 +328,7 @@ class MissionDetailsScreen extends StatelessWidget {
           ),
           AppSpacing.vGapSm,
           Text(
-            'Pine Ridge Trailhead, Sector 4 (37.7749° N, 122.4194° W)',
+            'Cubbon Park Trailhead, Sector 4 (12.9716° N, 77.5946° E)',
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -295,6 +339,48 @@ class MissionDetailsScreen extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
+          ),
+          AppSpacing.vGapMd,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: const SmartCollarRealMap(
+              height: 180,
+              latitude: 12.9716,
+              longitude: 77.5946,
+              locationLabel: 'Last Known Location',
+              petName: 'Luna',
+            ),
+          ),
+          AppSpacing.vGapSm,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Transit Proximity: ${GeoDistanceHelper.formatDistanceWithEta(startLatitude: 12.9780, startLongitude: 77.5900, endLatitude: 12.9716, endLongitude: 77.5946)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  ExternalActions.openMapDirections(
+                    latitude: targetLat,
+                    longitude: targetLng,
+                    label: 'Luna Rescue Incident',
+                    context: context,
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                ),
+                icon: const Icon(Icons.directions, size: 16),
+                label: const Text('Open in Maps', style: TextStyle(fontSize: 12)),
+              ),
+            ],
           ),
         ],
       ),

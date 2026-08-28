@@ -292,53 +292,92 @@ class _PetSharingPermissionsScreenState
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
+    final emailCtrl = TextEditingController();
+    String role = 'Foster';
+
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Invite Collaborator / Foster'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Collaborator Email',
-                hintText: 'user@example.com',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Invite Collaborator / Foster'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Collaborator Email',
+                  hintText: 'user@example.com',
+                ),
               ),
+              AppSpacing.vGapMd,
+              DropdownButtonFormField<String>(
+                initialValue: role,
+                decoration: const InputDecoration(labelText: 'Permission Role'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'Family',
+                    child: Text('Family Co-owner'),
+                  ),
+                  DropdownMenuItem(value: 'Vet', child: Text('Veterinarian')),
+                  DropdownMenuItem(
+                    value: 'Foster',
+                    child: Text('Temporary Foster'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() => role = val);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
             ),
-            AppSpacing.vGapMd,
-            DropdownButtonFormField<String>(
-              initialValue: 'Foster',
-              decoration: const InputDecoration(labelText: 'Permission Role'),
-              items: const [
-                DropdownMenuItem(
-                  value: 'Family',
-                  child: Text('Family Co-owner'),
-                ),
-                DropdownMenuItem(value: 'Vet', child: Text('Veterinarian')),
-                DropdownMenuItem(
-                  value: 'Foster',
-                  child: Text('Temporary Foster'),
-                ),
-              ],
-              onChanged: (_) {},
+            AppButton(
+              text: 'Send Invitation',
+              onPressed: () {
+                final email = emailCtrl.text.trim();
+                if (email.isNotEmpty) {
+                  final name = email.split('@').first.replaceAll('.', ' ');
+                  final capitalizedName = name
+                      .split(' ')
+                      .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+                      .join(' ');
+
+                  final roleLabel = role == 'Family'
+                      ? 'Family Co-owner'
+                      : (role == 'Vet' ? 'Veterinarian' : 'Temporary Foster');
+                  final accessLabel = role == 'Family'
+                      ? 'Full Access'
+                      : (role == 'Vet' ? 'Medical Only' : 'Emergency Only');
+                  final color = role == 'Family'
+                      ? AppColors.info
+                      : (role == 'Vet' ? AppColors.success : AppColors.warning);
+
+                  setState(() {
+                    _collaborators.add({
+                      'name': capitalizedName.isNotEmpty ? capitalizedName : email,
+                      'email': email,
+                      'role': roleLabel,
+                      'access': accessLabel,
+                      'color': color,
+                    });
+                  });
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Invitation sent to $email ($roleLabel)!')),
+                  );
+                }
+              },
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          AppButton(
-            text: 'Send Invitation',
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Access invitation sent!')),
-              );
-            },
-          ),
-        ],
       ),
     );
   }

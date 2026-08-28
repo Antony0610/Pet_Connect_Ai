@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -73,29 +72,60 @@ final _recentNotificationsProvider =
   }
 });
 
+/// Cleans raw AI clinical boilerplate and extracts a concise, practical 1-2 sentence insight.
+String _cleanDailyInsight(String rawText) {
+  var text = rawText;
+  // Remove markdown headers like **PetConnect AI Clinical Care Guidance**:
+  text = text.replaceAll(RegExp(r'\*\*PetConnect AI.*?\*\*[:\s]*', caseSensitive: false), '');
+  text = text.replaceAll(RegExp(r'Regarding\s*".*?"[:\s]*', caseSensitive: false), '');
+
+  // Extract practical care / clinical observation point if bulleted
+  final match = RegExp(
+    r'\*\*(?:Practical Care|Clinical Observation|Tip|Guidance|Daily Tip)\*\*[:\s]*(.*?)(?=\n\s*•|\n\s*\*|\n\s*#|$)',
+    dotAll: true,
+  ).firstMatch(text);
+
+  if (match != null && match.group(1) != null) {
+    text = match.group(1)!.trim();
+  }
+
+  // Remove leftover markdown symbols & bullets
+  text = text.replaceAll(RegExp(r'[\*#_`•]'), '').trim();
+  text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  if (text.length > 170) {
+    final periodIdx = text.indexOf('.', 60);
+    if (periodIdx != -1 && periodIdx < 170) {
+      text = text.substring(0, periodIdx + 1);
+    } else {
+      text = '${text.substring(0, 150)}...';
+    }
+  }
+
+  return text.isEmpty
+      ? 'Ensure your companion has fresh hydration and regular daily exercise today.'
+      : text;
+}
+
 /// Fetches today's AI daily insight from the ai-assistant edge function.
 /// Empty string means "not yet loaded". Null means "failed".
 final _dailyInsightProvider =
     FutureProvider.family<String?, String?>((ref, petId) async {
   final repo = ref.read(aiRepositoryProvider);
 
-  // Create a lightweight conversation for the daily insight.
-  final convResult = await repo.createConversation(
-    title: 'Daily Insight',
-    petId: petId,
-  );
-
-  final convId = convResult.fold<String?>((_) => null, (c) => c.id);
-  if (convId == null) return null;
+  final convId = 'daily-insight-${petId ?? 'general'}';
 
   final result = await repo.sendChatMessage(
     conversationId: convId,
     prompt:
-        'Give a short, specific daily wellness insight for my pet in 2 sentences. Be practical and helpful.',
+        'Provide one short, practical wellness tip for my pet companion in at most 2 sentences. No boilerplate.',
     petId: petId,
   );
 
-  return result.fold<String?>((_) => null, (msg) => msg.messageText);
+  return result.fold<String?>(
+    (_) => null,
+    (msg) => _cleanDailyInsight(msg.messageText),
+  );
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -141,18 +171,18 @@ class _HomeDashboardScreenState
         OwnerAppBarAction(
           icon: Icons.search,
           tooltip: 'Search',
-          onPressed: () => context.goNamed(RouteNames.ownerSearch),
+          onPressed: () => context.push(RoutePaths.ownerSearch),
         ),
         OwnerAppBarAction(
           icon: Icons.notifications_outlined,
           tooltip: 'Notifications',
           showBadge: true,
-          onPressed: () => context.goNamed(RouteNames.ownerNotifications),
+          onPressed: () => context.push(RoutePaths.ownerNotifications),
         ),
         AppSpacing.hGapXs,
         _ProfileAvatarButton(
           imageUrl: avatarUrl,
-          onTap: () => context.goNamed(RouteNames.ownerProfile),
+          onTap: () => context.push(RoutePaths.ownerProfile),
         ),
       ],
     );
@@ -185,15 +215,6 @@ class _HomeDashboardScreenState
           final safeIndex = pets.isEmpty
               ? 0
               : _selectedPetIndex.clamp(0, pets.length - 1);
-
-          // Update provider to match displayed pet.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (pets.isNotEmpty) {
-              ref
-                  .read(selectedPetIdProvider.notifier)
-                  .state = pets[safeIndex].id;
-            }
-          });
 
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -335,7 +356,7 @@ class _HeroPetCard extends ConsumerWidget {
             AppSpacing.vGapLg,
             FilledButton.icon(
               onPressed: () =>
-                  context.goNamed(RouteNames.ownerPetAdd),
+                  context.push(RoutePaths.ownerPetAdd),
               icon: const Icon(Icons.add),
               label: const Text('Add Pet'),
             ),
@@ -372,53 +393,69 @@ class _HeroPetCard extends ConsumerWidget {
             onSelect: onSelect,
           ),
           AppSpacing.vGapMd,
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _HeroPetImage(imageUrl: pet.imageUrl, size: 100),
-              AppSpacing.hGapLg,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      pet.name,
-                      style:
-                          context.textTheme.headlineMedium?.copyWith(
-                        fontWeight: AppTypography.bold,
-                        color: context.colorScheme.onSurface,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.push('/owner/pets/${pet.id}');
+            },
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _HeroPetImage(imageUrl: pet.imageUrl, size: 100),
+                AppSpacing.hGapLg,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              pet.name,
+                              style: context.textTheme.headlineMedium?.copyWith(
+                                fontWeight: AppTypography.bold,
+                                color: context.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                            size: 24,
+                          ),
+                        ],
                       ),
-                    ),
-                    AppSpacing.vGapXs,
-                    Text(
-                      pet.breedLine,
-                      style: context.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                      AppSpacing.vGapXs,
+                      Text(
+                        pet.breedLine,
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    AppSpacing.vGapSm,
-                    Wrap(
-                      spacing: AppSpacing.xs,
-                      runSpacing: AppSpacing.xs,
-                      children: [
-                        _StatusPill(
-                          icon: Icons.favorite,
-                          label:
-                              'Health: ${_cap(pet.healthStatus)}',
-                        ),
-                        _StatusPill(
-                          icon: linkedCollar != null
-                              ? Icons.wifi
-                              : Icons.wifi_off,
-                          label: collarLabel,
-                          muted: linkedCollar == null,
-                        ),
-                      ],
-                    ),
-                  ],
+                      AppSpacing.vGapSm,
+                      Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        children: [
+                          _StatusPill(
+                            icon: Icons.favorite,
+                            label: 'Health: ${_cap(pet.healthStatus)}',
+                          ),
+                          _StatusPill(
+                            icon: linkedCollar != null
+                                ? Icons.wifi
+                                : Icons.wifi_off,
+                            label: collarLabel,
+                            muted: linkedCollar == null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -498,7 +535,7 @@ class _PetSwitcher extends StatelessWidget {
           ),
         // Add-pet chip
         _AddPetChip(
-          onTap: () => context.goNamed(RouteNames.ownerPetAdd),
+          onTap: () => context.push(RoutePaths.ownerPetAdd),
         ),
       ],
     );
@@ -690,111 +727,170 @@ class _AiInsightCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final isDark = context.theme.brightness == Brightness.dark;
     final selectedPet = ref.watch(selectedPetProvider);
-    final insightAsync =
-        ref.watch(_dailyInsightProvider(selectedPet?.id));
+    final insightAsync = ref.watch(_dailyInsightProvider(selectedPet?.id));
 
-    final insightText = insightAsync.when(
+    final String defaultTip = selectedPet != null
+        ? 'Ensure ${selectedPet.name} stays hydrated and has balanced daily activity.'
+        : 'Add your pet companion to receive personalized daily wellness insights.';
+
+    final String? insightText = insightAsync.when(
       loading: () => null,
-      error: (_, __) => 'AI service unavailable. Try again.',
-      data: (text) => text ?? 'AI service unavailable. Try again.',
+      error: (_, __) => defaultTip,
+      data: (text) => (text != null && text.isNotEmpty) ? text : defaultTip,
     );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: AppRadius.brSection,
-        border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.20)),
-        boxShadow: AppElevation.soft(context.theme.brightness),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 0, top: 0, bottom: 0,
-            child: Container(
-              width: AppSpacing.base,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppRadius.xxl),
-                  bottomLeft: Radius.circular(AppRadius.xxl),
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [scheme.primary, scheme.secondary],
-                ),
-              ),
-            ),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: isDark
+              ? scheme.surfaceContainer
+              : scheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: scheme.primary.withValues(alpha: isDark ? 0.30 : 0.20),
+            width: 1.0,
           ),
-          Padding(
-            padding: AppSpacing.cardPadding,
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+        ),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.push(RoutePaths.ownerAiChat);
+          },
+          borderRadius: BorderRadius.circular(16),
+          splashColor: scheme.primary.withValues(alpha: 0.12),
+          highlightColor: scheme.primary.withValues(alpha: 0.06),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm + 4,
+            ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
-                    color: scheme.primaryContainer
-                        .withValues(alpha: 0.20),
-                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        scheme.primary.withValues(alpha: isDark ? 0.35 : 0.20),
+                        scheme.secondary.withValues(alpha: isDark ? 0.30 : 0.15),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.smart_toy,
+                  child: Center(
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
                       color: scheme.primary,
-                      size: AppIconSizes.md),
+                      size: 20,
+                    ),
+                  ),
                 ),
                 AppSpacing.hGapMd,
                 Expanded(
                   child: insightText == null
                       ? SizedBox(
-                          height: 36,
+                          height: 24,
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 16,
+                              height: 16,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: scheme.primary),
+                                strokeWidth: 2,
+                                color: scheme.primary,
+                              ),
                             ),
                           ),
                         )
                       : Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'AI Daily Insight',
-                              style: context.textTheme.labelLarge
-                                  ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  'Daily AI Insight',
+                                  style: context.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.primary,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                                if (selectedPet != null) ...[
+                                  Text(
+                                    ' • ${selectedPet.name}',
+                                    style: context.textTheme.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                            AppSpacing.vGapXs,
+                            const SizedBox(height: 2),
                             Text(
                               insightText,
-                              style: context.textTheme.bodyMedium
-                                  ?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurface,
+                                height: 1.3,
                               ),
                             ),
                           ],
                         ),
                 ),
-                AppSpacing.hGapMd,
-                TextButton(
-                  onPressed: () =>
-                      context.goNamed(RouteNames.ownerAiAssistant),
-                  style: TextButton.styleFrom(
-                    foregroundColor: scheme.primary,
-                    shape: const RoundedRectangleBorder(
-                        borderRadius: AppRadius.brPill),
+                AppSpacing.hGapSm,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
                   ),
-                  child: const Text('Chat'),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: isDark ? 0.20 : 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Ask AI',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: scheme.primary,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -877,15 +973,17 @@ class _TodaySummary extends ConsumerWidget {
     );
 
     if (isRow) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: activity),
-          AppSpacing.hGapMd,
-          Expanded(child: collarCard),
-          AppSpacing.hGapMd,
-          Expanded(child: apptCard),
-        ],
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: activity),
+            AppSpacing.hGapMd,
+            Expanded(child: collarCard),
+            AppSpacing.hGapMd,
+            Expanded(child: apptCard),
+          ],
+        ),
       );
     }
 
@@ -936,42 +1034,88 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final isDark = context.theme.brightness == Brightness.dark;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.brCard,
-        child: GlassCard(
-          padding: AppSpacing.cardPadding,
-          borderRadius: AppRadius.brCard,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (onTap != null) {
+          HapticFeedback.lightImpact();
+          onTap!();
+        }
+      },
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: isDark
+                ? scheme.surfaceContainer
+                : scheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: isDark ? 0.25 : 0.40),
+              width: 1.0,
+            ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: InkWell(
+            onTap: onTap != null
+                ? () {
+                    HapticFeedback.lightImpact();
+                    onTap!();
+                  }
+                : null,
+            borderRadius: BorderRadius.circular(16),
+            splashColor: accent.withValues(alpha: 0.12),
+            highlightColor: accent.withValues(alpha: 0.06),
+            child: Padding(
+              padding: AppSpacing.cardPadding,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, color: accent, size: AppIconSizes.sm),
-                  AppSpacing.hGapXs,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(icon, color: accent, size: 16),
+                      ),
+                      AppSpacing.hGapSm,
+                      Text(
+                        label,
+                        style: context.textTheme.labelMedium
+                            ?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                  AppSpacing.vGapSm,
                   Text(
-                    label,
-                    style: context.textTheme.labelMedium
-                        ?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                    value,
+                    style: context.textTheme.headlineMedium
+                        ?.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w700),
+                  ),
+                  AppSpacing.vGapXs,
+                  Text(
+                    sub,
+                    style: context.textTheme.labelSmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
                 ],
               ),
-              AppSpacing.vGapXs,
-              Text(
-                value,
-                style: context.textTheme.headlineMedium
-                    ?.copyWith(color: scheme.onSurface),
-              ),
-              AppSpacing.vGapXs,
-              Text(
-                sub,
-                style: context.textTheme.labelSmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -992,57 +1136,56 @@ class _QuickActionsGrid extends StatelessWidget {
       title: 'Health Passport',
       subtitle: 'Vaccines & Records',
       tag: 'Passport',
-      path: RoutePaths.ownerHealth,
+      routePath: RoutePaths.ownerHealth,
       color: Color(0xFF10B981),
-      isTab: true,
     ),
     _QuickActionSpec(
       icon: Icons.podcasts_rounded,
       title: 'Smart Collar',
       subtitle: 'Live GPS & Activity',
       tag: 'GPS Live',
-      path: RoutePaths.ownerCollar,
+      routePath: RoutePaths.ownerCollar,
       color: Color(0xFF06B6D4),
-      isTab: true,
     ),
     _QuickActionSpec(
       icon: Icons.notifications_active_rounded,
       title: 'Safety Alerts',
       subtitle: 'Alerts & Reminders',
       tag: 'Alerts',
-      path: RoutePaths.ownerNotifications,
+      routePath: RoutePaths.ownerNotifications,
       color: Color(0xFF8B5CF6),
-      isTab: false,
     ),
     _QuickActionSpec(
       icon: Icons.campaign_rounded,
       title: 'Lost Mode SOS',
       subtitle: 'Emergency Broadcast',
       tag: 'SOS Mode',
-      path: RoutePaths.ownerLostMode,
+      routePath: RoutePaths.ownerLostMode,
       color: Color(0xFFEF4444),
       isDanger: true,
-      isTab: false,
     ),
     _QuickActionSpec(
       icon: Icons.groups_rounded,
       title: 'Community Hub',
       subtitle: 'Feeds & Sightings',
       tag: 'Social',
-      path: RoutePaths.ownerCommunity,
+      routePath: RoutePaths.ownerCommunity,
       color: Color(0xFF3B82F6),
-      isTab: true,
     ),
     _QuickActionSpec(
       icon: Icons.auto_awesome_rounded,
-      title: 'AI Diagnostic Hub',
-      subtitle: 'Triage & Diagnostics',
+      title: 'AI Hub',
+      subtitle: 'All AI Services & Assistant',
       tag: 'Gemini AI',
-      path: RoutePaths.ownerAiChat,
+      routePath: RoutePaths.ownerAi,
       color: Color(0xFFEC4899),
-      isTab: false,
     ),
   ];
+
+  void _navigate(BuildContext context, String path) {
+    HapticFeedback.lightImpact();
+    context.push(path);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1068,28 +1211,119 @@ class _QuickActionsGrid extends StatelessWidget {
             ),
           ],
         ),
-        AppSpacing.vGapSm,
-        GridView.count(
-          crossAxisCount: isDesktop ? 3 : 2,
-          mainAxisSpacing: AppSpacing.md,
-          crossAxisSpacing: AppSpacing.md,
-          childAspectRatio: isDesktop ? 2.0 : 1.30,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            for (final spec in _specs)
-              _QuickActionTile(
-                spec: spec,
-                onTap: () {
-                  if (spec.isTab) {
-                    context.go(spec.path);
-                  } else {
-                    context.push(spec.path);
-                  }
-                },
+        AppSpacing.vGapMd,
+        if (isDesktop)
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[0],
+                      onTap: () => _navigate(context, _specs[0].routePath),
+                    ),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[1],
+                      onTap: () => _navigate(context, _specs[1].routePath),
+                    ),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[2],
+                      onTap: () => _navigate(context, _specs[2].routePath),
+                    ),
+                  ),
+                ],
               ),
-          ],
-        ),
+              AppSpacing.vGapMd,
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[3],
+                      onTap: () => _navigate(context, _specs[3].routePath),
+                    ),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[4],
+                      onTap: () => _navigate(context, _specs[4].routePath),
+                    ),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[5],
+                      onTap: () => _navigate(context, _specs[5].routePath),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          )
+        else
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[0],
+                      onTap: () => _navigate(context, _specs[0].routePath),
+                    ),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[1],
+                      onTap: () => _navigate(context, _specs[1].routePath),
+                    ),
+                  ),
+                ],
+              ),
+              AppSpacing.vGapMd,
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[2],
+                      onTap: () => _navigate(context, _specs[2].routePath),
+                    ),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[3],
+                      onTap: () => _navigate(context, _specs[3].routePath),
+                    ),
+                  ),
+                ],
+              ),
+              AppSpacing.vGapMd,
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[4],
+                      onTap: () => _navigate(context, _specs[4].routePath),
+                    ),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: _QuickActionTile(
+                      spec: _specs[5],
+                      onTap: () => _navigate(context, _specs[5].routePath),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -1101,20 +1335,18 @@ class _QuickActionSpec {
     required this.title,
     required this.subtitle,
     required this.tag,
-    required this.path,
+    required this.routePath,
     required this.color,
     this.isDanger = false,
-    this.isTab = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final String tag;
-  final String path;
+  final String routePath;
   final Color color;
   final bool isDanger;
-  final bool isTab;
 }
 
 class _QuickActionTile extends StatelessWidget {
@@ -1126,120 +1358,126 @@ class _QuickActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final isDark = context.theme.brightness == Brightness.dark;
     final accentColor = spec.color;
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: AppRadius.brSection,
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onTap();
-            },
-            borderRadius: AppRadius.brSection,
-            splashColor: accentColor.withValues(alpha: 0.18),
-            highlightColor: accentColor.withValues(alpha: 0.10),
-            child: Ink(
-              decoration: BoxDecoration(
-                borderRadius: AppRadius.brSection,
-                border: Border.all(
-                  color: spec.isDanger
-                      ? scheme.error.withValues(alpha: 0.40)
-                      : accentColor.withValues(alpha: 0.28),
-                  width: 1.4,
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    accentColor.withValues(alpha: 0.10),
-                    scheme.surfaceContainerLowest,
-                  ],
-                ),
-              ),
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.16),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: accentColor.withValues(alpha: 0.40),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Icon(
-                          spec.icon,
-                          color: accentColor,
-                          size: AppIconSizes.md,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.14),
-                          borderRadius: AppRadius.brPill,
-                        ),
-                        child: Text(
-                          spec.tag,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.bold,
-                            color: accentColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        spec.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color:
-                              spec.isDanger ? scheme.error : scheme.onSurface,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        spec.subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ],
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: isDark
+              ? scheme.surfaceContainer
+              : scheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: spec.isDanger
+                ? scheme.error.withValues(alpha: 0.35)
+                : scheme.outlineVariant.withValues(alpha: isDark ? 0.25 : 0.40),
+            width: 1.0,
+          ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
                   ),
                 ],
-              ),
+        ),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(16),
+          splashColor: accentColor.withValues(alpha: 0.12),
+          highlightColor: accentColor.withValues(alpha: 0.06),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 112),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm + 2,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: spec.isDanger
+                            ? scheme.errorContainer.withValues(alpha: 0.50)
+                            : accentColor.withValues(alpha: isDark ? 0.18 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          spec.icon,
+                          color: spec.isDanger ? scheme.error : accentColor,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? scheme.surfaceContainerHigh
+                            : scheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        spec.tag,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: spec.isDanger
+                              ? scheme.error
+                              : scheme.onSurfaceVariant,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpacing.vGapSm,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      spec.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: spec.isDanger ? scheme.error : scheme.onSurface,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      spec.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
@@ -1276,8 +1514,10 @@ class _TimelineCard extends ConsumerWidget {
                     fontWeight: AppTypography.semiBold),
               ),
               TextButton(
-                onPressed: () =>
-                    context.goNamed(RouteNames.ownerNotifications),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  context.push(RoutePaths.ownerNotifications);
+                },
                 style: TextButton.styleFrom(
                     foregroundColor: scheme.primary),
                 child: const Text('View All'),

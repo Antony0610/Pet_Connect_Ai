@@ -24,11 +24,12 @@ abstract class AiRepository {
     String? petId,
   });
 
-  /// Invoke `ai-symptom-scan` Edge Function for visual/textual symptom scan.
+  /// Invoke `ai-symptom-scan` Edge Function or Vision Model for visual/textual symptom scan.
   ResultFuture<AiHealthScan> analyzeSymptoms({
     String? petId,
     required String symptomDescription,
     String? imageUrl,
+    String? imageBase64,
   });
 
   /// Invoke `ai-report-generator` Edge Function for pet health summary report.

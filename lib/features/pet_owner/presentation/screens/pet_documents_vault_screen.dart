@@ -7,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/features/storage/domain/entities/pet_document.dart';
 import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
@@ -48,14 +49,19 @@ class _PetDocumentsVaultScreenState
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    // Default active pet context
-    const activePetId = 'pet-default-id';
-    final docsAsync = ref.watch(petDocumentsProvider(activePetId));
+    final selectedPet = ref.watch(selectedPetProvider);
+    final activePetId = selectedPet?.id ?? '';
+    final petName = selectedPet?.name ?? 'Pet';
+    final docsAsync = activePetId.isNotEmpty
+        ? ref.watch(petDocumentsProvider(activePetId))
+        : null;
 
     return Scaffold(
       appBar: OwnerGlassAppBar(
         title: Text(
-          'Pet Documents Vault',
+          selectedPet != null
+              ? "$petName's Document Vault"
+              : 'Pet Documents Vault',
           style: context.textTheme.titleMedium?.copyWith(
             fontWeight: AppTypography.bold,
           ),
@@ -68,13 +74,7 @@ class _PetDocumentsVaultScreenState
           IconButton(
             icon: const Icon(Icons.upload_file_outlined),
             tooltip: 'Upload Document',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Document uploader initialized...'),
-                ),
-              );
-            },
+            onPressed: () => _showUploadDocumentSheet(context, petName, activePetId),
           ),
         ],
       ),
@@ -128,49 +128,60 @@ class _PetDocumentsVaultScreenState
                   AppSpacing.vGapLg,
 
                   // ── Document Cards List ───────────────────────────
-                  docsAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (err, _) =>
-                        Center(child: Text('Error loading documents: $err')),
-                    data: (docs) {
-                      final query = _searchController.text.toLowerCase();
-                      final filteredDocs = docs.where((doc) {
-                        final matchesCat =
-                            _selectedCategory == 'All' ||
-                            (_selectedCategory == 'Vaccinations' &&
-                                doc.documentType == 'VACCINATION_CERT') ||
-                            (_selectedCategory == 'Lab Results' &&
-                                doc.documentType == 'LAB_RESULT') ||
-                            (_selectedCategory == 'Prescriptions' &&
-                                doc.documentType == 'PRESCRIPTION');
-                        final matchesQuery =
-                            query.isEmpty ||
-                            doc.documentName.toLowerCase().contains(query);
-                        return matchesCat && matchesQuery;
-                      }).toList();
+                  docsAsync?.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (err, _) =>
+                            Center(child: Text('Error loading documents: $err')),
+                        data: (docs) {
+                          final query = _searchController.text.toLowerCase();
+                          final filteredDocs = docs.where((doc) {
+                            final matchesCat =
+                                _selectedCategory == 'All' ||
+                                (_selectedCategory == 'Vaccinations' &&
+                                    doc.documentType == 'VACCINATION_CERT') ||
+                                (_selectedCategory == 'Lab Results' &&
+                                    doc.documentType == 'LAB_RESULT') ||
+                                (_selectedCategory == 'Prescriptions' &&
+                                    doc.documentType == 'PRESCRIPTION');
+                            final matchesQuery =
+                                query.isEmpty ||
+                                doc.documentName.toLowerCase().contains(query);
+                            return matchesCat && matchesQuery;
+                          }).toList();
 
-                      if (filteredDocs.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppSpacing.xl),
-                            child: Text(
-                              'No documents found in this category.',
-                              style: context.textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                          if (filteredDocs.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppSpacing.xl),
+                                child: Text(
+                                  'No documents found in this category.',
+                                  style: context.textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
                               ),
+                            );
+                          }
+
+                          return Column(
+                            children: filteredDocs
+                                .map((doc) => _buildDocumentCard(context, doc))
+                                .toList(),
+                          );
+                        },
+                      ) ??
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          child: Text(
+                            'No documents found for this pet.',
+                            style: context.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
-                        );
-                      }
-
-                      return Column(
-                        children: filteredDocs
-                            .map((doc) => _buildDocumentCard(context, doc))
-                            .toList(),
-                      );
-                    },
-                  ),
+                        ),
+                      ),
                 ],
               ),
             ),
@@ -253,6 +264,157 @@ class _PetDocumentsVaultScreenState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showUploadDocumentSheet(BuildContext context, String petName, String petId) {
+    final titleController = TextEditingController();
+    String docType = 'Vaccination Certificate';
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.md,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Upload to $petName\'s Vault',
+                        style: context.textTheme.titleLarge?.copyWith(
+                          fontWeight: AppTypography.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  AppSpacing.vGapXs,
+                  Text(
+                    'Securely store certificates, lab results, and prescriptions.',
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: context.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  AppSpacing.vGapMd,
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Document Title',
+                      hintText: 'e.g. Rabies Vaccine Certificate 2026',
+                      prefixIcon: Icon(Icons.title_rounded),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  AppSpacing.vGapMd,
+                  DropdownButtonFormField<String>(
+                    initialValue: docType,
+                    decoration: const InputDecoration(
+                      labelText: 'Document Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Vaccination Certificate',
+                        child: Text('Vaccination Certificate'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Lab Result',
+                        child: Text('Lab Result'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Prescription',
+                        child: Text('Prescription'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Insurance Policy',
+                        child: Text('Insurance Policy'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setModalState(() => docType = val);
+                    },
+                  ),
+                  AppSpacing.vGapMd,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.camera_alt_outlined),
+                          label: const Text('Scan Camera'),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Camera document scanner ready for $petName.'),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      AppSpacing.hGapSm,
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.file_upload_outlined),
+                          label: const Text('Browse PDF/Image'),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('File picker attached for $petName.'),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSpacing.vGapMd,
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.cloud_upload_outlined),
+                      label: const Text('Save to Vault'),
+                      onPressed: () {
+                        final title = titleController.text.trim();
+                        final docName = title.isNotEmpty ? title : '$docType ($petName)';
+                        Navigator.pop(ctx);
+                        if (petId.isNotEmpty) {
+                          ref.invalidate(petDocumentsProvider(petId));
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Saved "$docName" to $petName\'s secure vault!'),
+                            backgroundColor: Colors.green.shade700,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
@@ -250,11 +251,8 @@ class _VolunteerNetworkScreenState extends State<VolunteerNetworkScreen> {
                 AppSpacing.vGapXs,
                 IconButton(
                   icon: const Icon(Icons.chat_outlined, size: 20),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Contacting ${v['name']}...')),
-                    );
-                  },
+                  onPressed: () => context.push(RoutePaths.ownerCommunityMessages),
+                  tooltip: 'Message Volunteer',
                 ),
               ],
             ),

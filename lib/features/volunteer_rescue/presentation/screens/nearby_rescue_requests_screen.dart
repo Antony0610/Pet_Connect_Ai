@@ -90,15 +90,15 @@ class _NearbyRescueRequestsScreenState
                     children: [
                       ListTile(
                         leading: Icon(Icons.near_me),
-                        title: Text('Within 5 miles (Urban)'),
+                        title: Text('Within 8 km (Urban)'),
                       ),
                       ListTile(
                         leading: Icon(Icons.radar),
-                        title: Text('Within 15 miles (Suburban)'),
+                        title: Text('Within 25 km (Suburban)'),
                       ),
                       ListTile(
                         leading: Icon(Icons.public),
-                        title: Text('Within 30 miles (Regional)'),
+                        title: Text('Within 50 km (Regional)'),
                       ),
                     ],
                   ),

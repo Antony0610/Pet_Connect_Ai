@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -7,26 +8,35 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/health_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Medical History Record** — `/owner/health/medical`.
 ///
-/// Frozen Stitch comp: a search field, category filter chips, an allergies and
-/// a chronic-conditions card (both empty-state in the master), an AI summary
-/// banner and a color-coded record-history timeline with a "load older" CTA.
-class MedicalHistoryRecordScreen extends StatefulWidget {
+/// Connected to live Supabase `health_records` table.
+/// ZERO dummy/hardcoded data.
+class MedicalHistoryRecordScreen extends ConsumerStatefulWidget {
   const MedicalHistoryRecordScreen({super.key});
 
   @override
-  State<MedicalHistoryRecordScreen> createState() =>
+  ConsumerState<MedicalHistoryRecordScreen> createState() =>
       _MedicalHistoryRecordScreenState();
 }
 
 class _MedicalHistoryRecordScreenState
-    extends State<MedicalHistoryRecordScreen> {
+    extends ConsumerState<MedicalHistoryRecordScreen> {
   static const _filters = ['All', 'Surgery', 'Checkup', 'Emergency'];
   int _selected = 0;
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +44,19 @@ class _MedicalHistoryRecordScreenState
     final width = context.screenWidth;
     final margin = _horizontalMargin(width);
 
+    final selectedPet = ref.watch(selectedPetProvider);
+    final petId = selectedPet?.id ?? '';
+    final petName = selectedPet?.name ?? 'Companion';
+    final recordsAsync = petId.isNotEmpty ? ref.watch(healthRecordsProvider(petId)) : null;
+
     return Scaffold(
       backgroundColor: scheme.surface,
-      appBar: healthAppBar(context, title: 'Medical History'),
+      appBar: healthAppBar(
+        context,
+        title: selectedPet != null
+            ? "$petName's Medical History"
+            : 'Medical History',
+      ),
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
@@ -50,34 +70,39 @@ class _MedicalHistoryRecordScreenState
                 margin,
                 AppSpacing.xxl,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _SearchBar(),
-                  AppSpacing.vGapMd,
-                  SizedBox(
-                    height: 40,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filters.length,
-                      separatorBuilder: (_, __) => AppSpacing.hGapSm,
-                      itemBuilder: (_, i) => AppChip(
-                        label: _filters[i],
-                        isSelected: i == _selected,
-                        variant: i == _selected
-                            ? AppChipVariant.filled
-                            : AppChipVariant.outlined,
-                        onTap: () => setState(() => _selected = i),
-                      ),
-                    ),
+              child: recordsAsync?.when(
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppSpacing.xxl),
+                    child: CircularProgressIndicator(),
                   ),
-                  AppSpacing.vGapLg,
-                  const _MedicalCards(),
-                  AppSpacing.vGapLg,
-                  const _AiSummaryCard(),
-                  AppSpacing.vGapLg,
-                  const _RecordHistory(),
-                ],
+                ),
+                error: (err, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Text('Error loading medical records: $err'),
+                  ),
+                ),
+                data: (records) => _MedicalHistoryContent(
+                  petName: petName,
+                  records: records,
+                  selectedFilter: _filters[_selected],
+                  filters: _filters,
+                  selectedIndex: _selected,
+                  onFilterChanged: (i) => setState(() => _selected = i),
+                  searchController: _searchController,
+                  onSearchChanged: () => setState(() {}),
+                ),
+              ) ??
+              _MedicalHistoryContent(
+                petName: petName,
+                records: const [],
+                selectedFilter: _filters[_selected],
+                filters: _filters,
+                selectedIndex: _selected,
+                onFilterChanged: (i) => setState(() => _selected = i),
+                searchController: _searchController,
+                onSearchChanged: () => setState(() {}),
               ),
             ),
           ),
@@ -93,14 +118,90 @@ class _MedicalHistoryRecordScreenState
   }
 }
 
+class _MedicalHistoryContent extends StatelessWidget {
+  const _MedicalHistoryContent({
+    required this.petName,
+    required this.records,
+    required this.selectedFilter,
+    required this.filters,
+    required this.selectedIndex,
+    required this.onFilterChanged,
+    required this.searchController,
+    required this.onSearchChanged,
+  });
+
+  final String petName;
+  final List<HealthRecord> records;
+  final String selectedFilter;
+  final List<String> filters;
+  final int selectedIndex;
+  final ValueChanged<int> onFilterChanged;
+  final TextEditingController searchController;
+  final VoidCallback onSearchChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final query = searchController.text.toLowerCase().trim();
+    final filtered = records.where((r) {
+      final matchesCat = selectedFilter == 'All' ||
+          r.category.toLowerCase() == selectedFilter.toLowerCase();
+      final matchesQuery = query.isEmpty ||
+          r.title.toLowerCase().contains(query) ||
+          (r.diagnosis?.toLowerCase().contains(query) ?? false) ||
+          (r.notes?.toLowerCase().contains(query) ?? false);
+      return matchesCat && matchesQuery;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SearchBar(
+          controller: searchController,
+          onChanged: (_) => onSearchChanged(),
+        ),
+        AppSpacing.vGapMd,
+        SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: filters.length,
+            separatorBuilder: (_, __) => AppSpacing.hGapSm,
+            itemBuilder: (_, i) => AppChip(
+              label: filters[i],
+              isSelected: i == selectedIndex,
+              variant: i == selectedIndex
+                  ? AppChipVariant.filled
+                  : AppChipVariant.outlined,
+              onTap: () => onFilterChanged(i),
+            ),
+          ),
+        ),
+        AppSpacing.vGapLg,
+        const _MedicalCards(),
+        AppSpacing.vGapLg,
+        _AiSummaryCard(petName: petName, recordCount: records.length),
+        AppSpacing.vGapLg,
+        _RecordHistory(records: filtered),
+      ],
+    );
+  }
+}
+
 class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
     return TextField(
+      controller: controller,
+      onChanged: onChanged,
       decoration: InputDecoration(
-        hintText: 'Search records',
+        hintText: 'Search records by title, diagnosis, or note...',
         prefixIcon: const Icon(Icons.search_rounded),
         filled: true,
         fillColor: scheme.surfaceContainerHigh,
@@ -169,7 +270,10 @@ class _MedicalCards extends StatelessWidget {
 }
 
 class _AiSummaryCard extends StatelessWidget {
-  const _AiSummaryCard();
+  const _AiSummaryCard({required this.petName, required this.recordCount});
+
+  final String petName;
+  final int recordCount;
 
   @override
   Widget build(BuildContext context) {
@@ -178,6 +282,10 @@ class _AiSummaryCard extends StatelessWidget {
     final scheme = context.colorScheme;
     final container = palette.accentContainer(brightness);
     final onContainer = palette.onAccentContainer(brightness);
+
+    final summaryText = recordCount > 0
+        ? '$petName has $recordCount clinical medical record${recordCount == 1 ? '' : 's'} registered in Health Passport. Routine checkups and vet consultations are logged.'
+        : '$petName has a clean medical profile with no acute clinical conditions reported. Routine preventative checkups are recommended.';
 
     return Container(
       decoration: BoxDecoration(
@@ -215,8 +323,7 @@ class _AiSummaryCard extends StatelessWidget {
                 ),
                 AppSpacing.vGapXs,
                 Text(
-                  'Buddy has a clean health record with routine care up to '
-                  'date. The next recommended checkup is in 4 months.',
+                  summaryText,
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -231,35 +338,13 @@ class _AiSummaryCard extends StatelessWidget {
 }
 
 class _RecordHistory extends StatelessWidget {
-  const _RecordHistory();
+  const _RecordHistory({required this.records});
+
+  final List<HealthRecord> records;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-
-    final records = <_TimelineRecord>[
-      _TimelineRecord(
-        color: scheme.primary,
-        icon: Icons.medical_services_rounded,
-        title: 'Neutering Procedure',
-        date: 'Oct 12, 2023',
-        category: 'Surgery',
-      ),
-      _TimelineRecord(
-        color: scheme.tertiary,
-        icon: Icons.health_and_safety_rounded,
-        title: 'Annual Wellness Checkup',
-        date: 'Jun 05, 2023',
-        category: 'Checkup',
-      ),
-      _TimelineRecord(
-        color: scheme.error,
-        icon: Icons.emergency_rounded,
-        title: 'Gastrointestinal Upset',
-        date: 'Jan 22, 2023',
-        category: 'Emergency',
-      ),
-    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,107 +358,115 @@ class _RecordHistory extends StatelessWidget {
             ),
           ),
         ),
-        for (var i = 0; i < records.length; i++)
-          _TimelineTile(record: records[i], isLast: i == records.length - 1),
-        AppSpacing.vGapSm,
-        Center(
-          child: AppButton.outlined(
-            label: 'Load Older Records',
-            icon: Icons.history_rounded,
-            onPressed: () => context.showSnackbar('Loading older records…'),
-          ),
+        AppCard(
+          child: records.isNotEmpty
+              ? Column(
+                  children: [
+                    for (var i = 0; i < records.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          color: scheme.outlineVariant,
+                          height: AppSpacing.lg,
+                        ),
+                      _TimelineTile(
+                        record: records[i],
+                        isLast: i == records.length - 1,
+                      ),
+                    ],
+                  ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Center(
+                    child: Text(
+                      'No medical records logged yet.',
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
         ),
       ],
     );
   }
 }
 
-class _TimelineRecord {
-  const _TimelineRecord({
-    required this.color,
-    required this.icon,
-    required this.title,
-    required this.date,
-    required this.category,
-  });
-
-  final Color color;
-  final IconData icon;
-  final String title;
-  final String date;
-  final String category;
-}
-
 class _TimelineTile extends StatelessWidget {
   const _TimelineTile({required this.record, required this.isLast});
 
-  final _TimelineRecord record;
+  final HealthRecord record;
   final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final catLower = record.category.toLowerCase();
+    final color = catLower.contains('surg')
+        ? scheme.primary
+        : (catLower.contains('emerg') ? scheme.error : scheme.tertiary);
+    final icon = catLower.contains('surg')
+        ? Icons.medical_services_rounded
+        : (catLower.contains('emerg')
+            ? Icons.emergency_rounded
+            : Icons.health_and_safety_rounded);
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: record.color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  record.icon,
-                  color: record.color,
-                  size: AppIconSizes.sm,
-                ),
-              ),
-              if (!isLast)
-                Expanded(
-                  child: Container(width: 2, color: scheme.outlineVariant),
-                ),
-            ],
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: AppIconSizes.sm,
+            ),
           ),
           AppSpacing.hGapMd,
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
-              child: AppCard(
-                child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            record.title,
-                            style: context.textTheme.titleSmall?.copyWith(
-                              fontWeight: AppTypography.semiBold,
-                            ),
-                          ),
-                          AppSpacing.vGapXs,
-                          Text(
-                            record.date,
-                            style: context.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        record.title,
+                        style: context.textTheme.titleSmall?.copyWith(
+                          fontWeight: AppTypography.semiBold,
+                        ),
                       ),
                     ),
                     HealthCategoryChip(
                       label: record.category,
-                      background: record.color.withValues(alpha: 0.15),
-                      foreground: record.color,
+                      background: color.withValues(alpha: 0.15),
+                      foreground: color,
                     ),
                   ],
                 ),
-              ),
+                AppSpacing.vGapXs,
+                Text(
+                  record.recordDate.toIso8601String().split('T').first,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                if (record.diagnosis != null && record.diagnosis!.isNotEmpty) ...[
+                  AppSpacing.vGapXs,
+                  Text(
+                    'Diagnosis: ${record.diagnosis}',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

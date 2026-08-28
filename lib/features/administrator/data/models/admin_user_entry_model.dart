@@ -7,6 +7,7 @@ class AdminUserEntryModel extends AdminUserEntry {
     super.email,
     required super.role,
     super.avatarUrl,
+    super.isSuspended = false,
     required super.createdAt,
     required super.updatedAt,
   });
@@ -18,6 +19,7 @@ class AdminUserEntryModel extends AdminUserEntry {
       email: json['email'] as String?,
       role: (json['role'] as String?) ?? 'pet_owner',
       avatarUrl: json['avatar_url'] as String?,
+      isSuspended: (json['is_suspended'] as bool?) ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );

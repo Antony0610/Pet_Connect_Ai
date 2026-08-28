@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -102,13 +103,13 @@ class PetSettingsScreen extends ConsumerWidget {
         icon: Icons.lock,
         title: 'Privacy Settings',
         subtitle: 'Manage who can see $petName',
-        onTap: () => _openPrivacyDialog(context),
+        onTap: () => _openPrivacyDialog(context, ref, pet),
       ),
       _SettingRowData(
         icon: Icons.notifications_active,
         title: 'Notification Preferences',
         subtitle: 'Alerts for walks, meals, and vet for $petName',
-        onTap: () => _openNotificationsDialog(context),
+        onTap: () => _openNotificationsDialog(context, ref, pet),
       ),
       _SettingRowData(
         icon: Icons.archive,
@@ -265,69 +266,124 @@ class PetSettingsScreen extends ConsumerWidget {
     }
   }
 
-  void _openPrivacyDialog(BuildContext context) {
-    showDialog<void>(
+  void _openPrivacyDialog(BuildContext context, WidgetRef ref, Pet? pet) async {
+    final petId = pet?.id ?? 'default_pet';
+    final prefs = ref.read(sharedPreferencesProvider);
+    bool publicProfile = prefs.getBool('pet_public_$petId') ?? true;
+    bool gpsSharing = prefs.getBool('pet_gps_sharing_$petId') ?? true;
+
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Privacy Settings'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.public),
-              title: Text('Public Profile'),
-              subtitle: Text('Visible in Local Community Hub'),
-              trailing: Icon(Icons.check_circle, color: Colors.green),
-            ),
-            ListTile(
-              leading: Icon(Icons.share_location),
-              title: Text('Emergency GPS Sharing'),
-              subtitle: Text('Shared with Volunteers in Lost Mode'),
-              trailing: Icon(Icons.check_circle, color: Colors.green),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Pet Privacy Settings'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.public),
+                title: const Text('Public Profile', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Visible in Local Community Hub'),
+                value: publicProfile,
+                onChanged: (val) {
+                  setDlgState(() => publicProfile = val);
+                  prefs.setBool('pet_public_$petId', val);
+                },
+              ),
+              const Divider(),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.share_location),
+                title: const Text('Emergency GPS Sharing', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Shared with Volunteers in Lost Mode'),
+                value: gpsSharing,
+                onChanged: (val) {
+                  setDlgState(() => gpsSharing = val);
+                  prefs.setBool('pet_gps_sharing_$petId', val);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                if (context.mounted) {
+                  context.showSnackbar('Privacy settings updated for ${pet?.name ?? "companion"}');
+                }
+              },
+              child: const Text('Done'),
             ),
           ],
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Done'),
-          ),
-        ],
       ),
     );
   }
 
-  void _openNotificationsDialog(BuildContext context) {
-    showDialog<void>(
+  void _openNotificationsDialog(BuildContext context, WidgetRef ref, Pet? pet) async {
+    final petId = pet?.id ?? 'default_pet';
+    final prefs = ref.read(sharedPreferencesProvider);
+    bool mealAlerts = prefs.getBool('pet_notif_meal_$petId') ?? true;
+    bool walkAlerts = prefs.getBool('pet_notif_walk_$petId') ?? true;
+    bool vetAlerts = prefs.getBool('pet_notif_vet_$petId') ?? true;
+
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Notification Preferences'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.restaurant),
-              title: Text('Meal & Feeding Alerts'),
-              trailing: Icon(Icons.check_circle, color: Colors.green),
-            ),
-            ListTile(
-              leading: Icon(Icons.directions_walk),
-              title: Text('Daily Walk Reminders'),
-              trailing: Icon(Icons.check_circle, color: Colors.green),
-            ),
-            ListTile(
-              leading: Icon(Icons.medical_services),
-              title: Text('Vaccine & Vet Reminders'),
-              trailing: Icon(Icons.check_circle, color: Colors.green),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Notification Preferences'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.restaurant),
+                title: const Text('Meal & Feeding Alerts', style: TextStyle(fontWeight: FontWeight.w600)),
+                value: mealAlerts,
+                onChanged: (val) {
+                  setDlgState(() => mealAlerts = val);
+                  prefs.setBool('pet_notif_meal_$petId', val);
+                },
+              ),
+              const Divider(),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.directions_walk),
+                title: const Text('Daily Walk Reminders', style: TextStyle(fontWeight: FontWeight.w600)),
+                value: walkAlerts,
+                onChanged: (val) {
+                  setDlgState(() => walkAlerts = val);
+                  prefs.setBool('pet_notif_walk_$petId', val);
+                },
+              ),
+              const Divider(),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.medical_services),
+                title: const Text('Vaccine & Vet Reminders', style: TextStyle(fontWeight: FontWeight.w600)),
+                value: vetAlerts,
+                onChanged: (val) {
+                  setDlgState(() => vetAlerts = val);
+                  prefs.setBool('pet_notif_vet_$petId', val);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                if (context.mounted) {
+                  context.showSnackbar('Preferences saved for ${pet?.name ?? "companion"}');
+                }
+              },
+              child: const Text('Save Preferences'),
             ),
           ],
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Save Preferences'),
-          ),
-        ],
       ),
     );
   }

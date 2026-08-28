@@ -1,6 +1,7 @@
 /// Barrel export for Pet Owner portal shared presentation widgets.
 library;
 
+export 'community_photo_viewer.dart';
 export 'owner_action_fab.dart';
 export 'owner_ai_fab.dart';
 export 'owner_app_bar.dart';

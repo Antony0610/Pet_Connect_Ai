@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -318,7 +319,7 @@ class VetDashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Heart Rate Anomaly Detected',
+            'Patient Vitals Alert • Post-Op Monitoring',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: colorScheme.onSurface,
@@ -326,7 +327,7 @@ class VetDashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Buddy (Golden Retriever, 8y) is currently in post-op recovery. Wearable sensor indicates a sustained heart rate drop below 40 BPM for the last 5 minutes. Immediate assessment recommended.',
+            'Recovery Ward Patient #1042: Smart telemetry collar indicates a heart rate fluctuation below target baseline during sedation recovery. Clinical assessment recommended.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -340,7 +341,7 @@ class VetDashboardScreen extends ConsumerWidget {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Staff routed to Buddy (Post-Op)'),
+                        content: Text('Staff dispatched to Recovery Ward • Triage acknowledged.'),
                       ),
                     );
                   },
@@ -514,7 +515,7 @@ class VetDashboardScreen extends ConsumerWidget {
                 colorScheme,
                 icon: Icons.medication_outlined,
                 label: 'Prescription',
-                onTap: () {},
+                onTap: () => context.push(RoutePaths.vetPrescription),
               ),
             ),
             const SizedBox(width: 8),
@@ -542,28 +543,38 @@ class VetDashboardScreen extends ConsumerWidget {
     required String label,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: colorScheme.outlineVariant),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: colorScheme.primary, size: 24),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+            child: Column(
+              children: [
+                Icon(icon, color: colorScheme.primary, size: 24),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

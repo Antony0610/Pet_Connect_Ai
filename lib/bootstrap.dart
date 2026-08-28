@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petconnect_ai/app.dart';
 import 'package:petconnect_ai/core/config/app_config.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/services/notification_service.dart';
 import 'package:petconnect_ai/core/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -86,6 +87,14 @@ Future<void> bootstrap() async {
     logger.error('✗ SharedPreferences initialization failed', e, stack);
     _showFatalError('Failed to initialize local storage.\n\n$e');
     return;
+  }
+
+  // ── Local notifications ────────────────────────────────────────
+  try {
+    await NotificationService.instance.initialize();
+    logger.info('✓ NotificationService initialized');
+  } catch (e) {
+    logger.warning('NotificationService init warning: $e');
   }
 
   // ── Run app ────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ class _RescueCommunityReportsScreenState
       'reporter': 'Civic Reporter • Mark T.',
       'time': '5 mins ago',
       'pet': 'Luna (Siberian Husky)',
-      'location': 'Spotted running near Pine Ridge Trailhead',
+      'location': 'Spotted running near Cubbon Park East Gate',
       'verified': true,
       'notes':
           'Matching silver coat and blue collar. Headed east toward riverbed.',
@@ -37,7 +37,7 @@ class _RescueCommunityReportsScreenState
       'reporter': 'Civic Reporter • Elena R.',
       'time': '25 mins ago',
       'pet': 'Archie (Golden Retriever)',
-      'location': 'Near 5th & Main St Coffee Shop',
+      'location': 'Near MG Road & Brigade Road Junction',
       'verified': false,
       'notes':
           'Wearing collar, sitting near outdoor tables. Skittish when approached.',

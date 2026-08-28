@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -32,14 +33,39 @@ class _SmartCollarSettingsScreenState
   bool _soundAlerts = true;
   bool _geofenceAlerts = true;
   bool _batterySaver = false;
-
   String _collarName = 'PetConnect Smart Collar';
+  String _updateFrequency = 'Real-time (10s)';
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loaded) {
+      final prefs = ref.read(sharedPreferencesProvider);
+      setState(() {
+        _liveTracking = prefs.getBool('collar_live_tracking') ?? true;
+        _ledLight = prefs.getBool('collar_led_light') ?? true;
+        _soundAlerts = prefs.getBool('collar_sound_alerts') ?? true;
+        _geofenceAlerts = prefs.getBool('collar_geofence_alerts') ?? true;
+        _batterySaver = prefs.getBool('collar_battery_saver') ?? false;
+        _collarName = prefs.getString('collar_name_setting') ?? 'PetConnect Smart Collar';
+        _updateFrequency = prefs.getString('collar_update_freq') ?? 'Real-time (10s)';
+        _loaded = true;
+      });
+    }
+  }
+
+  void _savePref(String key, bool val) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.setBool(key, val);
+  }
 
   void _openRenameDialog() async {
     final controller = TextEditingController(text: _collarName);
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Rename Collar'),
         content: TextField(
           controller: controller,
@@ -62,12 +88,89 @@ class _SmartCollarSettingsScreenState
     );
 
     if (saved == true && controller.text.trim().isNotEmpty) {
-      setState(() => _collarName = controller.text.trim());
+      final newName = controller.text.trim();
+      setState(() => _collarName = newName);
+      await ref.read(sharedPreferencesProvider).setString('collar_name_setting', newName);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Collar renamed to $_collarName')),
-        );
+        context.showSnackbar('Collar renamed to $_collarName');
       }
+    }
+  }
+
+  void _openFrequencyDialog() async {
+    final options = [
+      'Ultra Fast (5s)',
+      'Real-time (10s)',
+      'Balanced (30s)',
+      'Eco Power (1m)',
+      'Deep Sleep (5m)',
+    ];
+
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Select GPS Frequency'),
+        children: options.map((opt) {
+          final isSelected = opt == _updateFrequency;
+          return SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, opt),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                    color: isSelected ? context.colorScheme.primary : context.colorScheme.outline,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(opt, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() => _updateFrequency = selected);
+      await ref.read(sharedPreferencesProvider).setString('collar_update_freq', selected);
+      if (mounted) {
+        context.showSnackbar('Update frequency set to $selected');
+      }
+    }
+  }
+
+  void _openUnpairDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Unpair Collar?'),
+        content: const Text(
+          'This will disconnect the smart collar from your account. You can re-pair it anytime.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: context.colorScheme.error,
+              foregroundColor: context.colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Unpair'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      context.showSnackbar('Collar unpaired successfully');
     }
   }
 
@@ -112,35 +215,50 @@ class _SmartCollarSettingsScreenState
                           title: 'Live tracking',
                           subtitle: 'Continuous GPS telemetry',
                           value: _liveTracking,
-                          onChanged: (v) => setState(() => _liveTracking = v),
+                          onChanged: (v) {
+                            setState(() => _liveTracking = v);
+                            _savePref('collar_live_tracking', v);
+                          },
                         ),
                         _toggle(
                           icon: Icons.lightbulb_rounded,
                           title: 'LED night light',
                           subtitle: 'Collar glows in low light',
                           value: _ledLight,
-                          onChanged: (v) => setState(() => _ledLight = v),
+                          onChanged: (v) {
+                            setState(() => _ledLight = v);
+                            _savePref('collar_led_light', v);
+                          },
                         ),
                         _toggle(
                           icon: Icons.volume_up_rounded,
                           title: 'Sound alerts',
                           subtitle: 'Audible collar locator beacon',
                           value: _soundAlerts,
-                          onChanged: (v) => setState(() => _soundAlerts = v),
+                          onChanged: (v) {
+                            setState(() => _soundAlerts = v);
+                            _savePref('collar_sound_alerts', v);
+                          },
                         ),
                         _toggle(
                           icon: Icons.share_location_rounded,
                           title: 'Geofence alerts',
                           subtitle: 'Notify on safe-zone exit',
                           value: _geofenceAlerts,
-                          onChanged: (v) => setState(() => _geofenceAlerts = v),
+                          onChanged: (v) {
+                            setState(() => _geofenceAlerts = v);
+                            _savePref('collar_geofence_alerts', v);
+                          },
                         ),
                         _toggle(
                           icon: Icons.battery_saver_rounded,
                           title: 'Battery saver',
                           subtitle: 'Lower update frequency to extend battery',
                           value: _batterySaver,
-                          onChanged: (v) => setState(() => _batterySaver = v),
+                          onChanged: (v) {
+                            setState(() => _batterySaver = v);
+                            _savePref('collar_battery_saver', v);
+                          },
                           isLast: true,
                         ),
                       ],
@@ -162,9 +280,8 @@ class _SmartCollarSettingsScreenState
                         _NavRow(
                           icon: Icons.update_rounded,
                           title: 'Update frequency',
-                          value: 'Real-time (10s)',
-                          onTap: () =>
-                              context.showSnackbar('Frequency updated to Real-time (10s)'),
+                          value: _updateFrequency,
+                          onTap: _openFrequencyDialog,
                         ),
                         _rowDivider(scheme),
                         _NavRow(
@@ -178,7 +295,7 @@ class _SmartCollarSettingsScreenState
                     ),
                   ),
                   AppSpacing.vGapLg,
-                  const _DangerZone(),
+                  _DangerZone(onUnpair: _openUnpairDialog),
                 ],
               ),
             ),
@@ -376,7 +493,9 @@ class _NavRow extends StatelessWidget {
 
 /// The destructive footer: an "unpair collar" action framed in error tones.
 class _DangerZone extends StatelessWidget {
-  const _DangerZone();
+  const _DangerZone({required this.onUnpair});
+
+  final VoidCallback onUnpair;
 
   @override
   Widget build(BuildContext context) {
@@ -419,7 +538,7 @@ class _DangerZone extends StatelessWidget {
             label: 'Unpair Collar',
             icon: Icons.link_off_rounded,
             borderRadius: AppRadius.brPill,
-            onPressed: () => context.showSnackbar('Unpair this collar?'),
+            onPressed: onUnpair,
           ),
         ],
       ),

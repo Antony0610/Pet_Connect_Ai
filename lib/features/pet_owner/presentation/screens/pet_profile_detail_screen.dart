@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -8,8 +10,14 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/health_timeline_event.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/services/health_passport_exporter.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/pet_emergency_qr_modal.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -48,6 +56,41 @@ class PetProfileDetailScreen extends ConsumerWidget {
         ),
       ),
       actions: [
+        if (pet != null)
+          IconButton(
+            icon: const Icon(Icons.qr_code_2_rounded),
+            tooltip: 'Emergency QR Pass',
+            onPressed: () => PetEmergencyQrModal.show(context, pet),
+          ),
+        if (pet != null)
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Export Health Passport',
+            onPressed: () async {
+              final owner = ref.read(currentUserProfileProvider).valueOrNull;
+              final vaccinations = ref.read(vaccinationsProvider(pet.id)).valueOrNull ?? [];
+              final healthRecords = ref.read(healthRecordsProvider(pet.id)).valueOrNull ?? [];
+              final weightLogs = ref.read(petWeightLogsProvider(pet.id)).valueOrNull ?? [];
+
+              await HealthPassportExporter.exportAndShare(
+                context: context,
+                pet: pet,
+                owner: owner,
+                vaccinations: vaccinations,
+                healthRecords: healthRecords,
+                weightLogs: weightLogs,
+              );
+            },
+          ),
+        if (pet != null)
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Share Pet Profile',
+            onPressed: () => ExternalActions.shareText(
+              '🐾 Meet ${pet.name} on PetConnect AI!\nSpecies: ${pet.species} • Breed: ${pet.breed}\nHealth Status: ${pet.healthStatus}\nWeight: ${pet.weightKg != null ? "${pet.weightKg} kg" : "—"}',
+              subject: '${pet.name}\'s Pet Profile',
+            ),
+          ),
         if (pet != null)
           IconButton(
             icon: const Icon(Icons.edit),
@@ -163,7 +206,7 @@ class PetProfileDetailScreen extends ConsumerWidget {
                         style: context.textTheme.headlineSmall,
                       ),
                       AppSpacing.vGapMd,
-                      _QuickActionsGrid(wide: isWide),
+                      _QuickActionsGrid(wide: isWide, pet: pet),
                     ],
                   ),
                 ),
@@ -176,15 +219,15 @@ class PetProfileDetailScreen extends ConsumerWidget {
                     0,
                   ),
                   child: isWide
-                      ? const Row(
+                      ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: _PersonalityActivityColumn()),
+                            Expanded(child: _PersonalityActivityColumn(pet: pet)),
                             AppSpacing.hGapMd,
-                            Expanded(flex: 2, child: _TimelinePreviewCard()),
+                            Expanded(flex: 2, child: _TimelinePreviewCard(petId: pet?.id)),
                           ],
                         )
-                      : const _PersonalityActivityColumn(),
+                      : _PersonalityActivityColumn(pet: pet),
                 ),
                 const SizedBox(height: AppSpacing.lg),
               ],
@@ -304,14 +347,15 @@ class _PetStatBox extends StatelessWidget {
   }
 }
 
-/// The six-slot quick-actions grid (3 across on mobile, 6 across on desktop).
-class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid({required this.wide});
+/// The eight-slot quick-actions grid (4 across on mobile, 8 across on desktop).
+class _QuickActionsGrid extends ConsumerWidget {
+  const _QuickActionsGrid({required this.wide, this.pet});
 
   final bool wide;
+  final Pet? pet;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final items = <_QuickAction>[
       _QuickAction(
         label: 'Health',
@@ -321,10 +365,10 @@ class _QuickActionsGrid extends StatelessWidget {
           alpha: 0.10,
         ),
         color: context.colorScheme.primary,
-        onTap: () => context.goNamed(RouteNames.ownerHealth),
+        onTap: () => context.push(RoutePaths.ownerHealth),
       ),
       _QuickAction(
-        label: 'AI',
+        label: 'AI Care',
         icon: Icons.smart_toy,
         iconFilled: true,
         background: Color.alphaBlend(
@@ -332,34 +376,77 @@ class _QuickActionsGrid extends StatelessWidget {
           context.colorScheme.primaryContainer.withValues(alpha: 0.25),
         ),
         color: context.colorScheme.primary,
-        onTap: () => context.goNamed(RouteNames.ownerAiAssistant),
+        onTap: () => context.push(RoutePaths.ownerAiAssistant),
+      ),
+      _QuickAction(
+        label: 'QR Pass',
+        icon: Icons.qr_code_2_rounded,
+        iconFilled: true,
+        background: context.colorScheme.primaryContainer.withValues(alpha: 0.20),
+        color: context.colorScheme.primary,
+        onTap: () {
+          if (pet != null) {
+            PetEmergencyQrModal.show(context, pet!);
+          }
+        },
+      ),
+      _QuickAction(
+        label: 'PDF Export',
+        icon: Icons.picture_as_pdf_outlined,
+        background: context.colorScheme.surfaceContainer,
+        color: context.colorScheme.onSurfaceVariant,
+        onTap: () async {
+          if (pet != null) {
+            final owner = ref.read(currentUserProfileProvider).valueOrNull;
+            final vaccinations = ref.read(vaccinationsProvider(pet!.id)).valueOrNull ?? [];
+            final healthRecords = ref.read(healthRecordsProvider(pet!.id)).valueOrNull ?? [];
+            final weightLogs = ref.read(petWeightLogsProvider(pet!.id)).valueOrNull ?? [];
+
+            await HealthPassportExporter.exportAndShare(
+              context: context,
+              pet: pet!,
+              owner: owner,
+              vaccinations: vaccinations,
+              healthRecords: healthRecords,
+              weightLogs: weightLogs,
+            );
+          }
+        },
       ),
       _QuickAction(
         label: 'Collar',
         icon: Icons.pets,
         background: context.colorScheme.surfaceContainer,
         color: context.colorScheme.onSurfaceVariant,
-        onTap: () => context.goNamed(RouteNames.ownerCollar),
+        onTap: () => context.push(RoutePaths.ownerCollar),
       ),
       _QuickAction(
         label: 'Appts',
         icon: Icons.event,
         background: context.colorScheme.surfaceContainer,
         color: context.colorScheme.onSurfaceVariant,
+        onTap: () => context.push(RoutePaths.ownerHealthTimeline),
       ),
       _QuickAction(
-        label: 'Lost',
+        label: 'Lost Mode',
         icon: Icons.location_on,
         background: context.colorScheme.errorContainer.withValues(alpha: 0.20),
         color: context.colorScheme.error,
-        onTap: () => context.goNamed(RouteNames.ownerLostMode),
+        onTap: () => context.push(RoutePaths.ownerLostMode),
       ),
       _QuickAction(
-        label: 'Community',
-        icon: Icons.groups,
+        label: 'Gallery',
+        icon: Icons.photo_library_outlined,
         background: context.colorScheme.surfaceContainer,
         color: context.colorScheme.onSurfaceVariant,
-        onTap: () => context.goNamed(RouteNames.ownerCommunity),
+        onTap: () {
+          if (pet != null) {
+            context.pushNamed(
+              RouteNames.ownerPetGallery,
+              pathParameters: {'petId': pet!.id},
+            );
+          }
+        },
       ),
     ];
 
@@ -367,10 +454,10 @@ class _QuickActionsGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: wide ? 6 : 3,
+        crossAxisCount: wide ? 8 : 4,
         crossAxisSpacing: AppSpacing.sm,
         mainAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 1.25,
+        childAspectRatio: 1.15,
       ),
       itemCount: items.length,
       itemBuilder: (context, index) => items[index],
@@ -399,28 +486,38 @@ class _QuickAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: background,
+      color: Colors.transparent,
       borderRadius: AppRadius.brLg,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.brLg,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: AppIconSizes.lg,
-              color: color,
-              fill: iconFilled ? 1 : 0,
-            ),
-            AppSpacing.vGapXs,
-            Text(
-              label,
-              style: context.textTheme.labelLarge?.copyWith(
-                color: context.colorScheme.onSurface,
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: AppRadius.brLg,
+        ),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap?.call();
+          },
+          borderRadius: AppRadius.brLg,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: AppIconSizes.lg,
+                color: color,
+                fill: iconFilled ? 1 : 0,
               ),
-            ),
-          ],
+              AppSpacing.vGapXs,
+              Text(
+                label,
+                style: context.textTheme.labelLarge?.copyWith(
+                  color: context.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -429,18 +526,20 @@ class _QuickAction extends StatelessWidget {
 
 /// Bento left column: personality tags + activity level card.
 class _PersonalityActivityColumn extends StatelessWidget {
-  const _PersonalityActivityColumn();
+  const _PersonalityActivityColumn({this.pet});
+
+  final Pet? pet;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _PersonalityCard(),
+        _PersonalityCard(pet: pet),
         AppSpacing.vGapMd,
-        const _ActivityLevelCard(),
+        _ActivityLevelCard(pet: pet),
         if (!AppBreakpoints.isDesktop(context.screenWidth)) ...[
           AppSpacing.vGapMd,
-          const _TimelinePreviewCard(),
+          _TimelinePreviewCard(petId: pet?.id),
         ],
       ],
     );
@@ -449,11 +548,22 @@ class _PersonalityActivityColumn extends StatelessWidget {
 
 /// Personality tags card.
 class _PersonalityCard extends StatelessWidget {
-  const _PersonalityCard();
+  const _PersonalityCard({this.pet});
+
+  final Pet? pet;
 
   @override
   Widget build(BuildContext context) {
-    final tags = ['Friendly', 'Energetic', 'Food Motivated'];
+    final species = (pet?.species ?? 'dog').toLowerCase();
+    final List<String> tags;
+    if (species.contains('cat')) {
+      tags = const ['Calm', 'Independent', 'Playful'];
+    } else if (species.contains('bird')) {
+      tags = const ['Curious', 'Vocal', 'Social'];
+    } else {
+      tags = const ['Friendly', 'Energetic', 'Loyal'];
+    }
+
     return AppCard(
       padding: AppSpacing.cardPaddingPremium,
       child: Column(
@@ -508,11 +618,17 @@ class _PersonalityCard extends StatelessWidget {
 
 /// Activity level card with a tertiary progress bar.
 class _ActivityLevelCard extends StatelessWidget {
-  const _ActivityLevelCard();
+  const _ActivityLevelCard({this.pet});
+
+  final Pet? pet;
 
   @override
   Widget build(BuildContext context) {
     final tertiary = context.colorScheme.tertiary;
+    final isOptimal = pet?.healthStatus == 'optimal';
+    final activityLevel = isOptimal ? 'High' : 'Moderate';
+    final progress = isOptimal ? 0.85 : 0.60;
+
     return AppCard(
       padding: AppSpacing.cardPaddingPremium,
       child: Column(
@@ -534,7 +650,7 @@ class _ActivityLevelCard extends StatelessWidget {
                 ],
               ),
               Text(
-                'High',
+                activityLevel,
                 style: context.textTheme.headlineSmall?.copyWith(
                   color: tertiary,
                 ),
@@ -545,7 +661,7 @@ class _ActivityLevelCard extends StatelessWidget {
           ClipRRect(
             borderRadius: AppRadius.brPill,
             child: LinearProgressIndicator(
-              value: 0.85,
+              value: progress,
               minHeight: AppSpacing.xs,
               backgroundColor: context.colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(tertiary),
@@ -553,7 +669,9 @@ class _ActivityLevelCard extends StatelessWidget {
           ),
           AppSpacing.vGapXs,
           Text(
-            'Requires 2+ hours of exercise daily.',
+            progress >= 0.8
+                ? 'Requires 2+ hours of exercise daily.'
+                : 'Maintains healthy daily activity.',
             style: context.textTheme.labelMedium?.copyWith(
               color: context.colorScheme.onSurfaceVariant,
             ),
@@ -564,38 +682,18 @@ class _ActivityLevelCard extends StatelessWidget {
   }
 }
 
-/// Timeline preview card (two-column span on desktop).
-class _TimelinePreviewCard extends StatelessWidget {
-  const _TimelinePreviewCard();
+/// Timeline preview card (two-column span on desktop) displaying real health events.
+class _TimelinePreviewCard extends ConsumerWidget {
+  const _TimelinePreviewCard({this.petId});
+
+  final String? petId;
 
   @override
-  Widget build(BuildContext context) {
-    final entries = <_TimelineEntry>[
-      _TimelineEntry(
-        icon: Icons.vaccines,
-        iconBackground: context.colorScheme.primaryContainer,
-        iconColor: context.colorScheme.onPrimaryContainer,
-        title: 'Annual Checkup & Vaccines',
-        subtitle: 'Dr. Smith Veterinary Clinic',
-        date: 'Oct 12',
-      ),
-      _TimelineEntry(
-        icon: Icons.directions_walk,
-        iconBackground: context.colorScheme.secondaryContainer,
-        iconColor: context.colorScheme.onSecondaryContainer,
-        title: 'Park Visit',
-        subtitle: 'Central Bark Park',
-        date: 'Oct 10',
-      ),
-      _TimelineEntry(
-        icon: Icons.restaurant,
-        iconBackground: context.colorScheme.tertiaryContainer,
-        iconColor: context.colorScheme.onTertiaryContainer,
-        title: 'Switched to Adult Food',
-        subtitle: 'Premium Kibble Brand',
-        date: 'Sep 28',
-      ),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+    final timelineAsync = petId != null
+        ? ref.watch(healthTimelineEventsProvider(petId!))
+        : const AsyncValue<List<HealthTimelineEvent>>.data([]);
 
     return AppCard(
       padding: AppSpacing.cardPaddingPremium,
@@ -612,8 +710,10 @@ class _TimelinePreviewCard extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () =>
-                    context.goNamed(RouteNames.ownerHealthTimeline),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  context.push(RoutePaths.ownerHealthTimeline);
+                },
                 style: TextButton.styleFrom(
                   foregroundColor: context.colorScheme.primary,
                   padding: EdgeInsets.zero,
@@ -630,76 +730,165 @@ class _TimelinePreviewCard extends StatelessWidget {
             ],
           ),
           AppSpacing.vGapSm,
-          ...entries.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Row(
-                children: [
-                  Container(
-                    width: AppSpacing.xl,
-                    height: AppSpacing.xl,
-                    decoration: BoxDecoration(
-                      color: entry.iconBackground,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      entry.icon,
-                      size: AppIconSizes.sm,
-                      color: entry.iconColor,
-                    ),
-                  ),
-                  AppSpacing.hGapMd,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          entry.title,
-                          style: context.textTheme.titleSmall?.copyWith(
-                            fontWeight: AppTypography.semiBold,
-                          ),
-                        ),
-                        Text(
-                          entry.subtitle,
-                          style: context.textTheme.bodySmall?.copyWith(
-                            color: context.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    entry.date,
-                    style: context.textTheme.labelMedium?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+          timelineAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
             ),
+            error: (_, __) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Text(
+                'Unable to load timeline events.',
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            data: (events) {
+              if (events.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.history_toggle_off_rounded,
+                        size: AppIconSizes.md,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
+                      AppSpacing.hGapSm,
+                      Expanded(
+                        child: Text(
+                          'No health timeline events recorded yet.',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final previewEvents = events.take(3).toList();
+              return Column(
+                children: [
+                  for (final event in previewEvents)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: AppSpacing.xl,
+                            height: AppSpacing.xl,
+                            decoration: BoxDecoration(
+                              color: _categoryBgColor(event.category, scheme),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _categoryIcon(event.category),
+                              size: AppIconSizes.sm,
+                              color: _categoryFgColor(event.category, scheme),
+                            ),
+                          ),
+                          AppSpacing.hGapMd,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  event.title,
+                                  style: context.textTheme.titleSmall?.copyWith(
+                                    fontWeight: AppTypography.semiBold,
+                                  ),
+                                ),
+                                if (event.description != null && event.description!.isNotEmpty)
+                                  Text(
+                                    event.description!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: context.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            DateFormat('MMM d').format(event.eventDate),
+                            style: context.textTheme.labelMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
     );
   }
-}
 
-class _TimelineEntry {
-  const _TimelineEntry({
-    required this.icon,
-    required this.iconBackground,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.date,
-  });
+  static IconData _categoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'vaccination':
+      case 'vaccine':
+        return Icons.vaccines_rounded;
+      case 'surgery':
+      case 'procedure':
+        return Icons.medical_services_rounded;
+      case 'checkup':
+      case 'exam':
+        return Icons.health_and_safety_rounded;
+      case 'medication':
+      case 'prescription':
+        return Icons.medication_rounded;
+      case 'diet':
+      case 'food':
+      case 'nutrition':
+        return Icons.restaurant_rounded;
+      default:
+        return Icons.event_note_rounded;
+    }
+  }
 
-  final IconData icon;
-  final Color iconBackground;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final String date;
+  static Color _categoryBgColor(String category, ColorScheme scheme) {
+    switch (category.toLowerCase()) {
+      case 'vaccination':
+      case 'vaccine':
+        return scheme.primaryContainer;
+      case 'surgery':
+      case 'procedure':
+        return scheme.errorContainer;
+      case 'medication':
+        return scheme.tertiaryContainer;
+      default:
+        return scheme.secondaryContainer;
+    }
+  }
+
+  static Color _categoryFgColor(String category, ColorScheme scheme) {
+    switch (category.toLowerCase()) {
+      case 'vaccination':
+      case 'vaccine':
+        return scheme.onPrimaryContainer;
+      case 'surgery':
+      case 'procedure':
+        return scheme.onErrorContainer;
+      case 'medication':
+        return scheme.onTertiaryContainer;
+      default:
+        return scheme.onSecondaryContainer;
+    }
+  }
 }
 
 /// Placeholder shown while the hero photo streams in (or fails to load).

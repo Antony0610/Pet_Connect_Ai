@@ -1,27 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:petconnect_ai/core/providers/settings_providers.dart';
 
-/// Holds the user's selected [ThemeMode].
-///
-/// Defaults to [ThemeMode.system]. Persistence (writing the choice to local
-/// storage and restoring it on launch) is intentionally left as a TODO for
-/// the settings feature — the notifier's API won't change when it's added.
-class ThemeModeNotifier extends Notifier<ThemeMode> {
-  @override
-  ThemeMode build() => ThemeMode.system;
+export 'package:petconnect_ai/core/providers/settings_providers.dart'
+    show AppAccentPalette, AppLanguage, appThemeModeProvider, accentPaletteProvider, localeProvider;
 
-  void set(ThemeMode mode) => state = mode;
+/// The active [ThemeMode] for `MaterialApp.themeMode` (persisted in SharedPreferences).
+final themeModeProvider = appThemeModeProvider;
 
-  void toggle() {
-    state = switch (state) {
-      ThemeMode.light => ThemeMode.dark,
-      ThemeMode.dark => ThemeMode.light,
-      ThemeMode.system => ThemeMode.light,
-    };
-  }
-}
-
-/// The active [ThemeMode] for `MaterialApp.themeMode`.
-final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
-  ThemeModeNotifier.new,
-);

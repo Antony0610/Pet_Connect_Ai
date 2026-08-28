@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
@@ -28,30 +29,38 @@ class _OwnerAiFabState extends State<OwnerAiFab> {
   Widget build(BuildContext context) {
     final accent = PortalPalettes.of(AppPortal.petOwner).accent;
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onPressed,
-      child: AnimatedScale(
-        scale: _pressed ? 0.95 : 1,
-        duration: AppDurations.short3,
-        curve: AppDurations.standard,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: accent,
-            shape: BoxShape.circle,
-            boxShadow: AppElevation.shadowGlow,
-          ),
-          child: const Icon(
-            Icons.auto_awesome,
-            // Emerald accent is a fixed brand color; its on-color is white in
-            // both themes (the design pairs `bg-emerald-accent` with
-            // `text-white` throughout).
-            color: Colors.white,
-            size: AppIconSizes.lg - 4,
+    return AnimatedScale(
+      scale: _pressed ? 0.95 : 1,
+      duration: AppDurations.short3,
+      curve: AppDurations.standard,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: accent,
+          shape: BoxShape.circle,
+          boxShadow: AppElevation.shadowGlow,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTapDown: (_) => setState(() => _pressed = true),
+            onTapUp: (_) => setState(() => _pressed = false),
+            onTapCancel: () => setState(() => _pressed = false),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              widget.onPressed();
+            },
+            child: const Center(
+              child: Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: AppIconSizes.lg - 4,
+              ),
+            ),
           ),
         ),
       ),

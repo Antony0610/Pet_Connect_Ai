@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -42,6 +44,12 @@ class AiRecommendationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final margin = _horizontalMargin(context.screenWidth);
+    final selectedPet = ref.watch(selectedPetProvider);
+    final allPets = ref.watch(petsProvider).asData?.value;
+    final pet = selectedPet ?? (allPets != null && allPets.isNotEmpty ? allPets.first : null);
+    final petName = pet?.name ?? 'Companion';
+    final isCat = pet?.species.toLowerCase() == 'cat';
+
     final scansAsync = ref.watch(aiHealthScansProvider);
 
     return Scaffold(
@@ -66,7 +74,9 @@ class AiRecommendationsScreen extends ConsumerWidget {
             }
           }
 
-          final displayRecs = liveRecs.isEmpty ? _recs : liveRecs;
+          final displayRecs = liveRecs.isEmpty
+              ? _generateDefaultRecs(petName, isCat)
+              : liveRecs;
 
           return SingleChildScrollView(
             child: Center(
@@ -85,7 +95,7 @@ class AiRecommendationsScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tailored for Buddy',
+                        'Tailored for $petName',
                         style: context.textTheme.headlineSmall?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
@@ -125,26 +135,26 @@ class AiRecommendationsScreen extends ConsumerWidget {
     );
   }
 
-  static const _recs = [
-    _Recommendation(
-      icon: Icons.directions_walk_rounded,
-      title: 'Add a short evening walk',
-      detail:
-          "Buddy's energy peaks after 6pm. A 15-minute walk would help him "
-          'settle and supports the higher activity trend.',
-      priority: _Priority.recommended,
-      action: 'Set reminder',
-    ),
-    _Recommendation(
-      icon: Icons.water_drop_rounded,
-      title: 'Track water intake',
-      detail:
-          'Logging water on warmer days gives more accurate hydration '
-          'insights over summer.',
-      priority: _Priority.optional,
-      action: 'Enable tracking',
-    ),
-  ];
+  static List<_Recommendation> _generateDefaultRecs(String petName, bool isCat) {
+    return [
+      _Recommendation(
+        icon: isCat ? Icons.sports_baseball_rounded : Icons.directions_walk_rounded,
+        title: isCat ? 'Evening laser or wand playtime' : 'Add a gentle evening stroll',
+        detail:
+            "$petName's energy trends peak in late afternoon. A 15-minute focused play session supports restful sleep.",
+        priority: _Priority.recommended,
+        action: 'Set reminder',
+      ),
+      _Recommendation(
+        icon: Icons.water_drop_rounded,
+        title: 'Hydration & Nutrition Check',
+        detail:
+            'Maintaining fresh water and tracking caloric intake helps $petName maintain a healthy body condition score.',
+        priority: _Priority.optional,
+        action: 'Enable tracking',
+      ),
+    ];
+  }
 
   static double _horizontalMargin(double width) {
     if (width < AppBreakpoints.tablet) return AppSpacing.marginMobile;
@@ -153,16 +163,24 @@ class AiRecommendationsScreen extends ConsumerWidget {
   }
 }
 
-class _RecommendationCard extends StatelessWidget {
+class _RecommendationCard extends StatefulWidget {
   const _RecommendationCard({required this.rec});
 
   final _Recommendation rec;
+
+  @override
+  State<_RecommendationCard> createState() => _RecommendationCardState();
+}
+
+class _RecommendationCardState extends State<_RecommendationCard> {
+  bool _isCompleted = false;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final palette = PortalPalettes.of(AppPortal.petOwner);
     final brightness = context.theme.brightness;
+    final rec = widget.rec;
 
     final (label, bg, fg) = switch (rec.priority) {
       _Priority.recommended => (
@@ -190,9 +208,9 @@ class _RecommendationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AiCircleIcon(
-                icon: rec.icon,
-                background: scheme.primaryContainer,
-                foreground: scheme.onPrimaryContainer,
+                icon: _isCompleted ? Icons.check_circle_rounded : rec.icon,
+                background: _isCompleted ? Colors.green.withValues(alpha: 0.2) : scheme.primaryContainer,
+                foreground: _isCompleted ? Colors.green.shade700 : scheme.onPrimaryContainer,
               ),
               AppSpacing.hGapMd,
               Expanded(
@@ -202,17 +220,35 @@ class _RecommendationCard extends StatelessWidget {
                     Text(
                       rec.title,
                       style: context.textTheme.titleSmall?.copyWith(
-                        color: scheme.onSurface,
+                        color: _isCompleted ? scheme.onSurfaceVariant : scheme.onSurface,
                         fontWeight: AppTypography.semiBold,
+                        decoration: _isCompleted ? TextDecoration.lineThrough : null,
                       ),
                     ),
                     AppSpacing.vGapXs,
-                    AiConfidenceBadge(
-                      label: label,
-                      background: bg,
-                      foreground: fg,
-                      icon: Icons.flag_rounded,
-                    ),
+                    if (_isCompleted)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: AppRadius.brPill,
+                        ),
+                        child: Text(
+                          'Completed',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      )
+                    else
+                      AiConfidenceBadge(
+                        label: label,
+                        background: bg,
+                        foreground: fg,
+                        icon: Icons.flag_rounded,
+                      ),
                   ],
                 ),
               ),
@@ -226,14 +262,35 @@ class _RecommendationCard extends StatelessWidget {
             ),
           ),
           AppSpacing.vGapMd,
-          Align(
-            alignment: Alignment.centerRight,
-            child: AppButton.text(
-              label: rec.action,
-              icon: Icons.arrow_forward_rounded,
-              iconAlignment: IconAlignment.end,
-              onPressed: () => context.showSnackbar('${rec.action}…'),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                icon: Icon(
+                  _isCompleted ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                  size: 18,
+                  color: _isCompleted ? Colors.green.shade700 : scheme.primary,
+                ),
+                label: Text(
+                  _isCompleted ? 'Mark as Pending' : 'Mark as Done',
+                  style: TextStyle(
+                    color: _isCompleted ? Colors.green.shade700 : scheme.primary,
+                  ),
+                ),
+                onPressed: () {
+                  setState(() => _isCompleted = !_isCompleted);
+                  if (_isCompleted) {
+                    context.showSnackbar('Marked "${rec.title}" as completed!');
+                  }
+                },
+              ),
+              AppButton.text(
+                label: rec.action,
+                icon: Icons.arrow_forward_rounded,
+                iconAlignment: IconAlignment.end,
+                onPressed: () => context.showSnackbar('${rec.action} for "${rec.title}"'),
+              ),
+            ],
           ),
         ],
       ),

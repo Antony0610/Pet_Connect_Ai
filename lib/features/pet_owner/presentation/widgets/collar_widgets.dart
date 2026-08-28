@@ -11,6 +11,7 @@ library;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -210,27 +211,37 @@ class CollarActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: background,
+      color: Colors.transparent,
       borderRadius: AppRadius.brCard,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: AppIconSizes.xl, color: foreground),
-              AppSpacing.vGapSm,
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: context.textTheme.titleSmall?.copyWith(
-                  color: foreground,
-                  fontWeight: AppTypography.semiBold,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: AppRadius.brCard,
+        ),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap?.call();
+          },
+          borderRadius: AppRadius.brCard,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: AppIconSizes.xl, color: foreground),
+                AppSpacing.vGapSm,
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.titleSmall?.copyWith(
+                    color: foreground,
+                    fontWeight: AppTypography.semiBold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -244,9 +255,9 @@ class CollarMapPreview extends StatelessWidget {
   const CollarMapPreview({
     required this.locationLabel,
     this.height = 192,
-    this.latitude = 37.7749,
-    this.longitude = -122.4194,
-    this.petName = 'Buddy',
+    this.latitude = 12.9716,
+    this.longitude = 77.5946,
+    this.petName = 'Companion',
     this.safeZones = const [],
     this.breadcrumbs = const [],
     this.onTap,

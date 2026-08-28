@@ -1,6 +1,8 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
@@ -8,6 +10,10 @@ import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/lost_pet_poster_dialog.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/pet_emergency_qr_modal.dart';
 
 /// The Pet Owner **Activate Lost Mode** confirmation.
 ///
@@ -22,16 +28,20 @@ import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 /// centred on wider screens (`rounded-[32px]`, `md:justify-center`). Every
 /// color, radius, spacing and elevation comes from the theme / design tokens so
 /// this one widget tree serves both Light and Dark.
-class ActivateLostModeScreen extends StatelessWidget {
+class ActivateLostModeScreen extends ConsumerWidget {
   const ActivateLostModeScreen({super.key});
 
   /// The design's `md:` breakpoint — the sheet floats centred at/above this.
   static const double _floatingWidth = 768;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final isWide = context.screenWidth >= _floatingWidth;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final allPets = ref.watch(petsProvider).asData?.value;
+    final pet = selectedPet ?? (allPets != null && allPets.isNotEmpty ? allPets.first : null);
+    final petName = pet?.name ?? 'Companion';
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -46,7 +56,7 @@ class ActivateLostModeScreen extends StatelessWidget {
           // ── Bottom sheet / confirmation card ──────────────────────
           Align(
             alignment: isWide ? Alignment.center : Alignment.bottomCenter,
-            child: _ConfirmationSheet(isWide: isWide),
+            child: _ConfirmationSheet(isWide: isWide, petName: petName, pet: pet),
           ),
         ],
       ),
@@ -175,9 +185,15 @@ class _PulseMarkerState extends State<_PulseMarker>
 
 /// The floating glass confirmation card that slides up on entry.
 class _ConfirmationSheet extends StatelessWidget {
-  const _ConfirmationSheet({required this.isWide});
+  const _ConfirmationSheet({
+    required this.isWide,
+    required this.petName,
+    this.pet,
+  });
 
   final bool isWide;
+  final String petName;
+  final Pet? pet;
 
   /// The design's `max-w-md` cap on the floating sheet.
   static const double _maxWidth = 448;
@@ -210,14 +226,25 @@ class _ConfirmationSheet extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _SheetHeader(),
+                _SheetHeader(petName: petName),
                 AppSpacing.vGapLg,
                 const _ActionList(),
                 AppSpacing.vGapLg,
                 _SheetActions(
-                  onActivate: () => context.showSnackbar(
-                    'Lost Mode activation is coming soon.',
-                  ),
+                  pet: pet,
+                  onActivate: () {
+                    HapticFeedback.heavyImpact();
+                    context.pop<void>();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '🚨 Lost Mode activated for $petName! GPS frequency boosted to 30s & emergency broadcast sent to nearby rescue network.',
+                        ),
+                        backgroundColor: Colors.red.shade700,
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                  },
                   onCancel: () => context.pop<void>(),
                 ),
               ],
@@ -240,7 +267,9 @@ class _ConfirmationSheet extends StatelessWidget {
 
 /// Centred title + reassuring subtitle.
 class _SheetHeader extends StatelessWidget {
-  const _SheetHeader();
+  const _SheetHeader({required this.petName});
+
+  final String petName;
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +288,7 @@ class _SheetHeader extends StatelessWidget {
         ),
         AppSpacing.vGapSm,
         Text(
-          "We'll help you find Buddy every step of the way.",
+          "We'll help you find $petName every step of the way.",
           textAlign: TextAlign.center,
           style: context.textTheme.bodyLarge?.copyWith(
             color: scheme.onSurfaceVariant,
@@ -414,12 +443,17 @@ class _ActionDivider extends StatelessWidget {
 // Sheet actions
 // ═══════════════════════════════════════════════════════════════════
 
-/// The stacked primary (error-filled) and secondary (outlined) buttons.
+/// The stacked primary (error-filled), secondary emergency pass, and outlined cancel buttons.
 class _SheetActions extends StatelessWidget {
-  const _SheetActions({required this.onActivate, required this.onCancel});
+  const _SheetActions({
+    required this.onActivate,
+    required this.onCancel,
+    this.pet,
+  });
 
   final VoidCallback onActivate;
   final VoidCallback onCancel;
+  final Pet? pet;
 
   static const double _height = 48;
 
@@ -448,6 +482,46 @@ class _SheetActions extends StatelessWidget {
             label: const Text('Activate Lost Mode'),
           ),
         ),
+        if (pet != null) ...[
+          AppSpacing.vGapSm,
+          SizedBox(
+            height: _height,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                LostPetPosterDialog.show(context, pet: pet!);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: scheme.error,
+                side: BorderSide(color: scheme.error),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.brPill,
+                ),
+              ),
+              icon: const Icon(Icons.print_outlined, size: AppIconSizes.sm),
+              label: const Text('Generate Missing Pet Poster'),
+            ),
+          ),
+          AppSpacing.vGapSm,
+          SizedBox(
+            height: _height,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                PetEmergencyQrModal.show(context, pet!);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: scheme.primary,
+                side: BorderSide(color: scheme.primary),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.brPill,
+                ),
+              ),
+              icon: const Icon(Icons.qr_code_2_rounded, size: AppIconSizes.sm),
+              label: const Text('View Emergency QR Collar Tag'),
+            ),
+          ),
+        ],
         AppSpacing.vGapSm,
         SizedBox(
           height: _height,

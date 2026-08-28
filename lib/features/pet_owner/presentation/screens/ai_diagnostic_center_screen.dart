@@ -5,6 +5,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -27,6 +29,7 @@ class _AiDiagnosticCenterScreenState
     extends ConsumerState<AiDiagnosticCenterScreen> {
   static const double _maxContentWidth = 1000;
   String _selectedCategory = 'Skin & Coat';
+  String _selectedDuration = '< 24 Hours';
 
   final List<String> _categories = const [
     'Skin & Coat',
@@ -36,9 +39,21 @@ class _AiDiagnosticCenterScreenState
     'Eye & Ear',
   ];
 
+  final List<String> _durations = const [
+    '< 24 Hours',
+    '1–3 Days',
+    '1+ Week',
+  ];
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final allPets = ref.watch(petsProvider).asData?.value;
+    final pet = selectedPet ?? (allPets != null && allPets.isNotEmpty ? allPets.first : null);
+    final petName = pet?.name ?? 'Companion';
+
+    final categoryData = _getCategoryDetails(_selectedCategory, petName, _selectedDuration);
 
     return Scaffold(
       appBar: OwnerGlassAppBar(
@@ -67,12 +82,22 @@ class _AiDiagnosticCenterScreenState
               children: [
                 // ── Subtitle & Category Chips ──────────────────────
                 Text(
-                  'AI Triage Workspace: Select symptom category to view probability assessments.',
+                  'AI Triage Workspace: Select symptom category and duration to evaluate triage risk for $petName.',
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
-                AppSpacing.vGapLg,
+                AppSpacing.vGapMd,
+
+                // Symptom Category Chips
+                Text(
+                  'Symptom Category',
+                  style: context.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: scheme.primary,
+                  ),
+                ),
+                AppSpacing.vGapXs,
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -101,6 +126,45 @@ class _AiDiagnosticCenterScreenState
                     }).toList(),
                   ),
                 ),
+                AppSpacing.vGapMd,
+
+                // Symptom Duration Selector
+                Text(
+                  'Symptom Duration',
+                  style: context.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: scheme.primary,
+                  ),
+                ),
+                AppSpacing.vGapXs,
+                Row(
+                  children: _durations.map((dur) {
+                    final isSelected = _selectedDuration == dur;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.sm),
+                      child: FilterChip(
+                        avatar: Icon(
+                          Icons.timer_outlined,
+                          size: 16,
+                          color: isSelected ? scheme.onPrimary : scheme.primary,
+                        ),
+                        label: Text(dur),
+                        selected: isSelected,
+                        selectedColor: scheme.primary,
+                        backgroundColor: scheme.surfaceContainerHigh,
+                        labelStyle: TextStyle(
+                          color: isSelected ? scheme.onPrimary : scheme.onSurface,
+                          fontWeight: AppTypography.semiBold,
+                        ),
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() => _selectedDuration = dur);
+                          }
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
                 AppSpacing.vGapLg,
 
                 // ── Diagnostic Hero Result Card ────────────────────
@@ -117,14 +181,14 @@ class _AiDiagnosticCenterScreenState
                           ),
                           AppSpacing.hGapSm,
                           Text(
-                            'Active Assessment: Buddy',
+                            'Active Assessment: $petName',
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: AppTypography.bold,
                             ),
                           ),
                           const Spacer(),
                           Chip(
-                            label: const Text('LOW RISK'),
+                            label: Text(categoryData.riskLevel),
                             backgroundColor: scheme.tertiaryContainer,
                             labelStyle: TextStyle(
                               color: scheme.onTertiaryContainer,
@@ -136,14 +200,14 @@ class _AiDiagnosticCenterScreenState
                       ),
                       AppSpacing.vGapMd,
                       Text(
-                        'Primary Condition: Seasonal Allergic Dermatitis',
+                        'Primary Condition: ${categoryData.primaryCondition}',
                         style: context.textTheme.titleLarge?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
                       ),
                       AppSpacing.vGapXs,
                       Text(
-                        'Symptom match score: 88%. Environmental pollen or flea allergy suspected. No immediate emergency indicators present.',
+                        categoryData.summary,
                         style: context.textTheme.bodyMedium?.copyWith(
                           color: scheme.onSurface,
                         ),
@@ -153,24 +217,15 @@ class _AiDiagnosticCenterScreenState
                       // ── Probability Breakdown List ───────────────
                       const SectionHeader(title: 'Differential Predictions'),
                       AppSpacing.vGapSm,
-                      _buildProbabilityRow(
-                        context,
-                        label: 'Seasonal Dermatitis',
-                        percent: '88%',
-                      ),
-                      AppSpacing.vGapXs,
-                      _buildProbabilityRow(
-                        context,
-                        label: 'Flea Allergy Reaction',
-                        percent: '64%',
-                      ),
-                      AppSpacing.vGapXs,
-                      _buildProbabilityRow(
-                        context,
-                        label: 'Contact Sensitivity',
-                        percent: '41%',
-                      ),
-                      AppSpacing.vGapLg,
+                      for (final diff in categoryData.differentials) ...[
+                        _buildProbabilityRow(
+                          context,
+                          label: diff.label,
+                          percent: diff.percent,
+                        ),
+                        AppSpacing.vGapXs,
+                      ],
+                      AppSpacing.vGapMd,
 
                       // ── Escalation Action Buttons ────────────────
                       Row(
@@ -229,13 +284,21 @@ class _AiDiagnosticCenterScreenState
                       ),
                       AppButton.text(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'AI Diagnostic report transmitted to Vet Clinic.',
-                              ),
-                            ),
-                          );
+                          final shareText = '''
+🩺 PetConnect AI Triage Assessment
+Companion: $petName
+Symptom Category: $_selectedCategory
+Reported Duration: $_selectedDuration
+Assessed Risk Level: ${categoryData.riskLevel}
+Primary Condition: ${categoryData.primaryCondition}
+
+Summary:
+${categoryData.summary}
+
+Differential Predictions:
+${categoryData.differentials.map((d) => '• ${d.label}: ${d.percent}').join('\n')}
+''';
+                          ExternalActions.shareText(shareText, subject: 'AI Diagnostic Assessment: $petName');
                         },
                         child: const Text('Share Record'),
                       ),
@@ -269,4 +332,126 @@ class _AiDiagnosticCenterScreenState
       ],
     );
   }
+
+  _CategoryDiagnosis _getCategoryDetails(String category, String petName, String duration) {
+    final isProlonged = duration == '1+ Week';
+    final isModerate = duration == '1–3 Days';
+
+    final risk = isProlonged ? 'ELEVATED RISK' : (isModerate ? 'MODERATE RISK' : 'LOW RISK');
+
+    switch (category) {
+      case 'Digestive':
+        return _CategoryDiagnosis(
+          riskLevel: risk,
+          primaryCondition: isProlonged ? 'Chronic Gastroenteritis / Food Allergy' : 'Mild Dietary Indiscretion',
+          summary: isProlonged
+              ? 'Symptom match score: 92% for $petName. Persistent digestive disturbance over 7 days requires in-person clinical bloodwork & fecal testing.'
+              : (isModerate
+                  ? 'Symptom match score: 87% for $petName. 1–3 day digestive upset. Maintain hydration and provide bland boiled chicken & rice diet.'
+                  : 'Symptom match score: 85% for $petName. Recent food transition or rich snack ingestion suspected. Hydration levels appear stable.'),
+          differentials: isProlonged
+              ? const [
+                  _Differential('Chronic Gastroenteropathy', '92%'),
+                  _Differential('Inflammatory Bowel Disease', '74%'),
+                  _Differential('Parasitic Enteritis', '58%'),
+                ]
+              : const [
+                  _Differential('Dietary Indiscretion', '85%'),
+                  _Differential('Acute Gastritis', '60%'),
+                  _Differential('Food Sensitivity', '38%'),
+                ],
+        );
+      case 'Behavior & Mood':
+        return _CategoryDiagnosis(
+          riskLevel: isProlonged ? 'MODERATE RISK' : 'LOW RISK',
+          primaryCondition: isProlonged ? 'Chronic Anxiety / Neuro-Discomfort' : 'Environmental & Routine Adaptation',
+          summary: isProlonged
+              ? 'Symptom match score: 88% for $petName. Behavioral change lasting over 1 week warrants ruling out occult orthopedic or metabolic discomfort.'
+              : 'Symptom match score: 82% for $petName. Restlessness or vocalization aligned with recent schedule change or mild separation stress.',
+          differentials: const [
+            _Differential('Separation Stress', '82%'),
+            _Differential('Environmental Restlessness', '55%'),
+            _Differential('Under-Enrichment', '35%'),
+          ],
+        );
+      case 'Mobility':
+        return _CategoryDiagnosis(
+          riskLevel: risk,
+          primaryCondition: isProlonged ? 'Osteoarthritis / Joint Inflammation' : 'Post-Exercise Muscular Fatigue',
+          summary: isProlonged
+              ? 'Symptom match score: 90% for $petName. Persistent gait irregularity > 7 days indicates chronic joint wear or ligament strain. Vet exam advised.'
+              : 'Symptom match score: 80% for $petName. Minor stiffness following vigorous exercise; no localized joint heat or acute lameness reported.',
+          differentials: isProlonged
+              ? const [
+                  _Differential('Osteoarthritis Progression', '90%'),
+                  _Differential('Cruciate Ligament Strain', '72%'),
+                  _Differential('Lumbosacral Spondylosis', '54%'),
+                ]
+              : const [
+                  _Differential('Muscular Fatigue', '80%'),
+                  _Differential('Joint Stiffness', '58%'),
+                  _Differential('Soft Tissue Strain', '32%'),
+                ],
+        );
+      case 'Eye & Ear':
+        return _CategoryDiagnosis(
+          riskLevel: risk,
+          primaryCondition: isProlonged ? 'Secondary Bacterial Conjunctivitis / Otitis' : 'Mild Environmental Conjunctival Irritation',
+          summary: isProlonged
+              ? 'Symptom match score: 91% for $petName. Epiphora or otic discharge persisting > 7 days risks secondary infection. Topical meds needed.'
+              : 'Symptom match score: 84% for $petName. Clear watery epiphora likely triggered by dust or pollen exposure. Corneal clarity intact.',
+          differentials: isProlonged
+              ? const [
+                  _Differential('Secondary Bacterial Otitis/Conjunctivitis', '91%'),
+                  _Differential('Corneal Ulceration Risk', '68%'),
+                  _Differential('Foreign Body Irritation', '49%'),
+                ]
+              : const [
+                  _Differential('Environmental Epiphora', '84%'),
+                  _Differential('Otic Moisture Irritation', '62%'),
+                  _Differential('Seasonal Allergy', '40%'),
+                ],
+        );
+      case 'Skin & Coat':
+      default:
+        return _CategoryDiagnosis(
+          riskLevel: risk,
+          primaryCondition: isProlonged ? 'Secondary Pyoderma / Severe Atopy' : 'Seasonal Allergic Dermatitis',
+          summary: isProlonged
+              ? 'Symptom match score: 93% for $petName. Chronic itching and erythema > 1 week frequently leads to secondary staph/malassezia infection.'
+              : 'Symptom match score: 88% for $petName. Environmental pollen or flea allergy suspected. No immediate emergency indicators present.',
+          differentials: isProlonged
+              ? const [
+                  _Differential('Secondary Pyoderma / Yeast Dermatitis', '93%'),
+                  _Differential('Severe Atopic Dermatitis', '78%'),
+                  _Differential('Flea Infestation Reaction', '61%'),
+                ]
+              : const [
+                  _Differential('Seasonal Dermatitis', '88%'),
+                  _Differential('Flea Allergy Reaction', '64%'),
+                  _Differential('Contact Sensitivity', '41%'),
+                ],
+        );
+    }
+  }
+}
+
+class _CategoryDiagnosis {
+  const _CategoryDiagnosis({
+    required this.riskLevel,
+    required this.primaryCondition,
+    required this.summary,
+    required this.differentials,
+  });
+
+  final String riskLevel;
+  final String primaryCondition;
+  final String summary;
+  final List<_Differential> differentials;
+}
+
+class _Differential {
+  const _Differential(this.label, this.percent);
+  final String label;
+  final String percent;
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
@@ -84,7 +85,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
               ),
             ),
             Text(
-              'Tuesday, October 24, 2023',
+              DateFormat('EEEE, MMMM d, y').format(DateTime.now()),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),

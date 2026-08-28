@@ -23,6 +23,7 @@ abstract class AdminRepository {
   ResultFuture<List<AdminUserEntry>> getAdminUserDirectory();
   ResultFuture<AdminUserEntry> updateUserRole(String userId, String newRole);
   ResultFuture<void> suspendUser(String userId, bool isSuspended);
+  ResultFuture<void> deleteUser(String userId);
   ResultFuture<void> resetUserPassword(String email);
   ResultFuture<void> createUserAccount({
     required String email,

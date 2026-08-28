@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
@@ -259,7 +260,7 @@ class _AppointmentManagementScreenState
 
               // Day Summary Bar
               Text(
-                'Tuesday, Oct 24 • ${_appointments.length} Appointments Scheduled',
+                '${DateFormat('EEEE, MMM d').format(DateTime.now())} \u2022 ${_appointments.length} Appointments Scheduled',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurfaceVariant,

@@ -47,47 +47,56 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
   String _searchQuery = '';
   bool _isSearching = false;
 
+  String _selectedCategory = 'All';
+
   final List<String> _tabs = const ['Recent', 'By Category', 'Collections'];
+  final List<String> _categories = const [
+    'All',
+    'Knowledge Article',
+    'Lost Pet Alert',
+    'Community Discussion',
+    'Adoption Profile',
+  ];
 
   final List<SavedItem> _savedItems = [
     SavedItem(
       id: 'item_1',
-      title: 'Ultimate Guide to Puppy Socialization in 2026',
+      title: 'Science-Backed Guide to Puppy & Kitten Socialization',
       description:
-          'Discover the most effective, science-backed methods for introducing your new puppy to the world, ensuring they grow into confident adult dogs.',
+          'Discover the most effective methods for introducing your young companion to novel environments, sounds, and other pets during early growth.',
       category: 'Knowledge Article',
       icon: Icons.article_outlined,
-      timeAgo: 'Saved 2 days ago',
+      timeAgo: 'Saved recently',
       route: RouteNames.ownerCommunityDiscover,
     ),
     SavedItem(
       id: 'item_2',
       title: "Missing: 'Snowball' — Bichon Frise",
       description:
-          'White Bichon Frise, female, 3 years old. Last seen near Maple Park. Wearing red collar with tags.',
+          'White Bichon Frise, female, 3 years old. Last seen near Maple Park. Wearing red collar with GPS smart tag.',
       category: 'Lost Pet Alert',
       icon: Icons.campaign,
-      timeAgo: 'Saved 3 days ago',
+      timeAgo: 'Saved recently',
       route: RouteNames.ownerCommunitySightings,
     ),
     SavedItem(
       id: 'item_3',
-      title: 'Homemade Treats Recipe that actually works!',
+      title: 'Homemade Sweet Potato & Oat Sensitive Stomach Treats',
       description:
-          'Tried this new sweet potato and oat recipe for sensitive dog stomachs and it is a game changer.',
+          'Tried and tested veterinarian-reviewed recipe for companions with gastrointestinal sensitivity and food allergies.',
       category: 'Community Discussion',
       icon: Icons.forum_outlined,
-      timeAgo: 'Saved 5 days ago',
+      timeAgo: 'Saved 2 days ago',
       author: 'Alex Johnson',
       route: RouteNames.ownerCommunityDiscover,
     ),
     SavedItem(
       id: 'item_4',
       title: 'Bella — Golden Retriever Mix',
-      description: '2 yrs • Female • City Rescue Shelter · Adoption Candidate',
+      description: '2 yrs • Female • City Rescue Shelter · Verified Adoption Candidate',
       category: 'Adoption Profile',
       icon: Icons.pets,
-      timeAgo: 'Saved 1 week ago',
+      timeAgo: 'Saved 3 days ago',
       route: RouteNames.ownerCommunityAdoption,
     ),
   ];
@@ -120,7 +129,16 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
           item.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           item.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           item.category.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesQuery;
+
+      final matchesCategory = _selectedTab != 'By Category' ||
+          _selectedCategory == 'All' ||
+          item.category == _selectedCategory;
+
+      final matchesCollection = _selectedTab != 'Collections' ||
+          item.category == 'Knowledge Article' ||
+          item.category == 'Community Discussion';
+
+      return matchesQuery && matchesCategory && matchesCollection;
     }).toList();
 
     return Scaffold(
@@ -198,6 +216,27 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
                     );
                   }).toList(),
                 ),
+                if (_selectedTab == 'By Category') ...[
+                  AppSpacing.vGapSm,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _categories.map((cat) {
+                        final isSel = _selectedCategory == cat;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: AppSpacing.xs),
+                          child: FilterChip(
+                            label: Text(cat),
+                            selected: isSel,
+                            onSelected: (val) {
+                              if (val) setState(() => _selectedCategory = cat);
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
                 AppSpacing.vGapLg,
 
                 if (filteredItems.isEmpty)

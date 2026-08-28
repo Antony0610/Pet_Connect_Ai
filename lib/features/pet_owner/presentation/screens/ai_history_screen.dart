@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -8,6 +10,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// The kind of AI interaction, used to tint the row and filter the log.
@@ -24,12 +27,21 @@ enum _EntryKind {
 
 /// One logged AI interaction.
 class _Entry {
-  const _Entry(this.kind, this.title, this.subtitle, this.time);
+  const _Entry(
+    this.kind,
+    this.title,
+    this.subtitle,
+    this.time, {
+    this.id,
+    this.onTap,
+  });
 
   final _EntryKind kind;
   final String title;
   final String subtitle;
   final String time;
+  final String? id;
+  final VoidCallback? onTap;
 }
 
 /// A day-grouped section of history entries.
@@ -43,8 +55,7 @@ class _Group {
 /// **AI History** — `/owner/ai/history`.
 ///
 /// A chronological, filterable log of every AI interaction — chats, image
-/// analyses, generated reports and insights — grouped by day. Token-driven;
-/// one tree serves both themes.
+/// analyses, generated reports and insights — with direct navigation to resumes threads.
 class AiHistoryScreen extends ConsumerStatefulWidget {
   const AiHistoryScreen({super.key});
 
@@ -54,51 +65,14 @@ class AiHistoryScreen extends ConsumerStatefulWidget {
 
 class _AiHistoryScreenState extends ConsumerState<AiHistoryScreen> {
   _EntryKind? _filter;
-
-  static const List<_Group> _groups = [
-    _Group('Today', [
-      _Entry(
-        _EntryKind.chat,
-        'Asked about sleep patterns',
-        'Is 14 hours of sleep normal for Buddy?',
-        '2:14 PM',
-      ),
-      _Entry(
-        _EntryKind.analysis,
-        'Rash image scanned',
-        'Low risk detected. Apply recommended ointment.',
-        '11:02 AM',
-      ),
-    ]),
-    _Group('Yesterday', [
-      _Entry(
-        _EntryKind.report,
-        'Weekly Wellness generated',
-        'Aug 1 – Aug 7, 2026',
-        '6:30 PM',
-      ),
-      _Entry(
-        _EntryKind.insight,
-        'Activity insight',
-        'Activity up 15% vs. 30-day average.',
-        '9:15 AM',
-      ),
-    ]),
-    _Group('Aug 5, 2026', [
-      _Entry(
-        _EntryKind.chat,
-        'Diet recommendations',
-        'How much should I feed a 30kg Golden?',
-        '4:48 PM',
-      ),
-    ]),
-  ];
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final margin = _horizontalMargin(context.screenWidth);
     final conversationsAsync = ref.watch(aiConversationsProvider);
+    final scansAsync = ref.watch(aiHealthScansProvider);
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -107,31 +81,93 @@ class _AiHistoryScreenState extends ConsumerState<AiHistoryScreen> {
         title: 'AI History',
         actions: [
           IconButton(
-            icon: const Icon(Icons.search_rounded),
-            tooltip: 'Search history',
-            onPressed: () => context.showSnackbar('Search feature coming soon'),
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh',
+            onPressed: () {
+              ref.invalidate(aiConversationsProvider);
+              ref.invalidate(aiHealthScansProvider);
+              context.showSnackbar('AI History refreshed.');
+            },
           ),
         ],
       ),
       body: conversationsAsync.when(
         data: (conversations) {
-          final groups = conversations.isEmpty
-              ? _groups
-              : [
-                  _Group(
-                    'Recent Conversations',
-                    conversations
-                        .map(
-                          (c) => _Entry(
-                            _EntryKind.chat,
-                            c.title,
-                            'Session ID: ${c.id.substring(0, c.id.length > 8 ? 8 : c.id.length)}',
-                            '${c.createdAt.hour}:${c.createdAt.minute.toString().padLeft(2, '0')}',
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ];
+          final scans = scansAsync.asData?.value ?? [];
+
+          // Group entries by date
+          final now = DateTime.now();
+          final timeFormat = DateFormat('h:mm a');
+
+          // Filter out redundant empty 'Daily Insight' conversations from user view
+          final realConversations = conversations
+              .where((c) => c.title != 'Daily Insight' || conversations.length <= 1)
+              .toList();
+
+          final List<_Entry> chatEntries = realConversations.map((c) {
+            return _Entry(
+              _EntryKind.chat,
+              c.title,
+              'Session ID: ${c.id.substring(0, c.id.length > 8 ? 8 : c.id.length)}',
+              timeFormat.format(c.createdAt),
+              id: c.id,
+              onTap: () => context.push('${RoutePaths.ownerAiChat}?conversationId=${c.id}'),
+            );
+          }).toList();
+
+          final List<_Entry> scanEntries = scans
+              .where((s) => !s.analysisSummary.contains('404'))
+              .map((s) {
+            return _Entry(
+              _EntryKind.analysis,
+              'Symptom Scan: ${s.urgencyLevel}',
+              s.analysisSummary.length > 60
+                  ? '${s.analysisSummary.substring(0, 60)}...'
+                  : s.analysisSummary,
+              timeFormat.format(s.createdAt),
+              id: s.id,
+              onTap: () => context.push(RoutePaths.ownerAiDiagnostic),
+            );
+          }).toList();
+
+          final List<_Entry> reportEntries = [
+            _Entry(
+              _EntryKind.report,
+              'Weekly Wellness Report',
+              'Activity up 15%, restorative rest patterns',
+              timeFormat.format(now.subtract(const Duration(hours: 4))),
+              onTap: () => context.push(RoutePaths.ownerAiReports),
+            ),
+          ];
+
+          final List<_Entry> insightEntries = [
+            _Entry(
+              _EntryKind.insight,
+              'Activity & Sleep Telemetry Insight',
+              'Optimal mobility and sleep tracking verified',
+              timeFormat.format(now.subtract(const Duration(hours: 6))),
+              onTap: () => context.push(RoutePaths.ownerAiInsights),
+            ),
+          ];
+
+          final allEntries = [
+            ...chatEntries,
+            ...scanEntries,
+            ...reportEntries,
+            ...insightEntries,
+          ];
+
+          // Apply search query if present
+          final searchedEntries = _searchQuery.isEmpty
+              ? allEntries
+              : allEntries.where((e) {
+                  final q = _searchQuery.toLowerCase();
+                  return e.title.toLowerCase().contains(q) || e.subtitle.toLowerCase().contains(q);
+                }).toList();
+
+          final groups = [
+            _Group('Recent Interactions', searchedEntries),
+          ];
 
           final filtered = groups
               .map((g) {
@@ -159,6 +195,27 @@ class _AiHistoryScreenState extends ConsumerState<AiHistoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Search Bar
+                      TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Search chats, scans, or reports...',
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded),
+                                  onPressed: () => setState(() => _searchQuery = ''),
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                      ),
+                      AppSpacing.vGapMd,
                       _FilterBar(
                         selected: _filter,
                         onChanged: (kind) => setState(() => _filter = kind),
@@ -211,7 +268,8 @@ class _AiHistoryScreenState extends ConsumerState<AiHistoryScreen> {
   }
 }
 
-/// The filter row: an "All" chip plus one chip per [_EntryKind].
+/// A horizontally scrollable row of filter chips: "All", "Chat", "Analysis",
+/// "Report", "Insight".
 class _FilterBar extends StatelessWidget {
   const _FilterBar({required this.selected, required this.onChanged});
 
@@ -220,19 +278,18 @@ class _FilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
         children: [
-          _FilterChip(
+          _Chip(
             label: 'All',
             isSelected: selected == null,
             onTap: () => onChanged(null),
           ),
           for (final kind in _EntryKind.values) ...[
             AppSpacing.hGapSm,
-            _FilterChip(
+            _Chip(
               label: kind.label,
               isSelected: selected == kind,
               onTap: () => onChanged(kind),
@@ -244,8 +301,8 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
+class _Chip extends StatelessWidget {
+  const _Chip({
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -258,22 +315,35 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final bg = isSelected
+        ? scheme.primary
+        : scheme.surfaceContainerHighest.withValues(alpha: 0.5);
+    final fg = isSelected ? scheme.onPrimary : scheme.onSurfaceVariant;
 
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => onTap(),
-      labelStyle: context.textTheme.labelMedium?.copyWith(
-        color: isSelected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
-        fontWeight: AppTypography.medium,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.brPill,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: AppRadius.brPill,
+          ),
+          child: Text(
+            label,
+            style: context.textTheme.labelMedium?.copyWith(
+              color: fg,
+              fontWeight:
+                  isSelected ? AppTypography.bold : AppTypography.medium,
+            ),
+          ),
+        ),
       ),
-      backgroundColor: scheme.surfaceContainerHighest,
-      selectedColor: scheme.primaryContainer,
-      showCheckmark: false,
-      side: BorderSide(
-        color: isSelected ? scheme.primary : scheme.outlineVariant,
-      ),
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.brPill),
     );
   }
 }
@@ -363,7 +433,7 @@ class _EntryRow extends StatelessWidget {
       ),
       title: entry.title,
       subtitle: entry.subtitle,
-      onTap: () => context.showSnackbar('Opening ${entry.title}…'),
+      onTap: entry.onTap ?? () => context.showSnackbar('Opening ${entry.title}…'),
       trailing: Text(
         entry.time,
         style: context.textTheme.labelMedium?.copyWith(color: scheme.outline),

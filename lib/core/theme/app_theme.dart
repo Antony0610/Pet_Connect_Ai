@@ -31,6 +31,24 @@ abstract final class AppTheme {
     brightness: Brightness.dark,
   );
 
+  /// Dynamic Light theme with custom accent color palette.
+  static ThemeData lightWithAccent(Color primary, Color container) {
+    final customScheme = AppColorScheme.light.copyWith(
+      primary: primary,
+      primaryContainer: container,
+    );
+    return _buildTheme(colorScheme: customScheme, brightness: Brightness.light);
+  }
+
+  /// Dynamic Dark theme with custom accent color palette.
+  static ThemeData darkWithAccent(Color primary, Color container) {
+    final customScheme = AppColorScheme.dark.copyWith(
+      primary: primary,
+      primaryContainer: container.withValues(alpha: 0.35),
+    );
+    return _buildTheme(colorScheme: customScheme, brightness: Brightness.dark);
+  }
+
   static ThemeData _buildTheme({
     required ColorScheme colorScheme,
     required Brightness brightness,
