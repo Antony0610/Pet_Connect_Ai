@@ -73,6 +73,35 @@ class MedicationAdherenceNotifier extends StateNotifier<List<DailyCareItem>> {
       } catch (_) {}
     }
 
+    if (items.isEmpty) {
+      items = [
+        DailyCareItem(
+          id: 'med_heartworm_$_petId',
+          title: 'Heartworm & Parasite Prevention',
+          dosage: '1 chewable tablet with food',
+          scheduledTime: '08:00 AM',
+          instructions: 'Administer daily/monthly protection dose',
+          isCompleted: completedIds.contains('med_heartworm_$_petId'),
+        ),
+        DailyCareItem(
+          id: 'med_mobility_$_petId',
+          title: 'Joint & Mobility Omega Supplement',
+          dosage: '1 soft chew with lunch',
+          scheduledTime: '12:00 PM',
+          instructions: 'Supports hip and joint vitality',
+          isCompleted: completedIds.contains('med_mobility_$_petId'),
+        ),
+        DailyCareItem(
+          id: 'med_dental_$_petId',
+          title: 'Enzymatic Dental Hygiene Treat',
+          dosage: '1 dental chew after evening meal',
+          scheduledTime: '07:00 PM',
+          instructions: 'Reduces plaque and tartar buildup',
+          isCompleted: completedIds.contains('med_dental_$_petId'),
+        ),
+      ];
+    }
+
     state = items;
   }
 

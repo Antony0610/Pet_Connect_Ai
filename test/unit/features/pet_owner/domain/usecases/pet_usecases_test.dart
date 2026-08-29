@@ -2,8 +2,10 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/community_event.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_settings.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_share.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/repositories/pet_repository.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/usecases/create_pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/usecases/delete_pet.dart';
@@ -52,6 +54,65 @@ class MockPetRepository implements PetRepository {
     _settings[settings.petId] = settings;
     return const Right(null);
   }
+
+  @override
+  ResultFuture<Map<String, dynamic>> activateLostMode({
+    required String petId,
+    required double latitude,
+    required double longitude,
+    required double radiusKm,
+    required String description,
+  }) async => const Right({'status': 'active'});
+
+  @override
+  ResultVoid resolveLostMode(String petId) async => const Right(null);
+
+  @override
+  ResultFuture<Map<String, dynamic>?> getActiveLostAlert(String petId) async => const Right(null);
+
+  @override
+  ResultFuture<List<Map<String, dynamic>>> getCommunitySightings({String? petId}) async => const Right([]);
+
+  @override
+  ResultFuture<Map<String, dynamic>> submitSighting({
+    required String petId,
+    required double latitude,
+    required double longitude,
+    required String locationName,
+    required String note,
+    String? photoUrl,
+  }) async => const Right({'id': 'sighting-1'});
+
+  @override
+  ResultFuture<List<PetShare>> getPetShares(String petId) async => const Right([]);
+
+  @override
+  ResultFuture<PetShare> inviteCaregiver({
+    required String petId,
+    required String email,
+    required String role,
+    required String permissionLevel,
+  }) async => Right(
+        PetShare(
+          id: 'share-1',
+          petId: petId,
+          userId: 'u-1',
+          userEmail: email,
+          userName: 'Caregiver',
+          role: role,
+          permissionLevel: permissionLevel,
+          invitedAt: DateTime.now(),
+        ),
+      );
+
+  @override
+  ResultVoid revokeCaregiver(String shareId) async => const Right(null);
+
+  @override
+  ResultFuture<List<CommunityEvent>> getCommunityEvents({String? category}) async => const Right([]);
+
+  @override
+  ResultFuture<bool> toggleEventRegistration(String eventId) async => const Right(true);
 }
 
 void main() {

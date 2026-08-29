@@ -3,8 +3,10 @@ import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/pet_owner/data/datasources/pet_remote_datasource.dart';
 import 'package:petconnect_ai/features/pet_owner/data/repositories/pet_repository_impl.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/community_event.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_settings.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_share.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/repositories/pet_repository.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/usecases/create_pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/usecases/delete_pet.dart';
@@ -131,5 +133,57 @@ final petSettingsProvider = FutureProvider.family<PetSettings?, String>((
   return result.fold(
     (failure) => throw Exception(failure.message),
     (settings) => settings,
+  );
+});
+
+/// Fetches active lost alert for a pet.
+final activeLostAlertProvider = FutureProvider.family<Map<String, dynamic>?, String>((
+  ref,
+  petId,
+) async {
+  final repo = ref.watch(petRepositoryProvider);
+  final result = await repo.getActiveLostAlert(petId);
+  return result.fold(
+    (failure) => null,
+    (alert) => alert,
+  );
+});
+
+/// Fetches community sightings for a pet or general area.
+final communitySightingsProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>((
+  ref,
+  petId,
+) async {
+  final repo = ref.watch(petRepositoryProvider);
+  final result = await repo.getCommunitySightings(petId: petId);
+  return result.fold(
+    (failure) => [],
+    (sightings) => sightings,
+  );
+});
+
+/// Fetches shared caregivers/co-owners for a pet.
+final petSharesProvider = FutureProvider.family<List<PetShare>, String>((
+  ref,
+  petId,
+) async {
+  final repo = ref.watch(petRepositoryProvider);
+  final result = await repo.getPetShares(petId);
+  return result.fold(
+    (failure) => [],
+    (shares) => shares,
+  );
+});
+
+/// Fetches community events.
+final communityEventsProvider = FutureProvider.family<List<CommunityEvent>, String?>((
+  ref,
+  category,
+) async {
+  final repo = ref.watch(petRepositoryProvider);
+  final result = await repo.getCommunityEvents(category: category);
+  return result.fold(
+    (failure) => [],
+    (events) => events,
   );
 });

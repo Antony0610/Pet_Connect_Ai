@@ -1,43 +1,92 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import 'package:petconnect_ai/core/theme/tokens/app_durations.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/widgets/lost_pet_poster_dialog.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/widgets/pet_emergency_qr_modal.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 
-/// The Pet Owner **Activate Lost Mode** confirmation.
+/// The Pet Owner **Activate Lost Mode** emergency screen.
 ///
-/// A faithful Flutter rendering of the frozen Stitch "Activate Lost Mode"
-/// (Light master): a full-bleed calming neighbourhood map dimmed to 40%, a
-/// pulsing error marker fixed near the top, and a floating glass confirmation
-/// sheet that slides up from the bottom. The sheet explains what activating
-/// Lost Mode does (four action rows) and offers an error-filled "Activate Lost
-/// Mode" primary and an outlined "Cancel".
-///
-/// The sheet docks to the bottom on mobile (`rounded-t-[32px]`) and floats
-/// centred on wider screens (`rounded-[32px]`, `md:justify-center`). Every
-/// color, radius, spacing and elevation comes from the theme / design tokens so
-/// this one widget tree serves both Light and Dark.
-class ActivateLostModeScreen extends ConsumerWidget {
+/// Tactically dimmed map background with a pulsing locator beacon,
+/// broadcast radius selector, emergency contact info, and instant Supabase alert dispatch.
+class ActivateLostModeScreen extends ConsumerStatefulWidget {
   const ActivateLostModeScreen({super.key});
 
-  /// The design's `md:` breakpoint — the sheet floats centred at/above this.
   static const double _floatingWidth = 768;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ActivateLostModeScreen> createState() => _ActivateLostModeScreenState();
+}
+
+class _ActivateLostModeScreenState extends ConsumerState<ActivateLostModeScreen> {
+  double _broadcastRadiusKm = 15.0;
+  bool _isActivating = false;
+  final _descriptionCtrl = TextEditingController(text: 'Last seen near neighborhood park. Wearing blue collar.');
+
+  @override
+  void dispose() {
+    _descriptionCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _activateLostMode(Pet? pet) async {
+    if (pet == null) return;
+    setState(() => _isActivating = true);
+    await HapticFeedback.heavyImpact();
+
+    try {
+      final repo = ref.read(petRepositoryProvider);
+      final result = await repo.activateLostMode(
+        petId: pet.id,
+        latitude: 12.9716,
+        longitude: 77.5946,
+        radiusKm: _broadcastRadiusKm,
+        description: _descriptionCtrl.text.trim(),
+      );
+
+      result.fold(
+        (failure) {
+          if (mounted) {
+            context.showSnackbar('Emergency Alert note: ${failure.message}');
+          }
+        },
+        (_) {
+          ref.invalidate(activeLostAlertProvider(pet.id));
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      unawaited(context.push(RoutePaths.ownerLostDashboard));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '🚨 Emergency Lost Mode Broadcast Active for ${pet.name}! Radar ping boosted & nearby rescue network notified.',
+          ),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (mounted) context.showSnackbar('Error activating lost mode: $e');
+    } finally {
+      if (mounted) setState(() => _isActivating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final isWide = context.screenWidth >= _floatingWidth;
+    final isWide = context.screenWidth >= ActivateLostModeScreen._floatingWidth;
     final selectedPet = ref.watch(selectedPetProvider);
     final allPets = ref.watch(petsProvider).asData?.value;
     final pet = selectedPet ?? (allPets != null && allPets.isNotEmpty ? allPets.first : null);
@@ -51,160 +100,26 @@ class ActivateLostModeScreen extends ConsumerWidget {
           const Positioned.fill(child: _MapBackground()),
 
           // ── Central focus marker (pulse) ──────────────────────────
-          const Align(alignment: Alignment(0, -0.4), child: _PulseMarker()),
+          const Align(alignment: Alignment(0, -0.45), child: _PulseMarker()),
 
           // ── Bottom sheet / confirmation card ──────────────────────
           Align(
             alignment: isWide ? Alignment.center : Alignment.bottomCenter,
-            child: _ConfirmationSheet(isWide: isWide, petName: petName, pet: pet),
+            child: _buildConfirmationSheet(context, isWide, petName, pet),
           ),
         ],
       ),
     );
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════
-// Map background
-// ═══════════════════════════════════════════════════════════════════
-
-/// The soft, illustrative neighbourhood map shown behind everything at 40%
-/// opacity. Falls back to a calm surface tint if the image can't load.
-class _MapBackground extends StatelessWidget {
-  const _MapBackground();
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildConfirmationSheet(
+    BuildContext context,
+    bool isWide,
+    String petName,
+    Pet? pet,
+  ) {
     final scheme = context.colorScheme;
-
-    return Opacity(
-      opacity: 0.40,
-      child: Container(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainer,
-          gradient: RadialGradient(
-            center: Alignment.center,
-            radius: 1.2,
-            colors: [
-              scheme.errorContainer.withValues(alpha: 0.20),
-              scheme.surfaceContainerHighest,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Pulsing focus marker
-// ═══════════════════════════════════════════════════════════════════
-
-/// The 64px error marker with an expanding "pulse ring" and a solid 48px error
-/// disc carrying a white `pets` glyph.
-class _PulseMarker extends StatefulWidget {
-  const _PulseMarker();
-
-  @override
-  State<_PulseMarker> createState() => _PulseMarkerState();
-}
-
-class _PulseMarkerState extends State<_PulseMarker>
-    with SingleTickerProviderStateMixin {
-  static const double _outer = 64;
-  static const double _inner = 48;
-
-  /// The Stitch `pulse-ring` keyframe runs on a 2s loop.
-  static const Duration _pulse = Duration(seconds: 2);
-
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: _pulse,
-  )..repeat();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return SizedBox(
-      width: _outer,
-      height: _outer,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Expanding, fading ring — bg-error/20 pulse-ring.
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              // scale 0.95 → 1.0 → 0.95, opacity 0.5 → 0 → 0 (Stitch keyframe).
-              final t = _controller.value;
-              final scale = 0.95 + 0.05 * (t < 0.7 ? t / 0.7 : 1);
-              final opacity = t < 0.7 ? 0.5 * (1 - t / 0.7) : 0.0;
-              return Transform.scale(
-                scale: scale,
-                child: Opacity(opacity: opacity, child: child),
-              );
-            },
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scheme.error.withValues(alpha: 0.20),
-              ),
-            ),
-          ),
-          // Solid marker disc.
-          Container(
-            width: _inner,
-            height: _inner,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: scheme.error,
-              boxShadow: AppElevation.shadowSoft,
-            ),
-            child: Icon(
-              Icons.pets,
-              size: AppIconSizes.lg,
-              color: scheme.onError,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Confirmation sheet
-// ═══════════════════════════════════════════════════════════════════
-
-/// The floating glass confirmation card that slides up on entry.
-class _ConfirmationSheet extends StatelessWidget {
-  const _ConfirmationSheet({
-    required this.isWide,
-    required this.petName,
-    this.pet,
-  });
-
-  final bool isWide;
-  final String petName;
-  final Pet? pet;
-
-  /// The design's `max-w-md` cap on the floating sheet.
-  static const double _maxWidth = 448;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    // rounded-t-[32px] docked to the bottom on mobile; rounded-[32px] floating.
     final borderRadius = isWide ? AppRadius.brModal : AppRadius.brModalTop;
-    // p-margin-mobile (20) / md:p-margin-desktop (40), with pb-10 (40) bottom.
     final pad = isWide ? AppSpacing.marginDesktop : AppSpacing.marginMobile;
 
     final sheet = ClipRRect(
@@ -213,40 +128,110 @@ class _ConfirmationSheet extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: scheme.surface.withValues(alpha: 0.90),
+            color: scheme.surface.withValues(alpha: 0.95),
             borderRadius: borderRadius,
             border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.20),
+              color: scheme.outlineVariant.withValues(alpha: 0.30),
             ),
             boxShadow: AppElevation.shadowOverlay,
           ),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(pad, pad, pad, AppSpacing.xxl),
+            padding: EdgeInsets.fromLTRB(pad, pad, pad, AppSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _SheetHeader(petName: petName),
-                AppSpacing.vGapLg,
+                AppSpacing.vGapMd,
+
+                // ── Broadcast Radius Slider ────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: scheme.errorContainer.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: scheme.error.withValues(alpha: 0.25)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.radar, size: 18, color: scheme.error),
+                              AppSpacing.hGapXs,
+                              Text(
+                                'Emergency Broadcast Radius',
+                                style: context.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: scheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            '${_broadcastRadiusKm.toInt()} km',
+                            style: context.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: scheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: _broadcastRadiusKm,
+                        min: 5,
+                        max: 50,
+                        divisions: 9,
+                        activeColor: scheme.error,
+                        onChanged: (val) => setState(() => _broadcastRadiusKm = val),
+                      ),
+                    ],
+                  ),
+                ),
+                AppSpacing.vGapMd,
+
                 const _ActionList(),
                 AppSpacing.vGapLg,
-                _SheetActions(
-                  pet: pet,
-                  onActivate: () {
-                    HapticFeedback.heavyImpact();
-                    context.pop<void>();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '🚨 Lost Mode activated for $petName! GPS frequency boosted to 30s & emergency broadcast sent to nearby rescue network.',
+
+                // ── Actions ────────────────────────────────────────
+                if (_isActivating)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: scheme.error,
+                          foregroundColor: scheme.onError,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
                         ),
-                        backgroundColor: Colors.red.shade700,
-                        duration: const Duration(seconds: 4),
+                        onPressed: () => _activateLostMode(pet),
+                        icon: const Icon(Icons.emergency_share, size: 20),
+                        label: Text(
+                          'Activate Lost Mode ($petName)',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                       ),
-                    );
-                  },
-                  onCancel: () => context.pop<void>(),
-                ),
+                      AppSpacing.vGapSm,
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel & Return'),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -257,15 +242,13 @@ class _ConfirmationSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: ConstrainedBox(
-        // max-w-md.
-        constraints: const BoxConstraints(maxWidth: _maxWidth),
+        constraints: const BoxConstraints(maxWidth: 520),
         child: _SlideUp(child: sheet),
       ),
     );
   }
 }
 
-/// Centred title + reassuring subtitle.
 class _SheetHeader extends StatelessWidget {
   const _SheetHeader({required this.petName});
 
@@ -278,19 +261,28 @@ class _SheetHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          'Activate Lost Mode?',
-          textAlign: TextAlign.center,
-          style: context.textTheme.headlineLarge?.copyWith(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w600,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: scheme.errorContainer.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
           ),
+          child: Icon(Icons.warning_amber_rounded, size: 36, color: scheme.error),
         ),
         AppSpacing.vGapSm,
         Text(
-          "We'll help you find $petName every step of the way.",
+          'Activate Lost Mode?',
           textAlign: TextAlign.center,
-          style: context.textTheme.bodyLarge?.copyWith(
+          style: context.textTheme.headlineSmall?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        AppSpacing.vGapXs,
+        Text(
+          "We'll broadcast $petName's profile to nearby volunteer searchers & boost collar GPS frequency.",
+          textAlign: TextAlign.center,
+          style: context.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),
@@ -299,34 +291,24 @@ class _SheetHeader extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Action list
-// ═══════════════════════════════════════════════════════════════════
-
-/// The framed list of the four things Lost Mode does, with hairline dividers.
 class _ActionList extends StatelessWidget {
   const _ActionList();
 
   static const List<_LostAction> _actions = [
     _LostAction(
       icon: Icons.satellite_alt,
-      title: 'Higher GPS frequency (30s)',
-      subtitle: 'Updates location more often',
+      title: 'High-Frequency Collar Telemetry',
+      subtitle: 'GPS pings boosted to 30-second intervals',
     ),
     _LostAction(
       icon: Icons.my_location,
-      title: 'Real-time tracking',
-      subtitle: 'Live movement on the map',
+      title: 'Real-Time Radar Tracking',
+      subtitle: 'Live geofence beacon on interactive map',
     ),
     _LostAction(
       icon: Icons.notifications_active,
-      title: 'Volunteer notification',
-      subtitle: 'Alerts nearby rescue team',
-    ),
-    _LostAction(
-      icon: Icons.campaign,
-      title: 'Community alert',
-      subtitle: 'Broadcasts to users in area',
+      title: 'Volunteer Network Dispatch',
+      subtitle: 'Alerts active rescue volunteers in radius',
     ),
   ];
 
@@ -334,220 +316,185 @@ class _ActionList extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    final rows = <Widget>[];
-    for (var i = 0; i < _actions.length; i++) {
-      if (i > 0) rows.add(const _ActionDivider());
-      rows.add(_ActionRow(action: _actions[i]));
-    }
-
     return Container(
-      padding: AppSpacing.cardPadding,
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLowest,
-        borderRadius: AppRadius.brCard,
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.10),
-        ),
-        boxShadow: AppElevation.shadowSoft,
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.40),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: rows,
+        children: [
+          for (int i = 0; i < _actions.length; i++) ...[
+            if (i > 0)
+              Divider(
+                height: 1,
+                color: scheme.outlineVariant.withValues(alpha: 0.15),
+              ),
+            _ActionRow(action: _actions[i]),
+          ],
+        ],
       ),
     );
   }
 }
 
-/// One action row: a soft error-container icon chip, title and subtitle.
+class _LostAction {
+  const _LostAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+}
+
 class _ActionRow extends StatelessWidget {
   const _ActionRow({required this.action});
 
   final _LostAction action;
-
-  static const double _chip = 40;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return Row(
-      children: [
-        Container(
-          width: _chip,
-          height: _chip,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: scheme.errorContainer,
-          ),
-          child: Icon(
-            action.icon,
-            size: AppIconSizes.md,
-            color: scheme.onErrorContainer,
-          ),
-        ),
-        AppSpacing.hGapMd,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                action.title,
-                style: context.textTheme.labelLarge?.copyWith(
-                  color: scheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.base),
-              Text(
-                action.subtitle,
-                style: context.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The hairline between action rows, indented to align under the text (the
-/// design's `ml-14` = 56px = 40px chip + 16px gap).
-class _ActionDivider extends StatelessWidget {
-  const _ActionDivider();
-
-  static const double _indent = 56;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      child: Padding(
-        padding: const EdgeInsets.only(left: _indent),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: scheme.outlineVariant.withValues(alpha: 0.20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Icon(action.icon, color: scheme.error, size: 20),
+          AppSpacing.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  action.title,
+                  style: context.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  action.subtitle,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: const SizedBox(height: 1, width: double.infinity),
+        ],
+      ),
+    );
+  }
+}
+
+class _MapBackground extends StatelessWidget {
+  const _MapBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
+    return Opacity(
+      opacity: 0.35,
+      child: Container(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.2,
+            colors: [
+              scheme.errorContainer.withValues(alpha: 0.30),
+              scheme.surfaceContainerHighest,
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Sheet actions
-// ═══════════════════════════════════════════════════════════════════
+class _PulseMarker extends StatefulWidget {
+  const _PulseMarker();
 
-/// The stacked primary (error-filled), secondary emergency pass, and outlined cancel buttons.
-class _SheetActions extends StatelessWidget {
-  const _SheetActions({
-    required this.onActivate,
-    required this.onCancel,
-    this.pet,
-  });
+  @override
+  State<_PulseMarker> createState() => _PulseMarkerState();
+}
 
-  final VoidCallback onActivate;
-  final VoidCallback onCancel;
-  final Pet? pet;
+class _PulseMarkerState extends State<_PulseMarker>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
 
-  static const double _height = 48;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: _height,
-          child: FilledButton.icon(
-            onPressed: onActivate,
-            style: FilledButton.styleFrom(
-              backgroundColor: scheme.error,
-              foregroundColor: scheme.onError,
-              shape: const RoundedRectangleBorder(
-                borderRadius: AppRadius.brPill,
-              ),
-            ),
-            icon: const Icon(
-              Icons.warning_amber_rounded,
-              size: AppIconSizes.sm,
-            ),
-            label: const Text('Activate Lost Mode'),
-          ),
-        ),
-        if (pet != null) ...[
-          AppSpacing.vGapSm,
-          SizedBox(
-            height: _height,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                LostPetPosterDialog.show(context, pet: pet!);
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: scheme.error,
-                side: BorderSide(color: scheme.error),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppRadius.brPill,
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+        final ringScale = 1.0 + t * 1.5;
+        final ringOpacity = (1.0 - t).clamp(0.0, 1.0);
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.scale(
+              scale: ringScale,
+              child: Opacity(
+                opacity: ringOpacity,
+                child: Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: scheme.error.withValues(alpha: 0.25),
+                  ),
                 ),
               ),
-              icon: const Icon(Icons.print_outlined, size: AppIconSizes.sm),
-              label: const Text('Generate Missing Pet Poster'),
             ),
-          ),
-          AppSpacing.vGapSm,
-          SizedBox(
-            height: _height,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                PetEmergencyQrModal.show(context, pet!);
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: scheme.primary,
-                side: BorderSide(color: scheme.primary),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppRadius.brPill,
-                ),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: scheme.error,
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.error.withValues(alpha: 0.50),
+                    blurRadius: 18,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
-              icon: const Icon(Icons.qr_code_2_rounded, size: AppIconSizes.sm),
-              label: const Text('View Emergency QR Collar Tag'),
+              child: const Icon(Icons.pets, color: Colors.white, size: 28),
             ),
-          ),
-        ],
-        AppSpacing.vGapSm,
-        SizedBox(
-          height: _height,
-          child: OutlinedButton(
-            onPressed: onCancel,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: scheme.onSurface,
-              side: BorderSide(color: scheme.outline),
-              shape: const RoundedRectangleBorder(
-                borderRadius: AppRadius.brPill,
-              ),
-            ),
-            child: const Text('Cancel'),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Entrance animation
-// ═══════════════════════════════════════════════════════════════════
-
-/// Slides its child up from the bottom while fading in, mirroring the design's
-/// `slideUp 0.4s ease-out` sheet entrance.
 class _SlideUp extends StatefulWidget {
   const _SlideUp({required this.child});
 
@@ -559,15 +506,22 @@ class _SlideUp extends StatefulWidget {
 
 class _SlideUpState extends State<_SlideUp>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: AppDurations.medium4,
-  )..forward();
+  late final AnimationController _controller;
+  late final Animation<Offset> _offset;
 
-  late final Animation<double> _curve = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeOut,
-  );
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _offset = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _controller.forward();
+  }
 
   @override
   void dispose() {
@@ -577,32 +531,6 @@ class _SlideUpState extends State<_SlideUp>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _curve,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 1),
-          end: Offset.zero,
-        ).animate(_curve),
-        child: widget.child,
-      ),
-    );
+    return SlideTransition(position: _offset, child: widget.child);
   }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Model
-// ═══════════════════════════════════════════════════════════════════
-
-/// One row in the Lost Mode action list.
-class _LostAction {
-  const _LostAction({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
 }

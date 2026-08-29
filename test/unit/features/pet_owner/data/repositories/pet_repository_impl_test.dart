@@ -2,8 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/core/error/failures.dart';
 import 'package:petconnect_ai/features/pet_owner/data/datasources/pet_remote_datasource.dart';
+import 'package:petconnect_ai/features/pet_owner/data/models/community_event_model.dart';
 import 'package:petconnect_ai/features/pet_owner/data/models/pet_model.dart';
 import 'package:petconnect_ai/features/pet_owner/data/models/pet_settings_model.dart';
+import 'package:petconnect_ai/features/pet_owner/data/models/pet_share_model.dart';
 import 'package:petconnect_ai/features/pet_owner/data/repositories/pet_repository_impl.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_settings.dart';
@@ -68,6 +70,63 @@ class MockPetRemoteDataSource implements PetRemoteDataSource {
     _checkErrors();
     _settings[settings.petId] = settings;
   }
+
+  @override
+  Future<Map<String, dynamic>> activateLostMode({
+    required String petId,
+    required double latitude,
+    required double longitude,
+    required double radiusKm,
+    required String description,
+  }) async => {'status': 'active'};
+
+  @override
+  Future<void> resolveLostMode(String petId) async {}
+
+  @override
+  Future<Map<String, dynamic>?> getActiveLostAlert(String petId) async => null;
+
+  @override
+  Future<List<Map<String, dynamic>>> getCommunitySightings({String? petId}) async => [];
+
+  @override
+  Future<Map<String, dynamic>> submitSighting({
+    required String petId,
+    required double latitude,
+    required double longitude,
+    required String locationName,
+    required String note,
+    String? photoUrl,
+  }) async => {'id': 'sight-1'};
+
+  @override
+  Future<List<PetShareModel>> getPetShares(String petId) async => [];
+
+  @override
+  Future<PetShareModel> inviteCaregiver({
+    required String petId,
+    required String email,
+    required String role,
+    required String permissionLevel,
+  }) async => PetShareModel(
+        id: 'share-1',
+        petId: petId,
+        userId: 'u-1',
+        userEmail: email,
+        userName: 'Caregiver',
+        role: role,
+        permissionLevel: permissionLevel,
+        invitedAt: DateTime.now(),
+      );
+
+  @override
+  Future<void> revokeCaregiver(String shareId) async {}
+
+  @override
+  Future<List<CommunityEventModel>> getCommunityEvents({String? category}) async => [];
+
+  @override
+  Future<bool> toggleEventRegistration(String eventId) async => true;
 
   void _checkErrors() {
     if (shouldThrowAuthException) {
