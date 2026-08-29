@@ -6,6 +6,7 @@ library;
 
 export 'avatar/user_avatar.dart';
 export 'buttons/app_button.dart';
+export 'buttons/quick_action_button.dart';
 export 'cards/app_card.dart';
 export 'cards/glass_card.dart';
 export 'chips/app_chip.dart';

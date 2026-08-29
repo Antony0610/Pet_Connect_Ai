@@ -25,6 +25,10 @@ abstract class RealtimeRemoteDataSource {
   Future<void> markNotificationRead(String notificationId);
 
   Future<int> markAllNotificationsRead();
+
+  Future<void> deleteNotification(String notificationId);
+
+  Future<void> deleteAllNotifications(String userId);
 }
 
 class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
@@ -201,6 +205,40 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to mark all notifications as read: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await _client
+          .from('user_notifications')
+          .delete()
+          .eq('id', notificationId);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to delete notification: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteAllNotifications(String userId) async {
+    try {
+      await _client
+          .from('user_notifications')
+          .delete()
+          .eq('user_id', userId);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to clear notifications: $e');
     }
   }
 }

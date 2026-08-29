@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:latlong2/latlong.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/providers/settings_providers.dart';
 import 'package:petconnect_ai/core/services/notification_service.dart';
@@ -22,6 +23,7 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 /// - Real-time radius adjustments (50m - 1000m)
 /// - Add, edit, delete, and pause safe perimeter boundaries
 /// - Dynamic interactive map circles
+/// - Tap to relocate safe perimeter center on OpenStreetMap
 /// - Persistent SharedPreferences storage
 class SmartCollarGeofenceScreen extends ConsumerStatefulWidget {
   const SmartCollarGeofenceScreen({super.key});
@@ -34,6 +36,7 @@ class SmartCollarGeofenceScreen extends ConsumerStatefulWidget {
 class _SmartCollarGeofenceScreenState
     extends ConsumerState<SmartCollarGeofenceScreen> {
   bool _emergencySirenEnabled = true;
+  String? _repositioningZoneId;
 
   @override
   void initState() {
@@ -374,8 +377,31 @@ class _SmartCollarGeofenceScreenState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   CollarMapPreview(
-                    locationLabel: '${zones.where((z) => z.isActive).length} Safe Perimeters Active',
+                    locationLabel: _repositioningZoneId != null
+                        ? 'Tap Map to Relocate Center'
+                        : '${zones.where((z) => z.isActive).length} Safe Perimeters Active',
                     petName: petName,
+                    isEditMode: _repositioningZoneId != null,
+                    editModeMessage: _repositioningZoneId != null
+                        ? 'Tap on map to relocate "${zones.firstWhere((z) => z.id == _repositioningZoneId, orElse: () => zones.first).name}"'
+                        : null,
+                    onMapTap: (point) {
+                      if (_repositioningZoneId != null) {
+                        final movingZone = zones.firstWhere(
+                          (z) => z.id == _repositioningZoneId,
+                          orElse: () => zones.first,
+                        );
+                        ref.read(safeZonesProvider.notifier).updateZoneCenter(
+                              _repositioningZoneId!,
+                              point.latitude,
+                              point.longitude,
+                            );
+                        context.showSnackbar(
+                          'Moved "${movingZone.name}" to ${point.latitude.toStringAsFixed(4)}°N, ${point.longitude.abs().toStringAsFixed(4)}°W',
+                        );
+                        setState(() => _repositioningZoneId = null);
+                      }
+                    },
                     safeZones: zones.asMap().entries.map((entry) {
                       final idx = entry.key;
                       final zone = entry.value;
@@ -385,14 +411,120 @@ class _SmartCollarGeofenceScreenState
                       return MapSafeZone(
                         id: zone.id,
                         name: '${zone.name} (${zone.radiusMeters}m)',
-                        radiusMeters: (zone.radiusMeters * 0.6).clamp(40.0, 180.0),
+                        radiusMeters: zone.radiusMeters.toDouble(),
                         centerOffset: offset,
-                        color: zone.isActive ? AppColors.success : AppColors.info,
+                        centerLatLng: (zone.latitude != null && zone.longitude != null)
+                            ? LatLng(zone.latitude!, zone.longitude!)
+                            : null,
+                        color: zone.id == _repositioningZoneId
+                            ? scheme.tertiary
+                            : (zone.isActive ? AppColors.success : AppColors.info),
                       );
                     }).toList(),
                     height: isWide ? 340 : 260,
-                    onTap: () => context.showSnackbar('Live safe boundaries active for $petName'),
+                    onTap: () {
+                      if (_repositioningZoneId == null) {
+                        context.showSnackbar('Live safe boundaries active for $petName');
+                      }
+                    },
                   ),
+                  if (zones.isNotEmpty) ...[
+                    AppSpacing.vGapSm,
+                    AppCard(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.tune_rounded, size: 18, color: scheme.primary),
+                                  AppSpacing.hGapXs,
+                                  Text(
+                                    'Adjust ${zones.first.name} Perimeter',
+                                    style: context.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: scheme.primaryContainer,
+                                      borderRadius: AppRadius.brPill,
+                                    ),
+                                    child: Text(
+                                      '${zones.first.radiusMeters.round()}m radius',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: scheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Slider(
+                            value: zones.first.radiusMeters.toDouble().clamp(50.0, 1000.0),
+                            min: 50,
+                            max: 1000,
+                            divisions: 19,
+                            label: '${zones.first.radiusMeters}m',
+                            onChanged: (val) {
+                              final updated = zones.first.copyWith(radiusMeters: val.toInt());
+                              ref.read(safeZonesProvider.notifier).updateZone(updated);
+                            },
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, bottom: 4),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                icon: Icon(
+                                  _repositioningZoneId == zones.first.id
+                                      ? Icons.cancel_rounded
+                                      : Icons.pin_drop_rounded,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  _repositioningZoneId == zones.first.id
+                                      ? 'Cancel Relocation'
+                                      : 'Relocate Center on Map',
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: _repositioningZoneId == zones.first.id
+                                      ? scheme.error
+                                      : scheme.primary,
+                                  side: BorderSide(
+                                    color: _repositioningZoneId == zones.first.id
+                                        ? scheme.error
+                                        : scheme.primary,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _repositioningZoneId = _repositioningZoneId == zones.first.id
+                                        ? null
+                                        : zones.first.id;
+                                  });
+                                  if (_repositioningZoneId != null) {
+                                    context.showSnackbar('Tap anywhere on the map to relocate "${zones.first.name}"');
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   AppSpacing.vGapLg,
                   Row(
                     children: [
@@ -460,6 +592,17 @@ class _SmartCollarGeofenceScreenState
                               ),
                             _ZoneRow(
                               zone: zones[i],
+                              isRelocating: _repositioningZoneId == zones[i].id,
+                              onRelocate: () {
+                                setState(() {
+                                  _repositioningZoneId = _repositioningZoneId == zones[i].id
+                                      ? null
+                                      : zones[i].id;
+                                });
+                                if (_repositioningZoneId != null) {
+                                  context.showSnackbar('Tap anywhere on the map to relocate "${zones[i].name}"');
+                                }
+                              },
                               onEdit: () => _openEditZoneDialog(zones[i]),
                               onDelete: () => _deleteZone(zones[i].id),
                             ),
@@ -617,11 +760,15 @@ class _ZoneRow extends StatelessWidget {
     required this.zone,
     required this.onEdit,
     required this.onDelete,
+    required this.onRelocate,
+    this.isRelocating = false,
   });
 
   final SafeZoneData zone;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onRelocate;
+  final bool isRelocating;
 
   @override
   Widget build(BuildContext context) {
@@ -639,12 +786,16 @@ class _ZoneRow extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: zone.isActive ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+                color: isRelocating
+                    ? scheme.tertiaryContainer
+                    : (zone.isActive ? scheme.primaryContainer : scheme.surfaceContainerHighest),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 iconData,
-                color: zone.isActive ? scheme.primary : scheme.onSurfaceVariant,
+                color: isRelocating
+                    ? scheme.tertiary
+                    : (zone.isActive ? scheme.primary : scheme.onSurfaceVariant),
                 size: AppIconSizes.md,
               ),
             ),
@@ -664,7 +815,24 @@ class _ZoneRow extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (!zone.isActive) ...[
+                      if (isRelocating) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: scheme.tertiaryContainer,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Tap Map to Move',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: scheme.onTertiaryContainer,
+                            ),
+                          ),
+                        ),
+                      ] else if (!zone.isActive) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -682,13 +850,24 @@ class _ZoneRow extends StatelessWidget {
                   ),
                   AppSpacing.vGapXs,
                   Text(
-                    '${zone.radiusMeters} m perimeter radius',
+                    zone.latitude != null && zone.longitude != null
+                        ? '${zone.radiusMeters}m radius • (${zone.latitude!.toStringAsFixed(3)}°, ${zone.longitude!.abs().toStringAsFixed(3)}°)'
+                        : '${zone.radiusMeters} m perimeter radius',
                     style: context.textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
+            ),
+            IconButton(
+              icon: Icon(
+                isRelocating ? Icons.pin_drop : Icons.pin_drop_outlined,
+                size: 20,
+                color: isRelocating ? scheme.tertiary : scheme.onSurfaceVariant,
+              ),
+              tooltip: isRelocating ? 'Cancel Moving' : 'Move Center on Map',
+              onPressed: onRelocate,
             ),
             IconButton(
               icon: Icon(Icons.edit_outlined, size: 20, color: scheme.primary),

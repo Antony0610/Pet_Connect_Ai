@@ -1,9 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
+import 'package:share_plus/share_plus.dart';
 
 class VetTreatmentPlanScreen extends StatelessWidget {
   const VetTreatmentPlanScreen({super.key});
@@ -345,12 +351,84 @@ class VetTreatmentPlanScreen extends StatelessWidget {
           OutlinedButton.icon(
             icon: const Icon(Icons.picture_as_pdf, size: 16),
             label: const Text('Download PDF Sheet'),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Home Care PDF Protocol saved to device.'),
-                ),
-              );
+            onPressed: () async {
+              try {
+                final doc = pw.Document(title: 'Veterinary Home Care Treatment Protocol');
+                doc.addPage(
+                  pw.Page(
+                    pageFormat: PdfPageFormat.a4,
+                    margin: const pw.EdgeInsets.all(32),
+                    build: (pw.Context ctx) {
+                      return pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'CLINICAL HOME CARE TREATMENT PROTOCOL',
+                            style: pw.TextStyle(
+                              fontSize: 18,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColor.fromHex('#137A63'),
+                            ),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            'PetConnect AI Veterinary Network • Patient: Buster (Canine)',
+                            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                          ),
+                          pw.Divider(thickness: 1.5, color: PdfColor.fromHex('#137A63')),
+                          pw.SizedBox(height: 12),
+                          pw.Text(
+                            'Diagnosis & Primary Condition',
+                            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            'Canine Atopic Dermatitis & Secondary Malassezia Pyoderma',
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
+                          pw.SizedBox(height: 14),
+                          pw.Text(
+                            'Medication & Dosage Instructions',
+                            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                          ),
+                          pw.SizedBox(height: 6),
+                          pw.Bullet(text: 'Apoquel 16mg: 1 tablet orally every 12 hours for 14 days, then once daily.'),
+                          pw.Bullet(text: 'Cephalexin 500mg: 1 capsule with food twice daily for 21 days.'),
+                          pw.Bullet(text: 'Medicated Bath: Chlorhexidine 4% shampoo twice weekly (10-minute contact time).'),
+                          pw.SizedBox(height: 14),
+                          pw.Text(
+                            'Re-check Appointment',
+                            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            'Scheduled in 3 weeks for dermatological re-evaluation.',
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                );
+
+                final bytes = await doc.save();
+                final tempDir = await getTemporaryDirectory();
+                final file = File('${tempDir.path}/Home_Care_Treatment_Protocol.pdf');
+                await file.writeAsBytes(bytes, flush: true);
+
+                // ignore: deprecated_member_use
+                await Share.shareXFiles(
+                  [XFile(file.path, mimeType: 'application/pdf')],
+                  text: '📋 Attached is the Veterinary Home Care Protocol (PDF).',
+                  subject: 'Home Care Protocol (PDF)',
+                );
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not generate treatment protocol PDF.')),
+                  );
+                }
+              }
             },
           ),
         ],

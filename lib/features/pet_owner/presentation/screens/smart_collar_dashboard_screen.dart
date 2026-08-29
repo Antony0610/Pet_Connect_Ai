@@ -497,70 +497,80 @@ class _MetricLine extends StatelessWidget {
   }
 }
 
-/// 2×2 quick-action grid linking into the child collar routes.
 class _QuickActions extends StatelessWidget {
   const _QuickActions();
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
+    final actions = [
+      QuickActionItemSpec(
+        icon: Icons.my_location_rounded,
+        title: 'Live\nRadar',
+        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
+        onTap: () => context.push(RoutePaths.ownerCollarTracking),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.shield_rounded,
+        title: 'Safe\nZones',
+        gradientColors: const [Color(0xFF10B981), Color(0xFF047857)],
+        onTap: () => context.push(RoutePaths.ownerCollarGeofence),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.show_chart_rounded,
+        title: 'Activity\nStats',
+        gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+        onTap: () => context.push(RoutePaths.ownerCollarActivity),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.health_and_safety_rounded,
+        title: 'Battery &\nDiag',
+        gradientColors: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+        onTap: () => context.push(RoutePaths.ownerCollarDiagnostics),
+      ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Quick Actions',
-          style: context.textTheme.titleLarge?.copyWith(
-            fontWeight: AppTypography.semiBold,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Quick Actions',
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: AppTypography.semiBold,
+              ),
+            ),
+            Text(
+              '${actions.length} Controls',
+              style: context.textTheme.labelSmall?.copyWith(
+                color: context.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         AppSpacing.vGapSm,
-        Row(
-          children: [
-            Expanded(
-              child: CollarActionTile(
-                icon: Icons.my_location_rounded,
-                label: 'Live Tracking',
-                background: scheme.primaryContainer,
-                foreground: scheme.onPrimaryContainer,
-                onTap: () => context.push(RoutePaths.ownerCollarTracking),
-              ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          decoration: BoxDecoration(
+            color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: CollarActionTile(
-                icon: Icons.shield_rounded,
-                label: 'Safe Zones',
-                background: scheme.secondaryContainer,
-                foreground: scheme.onSecondaryContainer,
-                onTap: () => context.push(RoutePaths.ownerCollarGeofence),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: actions.map((act) => Expanded(
+              child: QuickActionButton(
+                title: act.title,
+                icon: act.icon,
+                gradientColors: act.gradientColors,
+                onTap: act.onTap,
               ),
-            ),
-          ],
-        ),
-        AppSpacing.vGapMd,
-        Row(
-          children: [
-            Expanded(
-              child: CollarActionTile(
-                icon: Icons.show_chart_rounded,
-                label: 'Activity',
-                background: scheme.tertiaryContainer,
-                foreground: scheme.onTertiaryContainer,
-                onTap: () => context.push(RoutePaths.ownerCollarActivity),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: CollarActionTile(
-                icon: Icons.health_and_safety_rounded,
-                label: 'Diagnostics',
-                background: scheme.errorContainer,
-                foreground: scheme.onErrorContainer,
-                onTap: () => context.push(RoutePaths.ownerCollarDiagnostics),
-              ),
-            ),
-          ],
+            )).toList(),
+          ),
         ),
       ],
     );

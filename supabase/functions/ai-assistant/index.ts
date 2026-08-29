@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         const { data: pet } = await supabase
           .from("pets")
-          .select("id, name, species, breed, gender, date_of_birth, weight_kg, health_status")
+          .select("id, name, species, breed, gender, date_of_birth, weight_kg, health_status, microchip_id")
           .eq("id", pet_id)
           .maybeSingle();
 
@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
           petContext = `Active Pet Profile: Name: ${petName}, Species: ${petSpecies}, Breed: ${petBreed}, Gender: ${petGender}, Weight: ${petWeight}, Health: ${healthStatus}.`;
         }
       } catch (_e) {
-        // Continue without blocking if pet fetch fails
+        // Continue without blocking
       }
     }
 
@@ -67,12 +67,14 @@ CORE INSTRUCTIONS & CAPABILITIES:
    • WSAVA Animal Nutrition, Safe/Unsafe Foods, Caloric Math, Homemade Diets.
    • Adoption, Rescue, Foster Preparation, Supplies Checklist.
    • Behavioral Psychology, Puppy Biting/Mouthing, Leash Manners, Crate & Potty Routines, Separation Anxiety, Grooming, Travel.
+   • Exotic & Avian Care: Birds (PTFE fumes), Rabbits (GI stasis), Reptiles (UVB/MBD), Equine.
    • General Science, Biology, History, Mathematics, Calculations, Technology, Creative Writing, and Multi-language Translation.
 2. TONE & CONCISENESS:
+   • Give direct, crisp, structured, and actionable answers without conversational filler or disclaimers.
    • For greetings (e.g. "hi", "hello", "നമസ്കാരം"), reply warmly and concisely in 1-2 sentences.
-   • For adoption questions ("where can I adopt a dog"), provide structured steps, verified adoption resources, and preparation tips.
+   • For toxic substance questions (e.g. chocolate, lilies, onions), provide immediate toxicity levels, toxic doses (mg/kg), symptoms, and step-by-step first aid.
    • If the user asks in Malayalam (മലയാളം), reply in fluent, natural Malayalam.
-   • Never output repetitive generic template disclaimers or vital signs dumps unless the user actually asks for clinical vital signs. Provide direct, evidence-based answers immediately.`;
+   • Never output repetitive generic template disclaimers. Provide direct, evidence-based answers immediately.`;
 
     // Try Gemini API if key is configured
     if (geminiApiKey) {
@@ -133,28 +135,23 @@ CORE INSTRUCTIONS & CAPABILITIES:
           reply = `നമസ്കാരം! 👋 ഞാൻ നിങ്ങളുടെ PetConnect AI അസിസ്റ്റന്റാണ്. നിങ്ങളുടെ വളർത്തുമൃഗങ്ങളുടെ ആരോഗ്യം, ഭക്ഷണം, പെരുമാറ്റ പരിശീലനം, ദത്തെടുക്കൽ, അല്ലെങ്കിൽ ഏതൊരു ചോദ്യങ്ങൾക്കും ഞാൻ ഇവിടെയുണ്ട്. എനിക്ക് എങ്ങനെ സഹായിക്കാനാകും?`;
         } else if (/ദത്തെടുക്കൽ|പട്ടിയെ ലഭിക്കാൻ|പൂച്ചയെ ലഭിക്കാൻ|എവിടെ നിന്ന് വാങ്ങാം|adopt|adoption/.test(prompt)) {
           reply = `🐶 **വളർത്തുമൃഗങ്ങളെ ദത്തെടുക്കുന്നതിനുള്ള വഴികൾ**:\n\n` +
-            `1. **അനിമൽ ഷെൽട്ടറുകൾ & റെസ്ക്യൂ സംഘടനകൾ**: പ്രാദേശിക അനിമൽ റെസ്ക്യൂ സെന്ററുകൾ (People For Animals, സ്നേഹക്കൂട്ടായ്മകൾ) സന്ദർശിക്കുക.\n` +
-            `2. **PetConnect കമ്മ്യൂണിറ്റി അഡോപ്ഷൻ ഹബ്**: നമ്മുടെ ആപ്പിലെ **Community Hub $\\rightarrow$ Adoption** ടാബിൽ പരിശോധിച്ചാൽ ദത്തെടുക്കാൻ ലഭ്യമായ നായ്ക്കളെയും പൂച്ചകളെയും കണ്ടെത്താം.\n` +
-            `3. **ആവശ്യമായ മുൻകരുതലുകൾ**: ആവശ്യത്തിന് ഭക്ഷണം, വെള്ള പാത്രങ്ങൾ, വാക്സിനേഷൻ രേഖകൾ എന്നിവ മുൻകൂട്ടി തയ്യാറാക്കുക.`;
-        } else if (/ഭക്ഷണം|തീറ്റ|എന്ത് നൽകണം|കഴിക്കാൻ|വിഷം|ചോക്ലേറ്റ്/.test(prompt)) {
-          reply = `🥗 **വളർത്തുമൃഗങ്ങളുടെ ഭക്ഷണ മാർഗ്ഗനിർദ്ദേശങ്ങൾ**:\n\n` +
-            `• **നല്ല ഭക്ഷണങ്ങൾ**: വേവിച്ച കോഴിയിറച്ചി (എല്ലില്ലാത്തത്), വേവിച്ച ചോറ്, ക്യാരറ്റ്, മത്തങ്ങ, ആപ്പിൾ (കുരു ഒഴിവാക്കിയത്).\n` +
-            `• **ഒഴിവാക്കേണ്ട വിഷാംശമുള്ള ഭക്ഷണങ്ങൾ**: ചോക്ലേറ്റ്, മുന്തിരി, ഉണക്കമുന്തിരി, ഉള്ളി, വെളുത്തുള്ളി, ചായ/കാപ്പി, മധുരപലഹാരങ്ങൾ.\n` +
-            `• എപ്പോഴും ശുദ്ധമായ കുടിവെള്ളം ലഭ്യമാക്കുക.`;
+            `1. **അനിമൽ ഷെൽട്ടറുകൾ & റെസ്ക്യൂ സംഘടനകൾ**: പ്രാദേശിക അനിമൽ റെസ്ക്യൂ സെന്ററുകൾ സന്ദർശിക്കുക.\n` +
+            `2. **PetConnect കമ്മ്യൂണിറ്റി അഡോപ്ഷൻ ഹബ്**: ആപ്പിലെ **Community Hub $\\rightarrow$ Adoption** ടാബിൽ പരിശോധിക്കുക.\n` +
+            `3. **ആവശ്യമായ മുൻകരുതലുകൾ**: ഭക്ഷണം, പാത്രങ്ങൾ, വാക്സിനേഷൻ രേഖകൾ എന്നിവ മുൻകൂട്ടി തയ്യാറാക്കുക.`;
+        } else if (/ചോക്ലേറ്റ്|വിഷം|ഭക്ഷണം|തീറ്റ|എന്ത് നൽകണം/.test(prompt)) {
+          reply = `🚨 **ചോക്ലേറ്റ് / ഭക്ഷണ വിഷബാധ വിവരങ്ങൾ**:\n\n` +
+            `• ചോക്ലേറ്റിലെ തിയോബ്രോമിൻ (Theobromine) നായ്ക്കൾക്കും പൂച്ചകൾക്കും അതീവ വിഷാംശമുള്ളതാണ്.\n` +
+            `• **ലക്ഷണങ്ങൾ**: ഛർദ്ദി, അതിസാരം, അമിത ദാഹം, വിറയൽ, വേഗത്തിലുള്ള ഹൃദയമിടിപ്പ്, അപസ്മാരം.\n` +
+            `• **പ്രാഥമിക ശുശ്രൂഷ**: ഉടൻ തന്നെ അടുത്തുള്ള 24/7 വെറ്ററിനറി എമർജൻസി ഹോസ്പിറ്റലിൽ എത്തിക്കുക. സ്വന്തമായി ഛർദ്ദിപ്പിക്കാൻ ശ്രമിക്കരുത്.`;
         } else if (/ഛർദ്ദി|വയറിളക്കം|വയറുവേദന|പനി|അസുഖം/.test(prompt)) {
           reply = `🩺 **രോഗലക്ഷണങ്ങളും പ്രാഥമിക ശുശ്രൂഷയും**:\n\n` +
             `• **ഭക്ഷണം ക്രമീകരിക്കുക**: 8–12 മണിക്കൂർ കട്ടി ആഹാരം ഒഴിവാക്കി ശുദ്ധജലം മാത്രം നൽകുക.\n` +
             `• **ലഘു ഭക്ഷണം**: പിന്നീട് ചെറിയ അളവിൽ വേവിച്ച ചോറും വേവിച്ച ചിക്കനും നൽകുക.\n` +
-            `• ഛർദ്ദി തുടരുകയോ ക്ഷീണം കൂടുകയോ ചെയ്താൽ ഉടൻ അടുത്തുള്ള വെറ്ററിനറി ഡോക്ടറെ കാണിക്കുക.`;
-        } else if (/കുര|കടിക്കുക|പരിശീലനം|ട്രെയിനിംഗ്/.test(prompt)) {
-          reply = `🐕 **വളർത്തുമൃഗങ്ങളുടെ പരിശീലന രീതികൾ**:\n\n` +
-            `• **പോസിറ്റീവ് റിവാർഡ്**: നല്ല പെരുമാറ്റത്തിന് മാത്രം ട്രീറ്റുകളും സ്നേഹവും നൽകുക.\n` +
-            `• **കടി മാറ്റാൻ**: കൈകളിൽ കടിക്കുമ്പോൾ പെട്ടെന്ന് "നോ" എന്ന് പറഞ്ഞ് കളിപ്പാട്ടങ്ങളിലേക്ക് ശ്രദ്ധ മാറ്റുക.\n` +
-            `• ദിവസവും 15–20 മിനിറ്റ് വ്യായാമവും നടത്തവും നൽകുക.`;
+            `• ഛർദ്ദി തുടരുകയോ ക്ഷീണം കൂടുകയോ ചെയ്താൽ ഉടൻ വെറ്ററിനറി ഡോക്ടറെ കാണിക്കുക.`;
         } else {
           reply = `🐾 **PetConnect AI വിവരങ്ങൾ**:\n\n` +
             `"${prompt}" എന്ന വിഷയത്തെക്കുറിച്ച്:\n\n` +
-            `വളർത്തുമൃഗങ്ങളുടെ സംരക്ഷണത്തിലും പൊതുവിജ്ഞാനത്തിലും നിങ്ങൾക്ക് ആവശ്യമായ എല്ലാ വിവരങ്ങളും നൽകാൻ ഞാൻ തയ്യാറാണ്. കൂടുതൽ കൃത്യമായ വിവരങ്ങൾക്കായി ചോദ്യം വിശദീകരിക്കാമോ?`;
+            `നിങ്ങളുടെ വളർത്തുമൃഗങ്ങളുടെ ആരോഗ്യ സംരക്ഷണത്തിലും പൊതുവിജ്ഞാനത്തിലും ആവശ്യമായ കൃത്യമായ വിവരങ്ങൾ നൽകാൻ ഞാൻ സദാ സന്നദ്ധനാണ്. കൂടുതൽ വിശദമായി ചോദിക്കൂ!`;
         }
       } else {
         // English Universal Knowledge Base
@@ -164,146 +161,149 @@ CORE INSTRUCTIONS & CAPABILITIES:
           const names = (petList && petList.length > 0)
             ? petList.map((p: any) => p.name).join(' and ')
             : 'your companions';
-          reply = `Hello! 👋 How can I assist you with ${names} today? Feel free to ask about health symptoms, puppy training, food safety, adoption guidance, or any general questions!`;
+          reply = `Hello! 👋 How can I assist you with ${names} today? Feel free to ask about health triage, food toxicology, nutrition calculations, behavior training, or any general questions!`;
         }
 
-        // 2. Pet Adoption, Rescue, Acquiring a Dog/Cat
-        else if (/\b(where can i adopt|how can i adopt|want to adopt|need to adopt|adopt a dog|adopt a cat|adopt a puppy|adopt a kitten|get a dog|get a cat|get a puppy|get a kitten|buy a dog|buy a cat|rescue a dog|rescue a cat|shelter|animal shelter|adoption center|adoption process)\b/i.test(lower)) {
-          reply = `🐶 **Pet Adoption & Rescue Guidance**:\n\n` +
-            `Adopting a pet is a wonderful decision! Here is how and where you can adopt:\n\n` +
-            `1. **In-App PetConnect Adoption Hub**:\n` +
-            `   • Check the **Community $\\rightarrow$ Adoption Hub** tab in this app to browse verified rescue dogs and cats looking for loving forever homes near you.\n\n` +
-            `2. **Local Animal Shelters & Rescue NGOs**:\n` +
-            `   • Visit local humane societies, SPCAs, or rescue organizations (like PFA, CUPA, Charlie's Animal Rescue, or local municipal shelters).\n` +
-            `   • Adoption coordinators typically conduct a brief home assessment and interview to match your lifestyle.\n\n` +
-            `3. **Key Checklist Before Bringing Your Pet Home**:\n` +
-            `   • **Living Space**: Safe pet-proofed room, chew-proof cords, secure gates/balcony nets.\n` +
-            `   • **Essential Supplies**: Stainless steel food/water bowls, age-appropriate food, crate/bed, leash/collar with ID tag, and grooming brush.\n` +
-            `   • **Initial Veterinary Check**: Schedule a booster vaccination, deworming, and microchip registration.\n\n` +
-            `Would you like breed recommendations matching your living space (apartment vs. house) or puppy vs. adult dog advice?`;
+        // 2. Specific Chocolate / Cocoa Toxicity Query (Full clinical breakdown)
+        else if (/\b(chocolate|cocoa|theobromine|cacao)\b/i.test(lower)) {
+          reply = `🍫 **Veterinary Toxicology: Chocolate / Cocoa Safety & Emergency Guide**\n\n` +
+            `• **Is Chocolate Safe?**: **NO — Chocolate is strictly toxic to dogs and cats.** It contains methylxanthines (**theobromine** and **caffeine**), which pets metabolize far more slowly than humans.\n\n` +
+            `• **Toxic Thresholds & Doses**:\n` +
+            `  - **Mild Upset** (vomiting, diarrhea, hyperactivity): **> 20 mg/kg** of theobromine.\n` +
+            `  - **Cardiotoxicity** (tachycardia, arrhythmias, high blood pressure): **40–50 mg/kg**.\n` +
+            `  - **Severe / Fatal** (muscle tremors, seizures, cardiac arrest): **> 60 mg/kg**.\n` +
+            `  *(Note: Baking cocoa and dark chocolate contain 8–10x more theobromine per ounce than milk chocolate, making them life-threatening in very small quantities).*\n\n` +
+            `• **Common Symptoms**:\n` +
+            `  - Early (2–4 hours): Extreme thirst, pacing, vomiting, diarrhea, bloated stomach.\n` +
+            `  - Severe (4–12 hours): Rapid panting, racing heart rate (>180 bpm), muscle spasms, rigidity, seizures.\n\n` +
+            `• **Immediate First Aid & Action Steps**:\n` +
+            `  1. **Do NOT induce vomiting at home** with salt or hydrogen peroxide unless specifically directed by an emergency veterinarian (high risk of fatal gastric aspiration and caustic gastritis).\n` +
+            `  2. **Calculate Ingested Dose**: Note pet weight, chocolate type (milk, dark, cocoa powder), and ounces/grams consumed.\n` +
+            `  3. **Emergency Transport**: Head immediately to an emergency veterinary clinic. Clinical decontamination (apomorphine emesis + activated charcoal + IV fluid diuresis) within 2–4 hours carries an excellent prognosis.`;
         }
 
-        // 3. Puppy Biting, Mouthing & Teething
-        else if (/\b(play bit|mouthing|puppy bite|puppy biting|stop biting|bite inhibition|teething|chewing furniture|chew shoes)\b/i.test(lower)) {
-          reply = `🐾 **Effective Puppy Play Biting & Teething Solutions**:\n\n` +
-            `1. **The "Ouch & Freeze" Technique**:\n` +
-            `   • The moment puppy teeth touch skin, make a high-pitched "Ouch!" sound and immediately freeze movement for 5–10 seconds. This mimics littermate bite feedback.\n\n` +
-            `2. **Instant Toy Redirection**:\n` +
-            `   • Keep a durable rubber toy (Kong, Nylabone) in hand. Swap your hand with the toy the split-second they open their mouth to play.\n\n` +
-            `3. **Reverse Time-Outs**:\n` +
-            `   • If biting escalates, calmly stand up and step out of the room/behind a baby gate for 30–60 seconds. This teaches that biting ends all fun and attention.\n\n` +
-            `4. **Soothe Teething Gums**:\n` +
-            `   • Soak a clean washcloth in bone broth, twist, and freeze it, or offer frozen raw carrots to relieve gum irritation.`;
+        // 3. Companion Health Status / Overview
+        else if (/\b(how('s| is) (my|the) pet('s)? health|pet('s)? health|how is miavv|how is my dog|how is my cat|health overview|health summary|check my pet)\b/i.test(lower)) {
+          const petName = (petList && petList.length > 0) ? petList[0].name : 'your companion';
+          const petBreed = (petList && petList.length > 0 && petList[0].breed) ? petList[0].breed : 'pet';
+          const petWeight = (petList && petList.length > 0 && petList[0].weight) ? petList[0].weight : 'optimal weight';
+          const petStatus = (petList && petList.length > 0 && petList[0].health_status) ? petList[0].health_status : 'Optimal';
+
+          reply = `🩺 **Companion Health Dossier: ${petName}**\n\n` +
+            `• **Clinical Status**: ${petStatus}\n` +
+            `• **Breed & Weight Profile**: ${petBreed} • ${petWeight}\n` +
+            `• **Wellness Highlights**:\n` +
+            `  - **Vital Signs**: Alert, active resting posture, optimal hydration markers.\n` +
+            `  - **Preventive Care**: Core vaccinations, regular deworming, and quarterly dental checks are recommended.\n` +
+            `  - **Nutrition & Calorie Balance**: Ensure daily feeding aligns with resting energy requirements ($RER = 70 \\times BW_{kg}^{0.75}$).\n\n` +
+            `Would you like to review specific vaccination records, log new symptoms, or calculate daily caloric targets for ${petName}?`;
         }
 
-        // 4. Excessive Barking & Separation Anxiety
-        else if (/\b(barking|barks|bark at door|separation anxiety|cries when left alone|howling|whining)\b/i.test(lower)) {
-          reply = `🐕 **Barking & Separation Anxiety Solutions**:\n\n` +
-            `• **Alert Barking**: Block window sightlines with opaque privacy film or blinds to remove visual triggers.\n` +
-            `• **Separation Anxiety**: Desensitize departure cues (jingling keys, putting on jackets without leaving). Begin with 1-2 minute micro-absences, gradually extending time.\n` +
-            `• **High-Value Lick Enrichment**: Provide a frozen peanut butter Kong or Lick Mat 5 minutes before leaving (licking releases endorphins that reduce cortisol).\n` +
-            `• **Teach the "Quiet" Cue**: Acknowledge the alert, place a treat near their nose to interrupt barking, count 3 seconds of silence, then reward "Quiet".`;
+        // 4. Toxic Ingestion Emergencies (Xylitol, Grapes, Lilies, Onions, Chemicals)
+        else if (/\b(xylitol|birch bark|grape|grapes|raisin|raisins|lily|lilies|onion|onions|garlic|paracetamol|tylenol|ibuprofen|advil|antifreeze|bleach|rat poison|sago palm|weed|marijuana|thc)\b/i.test(lower)) {
+          reply = `🚨 **[EMERGENCY TOXICOLOGY TRIAGE]**\n\n` +
+            `• **Immediate Veterinary Emergency**: This substance poses acute life-threatening toxicity.\n` +
+            `  - **Grapes & Raisins**: Causes acute irreversible renal failure even at tiny doses in canines.\n` +
+            `  - **Lilies in Cats**: True lilies (*Lilium* / *Hemerocallis*) cause fatal renal tubular necrosis within 24–72 hours.\n` +
+            `  - **Xylitol**: Triggers massive insulin surge causing severe hypoglycemia and acute hepatic necrosis.\n` +
+            `  - **Onions & Garlic**: Organosulfoxides destroy red blood cells causing Heinz-body hemolytic anemia.\n\n` +
+            `• **Emergency Protocol**:\n` +
+            `  1. Do NOT induce vomiting at home.\n` +
+            `  2. Keep pet calm and collect the packaging or product name.\n` +
+            `  3. Transport immediately to the nearest 24/7 Emergency Animal Hospital.`;
         }
 
-        // 5. Potty & Crate Training
-        else if (/\b(potty train|house train|peeing inside|pooping inside|crate train|crate training|litter box|litter training)\b/i.test(lower)) {
-          reply = `🚽 **Structured Housebreaking & Crate Training Protocol**:\n\n` +
-            `1. **The 3-Key Potty Windows**:\n` +
-            `   • Take your companion outside immediately upon waking, 15 minutes after each meal, and right after vigorous play sessions.\n\n` +
-            `2. **Designate a Fixed Elimination Spot**:\n` +
-            `   • Take them to the exact same outdoor grassy spot on-leash. Stay calm and praise with a high-value treat within 2 seconds of completion.\n\n` +
-            `3. **Crate Sizing Rule**:\n` +
-            `   • The crate should only be large enough for them to stand, turn around, and lie down comfortably. If too large, they may eliminate in one corner.\n\n` +
-            `4. **Enzymatic Cleaning**:\n` +
-            `   • Clean indoor accidents strictly with enzymatic cleaners to eliminate pheromone scent markers.`;
-        }
-
-        // 6. Food Safety & WSAVA Nutrition
-        else if (/\b(can (dogs|cats|pets) eat|can my dog eat|can my cat eat|safe for dogs|safe for cats|apple|apples|banana|watermelon|blueberry|blueberries|carrot|carrots|pumpkin|egg|eggs|rice|chicken|bread|cheese|milk)\b/i.test(lower)) {
-          reply = `🍏 **Companion Food Safety & Nutritional Guidance**:\n\n` +
+        // 5. Food Safety & WSAVA Nutrition
+        else if (/\b(can (dogs|cats|pets) eat|can my dog eat|can my cat eat|safe for dogs|safe for cats|apple|banana|watermelon|blueberry|carrot|pumpkin|egg|rice|chicken|bread|cheese|peanut butter)\b/i.test(lower)) {
+          reply = `🍏 **Companion Nutrition & Safe Foods Guide**:\n\n` +
             `• **✅ Safe & Nutritious Human Foods (In Moderation)**:\n` +
-            `  - **Cooked Lean Meats**: Plain boiled boneless chicken, turkey, or lean beef (no seasoning, onions, or garlic).\n` +
-            `  - **Vegetables**: Steamed carrots, green beans, boiled sweet potato, and plain canned pumpkin (great for digestive fiber).\n` +
-            `  - **Fruits**: Sliced seedless apples, blueberries, seedless watermelon, and banana slices.\n` +
-            `  - **Eggs & Dairy**: Fully cooked eggs; small plain yogurt in moderation (avoid if lactose intolerant).\n\n` +
-            `• **❌ Strictly Toxic / Harmful Foods**:\n` +
-            `  - Chocolate, Grapes & Raisins (kidney toxin), Onions & Garlic, Xylitol/Birch Bark sweetener, Macadamia Nuts, Cooked Bones, Coffee & Alcohol.\n\n` +
-            `• **Portion Rule**: Treats and toppers should never exceed 10% of your pet's daily caloric intake.`;
+            `  - **Cooked Lean Meats**: Plain boiled boneless chicken breast, turkey, lean beef (no garlic, onion, or seasonings).\n` +
+            `  - **Vegetables**: Steamed carrots, green beans, boiled sweet potato, plain canned pumpkin (superb digestive fiber).\n` +
+            `  - **Fruits**: Sliced seedless apples, blueberries, seedless watermelon, banana slices (seeds/cores removed).\n` +
+            `  - **Eggs & Dairy**: Fully cooked scrambled or boiled eggs; small plain Greek yogurt (if lactose tolerant).\n` +
+            `  - **Peanut Butter**: Safe ONLY if 100% xylitol-free / birch sugar-free.\n\n` +
+            `• **❌ Strictly Toxic Foods**:\n` +
+            `  - Chocolate, Grapes & Raisins, Onions & Garlic, Macadamia Nuts, Cooked Bones (splinter hazard), Caffeine, Alcohol.\n\n` +
+            `• **The 10% Rule**: Treats and human toppers should never exceed 10% of your companion's total daily caloric intake.`;
         }
 
-        // 7. Toxic Ingestion Emergency
-        else if (/\b(ate chocolate|ate grapes|ate raisins|ate xylitol|ate onion|ate garlic|ate lily|poisoned|swallowed battery|swallowed sock|swallowed toy|bleach|rat poison)\b/i.test(lower)) {
-          reply = `🚨 **[TRIAGE: EMERGENCY - POTENTIAL TOXIC INGESTION]**\n\n` +
-            `Immediate Life-Saving Steps:\n\n` +
-            `1. **Do NOT induce vomiting with salt or hydrogen peroxide** unless directly instructed by an emergency veterinary toxicologist (risk of fatal aspiration and gastric rupture).\n` +
-            `2. **Identify & Quantify**: Save the packaging, active chemical ingredients (e.g. cocoa %, xylitol grams), animal weight, and time elapsed.\n` +
-            `3. **Transport Immediately**: Proceed to the nearest 24/7 Emergency Animal Hospital or call the Pet Poison Helpline immediately.\n\n` +
-            `*Critical Note*: True lilies cause irreversible acute renal failure in felines within 24-72 hours. Immediate IV fluid therapy is required.`;
-        }
-
-        // 8. Gastrointestinal Distress (Vomiting & Diarrhea)
+        // 6. Gastrointestinal Distress (Vomiting & Diarrhea)
         else if (/\b(vomit|vomiting|threw up|throwing up|diarrhea|loose stool|upset stomach|nausea|constipated|constipation)\b/i.test(lower)) {
           reply = `🩺 **Clinical Triage: Gastrointestinal Upset**:\n\n` +
-            `• **Triage Evaluation**: A single episode with bright energy is common (dietary indiscretion). However, repeated vomiting within 6 hours, black/bloody stool, or severe lethargy warrants immediate veterinary examination.\n` +
-            `• **Bland Diet Protocol**: Withhold rich food for 8–12 hours (maintain full access to clean fresh water). Then feed small portions of boiled boneless chicken breast and plain white rice (2:1 ratio) or 1 tbsp plain pumpkin puree.\n` +
-            `• **Emergency Red Flags**: Distended firm abdomen, unproductive retching (GDV bloat risk), pale gums, or suspected foreign body ingestion.`;
+            `• **Triage Evaluation**: A single isolated episode with bright demeanor often points to mild dietary indiscretion.\n` +
+            `• **Bland Diet Protocol**:\n` +
+            `  1. Withhold rich kibble/treats for 8–12 hours (always maintain full access to clean fresh water).\n` +
+            `  2. Transition to small portions of boiled boneless chicken breast and plain white rice (2:1 ratio) or 1 tbsp pure pumpkin puree for 2–3 days.\n` +
+            `• **🚨 Emergency Red Flags (Seek Immediate Vet Care)**:\n` +
+            `  - Repeated vomiting within 6 hours, black/tarry or bloody stool, severe lethargy, pale gums, or unproductive retching (GDV bloat risk).`;
         }
 
-        // 9. Respiratory, Seizures, Trauma Emergencies
-        else if (/\b(breath|breathing|gasping|chok|choking|seiz|seizure|collapse|collapsed|unconscious|hit by car|bleeding heavily)\b/i.test(lower)) {
-          reply = `🚨 **[TRIAGE: CRITICAL LIFE-SUPPORT EMERGENCY]**\n\n` +
-            `Immediate Actions for your companion:\n\n` +
-            `• **Respiratory Distress**: Keep the animal calm, upright, and in an air-conditioned vehicle. Open-mouth breathing in felines is always a critical emergency.\n` +
-            `• **Seizure Protocol**: Move sharp furniture away. Do NOT place your fingers inside the mouth. Dim the lights. If the seizure lasts > 2 minutes, transport immediately covered in a light towel.\n` +
-            `• **Airway Obstruction / Choking**: Inspect oral cavity carefully without risking a bite. For conscious animals, apply upward modified Heimlich pressure behind the ribcage.\n` +
-            `• **Hemorrhage**: Apply firm, continuous direct pressure with a clean towel.`;
+        // 7. Avian & Bird Health (PTFE/Teflon, Nutrition, Heavy Metals)
+        else if (/\b(bird|avian|parrot|budgie|cockatiel|conure|teflon|ptfe|non-stick|feather plucking|seed diet)\b/i.test(lower)) {
+          reply = `🦜 **Avian Clinical Medicine & Husbandry**:\n\n` +
+            `• **🚨 PTFE / Non-Stick Toxic Fume Emergency**: Overheated Teflon/PTFE non-stick cookware, self-cleaning ovens, and space heaters release odorless polytetrafluoroethylene gases that cause fatal acute pulmonary hemorrhage in birds within minutes. Move birds to fresh air immediately.\n` +
+            `• **Nutritional Standards**: All-seed diets cause severe Vitamin A deficiency and hepatic lipidosis. Avian veterinary standards require 60–70% formulated extruded pellets, supplemented with dark leafy greens and sprouted grains.\n` +
+            `• **Critical Signs of Illness**: Fluffed feathers on cage bottom, tail bobbing with respiration, closed eyes, or wing droop indicate severe decompensation requiring urgent avian vet care.`;
         }
 
-        // 10. Multi-Pet Inventory & Companion Lookup
-        else if (/^(who|which|what|list|show|how many)\b.*\b(pets|pet|animals|companions)\b|\b(who are my pets|what are my pets|which are my pets|what pets do i have|list my pets|show my pets|my pets list|how many pets do i have|all my pets|registered pets)\b/i.test(lower)) {
-          if (petList && petList.length > 0) {
-            const listText = petList.map((p: any) => {
-              const name = p.name || 'Companion';
-              const species = p.species || 'Pet';
-              const breed = p.breed || species;
-              const gender = p.gender || 'Not specified';
-              const age = p.age || 'Age not specified';
-              const weight = p.weight || 'Weight not specified';
-              const status = p.health_status || 'Optimal';
-              return `🐾 **${name}**\n  • **Species & Breed**: ${breed} (${species})\n  • **Gender & Health**: ${gender} • Status: ${status}\n  • **Age & Weight**: ${age} • ${weight}`;
-            }).join('\n\n');
-
-            reply = `Here are your registered companions in PetConnect AI:\n\n${listText}\n\nYou can access their individual Health Passports, medical records, or smart collar telemetry anytime. How can I assist you with their care today?`;
-          } else {
-            reply = `You do not have any pets registered in your profile yet.\n\nYou can easily add your companion by tapping **Add Pet** on the Home Dashboard or in your Profile to unlock personalized health tracking, smart collar telemetry, and dietary guidance!`;
-          }
+        // 8. Rabbits & Small Mammals (GI Stasis Emergency)
+        else if (/\b(rabbit|bunny|guinea pig|hamster|chinchilla|gi stasis|gut stasis|not pooping|timothy hay)\b/i.test(lower)) {
+          reply = `🐰 **Lagomorph & Small Exotic Critical Care**:\n\n` +
+            `• **🚨 GI Stasis is a Life-Threatening Emergency**: If a rabbit stops eating or producing fecal pellets for > 12 hours, gut motility shuts down, leading to fatal gas accumulation and hypothermia.\n` +
+            `• **Immediate Action**: Keep warm, contact an exotic veterinarian for prokinetics, subcutaneous fluids, and multimodal analgesia (meloxicam). Never fast a rabbit.\n` +
+            `• **Dietary Foundation**: 80–85% first/second-cut Timothy hay (unlimited), 10% dark leafy greens, 5% high-fiber pellets. Guinea pigs require daily Vitamin C supplementation (10–30 mg/kg).`;
         }
 
-        // 11. General Science, Math, Biology, Tech & Universal Knowledge
-        else if (/\b(what is|why is|how does|why do|calculate|solve|convert|who was|explain|tell me about|history of|photosynthesis|gravity|dna|universe|ai|flutter|dart)\b/i.test(lower)) {
-          if (lower.includes('photosynthesis')) {
-            reply = `🌿 **Photosynthesis Overview**:\n\nPhotosynthesis is the biological process by which green plants, algae, and certain bacteria convert sunlight, water, and carbon dioxide ($6CO_2 + 6H_2O \\xrightarrow{light} C_6H_{12}O_6 + 6O_2$) into chemical energy (glucose) and oxygen, fueling terrestrial and aquatic ecosystems.`;
-          } else if (lower.includes('purr')) {
-            reply = `🐱 **Why Cats Purr**:\n\nCats produce purring via rapid rhythmic twitching of their laryngeal muscles and diaphragm at 25–150 Hz. While commonly a sign of contentment, purring also releases endorphins that promote bone density repair and tissue regeneration during stress or recovery.`;
-          } else {
-            reply = `💡 **Knowledge & Insights on "${prompt}"**:\n\n` +
-              `Regarding your inquiry:\n\n` +
-              `• **Core Concept**: Whether you are exploring scientific principles, biological processes, mathematics, or companion animal science, PetConnect AI provides structured, evidence-based explanations.\n` +
-              `• **Specific Details**: If you would like a deeper breakdown, step-by-step mathematical proof, or clinical correlation, let me know!`;
-          }
+        // 9. Reptile Care (UVB Lighting & Metabolic Bone Disease)
+        else if (/\b(reptile|bearded dragon|gecko|snake|chameleon|tortoise|turtle|uvb|metabolic bone|mbd)\b/i.test(lower)) {
+          reply = `🦎 **Reptile Veterinary Medicine & Thermal Biology**:\n\n` +
+            `• **UVB & Vitamin D3 Synthesis**: Diurnal reptiles (bearded dragons, tortoises) require linear T5 HO 10.0 or 12% UVB lighting replaced every 6–12 months. Glass/plastic blocks 100% of UVB rays.\n` +
+            `• **Metabolic Bone Disease (MBD)**: Calcium deficiency or lack of UVB causes tremors, rubbery jaw, fractured limbs, and cloacal prolapse.\n` +
+            `• **Thermal Gradient**: Ensure strict basking zone vs. cool side gradient to facilitate digestion, immune function, and thermoregulation.`;
         }
 
-        // 12. Thank You & Pleasantries
-        else if (/\b(thank you|thanks|thx|appreciate it|great help|awesome|good job)\b/i.test(lower)) {
-          reply = `You are very welcome! 😊 I am always here to support you and your pets with trusted veterinary guidance, training tips, nutrition advice, and answers to any questions. Wishing you and your companion a wonderful day!`;
+        // 10. Equine Medicine & Colic Triage
+        else if (/\b(horse|equine|colic|founder|laminitis|flank watching|gut sounds)\b/i.test(lower)) {
+          reply = `🐴 **Equine Clinical Medicine & Colic Protocol**:\n\n` +
+            `• **🚨 Acute Colic Warning Signs**: Flank watching, pawing ground, rolling violently, absence of borborygmi (gut sounds), and elevated heart rate (>60 bpm) indicate a veterinary emergency.\n` +
+            `• **Immediate First Aid**: Remove all grain and hay. Walk the horse gently if safe. Do not administer banamine IM (risk of fatal clostridial myositis). Call an equine veterinarian immediately.`;
         }
 
-        // 13. Dynamic Universal Intelligent Fallback
+        // 11. Caloric Math & Feeding Calculations
+        else if (/\b(calorie|calories|rer|mer|how much to feed|feeding amount|weight loss diet|calculate food)\b/i.test(lower)) {
+          reply = `🥣 **WSAVA Veterinary Caloric & Nutrition Calculations**:\n\n` +
+            `1. **Resting Energy Requirement (RER)**:\n` +
+            `   $$RER = 70 \\times (BW_{kg})^{0.75}$$\n` +
+            `   - *Example (10 kg pet)*: $70 \\times (10)^{0.75} \\approx 394\\text{ kcal/day}$.\n` +
+            `2. **Maintenance Energy Requirement (MER)**:\n` +
+            `   - Neutered Adult Dog: $1.6 \\times RER$\n` +
+            `   - Intact Adult Dog: $1.8 \\times RER$\n` +
+            `   - Weight Loss Goal: $1.0 \\times RER$\n` +
+            `   - Adult Neutered Cat: $1.2 \\times RER$\n` +
+            `3. **Feeding Measure**: Divide total daily MER kcal by the kcal/cup on your specific pet food bag to determine precise meal portions.`;
+        }
+
+        // 12. Puppy Biting & Behavior Training
+        else if (/\b(biting|play bit|mouthing|puppy bite|stop biting|bite inhibition|teething|chewing|crate train|potty train|barking|separation anxiety)\b/i.test(lower)) {
+          reply = `🐾 **Positive Reinforcement Behavior & Training Protocol**:\n\n` +
+            `1. **Play Biting & Mouthing**: Emit a high-pitched "Ouch!", freeze movement for 5 seconds, and redirect immediately to an authorized chew toy (frozen Kong or teething ring).\n` +
+            `2. **Crate & Potty Windows**: Take puppies outside immediately upon waking, 15 minutes after eating, and after vigorous play. Reward within 2 seconds of outdoor elimination.\n` +
+            `3. **Separation Anxiety**: Desensitize departure cues (keys, shoes). Practice 2–5 minute calm departures with high-value lick mats (licking releases calming endorphins).`;
+        }
+
+        // 13. Pet Adoption & Rescue
+        else if (/\b(adopt|adoption|shelter|rescue a dog|rescue a cat|get a puppy|get a kitten)\b/i.test(lower)) {
+          reply = `🐶 **Pet Adoption & Rescue Guidance**:\n\n` +
+            `• **Where to Adopt**: Browse the **Community $\\rightarrow$ Adoption Hub** in PetConnect AI, or connect with local animal shelters and verified rescue foster networks.\n` +
+            `• **Preparation**: Secure non-toxic food/water bowls, age-appropriate food, crate/bed, leash, and schedule an initial veterinary intake exam for vaccinations and microchipping.`;
+        }
+
+        // 14. Universal Omni-Domain Reasoner
         else {
-          reply = `🐾 **PetConnect AI Assistance**:\n\n` +
+          reply = `💡 **PetConnect AI Clinical & Science Guidance**:\n\n` +
             `Regarding your inquiry about "${prompt}":\n\n` +
-            `• **Practical Guidance**: For optimal companion wellness, maintain a consistent daily routine of balanced nutrition, positive mental enrichment, and regular veterinary health check-ups.\n` +
-            `• **Tailored Support**: I can provide detailed guidance on specific medical symptoms, WSAVA nutrition, puppy/kitten training, adoption resources, or general science topics. What specific details would you like to explore next?`;
+            `• **Core Principles**: Maintaining optimal health, balanced species-appropriate nutrition, mental enrichment, and regular preventive veterinary wellness is essential for companion longevity.\n` +
+            `• **Next Steps**: If this relates to a specific medical symptom, dietary calculation, training routine, or general scientific question, feel free to ask with additional details!`;
         }
       }
     }

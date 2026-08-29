@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/clinic_analytics_summary.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -36,6 +37,40 @@ class ClinicAnalyticsScreen extends ConsumerStatefulWidget {
 class _ClinicAnalyticsScreenState
     extends ConsumerState<ClinicAnalyticsScreen> {
   _Timeframe _selectedTimeframe = _Timeframe.thisMonth;
+
+  Future<void> _exportAnalyticsReport(BuildContext context) async {
+    final clinics = ref.read(vetClinicsProvider).valueOrNull ?? [];
+    final clinicName = clinics.isNotEmpty ? clinics.first.name : 'Veterinary Practice';
+    final clinicId = clinics.isNotEmpty ? clinics.first.id : '';
+
+    final rows = clinicId.isNotEmpty
+        ? (ref.read(vetClinicAnalyticsProvider(clinicId)).valueOrNull ?? [])
+        : <ClinicAnalyticsSummary>[];
+
+    final stats = _AnalyticsBody.aggregate(rows, _selectedTimeframe);
+
+    final summary = '====================================================\n'
+        '       OFFICIAL CLINIC PERFORMANCE STATEMENT        \n'
+        '              PetConnect AI Enterprise              \n'
+        '====================================================\n'
+        'CLINIC:            $clinicName\n'
+        'TIMEFRAME:         ${_selectedTimeframe.label}\n'
+        'TOTAL PATIENTS:    ${stats.uniquePatients}\n'
+        'APPOINTMENTS:      ${stats.totalAppointments} (${stats.completedAppointments} Completed, ${stats.cancelledAppointments} Cancelled)\n'
+        'COMPLETION RATE:   ${stats.completionRate.toStringAsFixed(1)}%\n'
+        'CONSULTATIONS:     ${stats.totalConsultations}\n'
+        'PRESCRIPTIONS:     ${stats.totalPrescriptions}\n'
+        'VACCINATIONS:      ${stats.totalVaccinations}\n'
+        'AVG CONSULT TIME:  ${stats.avgDuration.toStringAsFixed(1)} minutes\n'
+        '====================================================\n'
+        'Generated via PetConnect AI Practice Intelligence\n'
+        'Export Date: ${DateTime.now().toIso8601String()}\n';
+
+    await ExternalActions.shareText(
+      summary,
+      subject: 'Clinic Analytics: $clinicName (${_selectedTimeframe.label})',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,15 +112,9 @@ class _ClinicAnalyticsScreenState
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.download_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Exporting clinic analytics summary (PDF)... Saved to Downloads.'),
-                ),
-              );
-            },
-            tooltip: 'Export Report',
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => _exportAnalyticsReport(context),
+            tooltip: 'Export & Share Report',
           ),
         ],
       ),
@@ -148,7 +177,7 @@ class _AnalyticsBody extends ConsumerWidget {
         if (rows.isEmpty) {
           return _EmptyAnalytics(clinicName: clinicName);
         }
-        final agg = _aggregate(rows, selectedTimeframe);
+        final agg = aggregate(rows, selectedTimeframe);
         return SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
@@ -480,7 +509,7 @@ class _AnalyticsBody extends ConsumerWidget {
 
   // ── Aggregation ──────────────────────────────────────────────────────────
 
-  _AggregatedStats _aggregate(
+  static _AggregatedStats aggregate(
     List<ClinicAnalyticsSummary> rows,
     _Timeframe tf,
   ) {

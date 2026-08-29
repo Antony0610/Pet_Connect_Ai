@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -13,6 +15,7 @@ import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_wid
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/services/smart_collar_ble_manager.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 
@@ -58,11 +61,13 @@ class _SmartCollarDiagnosticsScreenState
         ? collarsAsync.valueOrNull!.first
         : null;
     final isConnected = collar != null && collar.isActive;
-    final batteryPct = collar != null ? collar.batteryPercentage : 88;
-    final estimatedDays = SmartCollarBleManager.estimateBatteryDays(
-      batteryPercent: batteryPct,
-      pingInterval: _selectedPingInterval,
-    );
+    final batteryPct = collar != null ? collar.batteryPercentage : 0;
+    final estimatedDays = isConnected
+        ? SmartCollarBleManager.estimateBatteryDays(
+            batteryPercent: batteryPct,
+            pingInterval: _selectedPingInterval,
+          )
+        : 0.0;
 
     final dynamicChecks = [
       _Check(
@@ -70,7 +75,7 @@ class _SmartCollarDiagnosticsScreenState
         'MAX17048 Fuel Gauge IC',
         isConnected
             ? 'SoC: $batteryPct% (~${estimatedDays.toStringAsFixed(1)} days remaining)'
-            : 'Standby — No collar device connected',
+            : 'Hardware Standby — No smart collar linked',
         isConnected ? _Health.ok : _Health.attention,
       ),
       _Check(
@@ -78,7 +83,7 @@ class _SmartCollarDiagnosticsScreenState
         'BLE 5.2 Low Energy Radio',
         isConnected
             ? 'RSSI: $_rssi dBm (Strong Signal • ~${SmartCollarBleManager.rssiToDistanceMeters(_rssi).toStringAsFixed(1)}m away)'
-            : 'Standby — Waiting for beacon discovery',
+            : 'Standby — Waiting for paired beacon connection',
         isConnected ? _Health.ok : _Health.attention,
       ),
       _Check(
@@ -346,9 +351,9 @@ class _SmartCollarDiagnosticsScreenState
   }
 
   Widget _buildBleRadarCard(BuildContext context, ColorScheme scheme, bool isConnected) {
-    final quality = SmartCollarBleManager.classifySignal(_rssi);
-    final qualityPercent = SmartCollarBleManager.rssiToQualityPercent(_rssi);
-    final distanceM = SmartCollarBleManager.rssiToDistanceMeters(_rssi);
+    final quality = isConnected ? SmartCollarBleManager.classifySignal(_rssi) : BleSignalQuality.outOfRange;
+    final qualityPercent = isConnected ? SmartCollarBleManager.rssiToQualityPercent(_rssi) : 0;
+    final distanceM = isConnected ? SmartCollarBleManager.rssiToDistanceMeters(_rssi) : 0.0;
 
     return AppCard(
       child: Column(
@@ -359,7 +364,7 @@ class _SmartCollarDiagnosticsScreenState
             children: [
               Row(
                 children: [
-                  Icon(Icons.radar_rounded, color: scheme.primary),
+                  Icon(Icons.radar_rounded, color: isConnected ? scheme.primary : scheme.outline),
                   AppSpacing.hGapSm,
                   Text(
                     'Bluetooth Proximity Radar',
@@ -372,20 +377,24 @@ class _SmartCollarDiagnosticsScreenState
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade100,
+                  color: isConnected ? Colors.green.shade100 : scheme.surfaceContainerHighest,
                   borderRadius: AppRadius.brPill,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.bluetooth_connected, size: 14, color: Colors.green.shade800),
+                    Icon(
+                      isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
+                      size: 14,
+                      color: isConnected ? Colors.green.shade800 : scheme.onSurfaceVariant,
+                    ),
                     AppSpacing.hGapXs,
                     Text(
-                      'CONNECTED',
+                      isConnected ? 'CONNECTED' : 'DISCONNECTED',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green.shade900,
+                        color: isConnected ? Colors.green.shade900 : scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -397,9 +406,17 @@ class _SmartCollarDiagnosticsScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildRadarStat(context, 'RSSI Signal', '$_rssi dBm'),
-              _buildRadarStat(context, 'Signal Quality', '$qualityPercent% (${quality.name.toUpperCase()})'),
-              _buildRadarStat(context, 'Estimated Range', '~${distanceM.toStringAsFixed(1)} meters'),
+              _buildRadarStat(context, 'RSSI Signal', isConnected ? '$_rssi dBm' : '-- dBm'),
+              _buildRadarStat(
+                context,
+                'Signal Quality',
+                isConnected ? '$qualityPercent% (${quality.name.toUpperCase()})' : '0% (STANDBY)',
+              ),
+              _buildRadarStat(
+                context,
+                'Estimated Range',
+                isConnected ? '~${distanceM.toStringAsFixed(1)} meters' : '-- meters',
+              ),
             ],
           ),
           AppSpacing.vGapMd,
@@ -479,8 +496,8 @@ class _BatteryHero extends StatelessWidget {
     final accent = palette.accent;
 
     final isConnected = collar != null && collar!.isActive;
-    final progress = (batteryPct / 100.0).clamp(0.0, 1.0);
-    final batteryText = '$batteryPct%';
+    final progress = isConnected ? (batteryPct / 100.0).clamp(0.0, 1.0) : 0.0;
+    final batteryText = isConnected ? '$batteryPct%' : '--';
 
     final ring = CollarMetricRing(
       progress: progress,
@@ -503,7 +520,7 @@ class _BatteryHero extends StatelessWidget {
             ),
           ),
           Text(
-            'Battery',
+            isConnected ? 'Battery' : 'Offline',
             style: context.textTheme.labelMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -517,7 +534,7 @@ class _BatteryHero extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          isConnected ? 'Collar Connected & Active' : 'Smart Collar Synchronized',
+          isConnected ? 'Collar Connected & Active' : 'No Smart Collar Paired',
           style: context.textTheme.titleMedium?.copyWith(
             color: scheme.onSurface,
             fontWeight: AppTypography.semiBold,
@@ -525,11 +542,22 @@ class _BatteryHero extends StatelessWidget {
         ),
         AppSpacing.vGapXs,
         Text(
-          'Operating at $batteryPct% charge with approximately ${estimatedDays.toStringAsFixed(1)} days of active telemetry remaining.',
+          isConnected
+              ? 'Operating at $batteryPct% charge with approximately ${estimatedDays.toStringAsFixed(1)} days of active telemetry remaining.'
+              : 'Hardware in standby mode. Pair a Smart Collar to activate real-time GPS telemetry, battery monitoring, and proximity radar.',
           style: context.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),
+        if (!isConnected) ...[
+          AppSpacing.vGapSm,
+          AppButton.tonal(
+            label: 'Pair Smart Collar',
+            icon: Icons.bluetooth_searching_rounded,
+            borderRadius: AppRadius.brPill,
+            onPressed: () => context.goNamed(RouteNames.ownerCollarSettings),
+          ),
+        ],
       ],
     );
 

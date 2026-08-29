@@ -11,6 +11,7 @@ class UserProfileModel implements Model {
     required this.fullName,
     required this.role,
     this.avatarUrl,
+    this.phone,
     this.isSuspended = false,
     this.createdAt,
     this.updatedAt,
@@ -21,6 +22,7 @@ class UserProfileModel implements Model {
   final String fullName;
   final AppPortal role;
   final String? avatarUrl;
+  final String? phone;
   final bool isSuspended;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -33,6 +35,7 @@ class UserProfileModel implements Model {
       fullName: json['full_name'] as String? ?? '',
       role: AppPortalExtension.fromDbRole(json['role'] as String?),
       avatarUrl: json['avatar_url'] as String?,
+      phone: json['phone'] as String?,
       isSuspended: (json['is_suspended'] as bool?) ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
@@ -50,6 +53,7 @@ class UserProfileModel implements Model {
     String? fullName,
     AppPortal? role,
     String? avatarUrl,
+    String? phone,
     bool? isSuspended,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -60,6 +64,7 @@ class UserProfileModel implements Model {
       fullName: fullName ?? this.fullName,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      phone: phone ?? this.phone,
       isSuspended: isSuspended ?? this.isSuspended,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -73,6 +78,7 @@ class UserProfileModel implements Model {
     fullName: fullName,
     role: role,
     avatarUrl: avatarUrl,
+    phone: phone,
     isSuspended: isSuspended,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -85,6 +91,7 @@ class UserProfileModel implements Model {
     fullName: profile.fullName,
     role: profile.role,
     avatarUrl: profile.avatarUrl,
+    phone: profile.phone,
     isSuspended: profile.isSuspended,
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
@@ -97,6 +104,7 @@ class UserProfileModel implements Model {
     'full_name': fullName,
     'role': role.toDbRole(),
     if (avatarUrl != null) 'avatar_url': avatarUrl,
+    'phone': phone,
     'is_suspended': isSuspended,
     if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),

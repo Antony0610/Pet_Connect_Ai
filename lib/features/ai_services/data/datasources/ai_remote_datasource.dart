@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/core/error/exceptions.dart';
@@ -256,7 +257,13 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
           final responseData = res.data as Map<String, dynamic>?;
           final edgeReply = (responseData?['reply'] as String?) ?? '';
-          if (edgeReply.isNotEmpty) {
+          if (edgeReply.isNotEmpty &&
+              !edgeReply.contains('For optimal companion wellness') &&
+              !edgeReply.contains('Regarding your inquiry') &&
+              !edgeReply.contains('Knowledge & Insights on') &&
+              !edgeReply.contains('Core Concept') &&
+              !edgeReply.contains('scientific principles, biological processes') &&
+              !edgeReply.contains('Specific Details: If you would like a deeper breakdown')) {
             replyText = edgeReply;
             responseMetadata = responseData ?? {};
           }
@@ -313,7 +320,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     if (apiKey.isEmpty) return null;
 
     final client = HttpClient();
-    client.connectionTimeout = const Duration(seconds: 12);
+    client.connectionTimeout = const Duration(seconds: 20);
     final models = [
       'gemini-2.0-flash',
       'gemini-1.5-flash',
@@ -321,65 +328,66 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       'gemini-2.0-flash-exp',
     ];
 
+    // Sanitize history to ensure strict user/model turn alternation
+    final sanitizedHistory = <Map<String, dynamic>>[];
+    if (history != null && history.isNotEmpty) {
+      String lastRole = '';
+      for (final turn in history) {
+        final role = turn['role']?.toString();
+        if (role != null && (role == 'user' || role == 'model') && role != lastRole) {
+          sanitizedHistory.add(turn);
+          lastRole = role;
+        }
+      }
+      // Gemini requires user as the last role before generating content
+      if (sanitizedHistory.isNotEmpty && sanitizedHistory.last['role'] == 'user') {
+        sanitizedHistory.removeLast();
+      }
+    }
+
+    final userTurnParts = <Map<String, dynamic>>[];
+    if (imageBase64 != null && imageBase64.isNotEmpty) {
+      userTurnParts.add({
+        'inlineData': {
+          'mimeType': 'image/jpeg',
+          'data': imageBase64,
+        },
+      });
+    }
+    userTurnParts.add({'text': prompt});
+
     for (final model in models) {
       try {
-        final request = await client.postUrl(
-          Uri.parse(
-            'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
-          ),
+        // Attempt 1: Multi-turn with sanitized history (or single-turn if no history)
+        var result = await _executeGeminiRequest(
+          client: client,
+          model: model,
+          apiKey: apiKey,
+          systemPrompt: systemPrompt,
+          contents: [
+            ...sanitizedHistory,
+            {'role': 'user', 'parts': userTurnParts},
+          ],
         );
-        request.headers.set('content-type', 'application/json');
-
-        final userTurnParts = <Map<String, dynamic>>[];
-        if (imageBase64 != null && imageBase64.isNotEmpty) {
-          userTurnParts.add({
-            'inlineData': {
-              'mimeType': 'image/jpeg',
-              'data': imageBase64,
-            },
-          });
+        if (result != null && result.isNotEmpty) {
+          client.close();
+          return result;
         }
-        userTurnParts.add({'text': prompt});
 
-        final contents = <Map<String, dynamic>>[];
-        if (history != null && history.isNotEmpty) {
-          contents.addAll(history);
-        }
-        contents.add({
-          'role': 'user',
-          'parts': userTurnParts,
-        });
-
-        final body = jsonEncode({
-          'system_instruction': {
-            'parts': [
-              {'text': systemPrompt},
+        // Attempt 2: If multi-turn failed, immediately retry clean single-turn
+        if (sanitizedHistory.isNotEmpty) {
+          result = await _executeGeminiRequest(
+            client: client,
+            model: model,
+            apiKey: apiKey,
+            systemPrompt: systemPrompt,
+            contents: [
+              {'role': 'user', 'parts': userTurnParts},
             ],
-          },
-          'contents': contents,
-          'generationConfig': {
-            'temperature': 0.7,
-            'maxOutputTokens': 2048,
-          },
-        });
-
-        request.write(body);
-        final response = await request.close();
-        if (response.statusCode == 200) {
-          final resText = await response.transform(utf8.decoder).join();
-          final json = jsonDecode(resText) as Map<String, dynamic>;
-          final candidates = json['candidates'] as List<dynamic>?;
-          if (candidates != null && candidates.isNotEmpty) {
-            final firstCandidate = candidates.first as Map<String, dynamic>?;
-            final content = firstCandidate?['content'] as Map<String, dynamic>?;
-            final rParts = content?['parts'] as List<dynamic>?;
-            if (rParts != null && rParts.isNotEmpty) {
-              final firstPart = rParts.first as Map<String, dynamic>?;
-              final text = firstPart?['text'] as String?;
-              if (text != null && text.trim().isNotEmpty) {
-                return text.trim();
-              }
-            }
+          );
+          if (result != null && result.isNotEmpty) {
+            client.close();
+            return result;
           }
         }
       } catch (_) {
@@ -387,6 +395,57 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       }
     }
     client.close();
+    return null;
+  }
+
+  Future<String?> _executeGeminiRequest({
+    required HttpClient client,
+    required String model,
+    required String apiKey,
+    required String systemPrompt,
+    required List<Map<String, dynamic>> contents,
+  }) async {
+    try {
+      final request = await client.postUrl(
+        Uri.parse(
+          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
+        ),
+      );
+      request.headers.set('content-type', 'application/json');
+
+      final body = jsonEncode({
+        'system_instruction': {
+          'parts': [
+            {'text': systemPrompt},
+          ],
+        },
+        'contents': contents,
+        'generationConfig': {
+          'temperature': 0.7,
+          'maxOutputTokens': 4096,
+        },
+      });
+
+      request.write(body);
+      final response = await request.close();
+      if (response.statusCode == 200) {
+        final resText = await response.transform(utf8.decoder).join();
+        final json = jsonDecode(resText) as Map<String, dynamic>;
+        final candidates = json['candidates'] as List<dynamic>?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final firstCandidate = candidates.first as Map<String, dynamic>?;
+          final content = firstCandidate?['content'] as Map<String, dynamic>?;
+          final rParts = content?['parts'] as List<dynamic>?;
+          if (rParts != null && rParts.isNotEmpty) {
+            final firstPart = rParts.first as Map<String, dynamic>?;
+            final text = firstPart?['text'] as String?;
+            if (text != null && text.trim().isNotEmpty) {
+              return text.trim();
+            }
+          }
+        }
+      }
+    } catch (_) {}
     return null;
   }
 
@@ -424,11 +483,11 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     } else if (userPets.isNotEmpty) {
       activePet = userPets.first;
     }
-    final petName = activePet?['name'] ?? 'your companion';
-    final petSpecies = activePet?['species'] ?? 'pet';
-    final petBreed = activePet?['breed'] ?? petSpecies;
-    final petAge = activePet?['age'] ?? 'unknown age';
-    final petWeight = activePet?['weight'] ?? '';
+    final petName = activePet?['name']?.toString() ?? 'your companion';
+    final petSpecies = activePet?['species']?.toString() ?? 'pet';
+    final petBreed = activePet?['breed']?.toString() ?? petSpecies;
+    final petAge = activePet?['age']?.toString() ?? 'unknown age';
+    final petWeight = activePet?['weight']?.toString() ?? '';
     final dynamic rawAllergies = activePet?['allergies'];
     final petAllergies = (rawAllergies != null && rawAllergies.toString().isNotEmpty)
         ? rawAllergies.toString()
@@ -527,7 +586,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       caseSensitive: false,
     );
     if (barkingAnxietyRegex.hasMatch(lower)) {
-      return '🐕 **Excessive Barking & Separation Anxiety Solutions for $petName**:\n\n'
+      return '🐕 **Behavioral & Positive Reinforcement Guidance: Excessive Barking & Separation Anxiety Solutions for $petName**:\n\n'
           '1. **Identify the Underlying Trigger**:\n'
           '   • **Alert Barking**: Block window sightlines with privacy film or close curtains.\n'
           '   • **Boredom/Demand Barking**: Ignore attention-seeking barks completely; reward calm quiet behavior.\n'
@@ -559,12 +618,54 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           '   • Play 5 minutes of tug or fetch before the walk to burn initial excitable energy.';
     }
 
-    // 7. Multi-Pet Inventory & Companion Lookup (Highest Priority for pet identity)
-    final petInventoryRegex = RegExp(
-      r'^(who|which|what|list|show|how many)\b.*\b(pets|pet|animals|companions)\b|\b(who are my pets|what are my pets|which are my pets|what pets do i have|list my pets|show my pets|my pets list|how many pets do i have|my registered pets|registered pets)\b',
+    // 7. Apartment / Flat Living Breed & Companion Recommendations
+    final apartmentRegex = RegExp(
+      r'\b(flat|apartment|small space|studio|indoor only|breed to adopt|which breed|what breed|adopt.*flat|adopt.*apartment|live in a flat|live in an apartment|pet to adopt)\b',
       caseSensitive: false,
     );
-    if (petInventoryRegex.hasMatch(lower) && !lower.contains('vomit') && !lower.contains('rash') && !lower.contains('sick') && !lower.contains('walk') && !lower.contains('eat') && !lower.contains('food') && !lower.contains('eye') && !lower.contains('ear')) {
+    if (apartmentRegex.hasMatch(lower) && !lower.contains('my pet')) {
+      return '🏢 **Top Companion Breeds & Species for Apartment / Flat Living**:\n\n'
+          'When choosing a companion for apartment living, calm temperaments, low vocalization (barking/howling), and moderate exercise demands are essential:\n\n'
+          '• **Feline Companions (Optimal for Apartments)**:\n'
+          '  - **British Shorthair & Scottish Fold**: Calm, independent, and quiet with low vertical climbing frenzy.\n'
+          '  - **Ragdoll & Russian Blue**: Docile, gentle, and happy lounging in cozy indoor environments.\n\n'
+          '• **Canine Breeds**:\n'
+          '  - **French Bulldog & Pug**: Compact size, low barking frequency, and satisfied with 20–30 minute daily walks.\n'
+          '  - **Cavalier King Charles Spaniel**: Quiet, polite, and deeply attached to humans without excessive energy surges.\n'
+          '  - **Greyhound (Retired)**: Famous as "45-mph couch potatoes" — remarkably quiet, gentle, and happy sleeping for 18 hours after a short daily sprint.\n'
+          '  - **Bichon Frise / Maltipoo**: Hypoallergenic, low shedding, and well-behaved in multi-unit buildings.\n\n'
+          '• **Key Flat Care Considerations**:\n'
+          '  1. **Mental Stimulation**: Use snuffle mats, lick pads, and food puzzles to burn cognitive energy indoors.\n'
+          '  2. **Balcony & Window Safety**: Install sturdy safety netting or plexiglass guards on railings.\n'
+          '  3. **Noise Management**: Early desensitization to corridor footsteps and elevator chimes prevents alert barking.';
+    }
+
+    // 8. Multi-Pet Inventory & Companion Lookup (Strict User Pet Inventory)
+    final petInventoryRegex = RegExp(
+      r'\b(who are my pets|what are my pets|which are my pets|which pets do i have|list my pets|show my pets|my pets list|how many pets do i have|my registered pets|show registered pets)\b',
+      caseSensitive: false,
+    );
+    if (petInventoryRegex.hasMatch(lower) &&
+        !lower.contains('adopt') &&
+        !lower.contains('flat') &&
+        !lower.contains('apartment') &&
+        !lower.contains('breed to') &&
+        !lower.contains('feed') &&
+        !lower.contains('diet') &&
+        !lower.contains('give') &&
+        !lower.contains('rabbit') &&
+        !lower.contains('bunny') &&
+        !lower.contains('bird') &&
+        !lower.contains('guinea') &&
+        !lower.contains('reptile') &&
+        !lower.contains('vomit') &&
+        !lower.contains('rash') &&
+        !lower.contains('sick') &&
+        !lower.contains('walk') &&
+        !lower.contains('eat') &&
+        !lower.contains('food') &&
+        !lower.contains('eye') &&
+        !lower.contains('ear')) {
       if (userPets.isNotEmpty) {
         final petListFormatted = userPets.map((p) {
           final name = p['name'] ?? 'Companion';
@@ -585,7 +686,73 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       }
     }
 
-    // 8. Critical Respiratory Distress, Seizures, Choking & CPR Emergencies
+    // 8. Avian Health, Care & Toxic Fumes (Birds, Parrots, Budgies)
+    final birdRegex = RegExp(r'\b(bird|birds|parrot|parrots|budgie|budgies|cockatiel|cockatiels|avian|feather|feathers|teflon|ptfe|non-stick|cage|wing trim)\b', caseSensitive: false);
+    if (birdRegex.hasMatch(lower)) {
+      if (lower.contains('teflon') || lower.contains('ptfe') || lower.contains('non-stick') || lower.contains('smoke') || lower.contains('fume')) {
+        return '🚨 **[CRITICAL AVIAN TOXICITY: PTFE / TEFLON FUMES]**\n\n'
+            '• **Fatal Danger**: Overheated non-stick cookware (Teflon/PTFE), self-cleaning ovens, and non-stick air fryers release odorless polytetrafluoroethylene fumes that cause acute hemorrhagic pulmonary edema and death in birds within minutes.\n'
+            '• **Immediate Action**: Move all birds immediately into fresh, open outdoor air. Ventilate the home completely with open windows and fans. Transport to an avian emergency vet immediately if tail bobbing, respiratory gasping, or perching loss occurs.';
+      }
+      return '🦜 **Avian Care & Nutrition Guidelines**:\n\n'
+          '• **Complete Diet**: All-seed diets lead to severe Vitamin A deficiency and hepatic lipidosis. Feed 60–70% formulated avian pellets, supplemented with 30% fresh dark leafy greens (kale, spinach), chopped broccoli, carrots, and occasional seeds/fruits.\n'
+          '• **Signs of Illness in Birds**: Birds naturally mask illness. Fluffed feathers at the bottom of the cage, continuous tail bobbing, sleeping during daytime, or watery droppings indicate urgent medical distress.\n'
+          '• **Toxic Foods for Birds**: Avocado (persin toxin causes cardiac failure), chocolate, caffeine, fruit seeds/pits (cyanide), and high-sodium foods.';
+    }
+
+    // 9. Rabbits, Guinea Pigs & Small Mammals (GI Stasis & Husbandry)
+    final smallPetRegex = RegExp(r'\b(rabbit|rabbits|bunny|bunnies|guinea pig|guinea pigs|hamster|hamsters|ferret|ferrets|chinchilla|gi stasis|timothy hay)\b', caseSensitive: false);
+    if (smallPetRegex.hasMatch(lower)) {
+      if (lower.contains('stasis') || lower.contains('not eating') || lower.contains('no poop') || lower.contains('stopped eating') || lower.contains('lethargic')) {
+        return '🚨 **[CRITICAL EMERGENCY: RABBIT / SMALL PET GI STASIS]**\n\n'
+            '• **Definition**: Gastrointestinal Stasis occurs when gut motility slows or ceases. In lagomorphs, going 12+ hours without eating or producing fecal pellets is a life-threatening veterinary emergency.\n'
+            '• **First-Aid Protocol**: Keep the rabbit warm (body temp drops rapidly). Do NOT force-feed if the stomach feels firm/bloated. Contact an exotic veterinarian immediately for prokinetics (cisapride/metoclopramide), pain management (meloxicam), and subcutaneous fluids.';
+      }
+      return '🐰 **Small Mammal & Lagomorph Care Standards**:\n\n'
+          '• **Dietary Hay Rule**: 80–85% of a rabbit/guinea pig diet MUST be unlimited fresh grass hay (Timothy or Orchard Grass) to maintain cecal flora and prevent molar spurs.\n'
+          '• **Guinea Pig Vitamin C**: Guinea pigs cannot synthesize Vitamin C. Provide 20–30 mg daily via fresh bell peppers, dark leafy greens, or stabilized Vitamin C tablets.\n'
+          '• **Safe Housing**: Avoid cedar and pine shavings (aromatic phenols cause respiratory and hepatic damage). Use paper-based recycled bedding instead.';
+    }
+
+    // 10. Reptiles & Amphibians (UVB, Calcium & Husbandry)
+    final reptileRegex = RegExp(r'\b(reptile|reptiles|bearded dragon|gecko|geckos|turtle|turtles|snake|snakes|lizard|lizards|uvb|basking|metabolic bone disease|mbd)\b', caseSensitive: false);
+    if (reptileRegex.hasMatch(lower)) {
+      return '🦎 **Reptile Husbandry & Metabolic Health**:\n\n'
+          '• **UVB Lighting Essential**: Diurnal reptiles (e.g. Bearded Dragons) require dedicated linear UVB lighting (T5 HO 10.0 or 12%) replaced every 6–12 months. Glass filters out 99% of UVB rays.\n'
+          '• **Metabolic Bone Disease (MBD)**: Lack of proper UVB and dietary calcium causes rubbery jaws, tremors, and fractured limbs. Dust feeder insects with calcium powder (without D3 for high UVB, with D3 for indoor low UVB).\n'
+          '• **Thermal Gradients**: Maintain distinct basking zones (95–105°F / 35–40°C) and cool retreat zones (75–80°F / 24–27°C) measured with digital probe thermometers or infrared temp guns.';
+    }
+
+    // 11. Equine & Large Animals (Colic & Hoof Care)
+    final equineRegex = RegExp(r'\b(horse|horses|equine|pony|ponies|colic|hoof|hooves|laminitis|founder|thrush)\b', caseSensitive: false);
+    if (equineRegex.hasMatch(lower)) {
+      if (lower.contains('colic') || lower.contains('rolling') || lower.contains('pawing') || lower.contains('flank')) {
+        return '🚨 **[EQUINE EMERGENCY: ACUTE COLIC PROTOCOL]**\n\n'
+            '• **Warning Signs**: Pawing at the ground, looking at or biting flanks, repeated lying down and violent rolling, elevated heart rate (>60 bpm), and absent gut sounds.\n'
+            '• **Action Steps**: Call your equine veterinarian immediately. Remove all feed and grain. Walk the horse calmly on flat ground if safe to do so to prevent violent rolling trauma. Do NOT administer Banamine intramuscularly (clostridial myositis risk); give only per veterinarian orders.';
+      }
+      return '🐴 **Equine Health & Care Foundations**:\n\n'
+          '• **Forage First**: Horses should consume 1.5–2.0% of their body weight in high-quality forage (hay/pasture) daily to support hindgut fermentation.\n'
+          '• **Hoof Care**: Regular trimming every 6–8 weeks by a certified farrier prevents hoof wall cracking, white line disease, and balance issues.\n'
+          '• **Parasite Control**: Conduct bi-annual Fecal Egg Count (FEC) tests rather than blind deworming to prevent anthelmintic resistance.';
+    }
+
+    // 12. Unit Conversions & Mathematical Calculations
+    final convertRegex = RegExp(r'\b(convert|calculate|how many lbs|how many kg|in lbs|in kg|math)\b', caseSensitive: false);
+    if (convertRegex.hasMatch(lower)) {
+      final numMatch = double.tryParse(RegExp(r'(\d+(\.\d+)?)').firstMatch(lower)?.group(1) ?? '');
+      if (numMatch != null) {
+        if (lower.contains('kg to lb') || lower.contains('kg in lb') || (lower.contains('kg') && lower.contains('lb'))) {
+          final lbs = numMatch * 2.20462;
+          return '⚖️ **Unit Conversion**: **${numMatch.toStringAsFixed(1)} kg** = **${lbs.toStringAsFixed(2)} lbs** (pounds).';
+        } else if (lower.contains('lb to kg') || lower.contains('lbs to kg') || lower.contains('pound to kg')) {
+          final kg = numMatch / 2.20462;
+          return '⚖️ **Unit Conversion**: **${numMatch.toStringAsFixed(1)} lbs** = **${kg.toStringAsFixed(2)} kg** (kilograms).';
+        }
+      }
+    }
+
+    // 13. Critical Respiratory Distress, Seizures, Choking & CPR Emergencies
     final emergencyRegex = RegExp(
       r'\b(chok|choking|breath|breathing|gasping|seiz|seizure|seizures|fit|fits|collapse|collapsed|unconscious|pale gum|blue gum|bleeding heavily|hit by car)\b',
       caseSensitive: false,
@@ -598,9 +765,67 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           '• **Pale / Blue Gums or Respiratory Distress**: Indicates hypoxemia or cardiovascular shock. Keep the animal in a sternal position with head extended in an air-conditioned vehicle en route to veterinary ER.';
     }
 
-    // 9. Toxic Foods, Plants & Chemical Ingestion
+    // 14. Dedicated Chocolate & Cocoa Toxicology Query
+    final chocolateRegex = RegExp(r'\b(chocolate|cocoa|theobromine|cacao)\b', caseSensitive: false);
+    if (chocolateRegex.hasMatch(lower)) {
+      return '🚨 **[TRIAGE: EMERGENCY - POTENTIAL TOXIC INGESTION]**\n\n'
+          '🍫 **Veterinary Toxicology: Chocolate / Cocoa Safety & Emergency Guide**\n\n'
+          '• **Is Chocolate Safe?**: **NO — Chocolate is strictly toxic to dogs and cats.** It contains methylxanthines (**theobromine** and **caffeine**), which companion animals metabolize far slower than humans.\n\n'
+          '• **Toxic Thresholds & Doses**:\n'
+          '  - **Mild Upset** (vomiting, diarrhea, restlessness, hyperactivity): **> 20 mg/kg** of theobromine.\n'
+          '  - **Cardiotoxicity** (tachycardia, arrhythmias, high blood pressure): **40–50 mg/kg**.\n'
+          '  - **Severe / Fatal** (muscle tremors, seizures, cardiac arrest): **> 60 mg/kg**.\n'
+          '  *(Baking cocoa powder and 85%+ dark chocolate contain 8–10x more theobromine per ounce than milk chocolate, making small amounts life-threatening).* \n\n'
+          '• **Common Clinical Symptoms**:\n'
+          '  - Early (2–4 hours): Extreme thirst, pacing, vomiting, diarrhea, abdominal bloating.\n'
+          '  - Escalated (4–12 hours): Severe panting, racing heart rate (>180 bpm), muscle rigidity, hyperthermia, seizures.\n\n'
+          '• **Immediate First Aid & Action Steps**:\n'
+          '  1. **Do NOT induce vomiting at home** with salt or hydrogen peroxide unless specifically directed by an emergency veterinary toxicologist (high risk of fatal gastric aspiration and caustic gastritis).\n'
+          '  2. **Calculate Ingested Dose**: Note $petName\'s weight ($petWeight), chocolate type (milk/dark/cocoa), and approximate amount consumed.\n'
+          '  3. **Emergency Transport & Helpline**: Contact Pet Poison Helpline or head immediately to an emergency veterinary hospital. Gastric decontamination (apomorphine emesis + activated charcoal) within 2–4 hours carries an excellent prognosis.';
+    }
+
+    // 15. Companion Health Overview & Daily Wellness Dossier
+    final healthOverviewRegex = RegExp(
+      r"\b(how('s| is| are) (my|the|all my) pets?('s|s')? health|pets?('s|s')? health|health of my pets?|how healthy (is|are) my pets?|how is miavv|how is my dog|how is my cat|how are my pets|health overview|health summary|check my pets?)\b",
+      caseSensitive: false,
+    );
+    if (healthOverviewRegex.hasMatch(lower)) {
+      final isPlural = lower.contains('pets') || lower.contains('all');
+      if (isPlural && userPets.length > 1) {
+        final summaries = userPets.map((p) {
+          final pName = p['name'] ?? 'Companion';
+          final pSpecies = p['species'] ?? 'Pet';
+          final pBreed = p['breed'] ?? pSpecies;
+          final pAge = p['age'] ?? 'Age not specified';
+          final pWeight = p['weight'] ?? 'Weight not specified';
+          final pStatus = p['health_status'] ?? 'Optimal';
+          return '🐾 **$pName** ($pBreed • $pSpecies):\n'
+              '  • Clinical Status: **$pStatus**\n'
+              '  • Age: $pAge | Weight: $pWeight\n'
+              '  • Preventative Care: Up to date on clinical records in Health Passport.';
+        }).join('\n\n');
+
+        return '🩺 **Health Overview for All Registered Companions**:\n\n'
+            '$summaries\n\n'
+            'All companions are actively tracked in your Health Passport. Would you like to review specific vaccinations, weight trends, or care schedules for any companion?';
+      }
+
+      final petStatus = activePet?['health_status'] ?? 'Optimal';
+      return '🩺 **Companion Health Dossier: $petName**\n\n'
+          '• **Clinical Health Status**: $petStatus\n'
+          '• **Profile Summary**: $petBreed ($petSpecies) • Age: $petAge • Weight: $petWeight\n'
+          '• **Allergies & Sensitivities**: $petAllergies\n'
+          '• **Wellness Highlights**:\n'
+          '  - **Activity & Hydration**: Active resting posture, clear alertness, and normal hydration markers.\n'
+          '  - **Preventive Care**: Core vaccinations, regular deworming, and quarterly dental checks are recommended.\n'
+          '  - **Daily Feeding Targets**: Maintain daily nutrition aligned with resting energy requirements (RER = 70 \\times BW_{kg}^{0.75}).\n\n'
+          'Would you like to review specific vaccination records, log new symptoms, or calculate daily caloric targets for $petName?';
+    }
+
+    // 16. Toxic Foods, Plants & Chemical Ingestion
     final toxicRegex = RegExp(
-      r'\b(chocolate|grape|grapes|raisin|raisins|xylitol|lily|lilies|onion|onions|garlic|poison|poisoning|toxic|toxicity|paracetamol|tylenol|ibuprofen|advil|aspirin|rat poison|avocado|coffee|caffeine)\b',
+      r'\b(grape|grapes|raisin|raisins|xylitol|lily|lilies|onion|onions|garlic|poison|poisoning|toxic|toxicity|paracetamol|tylenol|ibuprofen|advil|aspirin|rat poison|avocado|coffee|caffeine)\b',
       caseSensitive: false,
     );
     if (toxicRegex.hasMatch(lower)) {
@@ -637,12 +862,85 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           '• **Daily Target**: 25–40 minutes of sniffing and gentle trotting supports cardiovascular health and mental stimulation.';
     }
 
-    // 12. Food, Diet, Nutrition, Raw Food & Safe Treats
+    // 12. Where to Buy / Get Pet Food & Supplies
+    final buyFoodRegex = RegExp(
+      r'\b(where can i (get|buy)|where to (get|buy)|where do i (get|buy)|how can i (get|buy)|buy (cat|dog|pet) food|order (cat|dog|pet) food|pet store|pet shop|where.*food|near me)\b',
+      caseSensitive: false,
+    );
+    if (buyFoodRegex.hasMatch(lower)) {
+      return '🛒 **Where to Get High-Quality Companion Food & Supplies**:\n\n'
+          '• **Local Veterinary Clinics & Hospitals**:\n'
+          '  - Ideal for prescription diets (Royal Canin Veterinary, Hill\'s Prescription Diet, Purina Pro Plan Vet Direct) tailored for renal, urinary, or dermatological conditions.\n\n'
+          '• **Specialty Pet Retailers & Pet Stores**:\n'
+          '  - Local brick-and-mortar pet shops carry a wide variety of dry kibble, wet food cans, raw diets, and healthy freeze-dried treats.\n\n'
+          '• **Online Delivery Platforms**:\n'
+          '  - **Chewy / Amazon / Petco Delivery**: Reliable home delivery with recurring subscription discounts (typically 5–10% off).\n'
+          '  - **Blinkit / Instamart / DoorDash**: Quick-commerce grocery delivery apps frequently deliver popular cat/dog foods (Whiskas, Purina, Pedigree, Sheba) in 15–30 minutes in metro areas.\n\n'
+          '• **Supermarkets & Hypermarkets**:\n'
+          '  - Supermarket pet aisles carry trusted everyday maintenance wet and dry formulas.';
+    }
+
+    // 13. Dedicated Caloric Requirements & Feeding Plan Math (RER / MER)
+    final calorieMathRegex = RegExp(
+      r'\b(calculate daily caloric|caloric requirements \(rer/mer\)|feeding plan for my companion|calculate calories|daily caloric)\b',
+      caseSensitive: false,
+    );
+    if (calorieMathRegex.hasMatch(lower)) {
+      final weightNum = double.tryParse(RegExp(r'(\d+(\.\d+)?)').firstMatch(petWeight)?.group(1) ?? '') ?? 4.0;
+      final rerVal = (70 * pow(weightNum, 0.75)).round();
+      final isCat = petSpecies.toLowerCase().contains('cat');
+      final merMaintenance = (rerVal * (isCat ? 1.2 : 1.6)).round();
+      final merActive = (rerVal * (isCat ? 1.4 : 1.8)).round();
+      final treatLimit = (merMaintenance * 0.10).round();
+
+      return '📊 **Clinical Caloric Requirements (RER/MER) for $petName ($petBreed)**:\n\n'
+          '• **Recorded Body Weight**: **${weightNum.toStringAsFixed(1)} kg**\n'
+          '• **Resting Energy Requirement (RER)**: **$rerVal kcal/day**\n'
+          '  *Calculated via WSAVA formula: RER = 70 × (BW_kg)^0.75 = 70 × ($weightNum)^0.75 ≈ $rerVal kcal*\n\n'
+          '• **Maintenance Energy Requirement (MER) Daily Targets**:\n'
+          '  - **Neutered / Indoor Adult**: **$merMaintenance kcal/day**\n'
+          '  - **Active / Intact Adult**: **$merActive kcal/day**\n'
+          '  - **Weight Loss Target**: **${(rerVal * 1.0).round()} kcal/day**\n\n'
+          '• **Structured Daily Feeding Plan**:\n'
+          '  - **Morning Meal**: ${(merMaintenance / 2).round()} kcal\n'
+          '  - **Evening Meal**: ${(merMaintenance / 2).round()} kcal\n'
+          '  - **Maximum Safe Treat Allowance (10% rule)**: **$treatLimit kcal/day**\n\n'
+          'Check your pet food container label for the kcal/cup or kcal/can metric to divide this caloric target into exact portions!';
+    }
+
+    // 14. Dedicated Behavior Modification & Training Guidance
+    final behaviorGuidanceRegex = RegExp(
+      r'\b(behavior modification|behavior modification and training|training guidance for my companion|evidence-based behavior)\b',
+      caseSensitive: false,
+    );
+    if (behaviorGuidanceRegex.hasMatch(lower)) {
+      return '🧠 **Evidence-Based Behavior Modification & Enrichment Blueprint for $petName ($petBreed)**:\n\n'
+          'Modern clinical animal behavior relies on force-free, positive reinforcement and antecedent arrangement:\n\n'
+          '1. **Marker Training & Reward Timing**:\n'
+          '   • Use a clicker or crisp verbal marker ("Yes!") the exact millisecond the desired behavior happens.\n'
+          '   • Deliver a high-value pea-sized treat (boiled chicken, freeze-dried liver) within 1.5 seconds to build neural association.\n\n'
+          '2. **Differential Reinforcement of Alternative Behavior (DRA)**:\n'
+          '   • Instead of scolding unwanted behaviors (jumping, pacing, vocalizing), teach an incompatible alternative (e.g. "Sit" or "Go to Bed/Mat").\n'
+          '   • Heavily reinforce the alternative until it becomes the animal\'s default impulse.\n\n'
+          '3. **Decompression & Mental Enrichment**:\n'
+          '   • 20 minutes of olfactory enrichment (sniff walks, scattering kibble in a snuffle mat) burns more cognitive energy than 1 hour of physical running.\n'
+          '   • Licking and chewing release endorphins that naturally reduce cortisol and anxiety levels.\n\n'
+          '4. **Desensitization & Counter-Conditioning (DS/CC)**:\n'
+          '   • For fear or reactivity triggers (doorbell, strangers, thunder), expose $petName to the trigger at sub-threshold intensity while pairing with high-value rewards.';
+    }
+
+    // 15. Food, Diet, Nutrition, Raw Food & Safe Treats
     final dietRegex = RegExp(
       r'\b(food|foods|diet|diets|eat|eating|feed|feeding|nutrition|treat|treats|kibble|raw food|barf|bone|bones|weight loss|overweight|obese)\b',
       caseSensitive: false,
     );
-    if (dietRegex.hasMatch(lower)) {
+    if (dietRegex.hasMatch(lower) &&
+        !lower.contains('where') &&
+        !lower.contains('buy') &&
+        !lower.contains('store') &&
+        !lower.contains('shop') &&
+        !lower.contains('order') &&
+        !lower.contains('calculate')) {
       return '🥗 **Evidence-Based WSAVA Nutrition Guidelines for $petName ($petBreed)**:\n\n'
           '• **Complete & Balanced Diet**: Feed an AAFCO/WSAVA compliant formula tailored to $petName\'s life stage ($petAge) and metabolic weight ($petWeight).\n'
           '• **10% Calorie Rule**: High-value treats and table food should never exceed 10% of daily caloric intake to prevent nutritional imbalances and acute pancreatitis.\n'
@@ -735,16 +1033,56 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     }
 
     // 19. Math, Calorie Math & Unit Conversions
-    final calorieRegex = RegExp(r'\b(calorie|calories|rer|mer|how much to feed|daily intake|kcal)\b', caseSensitive: false);
+    final calorieRegex = RegExp(r'\b(calorie|calories|rer|mer|how much to feed|daily intake|kcal|caloric|energy requirement)\b', caseSensitive: false);
     if (calorieRegex.hasMatch(lower)) {
-      final weightNum = double.tryParse(RegExp(r'(\d+(\.\d+)?)').firstMatch(petWeight?.toString() ?? '')?.group(1) ?? '') ??
-          double.tryParse(RegExp(r'(\d+(\.\d+)?)').firstMatch(lower)?.group(1) ?? '') ?? 15.0;
-      final rer = (70 * (weightNum > 0 ? (weightNum < 1 ? 0.8 : (weightNum * 0.75)) : 10)).round();
-      final mer = (rer * ((petSpecies?.toString() ?? '').toLowerCase() == 'cat' ? 1.2 : 1.6)).round();
-      return '🔢 **Metabolic Caloric Assessment for $petName (${weightNum.toStringAsFixed(1)} kg)**:\n\n'
-          '• **Resting Energy Requirement (RER)**: ~$rer kcal/day (basal metabolic baseline)\n'
-          '• **Daily Maintenance Energy (MER)**: ~$mer kcal/day for moderate activity\n'
-          '• **Feeding Guideline**: Divide daily kcal across 2 measured meals. Ensure treats do not exceed ${(mer * 0.1).round()} kcal (10% limit).';
+      // 1. Extract explicit weight from the prompt if provided (e.g. "12 kg", "25 lbs")
+      double? promptWeight;
+      final promptWeightMatch = RegExp(r'(\d+(\.\d+)?)\s*(kg|kilo|kilos|lbs?|pounds?)', caseSensitive: false).firstMatch(lower) ??
+          RegExp(r'(\d+(\.\d+)?)\s*(?=kg|kilo|kilos|lbs|pound)', caseSensitive: false).firstMatch(lower);
+      if (promptWeightMatch != null) {
+        final val = double.tryParse(promptWeightMatch.group(1) ?? '');
+        if (val != null && val > 0) {
+          final unit = (promptWeightMatch.group(3) ?? '').toLowerCase();
+          promptWeight = unit.startsWith('lb') ? (val / 2.20462) : val;
+        }
+      }
+
+      final profileWeightNum = double.tryParse(RegExp(r'(\d+(\.\d+)?)').firstMatch(petWeight)?.group(1) ?? '');
+      final weightNum = promptWeight ?? ((profileWeightNum != null && profileWeightNum > 0) ? profileWeightNum : (double.tryParse(RegExp(r'(\d+(\.\d+)?)').firstMatch(lower)?.group(1) ?? '') ?? 12.0));
+      
+      // True WSAVA Resting Energy Requirement: RER = 70 * (BW_kg ^ 0.75)
+      final rer = (70 * pow(weightNum, 0.75)).round();
+      
+      // Dynamic Activity Multiplier
+      double multiplier = 1.6;
+      final isCatPrompt = lower.contains('cat') || lower.contains('kitten') || (petSpecies.toLowerCase() == 'cat' && !lower.contains('dog'));
+      if (isCatPrompt) {
+        multiplier = lower.contains('active') ? 1.4 : (lower.contains('senior') || lower.contains('weight loss') ? 1.0 : 1.2);
+      } else {
+        if (lower.contains('highly active') || lower.contains('working') || lower.contains('sport') || lower.contains('agility')) {
+          multiplier = 2.0;
+        } else if (lower.contains('moderately active') || lower.contains('moderate')) {
+          multiplier = 1.6;
+        } else if (lower.contains('inactive') || lower.contains('sedentary') || lower.contains('low activity') || lower.contains('weight loss')) {
+          multiplier = 1.2;
+        } else if (lower.contains('puppy')) {
+          multiplier = 2.2;
+        } else {
+          multiplier = 1.6;
+        }
+      }
+      final mer = (rer * multiplier).round();
+      final targetAnimal = isCatPrompt ? 'cat' : 'dog';
+
+      return '🔢 **Metabolic Caloric Assessment (${weightNum.toStringAsFixed(1)} kg $targetAnimal)**:\n\n'
+          '• **Resting Energy Requirement (RER)**: **~$rer kcal/day**\n'
+          '  *(Standard clinical formula: 70 \\times BW_{kg}^{0.75} — baseline basal calories)*\n\n'
+          '• **Daily Maintenance Energy (MER)**: **~$mer kcal/day**\n'
+          '  *(Multiplier: ${multiplier}x for ${isCatPrompt ? 'adult feline' : 'moderately active canine'})*\n\n'
+          '• **Actionable Feeding Strategy**:\n'
+          '  - **Daily Portions**: Split across 2 measured meals (~${(mer / 2).round()} kcal per meal).\n'
+          '  - **10% Treat Limit**: Training treats and rewards should never exceed **${(mer * 0.1).round()} kcal/day**.\n'
+          '  - **Monitoring**: Re-evaluate body condition score (BCS) every 3 weeks and adjust intake by ±10% as needed.';
     }
 
     // 20. Specific Food Safety Quick-Lookup
@@ -799,11 +1137,28 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           '• **Universal Knowledge** (science, biology, grooming, travel safety)';
     }
 
-    // 23. Natural & Direct Fallback
-    return '🐾 **PetConnect AI Assistance**:\n\n'
-        'Regarding "$prompt":\n\n'
-        'For $petName ($petBreed, $petSpecies), maintain a balanced routine of wholesome nutrition, clean hydration, and positive mental enrichment.${petAllergies != 'None reported' ? '\n\n*Allergy Flag*: Active sensitivity on file: $petAllergies.' : ''}\n\n'
-        'Feel free to ask any specific behavioral, training, health, nutrition, or general pet care inquiry!';
+    // 27. General Daily Care Tips & Clinical Guidance
+    final generalCareRegex = RegExp(
+      r'\b(care tips|daily care|care for my|general care|golden retriever|vital signs|normal temp|routine care)\b',
+      caseSensitive: false,
+    );
+    if (generalCareRegex.hasMatch(lower)) {
+      return '🐾 **PetConnect AI Clinical Care Guidance for $petName ($petBreed)**:\n\n'
+          '• **Vital Signs Baseline**: Normal body temperature is 101.0–102.5°F (38.3–39.2°C), resting respiration is 15–30 breaths/min, and heart rate is 60–140 bpm depending on size.\n'
+          '• **Daily Enrichment**: Provide 30–60 minutes of physical activity and structured mental games.\n'
+          '• **Nutrition & Dental**: Feed WSAVA-compliant meals and incorporate daily dental brushing or dental chews.\n'
+          '• **Preventative Surveillance**: Perform weekly nose-to-tail checks for coat lumps, ear odors, or eye discharge.';
+    }
+
+    // 28. Intelligent Universal Domain Synthesizer
+    final cleaned = prompt.replaceAll(RegExp(r'[\r\n]+'), ' ').trim();
+    return '💡 **PetConnect AI Universal Guidance on "$cleaned"**:\n\n'
+        '• **Clinical & Scientific Assessment**: Addressing this inquiry requires an evidence-based approach centered on individualized assessment, safety boundaries, and routine consistency.\n'
+        '• **Core Recommendations**:\n'
+        '  1. **Direct Practice**: Adjust parameters for age, environment, and physical condition.\n'
+        '  2. **Monitoring & Progress**: Observe behavioral or physiological response over a 48–72 hour evaluation window.\n'
+        '  3. **Specialized Support**: Escalate to a licensed veterinary clinician or credentialed specialist if acute distress or regression occurs.\n\n'
+        'Feel free to request step-by-step instructions, dosage calculations, or specific adaptations!';
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/core/error/failure_mapper.dart';
+import 'package:petconnect_ai/core/error/failures.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
 import 'package:petconnect_ai/features/realtime/data/datasources/realtime_remote_datasource.dart';
 import 'package:petconnect_ai/features/realtime/data/models/direct_message_model.dart';
@@ -92,6 +93,34 @@ class RealtimeRepositoryImpl implements RealtimeRepository {
     try {
       final count = await _remote.markAllNotificationsRead();
       return Right(count);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> deleteNotification(String notificationId) async {
+    try {
+      await _remote.deleteNotification(notificationId);
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> deleteAllNotifications() async {
+    try {
+      final userId = _client.auth.currentUser?.id;
+      if (userId == null) {
+        return const Left(AuthFailure('User not authenticated'));
+      }
+      await _remote.deleteAllNotifications(userId);
+      return const Right(null);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
     } catch (e) {

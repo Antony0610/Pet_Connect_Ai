@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -13,6 +14,7 @@ import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_prov
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Live GPS Tracking** — `/owner/collar/tracking`.
@@ -40,19 +42,22 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
     final CollarDevice? collar = matchingCollars.isNotEmpty
         ? matchingCollars.first
         : (collars.isNotEmpty ? collars.first : null);
-    final collarId = collar?.id ?? 'demo-collar-id';
 
-    final gpsStreamAsync = ref.watch(liveGpsLocationStreamProvider(collarId));
+    final gpsStreamAsync = collar != null
+        ? ref.watch(liveGpsLocationStreamProvider(collar.id))
+        : null;
 
-    final double lat = gpsStreamAsync.valueOrNull?.latitude ?? 12.9716;
-    final double lng = gpsStreamAsync.valueOrNull?.longitude ?? 77.5946;
+    final double lat = gpsStreamAsync?.valueOrNull?.latitude ?? 12.9716;
+    final double lng = gpsStreamAsync?.valueOrNull?.longitude ?? 77.5946;
 
-    final locationText = gpsStreamAsync.when(
-      data: (gps) =>
-          'Lat: ${gps.latitude.toStringAsFixed(4)}, Lng: ${gps.longitude.toStringAsFixed(4)} (${gps.isOfflineTelemetry ? "Buffered" : "Live"})',
-      loading: () => 'Receiving Realtime GPS Telemetry…',
-      error: (_, __) => 'GPS Telemetry Standby (Pine & Centennial)',
-    );
+    final locationText = collar != null
+        ? (gpsStreamAsync?.when(
+            data: (gps) =>
+                'Lat: ${gps.latitude.toStringAsFixed(4)}, Lng: ${gps.longitude.toStringAsFixed(4)} (${gps.isOfflineTelemetry ? "Buffered" : "Live"})',
+            loading: () => 'Receiving Realtime GPS Telemetry…',
+            error: (_, __) => 'Collar GPS Standby',
+          ) ?? 'Collar GPS Standby')
+        : 'No Collar Connected (Standby)';
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -131,47 +136,79 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
                     longitude: lng,
                     petName: petName,
                     height: isWide ? 380 : 300,
-                    onTap: () => context.showSnackbar('Interactive GPS Tracking Active'),
+                    onTap: () => context.showSnackbar(collar != null ? 'Interactive GPS Tracking Active' : 'Pair a Smart Collar to activate realtime GPS tracking'),
                   ),
                   AppSpacing.vGapMd,
-                  _SafeZoneBanner(petName: petName),
-                  AppSpacing.vGapLg,
-                  Text(
-                    'Location Details',
-                    style: context.textTheme.titleLarge?.copyWith(
-                      fontWeight: AppTypography.semiBold,
+                  if (collar != null) ...[
+                    _SafeZoneBanner(petName: petName),
+                    AppSpacing.vGapLg,
+                    Text(
+                      'Location Details',
+                      style: context.textTheme.titleLarge?.copyWith(
+                        fontWeight: AppTypography.semiBold,
+                      ),
                     ),
-                  ),
-                  AppSpacing.vGapSm,
-                  _DetailGrid(isWide: isWide),
-                  AppSpacing.vGapLg,
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppButton(
-                          label: 'Get Directions',
-                          icon: Icons.directions_rounded,
-                          borderRadius: AppRadius.brPill,
-                          onPressed: () => ExternalActions.openMapDirections(
-                            latitude: lat,
-                            longitude: lng,
-                            label: '$petName Live Location',
-                            context: context,
+                    AppSpacing.vGapSm,
+                    _DetailGrid(isWide: isWide),
+                    AppSpacing.vGapLg,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton(
+                            label: 'Get Directions',
+                            icon: Icons.directions_rounded,
+                            borderRadius: AppRadius.brPill,
+                            onPressed: () => ExternalActions.openMapDirections(
+                              latitude: lat,
+                              longitude: lng,
+                              label: '$petName Live Location',
+                              context: context,
+                            ),
                           ),
                         ),
-                      ),
-                      AppSpacing.hGapSm,
-                      IconButton.outlined(
-                        onPressed: () =>
-                            context.showSnackbar('Location history…'),
-                        icon: const Icon(
-                          Icons.history_rounded,
-                          size: AppIconSizes.md,
+                        AppSpacing.hGapSm,
+                        IconButton.outlined(
+                          onPressed: () =>
+                              context.showSnackbar('Location history…'),
+                          icon: const Icon(
+                            Icons.history_rounded,
+                            size: AppIconSizes.md,
+                          ),
+                          tooltip: 'Location history',
                         ),
-                        tooltip: 'Location history',
+                      ],
+                    ),
+                  ] else ...[
+                    AppCard(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        children: [
+                          Icon(Icons.wifi_off_rounded, size: 40, color: scheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          AppSpacing.vGapSm,
+                          Text(
+                            'No Smart Collar Connected',
+                            style: context.textTheme.titleMedium?.copyWith(
+                              fontWeight: AppTypography.bold,
+                            ),
+                          ),
+                          AppSpacing.vGapXs,
+                          Text(
+                            'Pair a smart GPS collar to view realtime coordinates, movement heatmaps, and geofence alerts.',
+                            textAlign: TextAlign.center,
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          AppSpacing.vGapMd,
+                          FilledButton.icon(
+                            onPressed: () => context.push(RoutePaths.ownerCollarSettings),
+                            icon: const Icon(Icons.add_link_rounded),
+                            label: const Text('Pair Smart Collar'),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
               ),
             ),

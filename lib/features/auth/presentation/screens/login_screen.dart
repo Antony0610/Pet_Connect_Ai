@@ -6,6 +6,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/domain/usecases/sign_in_with_password.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
@@ -193,7 +194,130 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ref.read(selectedPetIdProvider.notifier).state = null;
         ref.read(selectedPortalProvider.notifier).state = _selectedPortal;
         final targetPath = RouteGuard.portalHome(_selectedPortal);
+
+        if (profile != null && (profile.phone == null || profile.phone!.trim().isEmpty)) {
+          if (mounted) {
+            await _showAddPhonePrompt(context, profile, targetPath);
+            return;
+          }
+        }
+
         if (mounted) context.go(targetPath);
+      },
+    );
+  }
+
+  Future<void> _showAddPhonePrompt(
+    BuildContext context,
+    UserProfile profile,
+    String targetPath,
+  ) async {
+    final phoneCtrl = TextEditingController();
+    final scheme = Theme.of(context).colorScheme;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.xl,
+            AppSpacing.xl,
+            AppSpacing.xl + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.phone_in_talk_rounded, color: scheme.primary, size: 24),
+                  ),
+                  AppSpacing.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add Emergency Contact Number',
+                          style: ctx.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Used for Lost Pet Posters & Health Passports',
+                          style: ctx.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              AppSpacing.vGapMd,
+              Text(
+                'Enter your phone number so anyone who scans your pet\'s emergency pass or finds a missing poster can contact you directly. If you skip, you can always update it anytime in your Profile.',
+                style: ctx.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              AppSpacing.vGapLg,
+              TextField(
+                controller: phoneCtrl,
+                autofocus: true,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Emergency Phone Number',
+                  hintText: 'e.g. +1 555-0199 or 9876543210',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                  border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                ),
+              ),
+              AppSpacing.vGapLg,
+              FilledButton.icon(
+                icon: const Icon(Icons.check_rounded),
+                label: const Text('Save & Continue'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.brCard,
+                  ),
+                ),
+                onPressed: () async {
+                  final text = phoneCtrl.text.trim();
+                  if (text.isNotEmpty) {
+                    final upsert = ref.read(upsertUserProfileProvider);
+                    await upsert(profile.copyWith(phone: text));
+                    ref.invalidate(currentUserProfileProvider);
+                  }
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                  if (context.mounted) context.go(targetPath);
+                },
+              ),
+              AppSpacing.vGapSm,
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  if (context.mounted) context.go(targetPath);
+                },
+                child: const Text('Skip for now • I will update in Profile'),
+              ),
+            ],
+          ),
+        );
       },
     );
   }

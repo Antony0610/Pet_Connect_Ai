@@ -48,6 +48,7 @@ import 'package:petconnect_ai/features/pet_owner/presentation/screens/growth_wei
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/health_passport_dashboard_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/health_passport_timeline_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/home_dashboard_screen.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/screens/ingredient_plant_toxicity_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/live_activity_feed_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/local_community_screen.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/screens/lost_found_community_screen.dart';
@@ -332,6 +333,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'scan',
                 name: RouteNames.ownerAiScan,
                 builder: (context, state) => const AiScanIdentifyScreen(),
+              ),
+              GoRoute(
+                path: 'toxicity',
+                name: RouteNames.ownerAiToxicity,
+                builder: (context, state) => const IngredientPlantToxicityScreen(),
               ),
             ],
           ),

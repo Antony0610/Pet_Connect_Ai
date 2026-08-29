@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -30,6 +31,7 @@ class _RescueCommunityReportsScreenState
       'pet': 'Luna (Siberian Husky)',
       'location': 'Spotted running near Cubbon Park East Gate',
       'verified': true,
+      'aiMatchScore': 96,
       'notes':
           'Matching silver coat and blue collar. Headed east toward riverbed.',
     },
@@ -39,6 +41,7 @@ class _RescueCommunityReportsScreenState
       'pet': 'Archie (Golden Retriever)',
       'location': 'Near MG Road & Brigade Road Junction',
       'verified': false,
+      'aiMatchScore': 78,
       'notes':
           'Wearing collar, sitting near outdoor tables. Skittish when approached.',
     },
@@ -54,7 +57,13 @@ class _RescueCommunityReportsScreenState
         title: const Text('Community Sighting Reports'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/rescue'),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/rescue');
+            }
+          },
         ),
       ),
       body: SingleChildScrollView(
@@ -236,6 +245,26 @@ class _RescueCommunityReportsScreenState
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
+            AppSpacing.vGapSm,
+            if (rpt['aiMatchScore'] != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_awesome, size: 14, color: Colors.blue.shade700),
+                    const SizedBox(width: 4),
+                    Text(
+                      'AI Lost Pet Sighting Match: ${rpt['aiMatchScore']}% Confidence',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                    ),
+                  ],
+                ),
+              ),
             AppSpacing.vGapMd,
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -244,8 +273,13 @@ class _RescueCommunityReportsScreenState
                   icon: const Icon(Icons.share, size: 16),
                   label: const Text('Share Alert'),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sighting link copied')),
+                    ExternalActions.shareText(
+                      '🚨 CIVILIAN SIGHTING REPORT: ${rpt['pet']}\n'
+                      'Location: ${rpt['location']}\n'
+                      'Notes: ${rpt['notes']}\n'
+                      'Reporter: ${rpt['reporter']}\n'
+                      'Reported via PetConnect AI Volunteer Network',
+                      subject: '🚨 Pet Sighting Alert: ${rpt['pet']}',
                     );
                   },
                 ),

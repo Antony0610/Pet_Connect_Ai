@@ -22,7 +22,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
-              context.pop();
+              Navigator.of(context).pop();
             } else {
               context.go(RoutePaths.vetHome);
             }
@@ -58,15 +58,6 @@ class DigitalPrescriptionScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.print_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Printing encrypted Prescription...')),
-              );
-            },
-            tooltip: 'Print Rx',
-          ),
-          IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: () => ExternalActions.shareText(
               '🐾 PetConnect AI Digital Veterinary Prescription\nRx #RX-2024-8841\nAuthorized by Dr. Smith (DVM)\nVerified clinical protocol & dosing instructions.',
@@ -82,6 +73,38 @@ class DigitalPrescriptionScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Contraindication & Allergy Guard Alert Banner
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.verified_user_outlined, color: Colors.green.shade700, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI Safety Check: 0 Drug Interactions Detected',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                          ),
+                          Text(
+                            'Cross-referenced against Penicillin sensitivity & hepatic/renal clearance parameters.',
+                            style: TextStyle(fontSize: 11, color: Colors.green.shade800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Clinic Letterhead Box
               _buildClinicHeader(context, theme, colorScheme),
               const SizedBox(height: 16),

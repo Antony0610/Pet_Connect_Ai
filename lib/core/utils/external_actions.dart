@@ -43,6 +43,33 @@ class ExternalActions {
     }
   }
 
+  /// Opens native map searching for a given place or address.
+  static Future<void> openMapSearch(String query, {BuildContext? context}) async {
+    final encoded = Uri.encodeComponent(query);
+    final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encoded');
+    final geoUrl = Uri.parse('geo:0,0?q=$encoded');
+
+    try {
+      if (await canLaunchUrl(geoUrl)) {
+        await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+        return;
+      }
+      if (await canLaunchUrl(googleMapsUrl)) {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    if (context != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Location: $query'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   /// Shares a wellness or health milestone via native device share sheet.
   static Future<void> shareMilestone({
     required String petName,

@@ -159,12 +159,83 @@ class _DashboardBody extends ConsumerWidget {
       ],
     );
   }
-}
-
-class _MedicationAdherenceCard extends ConsumerWidget {
+}class _MedicationAdherenceCard extends ConsumerWidget {
   const _MedicationAdherenceCard({required this.petId});
 
   final String petId;
+
+  void _showAddReminderDialog(BuildContext context, WidgetRef ref) {
+    final titleCtrl = TextEditingController();
+    final dosageCtrl = TextEditingController();
+    final timeCtrl = TextEditingController(text: '08:00 AM');
+    final notesCtrl = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Daily Care Reminder'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Reminder / Medication Title',
+                  hintText: 'e.g. Ear drops, Joint Supplement',
+                ),
+              ),
+              AppSpacing.vGapSm,
+              TextField(
+                controller: dosageCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Dosage / Portion',
+                  hintText: 'e.g. 1 chewable tablet, 2 drops',
+                ),
+              ),
+              AppSpacing.vGapSm,
+              TextField(
+                controller: timeCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Scheduled Time',
+                  hintText: 'e.g. 08:00 AM, 06:30 PM',
+                ),
+              ),
+              AppSpacing.vGapSm,
+              TextField(
+                controller: notesCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Instructions (Optional)',
+                  hintText: 'e.g. Give with food',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final t = titleCtrl.text.trim();
+              final d = dosageCtrl.text.trim();
+              if (t.isEmpty) return;
+              ref.read(medicationAdherenceProvider(petId).notifier).addItem(
+                title: t,
+                dosage: d.isNotEmpty ? d : 'As directed',
+                scheduledTime: timeCtrl.text.trim(),
+                instructions: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : null,
+              );
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Save Reminder'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -183,40 +254,46 @@ class _MedicationAdherenceCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.5),
-                      borderRadius: AppRadius.brMd,
-                    ),
-                    child: Icon(
-                      Icons.medication_liquid_rounded,
-                      color: scheme.primary,
-                      size: 20,
-                    ),
-                  ),
-                  AppSpacing.hGapSm,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Daily Care & Medication',
-                        style: context.textTheme.titleMedium?.copyWith(
-                          fontWeight: AppTypography.bold,
-                          color: scheme.onSurface,
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer.withValues(alpha: 0.5),
+                        borderRadius: AppRadius.brMd,
                       ),
-                      Text(
-                        '$completedCount of $totalCount completed today',
-                        style: context.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                      child: Icon(
+                        Icons.medication_liquid_rounded,
+                        color: scheme.primary,
+                        size: 20,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    AppSpacing.hGapSm,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Daily Care & Medication',
+                            style: context.textTheme.titleMedium?.copyWith(
+                              fontWeight: AppTypography.bold,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            items.isNotEmpty
+                                ? '$completedCount of $totalCount completed today'
+                                : 'Routine preventative wellness',
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (isAllDone)
                 Container(
@@ -240,72 +317,136 @@ class _MedicationAdherenceCard extends ConsumerWidget {
                       ),
                     ],
                   ),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline_rounded),
+                  tooltip: 'Add Care Reminder',
+                  color: scheme.primary,
+                  onPressed: () => _showAddReminderDialog(context, ref),
                 ),
             ],
           ),
           AppSpacing.vGapMd,
-          ...items.map((item) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: Material(
-                color: item.isCompleted
-                    ? scheme.surfaceContainerHighest.withValues(alpha: 0.5)
-                    : scheme.surfaceContainerLowest,
+          if (items.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerLow,
                 borderRadius: AppRadius.brMd,
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    notifier.toggleItem(item.id);
-                  },
-                  borderRadius: AppRadius.brMd,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: AppSpacing.xs,
-                    ),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          value: item.isCompleted,
-                          activeColor: scheme.primary,
-                          onChanged: (_) {
-                            HapticFeedback.lightImpact();
-                            notifier.toggleItem(item.id);
-                          },
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.title,
-                                style: context.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: AppTypography.semiBold,
-                                  decoration: item.isCompleted
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                  color: item.isCompleted
-                                      ? scheme.onSurfaceVariant
-                                      : scheme.onSurface,
-                                ),
-                              ),
-                              Text(
-                                '${item.scheduledTime} • ${item.dosage}',
-                                style: context.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
+                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.verified_outlined, size: 18, color: scheme.primary),
+                      AppSpacing.hGapSm,
+                      Expanded(
+                        child: Text(
+                          'No active medications required. Routine wellness is active.',
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  AppSpacing.vGapSm,
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Reminder'),
+                        onPressed: () => _showAddReminderDialog(context, ref),
+                      ),
+                      AppSpacing.hGapSm,
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: () => notifier.loadStandardWellnessProtocol(),
+                        child: const Text('Load Protocol'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          else
+            ...items.map((item) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                child: Material(
+                  color: item.isCompleted
+                      ? scheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                      : scheme.surfaceContainerLowest,
+                  borderRadius: AppRadius.brMd,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      notifier.toggleItem(item.id);
+                    },
+                    borderRadius: AppRadius.brMd,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: AppSpacing.xs,
+                      ),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: item.isCompleted,
+                            activeColor: scheme.primary,
+                            onChanged: (_) {
+                              HapticFeedback.lightImpact();
+                              notifier.toggleItem(item.id);
+                            },
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  style: context.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: AppTypography.semiBold,
+                                    decoration: item.isCompleted
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: item.isCompleted
+                                        ? scheme.onSurfaceVariant
+                                        : scheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  '${item.scheduledTime} • ${item.dosage}',
+                                  style: context.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 16),
+                            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                            tooltip: 'Remove',
+                            onPressed: () => notifier.removeItem(item.id),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
         ],
       ),
     );
@@ -333,13 +474,66 @@ class _WellnessCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final selectedPet = ref.watch(selectedPetProvider);
+    final petId = selectedPet?.id ?? '';
 
-    final score = selectedPet == null
-        ? 0
-        : (selectedPet.healthStatus == 'optimal' ? 95 : 75);
-    final statusLabel = selectedPet == null
-        ? 'No Pet Selected'
-        : (selectedPet.healthStatus == 'optimal' ? 'Optimal Health' : 'Needs Review');
+    int score = 0;
+    String statusLabel = 'No Pet Selected';
+    String statusSubtitle = 'Select a pet to view health telemetry';
+
+    if (selectedPet != null) {
+      // 1. Baseline profile creation (50 pts)
+      int computed = 50;
+
+      // 2. Vaccinations (up to +25 pts)
+      final vaxList = ref.watch(vaccinationsProvider(petId)).valueOrNull ?? [];
+      if (vaxList.length >= 3) {
+        computed += 25;
+      } else if (vaxList.isNotEmpty) {
+        computed += (vaxList.length * 8).clamp(8, 20);
+      }
+
+      // 3. Medical Records & Veterinary Checkups (up to +15 pts)
+      final records = ref.watch(healthRecordsProvider(petId)).valueOrNull ?? [];
+      if (records.isNotEmpty) {
+        computed += 15;
+      }
+
+      // 4. Weight Tracking History (up to +10 pts)
+      final weightLogs = ref.watch(petWeightLogsProvider(petId)).valueOrNull ?? [];
+      if (weightLogs.isNotEmpty) {
+        computed += 10;
+      } else if (selectedPet.weightKg != null && selectedPet.weightKg! > 0) {
+        computed += 5;
+      }
+
+      // 5. Clinical status adjustments
+      final healthStatus = selectedPet.healthStatus.toLowerCase();
+      if (healthStatus == 'optimal') {
+        computed += 5;
+      } else if (healthStatus == 'critical' || healthStatus == 'chronic') {
+        computed -= 15;
+      }
+
+      score = computed.clamp(20, 100);
+
+      if (score >= 85) {
+        statusLabel = 'Optimal Health';
+      } else if (score >= 70) {
+        statusLabel = 'Good Condition';
+      } else if (score >= 55) {
+        statusLabel = 'Action Recommended';
+      } else {
+        statusLabel = 'Profile Onboarding';
+      }
+
+      final parts = <String>[];
+      if (vaxList.isNotEmpty) parts.add('${vaxList.length} Vaccines');
+      if (records.isNotEmpty) parts.add('${records.length} Records');
+      if (weightLogs.isNotEmpty) parts.add('${weightLogs.length} Weights');
+      statusSubtitle = parts.isNotEmpty
+          ? parts.join(' • ')
+          : 'Add vaccines & records to elevate score';
+    }
 
     return GlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -394,7 +588,8 @@ class _WellnessCard extends ConsumerWidget {
           ),
           AppSpacing.vGapSm,
           Text(
-            selectedPet != null ? 'Health profile active' : 'No pet selected',
+            statusSubtitle,
+            textAlign: TextAlign.center,
             style: context.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -489,31 +684,36 @@ class _QuickActionRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = <_QuickAction>[
-      _QuickAction(
-        Icons.vaccines_rounded,
-        'Vaccines',
-        () => context.push(RoutePaths.ownerHealthVaccinations),
+    final actions = [
+      QuickActionItemSpec(
+        icon: Icons.vaccines_rounded,
+        title: 'Vaccines',
+        gradientColors: const [Color(0xFF10B981), Color(0xFF047857)],
+        onTap: () => context.push(RoutePaths.ownerHealthVaccinations),
       ),
-      _QuickAction(
-        Icons.history_rounded,
-        'History',
-        () => context.push(RoutePaths.ownerHealthMedical),
+      QuickActionItemSpec(
+        icon: Icons.history_rounded,
+        title: 'Medical\nHistory',
+        gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+        onTap: () => context.push(RoutePaths.ownerHealthMedical),
       ),
-      _QuickAction(
-        Icons.monitor_weight_rounded,
-        'Weight',
-        () => context.push(RoutePaths.ownerHealthGrowth),
+      QuickActionItemSpec(
+        icon: Icons.monitor_weight_rounded,
+        title: 'Weight\nAnalytics',
+        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
+        onTap: () => context.push(RoutePaths.ownerHealthGrowth),
       ),
-      _QuickAction(
-        Icons.medication_rounded,
-        'Treatment Plan',
-        () => context.push(RoutePaths.ownerHealthTreatment),
+      QuickActionItemSpec(
+        icon: Icons.medication_rounded,
+        title: 'Treatment\nPlans',
+        gradientColors: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+        onTap: () => context.push(RoutePaths.ownerHealthTreatment),
       ),
-      _QuickAction(
-        Icons.folder_shared_rounded,
-        'Doc Vault',
-        () => context.push(RoutePaths.ownerHealthVault),
+      QuickActionItemSpec(
+        icon: Icons.folder_shared_rounded,
+        title: 'Doc Vault',
+        gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+        onTap: () => context.push(RoutePaths.ownerHealthVault),
       ),
     ];
 
@@ -522,83 +722,55 @@ class _QuickActionRail extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Text(
-            'Quick Actions',
-            style: context.textTheme.titleLarge?.copyWith(
-              fontWeight: AppTypography.semiBold,
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 96,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: actions.length,
-            separatorBuilder: (_, __) => AppSpacing.hGapSm,
-            itemBuilder: (_, i) =>
-                _QuickActionTile(action: actions[i], accent: accent),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickAction {
-  const _QuickAction(this.icon, this.label, this.onTap);
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-}
-
-class _QuickActionTile extends StatelessWidget {
-  const _QuickActionTile({required this.action, required this.accent});
-
-  final _QuickAction action;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    return SizedBox(
-      width: 80,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppRadius.brCard,
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            action.onTap();
-          },
-          borderRadius: AppRadius.brCard,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHigh,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: accent.withValues(alpha: 0.2)),
-                ),
-                child: Icon(action.icon, color: accent, size: AppIconSizes.md),
-              ),
-              AppSpacing.vGapXs,
               Text(
-                action.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: AppTypography.semiBold,
+                'Quick Actions',
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: AppTypography.bold,
+                ),
+              ),
+              Text(
+                '${actions.length} Tools',
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: context.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
         ),
-      ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          decoration: BoxDecoration(
+            color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
+            ),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: actions.map((act) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: SizedBox(
+                    width: 76,
+                    child: QuickActionButton(
+                      title: act.title,
+                      icon: act.icon,
+                      gradientColors: act.gradientColors,
+                      onTap: act.onTap,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -769,12 +941,39 @@ class _RecentEventCard extends ConsumerWidget {
   }
 }
 
-class _ArticleCard extends StatelessWidget {
+class _ArticleCard extends ConsumerWidget {
   const _ArticleCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final pet = ref.watch(selectedPetProvider);
+
+    String articleTitle = 'Companion Preventative Care Guide';
+    String articleSubtitle = 'Health Hub • Evidence-Based Care';
+
+    if (pet != null) {
+      final species = pet.species.toLowerCase();
+      final ageStr = pet.breedLine;
+      if (species.contains('cat')) {
+        articleTitle = 'Feline Hydration & Renal Health Essentials';
+        articleSubtitle = 'Tailored for ${pet.name} • Feline Care';
+      } else if (species.contains('dog')) {
+        if (ageStr.toLowerCase().contains('mo') || ageStr.toLowerCase().contains('puppy')) {
+          articleTitle = 'Puppy Socialization & Nutrition Milestones';
+          articleSubtitle = 'Tailored for ${pet.name} • Growth Guide';
+        } else if (ageStr.contains(RegExp(r'([7-9]|1[0-9])\s*yr'))) {
+          articleTitle = 'Maintaining Senior Dog Mobility & Vitality';
+          articleSubtitle = 'Tailored for ${pet.name} • Senior Care';
+        } else {
+          articleTitle = 'Active Canine Joint Care & Nutrition';
+          articleSubtitle = 'Tailored for ${pet.name} • Wellness Guide';
+        }
+      } else {
+        articleTitle = '${pet.species} Preventative Care Essentials';
+        articleSubtitle = 'Tailored for ${pet.name} • Health Hub';
+      }
+    }
 
     return AppCard(
       child: Row(
@@ -790,13 +989,13 @@ class _ArticleCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Maintaining Senior Dog Vitality',
+                  articleTitle,
                   style: context.textTheme.titleSmall?.copyWith(
                     fontWeight: AppTypography.semiBold,
                   ),
                 ),
                 Text(
-                  'Health Hub article',
+                  articleSubtitle,
                   style: context.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

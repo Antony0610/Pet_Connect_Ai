@@ -64,6 +64,24 @@ class AppButton extends StatelessWidget {
     super.key,
   }) : variant = AppButtonVariant.outlined;
 
+  /// Convenience constructor for a tonal button.
+  const AppButton.tonal({
+    this.label,
+    this.text,
+    this.child,
+    required this.onPressed,
+    this.size = AppButtonSize.medium,
+    this.icon,
+    this.iconAlignment = IconAlignment.start,
+    this.borderRadius,
+    this.isLoading = false,
+    this.isFullWidth = false,
+    this.backgroundColor,
+    this.textColor,
+    this.height,
+    super.key,
+  }) : variant = AppButtonVariant.tonal;
+
   /// Convenience constructor for a text button.
   const AppButton.text({
     this.label,

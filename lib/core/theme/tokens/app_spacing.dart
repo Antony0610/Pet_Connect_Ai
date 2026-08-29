@@ -64,6 +64,7 @@ abstract final class AppSpacing {
   static const SizedBox vGapMd = SizedBox(height: md);
   static const SizedBox vGapLg = SizedBox(height: lg);
   static const SizedBox vGapXl = SizedBox(height: xl);
+  static const SizedBox vGapXxl = SizedBox(height: xxl);
 
   static const SizedBox hGapXs = SizedBox(width: xs);
   static const SizedBox hGapSm = SizedBox(width: sm);

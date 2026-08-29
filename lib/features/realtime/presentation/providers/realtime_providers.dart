@@ -152,6 +152,22 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
       return count;
     });
   }
+
+  Future<void> deleteNotification(String notificationId) async {
+    // Optimistically update UI
+    state.whenData((currentList) {
+      final updated = currentList.where((n) => n.id != notificationId).toList();
+      state = AsyncValue.data(updated);
+    });
+    final repo = ref.read(realtimeRepositoryProvider);
+    await repo.deleteNotification(notificationId);
+  }
+
+  Future<void> clearAll() async {
+    state = const AsyncValue.data([]);
+    final repo = ref.read(realtimeRepositoryProvider);
+    await repo.deleteAllNotifications();
+  }
 }
 
 final liveUserNotificationsStreamProvider = StreamProvider<UserNotification>((

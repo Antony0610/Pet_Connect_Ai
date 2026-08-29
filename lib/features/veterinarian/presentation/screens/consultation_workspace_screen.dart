@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_dosage_calculator_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
 class ConsultationWorkspaceScreen extends ConsumerStatefulWidget {
@@ -58,7 +61,7 @@ class _ConsultationWorkspaceScreenState
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
-              context.pop();
+              Navigator.of(context).pop();
             } else {
               context.go(RoutePaths.vetHome);
             }
@@ -83,6 +86,11 @@ class _ConsultationWorkspaceScreenState
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'AI Clinical SOAP Scribe',
+            onPressed: () => _showAiSoapScribeModal(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.calculate_outlined),
             tooltip: 'Rx Dosage Calculator',
             onPressed: () {
@@ -100,16 +108,9 @@ class _ConsultationWorkspaceScreenState
             },
           ),
           IconButton(
-            icon: const Icon(Icons.history_outlined),
-            onPressed: () => context.push('/vet/patients/p1'),
-            tooltip: 'View History',
-          ),
-          IconButton(
             icon: const Icon(Icons.save_outlined),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Consultation Draft Saved')),
-              );
+              context.showSnackbar('✓ Consultation draft saved to EMR');
             },
             tooltip: 'Save Draft',
           ),
@@ -139,88 +140,27 @@ class _ConsultationWorkspaceScreenState
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Row(
-                    children: [
-                      ActionChip(
-                        avatar: const Icon(Icons.flash_on, size: 14),
-                        label: const Text('Templates'),
-                        onPressed: () {
-                          showDialog<void>(
-                            context: context,
-                            builder: (ctx) => SimpleDialog(
-                              title: const Text('Insert Clinical SOAP Template'),
-                              children: [
-                                SimpleDialogOption(
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    setState(() {
-                                      _subjectiveController.text =
-                                          'Patient active at home, appetite normal, no coughing or vomiting noted by owner.';
-                                      _objectiveController.text =
-                                          'T: 101.4°F, HR: 95 bpm, RR: 22 bpm. Mucous membranes pink, CRT < 2s. Lungs clear bilaterally. Heart rate regular with no murmur.';
-                                      _assessmentController.text =
-                                          'Healthy canine adult. Routine wellness examination passed with optimal metrics.';
-                                      _planController.text =
-                                          'Administer annual DHPP + Rabies booster. Continue monthly flea/tick preventative.';
-                                    });
-                                  },
-                                  child: const Text('📋 Routine Wellness Examination'),
-                                ),
-                                SimpleDialogOption(
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    setState(() {
-                                      _subjectiveController.text =
-                                          'Owner reports pruritus, licking paws, and redness on ventral abdomen over past 7 days.';
-                                      _objectiveController.text =
-                                          'Erythema and mild alopecia on lower abdomen. No pustules or open ulcerations observed.';
-                                      _assessmentController.text =
-                                          'Seasonal atopic dermatitis with mild secondary bacterial colonization.';
-                                      _planController.text =
-                                          'Prescribe Apoquel 16mg BID x 14d, medicated chlorhexidine bath 2x weekly.';
-                                    });
-                                  },
-                                  child: const Text('🌿 Dermatology Workup & Pruritus'),
-                                ),
-                                SimpleDialogOption(
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    setState(() {
-                                      _subjectiveController.text =
-                                          'Post-operative day 3. Patient eating soft food, urinating normally, mild lethargy.';
-                                      _objectiveController.text =
-                                          'Surgical incision clean, dry, and intact with no dehiscence or discharge. Mild peri-incisional swelling.';
-                                      _assessmentController.text =
-                                          'Healing appropriately post-surgery without infection.';
-                                      _planController.text =
-                                          'Continue carprofen 50mg SID for pain control, maintain E-collar for 7 more days.';
-                                    });
-                                  },
-                                  child: const Text('🩹 Post-Op Follow-up & Incision Check'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                  TextButton.icon(
+                    icon: const Icon(Icons.auto_awesome, size: 16),
+                    label: const Text('Auto-Scribe'),
+                    onPressed: () => _showAiSoapScribeModal(context),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
 
-              // S - Subjective
+              // S: Subjective
               _buildSoapField(
                 context,
                 theme,
                 colorScheme,
                 letter: 'S',
-                label: 'Subjective (Owner Observations & History)',
+                label: 'Subjective (History & Chief Complaint)',
                 controller: _subjectiveController,
               ),
               const SizedBox(height: 12),
 
-              // O - Objective
+              // O: Objective
               _buildSoapField(
                 context,
                 theme,
@@ -231,58 +171,52 @@ class _ConsultationWorkspaceScreenState
               ),
               const SizedBox(height: 12),
 
-              // A - Assessment
+              // A: Assessment
               _buildSoapField(
                 context,
                 theme,
                 colorScheme,
                 letter: 'A',
-                label: 'Assessment (Diagnosis / Differential)',
+                label: 'Assessment (Differential Diagnoses)',
                 controller: _assessmentController,
               ),
               const SizedBox(height: 12),
 
-              // P - Plan
+              // P: Plan
               _buildSoapField(
                 context,
                 theme,
                 colorScheme,
                 letter: 'P',
-                label: 'Plan (Treatment, Rx & Follow-Up)',
+                label: 'Plan (Diagnostics, Rx & Home Care)',
                 controller: _planController,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // Action Toolbar
+              // Action Buttons Row
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.vaccines, size: 18),
-                      label: const Text('Issue Rx'),
+                    child: AppButton.outlined(
+                      label: 'Rx Prescription',
+                      icon: Icons.medication_outlined,
                       onPressed: () => context.push(RoutePaths.vetPrescription),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: AppButton(
-                      text: 'Finalize Visit',
+                    child: AppButton.filled(
+                      label: 'Complete & Bill',
+                      icon: Icons.check_circle_outline,
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Consultation Finalized & Saved!'),
-                          ),
-                        );
-                        context.go(RoutePaths.vetHome);
+                        context.showSnackbar('✓ Consultation finalized and added to Health Passport');
+                        context.push(RoutePaths.vetTreatmentPlan);
                       },
-                      backgroundColor: colorScheme.primary,
-                      textColor: colorScheme.onPrimary,
-                      height: 42,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -296,39 +230,60 @@ class _ConsultationWorkspaceScreenState
     ColorScheme colorScheme,
   ) {
     return AppCard(
-      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 24,
+            radius: 28,
             backgroundColor: colorScheme.primaryContainer,
-            child: Icon(Icons.pets, color: colorScheme.primary),
+            child: Text(
+              'B',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Bella (Golden Retriever)',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Bella',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: AppRadius.brPill,
+                      ),
+                      child: Text(
+                        'CANINE • 3Y',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  'Female, Spayed • 4y 2m • 28.5 kg',
+                  'Owner: Sarah Jenkins • +1 (555) 789-0123',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
+                Text(
+                  'Alerts: Penicillin allergy • Last Visit: 42 days ago',
+                  style: TextStyle(fontSize: 11, color: colorScheme.error, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
-          ),
-          AppChip(
-            label: 'Penicillin Allergy',
-            backgroundColor: colorScheme.errorContainer,
-            textColor: colorScheme.onErrorContainer,
           ),
         ],
       ),
@@ -340,26 +295,17 @@ class _ConsultationWorkspaceScreenState
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
-      ),
+    return AppCard(
+      color: colorScheme.primaryContainer.withValues(alpha: 0.25),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.smart_toy_outlined,
-                color: colorScheme.primary,
-                size: 22,
-              ),
+              Icon(Icons.auto_awesome, color: colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Text(
-                'VetOps AI Clinical Assistant',
+                'AI Clinical Diagnostic Co-Pilot',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.primary,
@@ -371,36 +317,19 @@ class _ConsultationWorkspaceScreenState
           _buildAiSuggestionItem(
             theme,
             colorScheme,
-            title: 'Lyme Disease Risk',
-            desc:
-                'Endemic area; tick preventative lapsed 6 weeks ago. Suggest SNAP 4Dx Plus test.',
-            icon: Icons.priority_high,
-            iconColor: AppColors.warning,
+            title: 'Diagnostic Recommendation',
+            desc: 'Consider SNAP 4Dx Plus test and baseline serum biochemistry (ALT, ALP, Creatinine).',
+            icon: Icons.biotech_outlined,
+            iconColor: Colors.blue,
           ),
           const SizedBox(height: 8),
           _buildAiSuggestionItem(
             theme,
             colorScheme,
-            title: 'Routine Blood Panel',
-            desc: 'Due for annual CBC/Chem panel based on age and baseline.',
-            icon: Icons.science_outlined,
-            iconColor: colorScheme.primary,
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              icon: const Icon(Icons.auto_awesome, size: 16),
-              label: const Text('Generate Draft Treatment Plan'),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('AI draft treatment plan generated for Buster.'),
-                  ),
-                );
-                context.push(RoutePaths.vetTreatmentPlan);
-              },
-            ),
+            title: 'Contraindication Guard',
+            desc: 'Patient has Penicillin allergy recorded. Avoid Amoxicillin/Clavamox formulations.',
+            icon: Icons.warning_amber_rounded,
+            iconColor: Colors.orange,
           ),
         ],
       ),
@@ -490,6 +419,75 @@ class _ConsultationWorkspaceScreenState
             hintText: 'Enter $label notes...',
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAiSoapScribeModal(BuildContext context) {
+    final scribeInputCtrl = TextEditingController(
+      text: 'Bella presented with 2-day lethargy and decreased appetite. Temp 38.6, HR 92 bpm, palpation shows mild cranial abdominal discomfort. Likely dietary indiscretion or early gastritis. Order basic bloods, start Cerenia and gastroprotectant, feed boiled chicken and rice.',
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+        ),
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome, color: Colors.blue),
+                AppSpacing.hGapSm,
+                Text(
+                  'AI Clinical SOAP Scribe',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            AppSpacing.vGapXs,
+            const Text(
+              'Paste raw clinical dictation or quick notes. AI will structure into SOAP fields.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            AppSpacing.vGapMd,
+            AppTextField(
+              controller: scribeInputCtrl,
+              labelText: 'Clinical Notes / Dictation',
+              maxLines: 4,
+            ),
+            AppSpacing.vGapLg,
+            AppButton.filled(
+              label: 'Structure & Insert into SOAP',
+              icon: Icons.bolt_rounded,
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                setState(() {
+                  _subjectiveController.text = 'Patient presented with reported lethargy and decreased appetite over the past 48 hours. Owner notes no overt emesis witnessed.';
+                  _objectiveController.text = 'T: 38.6°C, HR: 92 bpm, RR: 22 brpm, Wt: 28.5 kg. Normal heart and lung sounds. Mild discomfort on cranial abdominal palpation.';
+                  _assessmentController.text = 'Acute mild gastroenteritis secondary to suspected dietary indiscretion. Low index of suspicion for systemic obstruction.';
+                  _planController.text = '1. Order CBC and Serum Biochemistry profile.\n2. Cerenia (Maropitant) 1 mg/kg SQ once.\n3. Bland gastrointestinal diet for 3 days.\n4. Re-evaluate if anorexia persists >24h.';
+                });
+                Navigator.of(ctx).pop();
+                context.showSnackbar('✓ SOAP structured and auto-filled into consultation workspace!');
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

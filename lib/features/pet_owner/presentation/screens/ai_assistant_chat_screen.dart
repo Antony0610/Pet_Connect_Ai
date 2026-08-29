@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
@@ -14,7 +13,7 @@ import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
-import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 /// The author of a chat message.
 enum _Role { user, ai }
@@ -44,7 +43,7 @@ class _ChatMessage {
 ///
 /// An interactive multimodal conversational thread with PetConnect AI.
 /// Supports text queries, multi-photo symptom attachment, hands-free voice dictation,
-/// and live streaming typewriter response rendering.
+/// conversation thread history drawer, mid-chat pet switching, and live streaming typewriter responses.
 class AiAssistantChatScreen extends ConsumerStatefulWidget {
   const AiAssistantChatScreen({
     super.key,
@@ -64,26 +63,28 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _composer = TextEditingController();
   final ScrollController _scroll = ScrollController();
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
   bool _isSending = false;
   bool _isListening = false;
-  Timer? _dictationTimer;
+  bool _speechEnabled = false;
   final List<Uint8List> _pendingImages = [];
 
   final List<_ChatMessage> _messages = [
     _ChatMessage(
       _Role.ai,
-      "Hi! I'm your PetConnect AI Veterinary Assistant. You can ask me anything — health questions, food safety, daily calories, behavioral training, or attach photos for instant multimodal vision analysis.",
-      sources: ['PetConnect AI Engine'],
+      "Hi! I'm your PetConnect AI Veterinary Assistant. You can ask me anything — health triage, toxicology, nutrition math, behavior training, avian/exotic care, or attach photos for instant multimodal inspection.",
+      sources: const ['PetConnect AI Engine'],
     ),
   ];
 
   static const List<Map<String, String>> _suggestionChips = [
     {'icon': '🐾', 'label': 'Symptom Triage', 'prompt': 'Analyze skin rash, redness and itching causes'},
     {'icon': '🥩', 'label': 'Food Safety', 'prompt': 'Can dogs safely eat peanut butter and apples?'},
-    {'icon': '⚖️', 'label': 'Calorie Calc', 'prompt': 'Calculate daily calories for a 12 kg moderately active dog'},
+    {'icon': '⚖️', 'label': 'Calorie Math', 'prompt': 'Calculate daily calories for a 12 kg moderately active dog'},
     {'icon': '🎾', 'label': 'Puppy Biting', 'prompt': 'How do I stop puppy play biting effectively?'},
+    {'icon': '🦜', 'label': 'Avian & Exotics', 'prompt': 'What are the emergency signs of Teflon toxicity in birds?'},
+    {'icon': '🚨', 'label': 'First Aid & CPR', 'prompt': 'Step-by-step CPR and choking first aid for companion pets'},
     {'icon': '🏠', 'label': 'Potty Training', 'prompt': 'What is the most effective routine for housebreaking?'},
-    {'icon': '✂️', 'label': 'Coat Care', 'prompt': 'How often should I brush a double-coated dog?'},
     {'icon': '🔬', 'label': 'Science', 'prompt': 'Why do cats purr and how does it promote healing?'},
   ];
 
@@ -92,6 +93,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   @override
   void initState() {
     super.initState();
+    _initSpeech();
     if (widget.initialConversationId != null && widget.initialConversationId!.isNotEmpty) {
       _activeConversationId = widget.initialConversationId;
       _loadConversationHistory(widget.initialConversationId!);
@@ -103,6 +105,25 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
         }
       });
     }
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      final status = await Permission.microphone.status;
+      if (status.isGranted) {
+        _speechEnabled = await _speechToText.initialize(
+          onError: (val) {
+            if (mounted) setState(() => _isListening = false);
+          },
+          onStatus: (status) {
+            if (status == 'notListening' || status == 'done') {
+              if (mounted) setState(() => _isListening = false);
+            }
+          },
+        );
+      }
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   Future<void> _loadConversationHistory(String conversationId) async {
@@ -130,7 +151,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
   @override
   void dispose() {
-    _dictationTimer?.cancel();
+    _speechToText.stop();
     _composer.dispose();
     _scroll.dispose();
     super.dispose();
@@ -154,79 +175,118 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Take Photo (Camera)'),
+              title: const Text('Take Photo with Camera'),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from Gallery'),
+              title: const Text('Select from Gallery'),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
           ],
         ),
       ),
     );
+
     if (source == null) return;
 
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: source,
-      imageQuality: 85,
-      maxWidth: 1280,
-    );
-    if (picked == null) return;
-
-    final bytes = await picked.readAsBytes();
-    if (!mounted) return;
-    setState(() {
-      _pendingImages.add(bytes);
-    });
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 80);
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _pendingImages.add(bytes);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load image: $e')),
+        );
+      }
+    }
   }
 
-  void _removePendingImageAt(int index) {
-    setState(() {
-      _pendingImages.removeAt(index);
-    });
-  }
-
-  /// Simulates voice dictation for hands-free symptom entry.
-  void _toggleVoiceDictation() {
-    HapticFeedback.mediumImpact();
+  void _toggleDictation() async {
+    await HapticFeedback.mediumImpact();
     if (_isListening) {
-      _dictationTimer?.cancel();
-      setState(() => _isListening = false);
+      await _speechToText.stop();
+      if (mounted) setState(() => _isListening = false);
       return;
     }
 
-    setState(() => _isListening = true);
-
-    final sampleDictations = [
-      'My pet has been scratching behind the ears and shaking head frequently.',
-      'What are safe fruits and vegetables to feed my dog in moderation?',
-      'My puppy is play biting hands during playtime, how do I teach bite inhibition?',
-    ];
-    final chosen = sampleDictations[DateTime.now().second % sampleDictations.length];
-    int charIndex = 0;
-    _composer.clear();
-
-    _dictationTimer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
-      if (!mounted || !_isListening) {
-        timer.cancel();
+    // Check and request microphone permission at runtime
+    var micStatus = await Permission.microphone.status;
+    if (!micStatus.isGranted) {
+      micStatus = await Permission.microphone.request();
+      if (micStatus.isPermanentlyDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Microphone access is needed for voice input. Please enable it in Settings.'),
+              action: SnackBarAction(
+                label: 'Settings',
+                onPressed: () => openAppSettings(),
+              ),
+            ),
+          );
+        }
         return;
       }
-      if (charIndex < chosen.length) {
-        _composer.text = chosen.substring(0, charIndex + 1);
-        charIndex++;
-      } else {
-        timer.cancel();
-        setState(() => _isListening = false);
-        HapticFeedback.lightImpact();
+      if (!micStatus.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Microphone permission is required for voice dictation.')),
+          );
+        }
+        return;
       }
-    });
+    }
+
+    if (!_speechEnabled) {
+      _speechEnabled = await _speechToText.initialize(
+        onError: (_) {
+          if (mounted) setState(() => _isListening = false);
+        },
+        onStatus: (status) {
+          if (status == 'notListening' || status == 'done') {
+            if (mounted) setState(() => _isListening = false);
+          }
+        },
+      );
+    }
+
+    if (_speechEnabled) {
+      if (mounted) setState(() => _isListening = true);
+      await _speechToText.listen(
+        listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.dictation,
+          cancelOnError: true,
+          partialResults: true,
+        ),
+        onResult: (result) {
+          if (mounted) {
+            setState(() {
+              _composer.text = result.recognizedWords;
+              _composer.selection = TextSelection.fromPosition(
+                TextPosition(offset: _composer.text.length),
+              );
+            });
+          }
+        },
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speech recognition is not supported or available on this device.')),
+        );
+      }
+    }
   }
 
-  /// Streams the response into the chat message to create a real-time typewriter experience.
-  Future<void> _streamAiResponse(String fullResponse, {
+  Future<void> _streamAiResponse(
+    String fullResponse, {
     List<String> sources = const [],
     String? urgencyLevel,
     List<String> recommendations = const [],
@@ -243,9 +303,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     setState(() {
       _messages.add(aiMsg);
     });
-    _scrollToBottom();
 
-    // Stream tokens in chunks
     final words = fullResponse.split(' ');
     final buffer = StringBuffer();
 
@@ -318,6 +376,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           );
           convResult.fold((_) {}, (conv) {
             _activeConversationId = conv.id;
+            ref.invalidate(aiConversationsProvider);
           });
         }
 
@@ -334,7 +393,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           (failure) async {
             final pName = selectedPet?.name ?? 'your companion';
             await _streamAiResponse(
-              'Consultation note for $pName: Regarding "$userText", ensure $pName is well-hydrated, resting comfortably, and observed for any sudden changes. Normal companion temperature is 101.0–102.5°F.',
+              'Consultation note for $pName: Regarding "$userText", ensure $pName is well-hydrated, resting comfortably, and observed for any sudden changes.',
               sources: const ['PetConnect Clinical Guidelines'],
             );
           },
@@ -373,12 +432,123 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final isDesktop = context.screenWidth >= AppBreakpoints.desktop;
+    final selectedPet = ref.watch(selectedPetProvider);
+    final petsAsync = ref.watch(petsProvider);
+    final conversationsAsync = ref.watch(aiConversationsProvider);
 
     return Scaffold(
+      drawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Chat History',
+                      style: context.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_comment_outlined),
+                      tooltip: 'New Thread',
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _messages.clear();
+                          _messages.add(
+                            _ChatMessage(
+                              _Role.ai,
+                              'Started a new consultation thread! What can I help with today?',
+                              sources: const ['PetConnect AI Engine'],
+                            ),
+                          );
+                          _activeConversationId = null;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: conversationsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => const Center(child: Text('No previous conversations')),
+                  data: (convs) {
+                    if (convs.isEmpty) {
+                      return const Center(child: Text('No past chat threads found.'));
+                    }
+                    return ListView.builder(
+                      itemCount: convs.length,
+                      itemBuilder: (ctx, i) {
+                        final c = convs[i];
+                        final isSelected = c.id == _activeConversationId;
+                        return ListTile(
+                          selected: isSelected,
+                          selectedTileColor: scheme.primaryContainer.withValues(alpha: 0.3),
+                          leading: const Icon(Icons.chat_bubble_outline, size: 18),
+                          title: Text(
+                            c.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            setState(() => _activeConversationId = c.id);
+                            _loadConversationHistory(c.id);
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       appBar: AppBar(
-        title: const Text('AI Pet Assistant'),
-        centerTitle: false,
+        title: Row(
+          children: [
+            Text(
+              'PetConnect AI',
+              style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            AppSpacing.hGapSm,
+            petsAsync.when(
+              data: (pets) {
+                if (pets.isEmpty) return const SizedBox.shrink();
+                return DropdownButton<String>(
+                  value: selectedPet?.id,
+                  underline: const SizedBox.shrink(),
+                  icon: const Icon(Icons.arrow_drop_down, size: 18),
+                  items: pets.map((p) {
+                    return DropdownMenuItem(
+                      value: p.id,
+                      child: Text(
+                        '• ${p.name}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (id) {
+                    if (id != null) {
+                      ref.read(selectedPetIdProvider.notifier).state = id;
+                    }
+                  },
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_outlined),
@@ -449,65 +619,59 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                   ),
                 ),
 
-              // Suggestion Chips Rail
-              SizedBox(
-                height: 42,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  itemCount: _suggestionChips.length,
-                  separatorBuilder: (_, __) => AppSpacing.hGapSm,
-                  itemBuilder: (ctx, idx) {
-                    final chip = _suggestionChips[idx];
-                    return ActionChip(
-                      avatar: Text(chip['icon']!),
-                      label: Text(chip['label']!),
-                      onPressed: () => _sendPrompt(chip['prompt']!),
-                    );
-                  },
+              if (_messages.length <= 2)
+                SizedBox(
+                  height: 42,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _suggestionChips.length,
+                    separatorBuilder: (_, __) => AppSpacing.hGapSm,
+                    itemBuilder: (ctx, i) {
+                      final item = _suggestionChips[i];
+                      return ActionChip(
+                        avatar: Text(item['icon']!),
+                        label: Text(item['label']!),
+                        onPressed: () => _sendPrompt(item['prompt']!),
+                      );
+                    },
+                  ),
                 ),
-              ),
 
-              // Multi-Image Preview Tray
               if (_pendingImages.isNotEmpty)
                 Container(
-                  height: 74,
-                  margin: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-                  padding: const EdgeInsets.all(AppSpacing.xs),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHigh,
-                    borderRadius: AppRadius.brCard,
-                    border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
-                  ),
+                  height: 70,
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _pendingImages.length,
                     separatorBuilder: (_, __) => AppSpacing.hGapSm,
-                    itemBuilder: (ctx, idx) {
+                    itemBuilder: (ctx, i) {
                       return Stack(
                         children: [
                           ClipRRect(
-                            borderRadius: AppRadius.brSm,
+                            borderRadius: AppRadius.brMd,
                             child: Image.memory(
-                              _pendingImages[idx],
-                              width: 64,
-                              height: 64,
+                              _pendingImages[i],
+                              width: 60,
+                              height: 60,
                               fit: BoxFit.cover,
                             ),
                           ),
                           Positioned(
-                            top: 2,
-                            right: 2,
-                            child: InkWell(
-                              onTap: () => _removePendingImageAt(idx),
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black87,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close, size: 12, color: Colors.white),
+                            top: -4,
+                            right: -4,
+                            child: IconButton(
+                              icon: const CircleAvatar(
+                                radius: 10,
+                                backgroundColor: Colors.black54,
+                                child: Icon(Icons.close, size: 12, color: Colors.white),
                               ),
+                              onPressed: () {
+                                setState(() {
+                                  _pendingImages.removeAt(i);
+                                });
+                              },
                             ),
                           ),
                         ],
@@ -516,49 +680,68 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                   ),
                 ),
 
-              // Composer Row
-              Padding(
-                padding: EdgeInsets.all(
-                  isDesktop ? AppSpacing.md : AppSpacing.sm,
+              if (_isListening)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                  color: scheme.primaryContainer.withValues(alpha: 0.3),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.mic, color: Colors.red, size: 18),
+                      AppSpacing.hGapSm,
+                      const Text(
+                        'Listening for voice input... (Speak your inquiry)',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      AppSpacing.hGapSm,
+                      GestureDetector(
+                        onTap: _toggleDictation,
+                        child: const Text('Stop', style: TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
                 ),
+
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
                   children: [
                     IconButton(
                       icon: const Icon(Icons.add_photo_alternate_outlined),
-                      tooltip: 'Attach photos (up to 3)',
-                      color: scheme.primary,
+                      tooltip: 'Attach Symptom Photos (Up to 3)',
                       onPressed: _pickImage,
                     ),
                     IconButton(
-                      icon: Icon(
-                        _isListening ? Icons.mic : Icons.mic_none_outlined,
-                        color: _isListening ? scheme.error : scheme.primary,
-                      ),
-                      tooltip: _isListening ? 'Listening...' : 'Voice Dictation',
-                      onPressed: _toggleVoiceDictation,
+                      icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                      color: _isListening ? Colors.red : null,
+                      tooltip: 'Voice Input',
+                      onPressed: _toggleDictation,
                     ),
-                    AppSpacing.hGapXs,
                     Expanded(
                       child: TextField(
                         controller: _composer,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: _sendPrompt,
                         decoration: InputDecoration(
-                          hintText: _isListening
-                              ? 'Listening to speech...'
-                              : (_pendingImages.isNotEmpty
-                                  ? 'Describe symptoms or tap send...'
-                                  : 'Ask your AI assistant anything...'),
-                          border: const OutlineInputBorder(borderRadius: AppRadius.brCard),
+                          hintText: _pendingImages.isNotEmpty
+                              ? 'Add details to symptom photos...'
+                              : 'Ask about health, calories, training, exotics...',
+                          border: const OutlineInputBorder(
+                            borderRadius: AppRadius.brPill,
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: scheme.surfaceContainerHighest,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.md,
                             vertical: AppSpacing.sm,
                           ),
                         ),
-                        onSubmitted: _sendPrompt,
                       ),
                     ),
                     AppSpacing.hGapSm,
                     IconButton.filled(
-                      icon: const Icon(Icons.send),
+                      icon: const Icon(Icons.send_rounded),
                       onPressed: () => _sendPrompt(_composer.text),
                     ),
                   ],
@@ -574,44 +757,54 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
 class _UserBubble extends StatelessWidget {
   const _UserBubble({required this.text, this.images = const []});
+
   final String text;
   final List<Uint8List> images;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+
     return Align(
       alignment: Alignment.centerRight,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        constraints: const BoxConstraints(maxWidth: 340),
-        decoration: BoxDecoration(
-          color: scheme.primary,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (images.isNotEmpty) ...[
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: images.map((img) {
-                  return ClipRRect(
-                    borderRadius: AppRadius.brSm,
-                    child: Image.memory(
-                      img,
-                      width: images.length > 1 ? 130 : 260,
-                      height: 120,
-                      fit: BoxFit.cover,
-                    ),
-                  );
-                }).toList(),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: context.screenWidth * 0.75),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: scheme.primary,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(AppRadius.lg),
+              topRight: Radius.circular(AppRadius.lg),
+              bottomLeft: Radius.circular(AppRadius.lg),
+              bottomRight: AppRadius.rSm,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (images.isNotEmpty) ...[
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: images.map((img) {
+                    return ClipRRect(
+                      borderRadius: AppRadius.brMd,
+                      child: Image.memory(img, width: 80, height: 80, fit: BoxFit.cover),
+                    );
+                  }).toList(),
+                ),
+                AppSpacing.vGapSm,
+              ],
+              Text(
+                text,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              AppSpacing.vGapSm,
             ],
-            Text(text, style: TextStyle(color: scheme.onPrimary)),
-          ],
+          ),
         ),
       ),
     );
@@ -621,7 +814,7 @@ class _UserBubble extends StatelessWidget {
 class _AiCard extends StatelessWidget {
   const _AiCard({
     required this.text,
-    required this.sources,
+    this.sources = const [],
     this.urgencyLevel,
     this.recommendations = const [],
     this.isStreaming = false,
@@ -637,106 +830,82 @@ class _AiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    Color badgeColor = scheme.primary;
-    if (urgencyLevel == 'EMERGENCY') badgeColor = scheme.error;
-    if (urgencyLevel == 'URGENT') badgeColor = Colors.orange;
+    final formattedText = text
+        .replaceAll('🐾 **PetConnect AI Assistance**:\n\n', '')
+        .replaceAll('**Visual Observations**:\n\n', '')
+        .trim();
 
-    return AiGradientBorderCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: context.screenWidth * 0.85),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerLow,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(AppRadius.lg),
+              topRight: Radius.circular(AppRadius.lg),
+              bottomLeft: AppRadius.rSm,
+              bottomRight: Radius.circular(AppRadius.lg),
+            ),
+            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (urgencyLevel != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: badgeColor.withValues(alpha: 0.15),
-                    borderRadius: AppRadius.brPill,
-                    border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.shield_outlined, size: 14, color: badgeColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Triage Level: $urgencyLevel',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: badgeColor),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_awesome, size: 16, color: scheme.primary),
-                    AppSpacing.hGapXs,
-                    Text(
-                      'PetConnect AI Clinical Specialist',
-                      style: context.textTheme.labelSmall?.copyWith(
-                        fontWeight: AppTypography.bold,
-                        color: scheme.primary,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-              if (!isStreaming)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                    child: Icon(Icons.auto_awesome, size: 14, color: scheme.primary),
+                  ),
+                  AppSpacing.hGapXs,
+                  Text(
+                    'PetConnect AI',
+                    style: context.textTheme.labelSmall?.copyWith(
+                      fontWeight: AppTypography.bold,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (text.isNotEmpty && !isStreaming) ...[
                     IconButton(
-                      icon: const Icon(Icons.copy, size: 16),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Copy consultation',
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      tooltip: 'Copy to Clipboard',
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: text));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('✓ Consultation copied to clipboard')),
+                        context.showSnackbar('✓ Copied AI response to clipboard');
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share_outlined, size: 16),
+                      tooltip: 'Share Advice',
+                      onPressed: () {
+                        ExternalActions.shareText(
+                          '🐾 PetConnect AI Advice:\n\n$text',
+                          subject: 'PetConnect AI Care Advice',
                         );
                       },
                     ),
-                    AppSpacing.hGapSm,
-                    IconButton(
-                      icon: const Icon(Icons.share_outlined, size: 16),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Share advice',
-                      onPressed: () => ExternalActions.shareText(text, subject: 'PetConnect AI Advice'),
-                    ),
                   ],
-                ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          Text(
-            isStreaming ? '$text ▌' : text,
-            style: context.textTheme.bodyMedium?.copyWith(height: 1.45),
-          ),
-          if (recommendations.isNotEmpty) ...[
-            AppSpacing.vGapMd,
-            Text(
-              'Key Recommendations:',
-              style: context.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            AppSpacing.vGapXs,
-            ...recommendations.map(
-              (r) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Expanded(child: Text(r, style: context.textTheme.bodySmall)),
-                  ],
+                ],
+              ),
+              AppSpacing.vGapSm,
+              Text(
+                formattedText,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurface,
+                  height: 1.45,
                 ),
               ),
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

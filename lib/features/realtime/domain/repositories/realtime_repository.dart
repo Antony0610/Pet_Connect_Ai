@@ -27,4 +27,10 @@ abstract class RealtimeRepository {
 
   /// Mark all unread notifications as read for current authenticated user.
   ResultFuture<int> markAllNotificationsRead();
+
+  /// Delete a single notification.
+  ResultFuture<void> deleteNotification(String notificationId);
+
+  /// Delete all notifications for current authenticated user.
+  ResultFuture<void> deleteAllNotifications();
 }

@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.dart';
@@ -66,6 +68,32 @@ void main() {
       expect(vaccination.vaccineName, contains('Rabies'));
       expect(healthRecord.category, equals('wellness'));
       expect(weightLog.weightKg, equals(28.5));
+    });
+
+    test('Health Passport PDF binary document compiles with valid PDF header', () async {
+      final doc = pw.Document(title: 'Max Health Passport', author: 'PetConnect AI');
+      doc.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context ctx) {
+            return pw.Column(
+              children: [
+                pw.Text('OFFICIAL PET HEALTH PASSPORT', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                pw.Text('Pet: Max (Golden Retriever)'),
+                pw.Text('Verified via PetConnect AI Digital Passport Network'),
+              ],
+            );
+          },
+        ),
+      );
+
+      final pdfBytes = await doc.save();
+      expect(pdfBytes, isNotEmpty);
+      expect(pdfBytes.length, greaterThan(100));
+
+      // Standard PDF magic header check '%PDF-'
+      final magicHeader = String.fromCharCodes(pdfBytes.take(5));
+      expect(magicHeader, equals('%PDF-'));
     });
   });
 }

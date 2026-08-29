@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -19,9 +20,10 @@ import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_p
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/pet_emergency_qr_modal.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/cards/glass_card.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 class PetProfileDetailScreen extends ConsumerWidget {
   const PetProfileDetailScreen({super.key});
@@ -356,45 +358,31 @@ class _QuickActionsGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final items = <_QuickAction>[
-      _QuickAction(
-        label: 'Health',
-        icon: Icons.favorite,
-        iconFilled: true,
-        background: context.colorScheme.primaryContainer.withValues(
-          alpha: 0.10,
-        ),
-        color: context.colorScheme.primary,
-        onTap: () => context.push(RoutePaths.ownerHealth),
+    final actions = [
+      QuickActionItemSpec(
+        title: 'Health\nPassport',
+        icon: Icons.health_and_safety_rounded,
+        gradientColors: const [Color(0xFF10B981), Color(0xFF047857)],
+        onTap: () {
+          if (pet != null) {
+            context.push(RoutePaths.ownerHealth);
+          }
+        },
       ),
-      _QuickAction(
-        label: 'AI Care',
-        icon: Icons.smart_toy,
-        iconFilled: true,
-        background: Color.alphaBlend(
-          context.colorScheme.secondaryContainer.withValues(alpha: 0.35),
-          context.colorScheme.primaryContainer.withValues(alpha: 0.25),
-        ),
-        color: context.colorScheme.primary,
-        onTap: () => context.push(RoutePaths.ownerAiAssistant),
-      ),
-      _QuickAction(
-        label: 'QR Pass',
+      QuickActionItemSpec(
+        title: 'QR Pass\nModal',
         icon: Icons.qr_code_2_rounded,
-        iconFilled: true,
-        background: context.colorScheme.primaryContainer.withValues(alpha: 0.20),
-        color: context.colorScheme.primary,
+        gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
         onTap: () {
           if (pet != null) {
             PetEmergencyQrModal.show(context, pet!);
           }
         },
       ),
-      _QuickAction(
-        label: 'PDF Export',
-        icon: Icons.picture_as_pdf_outlined,
-        background: context.colorScheme.surfaceContainer,
-        color: context.colorScheme.onSurfaceVariant,
+      QuickActionItemSpec(
+        title: 'PDF Health\nExport',
+        icon: Icons.picture_as_pdf_rounded,
+        gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
         onTap: () async {
           if (pet != null) {
             final owner = ref.read(currentUserProfileProvider).valueOrNull;
@@ -413,32 +401,24 @@ class _QuickActionsGrid extends ConsumerWidget {
           }
         },
       ),
-      _QuickAction(
-        label: 'Collar',
-        icon: Icons.pets,
-        background: context.colorScheme.surfaceContainer,
-        color: context.colorScheme.onSurfaceVariant,
+      QuickActionItemSpec(
+        title: 'Smart\nCollar',
+        icon: Icons.podcasts_rounded,
+        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
         onTap: () => context.push(RoutePaths.ownerCollar),
       ),
-      _QuickAction(
-        label: 'Appts',
-        icon: Icons.event,
-        background: context.colorScheme.surfaceContainer,
-        color: context.colorScheme.onSurfaceVariant,
-        onTap: () => context.push(RoutePaths.ownerHealthTimeline),
-      ),
-      _QuickAction(
-        label: 'Lost Mode',
-        icon: Icons.location_on,
-        background: context.colorScheme.errorContainer.withValues(alpha: 0.20),
-        color: context.colorScheme.error,
+      QuickActionItemSpec(
+        title: 'Lost Mode\nSOS',
+        icon: Icons.campaign_rounded,
+        gradientColors: const [Color(0xFFEF4444), Color(0xFFB91C1C)],
+        badgeText: 'SOS',
+        isDanger: true,
         onTap: () => context.push(RoutePaths.ownerLostMode),
       ),
-      _QuickAction(
-        label: 'Gallery',
-        icon: Icons.photo_library_outlined,
-        background: context.colorScheme.surfaceContainer,
-        color: context.colorScheme.onSurfaceVariant,
+      QuickActionItemSpec(
+        title: 'Photo\nGallery',
+        icon: Icons.photo_library_rounded,
+        gradientColors: const [Color(0xFFEC4899), Color(0xFFBE185D)],
         onTap: () {
           if (pet != null) {
             context.pushNamed(
@@ -450,76 +430,49 @@ class _QuickActionsGrid extends ConsumerWidget {
       ),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: wide ? 8 : 4,
-        crossAxisSpacing: AppSpacing.sm,
-        mainAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 1.15,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) => items[index],
-    );
-  }
-}
-
-/// A single quick-action tile.
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.label,
-    required this.icon,
-    required this.background,
-    required this.color,
-    this.iconFilled = false,
-    this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color background;
-  final Color color;
-  final bool iconFilled;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: AppRadius.brLg,
-      clipBehavior: Clip.antiAlias,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: AppRadius.brLg,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
         ),
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onTap?.call();
-          },
-          borderRadius: AppRadius.brLg,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: AppIconSizes.lg,
-                color: color,
-                fill: iconFilled ? 1 : 0,
-              ),
-              AppSpacing.vGapXs,
-              Text(
-                label,
-                style: context.textTheme.labelLarge?.copyWith(
-                  color: context.colorScheme.onSurface,
+      ),
+      child: wide
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: actions.map((act) => Expanded(
+                child: QuickActionButton(
+                  title: act.title,
+                  icon: act.icon,
+                  gradientColors: act.gradientColors,
+                  badgeText: act.badgeText,
+                  isDanger: act.isDanger,
+                  onTap: act.onTap,
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
+              )).toList(),
+            )
+          : Wrap(
+              alignment: WrapAlignment.start,
+              spacing: 6,
+              runSpacing: 10,
+              children: actions.map((act) {
+                final width = (context.screenWidth - 56) / 3;
+                return SizedBox(
+                  width: width.clamp(80.0, 115.0),
+                  child: QuickActionButton(
+                    title: act.title,
+                    icon: act.icon,
+                    gradientColors: act.gradientColors,
+                    badgeText: act.badgeText,
+                    isDanger: act.isDanger,
+                    onTap: act.onTap,
+                  ),
+                );
+              }).toList(),
+            ),
     );
   }
 }
@@ -546,69 +499,255 @@ class _PersonalityActivityColumn extends StatelessWidget {
   }
 }
 
-/// Personality tags card.
-class _PersonalityCard extends StatelessWidget {
+/// Dynamic Personality tags card with interactive trait selector.
+class _PersonalityCard extends ConsumerStatefulWidget {
   const _PersonalityCard({this.pet});
 
   final Pet? pet;
 
   @override
-  Widget build(BuildContext context) {
-    final species = (pet?.species ?? 'dog').toLowerCase();
-    final List<String> tags;
-    if (species.contains('cat')) {
-      tags = const ['Calm', 'Independent', 'Playful'];
-    } else if (species.contains('bird')) {
-      tags = const ['Curious', 'Vocal', 'Social'];
-    } else {
-      tags = const ['Friendly', 'Energetic', 'Loyal'];
-    }
+  ConsumerState<_PersonalityCard> createState() => _PersonalityCardState();
+}
 
+class _PersonalityCardState extends ConsumerState<_PersonalityCard> {
+  List<String> _traits = [];
+
+  static const List<String> _availableTraits = [
+    'Energetic',
+    'Gentle',
+    'Playful',
+    'Loyal',
+    'Affectionate',
+    'Guard Dog',
+    'Curious',
+    'Calm',
+    'Vocal',
+    'Shy',
+    'Kid Friendly',
+    'Cuddly',
+    'Highly Trained',
+    'Foodie',
+    'Independent',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTraits();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PersonalityCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pet?.id != widget.pet?.id) {
+      _loadTraits();
+    }
+  }
+
+  void _loadTraits() {
+    final petId = widget.pet?.id;
+    if (petId == null) return;
+    final prefs = ref.read(sharedPreferencesProvider);
+    final saved = prefs.getStringList('pet_traits_$petId');
+    if (saved != null && saved.isNotEmpty) {
+      setState(() => _traits = saved);
+    } else {
+      final species = (widget.pet?.species ?? 'dog').toLowerCase();
+      if (species.contains('cat')) {
+        setState(() => _traits = ['Calm', 'Independent', 'Playful']);
+      } else if (species.contains('bird')) {
+        setState(() => _traits = ['Curious', 'Vocal', 'Social']);
+      } else {
+        setState(() => _traits = ['Friendly', 'Energetic', 'Loyal']);
+      }
+    }
+  }
+
+  Future<void> _saveTraits(List<String> newTraits) async {
+    final petId = widget.pet?.id;
+    if (petId == null) return;
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setStringList('pet_traits_$petId', newTraits);
+    setState(() => _traits = newTraits);
+  }
+
+  void _openTraitEditor() {
+    HapticFeedback.lightImpact();
+    final selected = Set<String>.from(_traits);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${widget.pet?.name ?? "Pet"}\'s Personality',
+                    style: context.textTheme.titleLarge?.copyWith(
+                      fontWeight: AppTypography.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              AppSpacing.vGapXs,
+              Text(
+                'Select traits that best describe your companion\'s behavior.',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              AppSpacing.vGapMd,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _availableTraits.map((trait) {
+                  final isChecked = selected.contains(trait);
+                  return FilterChip(
+                    label: Text(trait),
+                    selected: isChecked,
+                    selectedColor: context.colorScheme.primaryContainer,
+                    checkmarkColor: context.colorScheme.onPrimaryContainer,
+                    onSelected: (val) {
+                      HapticFeedback.lightImpact();
+                      setModalState(() {
+                        if (val) {
+                          selected.add(trait);
+                        } else {
+                          selected.remove(trait);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              AppSpacing.vGapLg,
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.check),
+                  label: const Text('Save Personality Traits'),
+                  onPressed: () {
+                    _saveTraits(selected.toList());
+                    Navigator.pop(ctx);
+                    context.showSnackbar('Personality traits updated!');
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AppCard(
       padding: AppSpacing.cardPaddingPremium,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                Icons.psychology,
-                size: AppIconSizes.md,
-                color: context.colorScheme.secondary,
+              Row(
+                children: [
+                  Icon(
+                    Icons.psychology_rounded,
+                    size: AppIconSizes.md,
+                    color: context.colorScheme.secondary,
+                  ),
+                  AppSpacing.hGapSm,
+                  Text(
+                    'Personality',
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: AppTypography.semiBold,
+                    ),
+                  ),
+                ],
               ),
-              AppSpacing.hGapSm,
-              Text(
-                'Personality',
-                style: context.textTheme.titleMedium?.copyWith(
-                  fontWeight: AppTypography.semiBold,
-                ),
+              IconButton(
+                icon: const Icon(Icons.edit_note_rounded, size: 20),
+                tooltip: 'Edit Personality Traits',
+                color: context.colorScheme.primary,
+                onPressed: _openTraitEditor,
               ),
             ],
           ),
-          AppSpacing.vGapMd,
+          AppSpacing.vGapSm,
           Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
-            children: tags
-                .map(
-                  (tag) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: AppSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colorScheme.secondaryContainer,
-                      borderRadius: AppRadius.brPill,
-                    ),
-                    child: Text(
-                      tag,
-                      style: context.textTheme.labelLarge?.copyWith(
-                        color: context.colorScheme.onSecondaryContainer,
-                      ),
+            children: [
+              for (final tag in _traits)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.secondaryContainer,
+                    borderRadius: AppRadius.brPill,
+                  ),
+                  child: Text(
+                    tag,
+                    style: context.textTheme.labelLarge?.copyWith(
+                      color: context.colorScheme.onSecondaryContainer,
                     ),
                   ),
-                )
-                .toList(),
+                ),
+              InkWell(
+                onTap: _openTraitEditor,
+                borderRadius: BorderRadius.circular(AppRadius.brPill.topLeft.x),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: context.colorScheme.outlineVariant,
+                      style: BorderStyle.solid,
+                    ),
+                    borderRadius: AppRadius.brPill,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 14, color: context.colorScheme.primary),
+                      const SizedBox(width: 2),
+                      Text(
+                        'Add Trait',
+                        style: context.textTheme.labelSmall?.copyWith(
+                          color: context.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -616,18 +755,114 @@ class _PersonalityCard extends StatelessWidget {
   }
 }
 
-/// Activity level card with a tertiary progress bar.
-class _ActivityLevelCard extends StatelessWidget {
+/// Dynamic Activity Level card backed by Smart Collar telemetry or manual walk tracker.
+class _ActivityLevelCard extends ConsumerWidget {
   const _ActivityLevelCard({this.pet});
 
   final Pet? pet;
 
+  void _openLogWalkDialog(BuildContext context, WidgetRef ref) {
+    HapticFeedback.lightImpact();
+    int loggedMinutes = 30;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Log Activity for ${pet?.name ?? "Pet"}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Add walking or play duration today to update activity level:',
+                style: ctx.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton.filledTonal(
+                    onPressed: () => setDlgState(() => loggedMinutes = (loggedMinutes - 10).clamp(10, 180)),
+                    icon: const Icon(Icons.remove),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    '$loggedMinutes mins',
+                    style: ctx.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton.filledTonal(
+                    onPressed: () => setDlgState(() => loggedMinutes = (loggedMinutes + 10).clamp(10, 180)),
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final petId = pet?.id;
+                if (petId != null) {
+                  final prefs = ref.read(sharedPreferencesProvider);
+                  final current = prefs.getInt('pet_activity_mins_$petId') ?? 0;
+                  await prefs.setInt('pet_activity_mins_$petId', current + loggedMinutes);
+                }
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                }
+                if (context.mounted) {
+                  context.showSnackbar('Logged $loggedMinutes mins of exercise!');
+                }
+              },
+              child: const Text('Save Log'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tertiary = context.colorScheme.tertiary;
-    final isOptimal = pet?.healthStatus == 'optimal';
-    final activityLevel = isOptimal ? 'High' : 'Moderate';
-    final progress = isOptimal ? 0.85 : 0.60;
+    final petId = pet?.id;
+
+    final collarsAsync = ref.watch(registeredCollarsProvider);
+    final collars = collarsAsync.valueOrNull ?? [];
+    final matchingCollars = collars.where((c) => c.petId == petId);
+    final CollarDevice? collar = matchingCollars.isNotEmpty ? matchingCollars.first : null;
+
+    int steps = 0;
+    int activeMinutes = 0;
+
+    if (collar != null) {
+      final activitiesAsync = ref.watch(collarActivitySummariesProvider(collar.id));
+      final today = DateTime.now();
+      final activities = activitiesAsync.valueOrNull ?? [];
+      final matches = activities.where(
+        (s) => s.activityDate.year == today.year && s.activityDate.month == today.month && s.activityDate.day == today.day,
+      );
+      if (matches.isNotEmpty) {
+        steps = matches.first.stepCount;
+        activeMinutes = matches.first.activeMinutes;
+      }
+    } else if (petId != null) {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      activeMinutes = prefs.getInt('pet_activity_mins_$petId') ?? 45;
+      steps = (activeMinutes * 110);
+    }
+
+    const double targetSteps = 10000;
+    final double progress = (steps / targetSteps).clamp(0.05, 1.0);
+    final String activityLevel = progress >= 0.8
+        ? 'High'
+        : (progress >= 0.4 ? 'Moderate' : 'Low');
 
     return AppCard(
       padding: AppSpacing.cardPaddingPremium,
@@ -649,11 +884,24 @@ class _ActivityLevelCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Text(
-                activityLevel,
-                style: context.textTheme.headlineSmall?.copyWith(
-                  color: tertiary,
-                ),
+              Row(
+                children: [
+                  Text(
+                    activityLevel,
+                    style: context.textTheme.titleMedium?.copyWith(
+                      color: tertiary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (collar == null) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      tooltip: 'Log Activity',
+                      onPressed: () => _openLogWalkDialog(context, ref),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -668,13 +916,24 @@ class _ActivityLevelCard extends StatelessWidget {
             ),
           ),
           AppSpacing.vGapXs,
-          Text(
-            progress >= 0.8
-                ? 'Requires 2+ hours of exercise daily.'
-                : 'Maintains healthy daily activity.',
-            style: context.textTheme.labelMedium?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '$steps steps • ${activeMinutes}m active today',
+                style: context.textTheme.labelMedium?.copyWith(
+                  color: context.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}% of goal',
+                style: context.textTheme.labelSmall?.copyWith(
+                  color: tertiary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ],
       ),

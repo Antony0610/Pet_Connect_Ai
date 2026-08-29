@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
@@ -28,25 +31,63 @@ class SavedItem {
   final String timeAgo;
   final String route;
   final String? author;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'description': description,
+    'category': category,
+    'timeAgo': timeAgo,
+    'route': route,
+    'author': author,
+  };
+
+  factory SavedItem.fromJson(Map<String, dynamic> json) {
+    IconData ic;
+    switch (json['category']) {
+      case 'Lost Pet Alert':
+        ic = Icons.campaign;
+        break;
+      case 'Community Discussion':
+        ic = Icons.forum_outlined;
+        break;
+      case 'Adoption Profile':
+        ic = Icons.pets;
+        break;
+      default:
+        ic = Icons.article_outlined;
+    }
+    return SavedItem(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      category: json['category'] as String,
+      icon: ic,
+      timeAgo: json['timeAgo'] as String,
+      route: json['route'] as String,
+      author: json['author'] as String?,
+    );
+  }
 }
 
 /// **Saved Content Screen**
 ///
 /// Enables pet owners to view, manage, filter, and organize bookmarked articles,
-/// lost pet alerts, community discussions, and saved adoption profiles.
-class SavedContentScreen extends StatefulWidget {
+/// lost pet alerts, community discussions, and saved adoption profiles with persistence.
+class SavedContentScreen extends ConsumerStatefulWidget {
   const SavedContentScreen({super.key});
 
   @override
-  State<SavedContentScreen> createState() => _SavedContentScreenState();
+  ConsumerState<SavedContentScreen> createState() => _SavedContentScreenState();
 }
 
-class _SavedContentScreenState extends State<SavedContentScreen> {
+class _SavedContentScreenState extends ConsumerState<SavedContentScreen> {
   static const double _maxContentWidth = 1000;
+  static const String _storageKey = 'user_saved_bookmarks_v2';
+
   String _selectedTab = 'Recent';
   String _searchQuery = '';
   bool _isSearching = false;
-
   String _selectedCategory = 'All';
 
   final List<String> _tabs = const ['Recent', 'By Category', 'Collections'];
@@ -58,53 +99,78 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
     'Adoption Profile',
   ];
 
-  final List<SavedItem> _savedItems = [
-    SavedItem(
-      id: 'item_1',
-      title: 'Science-Backed Guide to Puppy & Kitten Socialization',
-      description:
-          'Discover the most effective methods for introducing your young companion to novel environments, sounds, and other pets during early growth.',
-      category: 'Knowledge Article',
-      icon: Icons.article_outlined,
-      timeAgo: 'Saved recently',
-      route: RouteNames.ownerCommunityDiscover,
-    ),
-    SavedItem(
-      id: 'item_2',
-      title: "Missing: 'Snowball' — Bichon Frise",
-      description:
-          'White Bichon Frise, female, 3 years old. Last seen near Maple Park. Wearing red collar with GPS smart tag.',
-      category: 'Lost Pet Alert',
-      icon: Icons.campaign,
-      timeAgo: 'Saved recently',
-      route: RouteNames.ownerCommunitySightings,
-    ),
-    SavedItem(
-      id: 'item_3',
-      title: 'Homemade Sweet Potato & Oat Sensitive Stomach Treats',
-      description:
-          'Tried and tested veterinarian-reviewed recipe for companions with gastrointestinal sensitivity and food allergies.',
-      category: 'Community Discussion',
-      icon: Icons.forum_outlined,
-      timeAgo: 'Saved 2 days ago',
-      author: 'Alex Johnson',
-      route: RouteNames.ownerCommunityDiscover,
-    ),
-    SavedItem(
-      id: 'item_4',
-      title: 'Bella — Golden Retriever Mix',
-      description: '2 yrs • Female • City Rescue Shelter · Verified Adoption Candidate',
-      category: 'Adoption Profile',
-      icon: Icons.pets,
-      timeAgo: 'Saved 3 days ago',
-      route: RouteNames.ownerCommunityAdoption,
-    ),
-  ];
+  List<SavedItem> _savedItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarks();
+  }
+
+  void _loadBookmarks() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final raw = prefs.getString(_storageKey);
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        setState(() {
+          _savedItems = decoded.map((e) => SavedItem.fromJson(e as Map<String, dynamic>)).toList();
+        });
+        return;
+      } catch (_) {}
+    }
+
+    // Default starter guides
+    final initial = [
+      SavedItem(
+        id: 'item_1',
+        title: 'Science-Backed Guide to Puppy & Kitten Socialization',
+        description:
+            'Discover the most effective methods for introducing your young companion to novel environments, sounds, and other pets during early growth.',
+        category: 'Knowledge Article',
+        icon: Icons.article_outlined,
+        timeAgo: 'Recently bookmarked',
+        route: RouteNames.ownerCommunityDiscover,
+      ),
+      SavedItem(
+        id: 'item_2',
+        title: 'Missing Companion Protocol & Neighborhood Action',
+        description:
+            'Critical steps to take within the first 60 minutes of a pet going missing, including smart collar tracking and broadcast alerts.',
+        category: 'Lost Pet Alert',
+        icon: Icons.campaign,
+        timeAgo: 'Recently bookmarked',
+        route: RouteNames.ownerCommunitySightings,
+      ),
+      SavedItem(
+        id: 'item_3',
+        title: 'Homemade Sweet Potato & Oat Sensitive Stomach Treats',
+        description:
+            'Veterinarian-reviewed recipe for companions with gastrointestinal sensitivity and food allergies.',
+        category: 'Community Discussion',
+        icon: Icons.forum_outlined,
+        timeAgo: '2 days ago',
+        author: 'Dr. Sarah Smith',
+        route: RouteNames.ownerCommunityDiscover,
+      ),
+    ];
+
+    setState(() {
+      _savedItems = initial;
+    });
+  }
+
+  Future<void> _saveBookmarks() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final raw = jsonEncode(_savedItems.map((e) => e.toJson()).toList());
+    await prefs.setString(_storageKey, raw);
+  }
 
   void _removeBookmark(SavedItem item) {
     setState(() {
       _savedItems.removeWhere((i) => i.id == item.id);
     });
+    _saveBookmarks();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Removed "${item.title}" from saved bookmarks.'),
@@ -114,6 +180,7 @@ class _SavedContentScreenState extends State<SavedContentScreen> {
             setState(() {
               _savedItems.add(item);
             });
+            _saveBookmarks();
           },
         ),
       ),

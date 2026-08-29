@@ -276,6 +276,8 @@ class SafeZoneData {
     required this.radiusMeters,
     this.iconCode = 0xe318, // Icons.home_rounded default
     this.isActive = true,
+    this.latitude,
+    this.longitude,
   });
 
   final String id;
@@ -283,12 +285,16 @@ class SafeZoneData {
   final int radiusMeters;
   final int iconCode;
   final bool isActive;
+  final double? latitude;
+  final double? longitude;
 
   SafeZoneData copyWith({
     String? name,
     int? radiusMeters,
     int? iconCode,
     bool? isActive,
+    double? latitude,
+    double? longitude,
   }) {
     return SafeZoneData(
       id: id,
@@ -296,6 +302,8 @@ class SafeZoneData {
       radiusMeters: radiusMeters ?? this.radiusMeters,
       iconCode: iconCode ?? this.iconCode,
       isActive: isActive ?? this.isActive,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -305,6 +313,8 @@ class SafeZoneData {
         'radiusMeters': radiusMeters,
         'iconCode': iconCode,
         'isActive': isActive,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 
   factory SafeZoneData.fromJson(Map<String, dynamic> json) => SafeZoneData(
@@ -313,6 +323,8 @@ class SafeZoneData {
         radiusMeters: (json['radiusMeters'] as num?)?.toInt() ?? 150,
         iconCode: (json['iconCode'] as num?)?.toInt() ?? 0xe318,
         isActive: json['isActive'] as bool? ?? true,
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
       );
 }
 
@@ -333,7 +345,6 @@ class SafeZonesNotifier extends Notifier<List<SafeZoneData>> {
     }
     return const [
       SafeZoneData(id: 'z1', name: 'Home Perimeter', radiusMeters: 150, iconCode: 0xe318, isActive: true),
-      SafeZoneData(id: 'z2', name: 'Neighborhood Park', radiusMeters: 300, iconCode: 0xe47d, isActive: true),
     ];
   }
 
@@ -350,6 +361,11 @@ class SafeZonesNotifier extends Notifier<List<SafeZoneData>> {
 
   Future<void> updateZone(SafeZoneData zone) async {
     final updated = state.map((z) => z.id == zone.id ? zone : z).toList();
+    await _persist(updated);
+  }
+
+  Future<void> updateZoneCenter(String id, double lat, double lng) async {
+    final updated = state.map((z) => z.id == id ? z.copyWith(latitude: lat, longitude: lng) : z).toList();
     await _persist(updated);
   }
 

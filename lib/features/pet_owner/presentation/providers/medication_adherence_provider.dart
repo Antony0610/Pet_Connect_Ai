@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
@@ -47,38 +48,91 @@ class MedicationAdherenceNotifier extends StateNotifier<List<DailyCareItem>> {
     return 'care_adherence_${_petId}_$today';
   }
 
+  String get _customItemsKey => 'care_items_custom_$_petId';
+
   void _loadState() {
     final completedIds = _prefs.getStringList(_dateKey) ?? [];
+    final rawJson = _prefs.getString(_customItemsKey);
 
-    // Standard daily care protocol default templates
-    final baseItems = [
+    List<DailyCareItem> items = [];
+    if (rawJson != null && rawJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawJson) as List<dynamic>;
+        items = decoded.map((e) {
+          final m = e as Map<String, dynamic>;
+          final id = m['id'] as String;
+          return DailyCareItem(
+            id: id,
+            title: m['title'] as String,
+            dosage: m['dosage'] as String,
+            scheduledTime: m['scheduledTime'] as String,
+            instructions: m['instructions'] as String?,
+            isCompleted: completedIds.contains(id),
+          );
+        }).toList();
+      } catch (_) {}
+    }
+
+    state = items;
+  }
+
+  Future<void> addItem({
+    required String title,
+    required String dosage,
+    required String scheduledTime,
+    String? instructions,
+  }) async {
+    final newItem = DailyCareItem(
+      id: 'care_${DateTime.now().millisecondsSinceEpoch}',
+      title: title,
+      dosage: dosage,
+      scheduledTime: scheduledTime,
+      instructions: instructions,
+      isCompleted: false,
+    );
+
+    final updated = [...state, newItem];
+    state = updated;
+    await _saveCustomItems();
+  }
+
+  Future<void> loadStandardWellnessProtocol() async {
+    final defaults = [
       DailyCareItem(
-        id: 'med_heartworm',
+        id: 'med_heartworm_$_petId',
         title: 'Heartworm & Parasite Prevention',
         dosage: '1 chewable tablet with food',
         scheduledTime: '08:00 AM',
         instructions: 'Administer monthly protection dose',
-        isCompleted: completedIds.contains('med_heartworm'),
       ),
       DailyCareItem(
-        id: 'med_omega',
-        title: 'Omega-3 Joint & Coat Supplement',
-        dosage: '2 softgels',
-        scheduledTime: '12:30 PM',
-        instructions: 'Supports hip mobility & skin hydration',
-        isCompleted: completedIds.contains('med_omega'),
-      ),
-      DailyCareItem(
-        id: 'med_dental',
+        id: 'med_dental_$_petId',
         title: 'Enzymatic Dental Hygiene Treat',
         dosage: '1 dental stick',
         scheduledTime: '07:00 PM',
         instructions: 'Reduces plaque & freshens breath',
-        isCompleted: completedIds.contains('med_dental'),
       ),
     ];
 
-    state = baseItems;
+    state = defaults;
+    await _saveCustomItems();
+  }
+
+  Future<void> removeItem(String itemId) async {
+    final updated = state.where((i) => i.id != itemId).toList();
+    state = updated;
+    await _saveCustomItems();
+  }
+
+  Future<void> _saveCustomItems() async {
+    final listMap = state.map((i) => {
+      'id': i.id,
+      'title': i.title,
+      'dosage': i.dosage,
+      'scheduledTime': i.scheduledTime,
+      'instructions': i.instructions,
+    }).toList();
+    await _prefs.setString(_customItemsKey, jsonEncode(listMap));
   }
 
   /// Toggles completion of a daily care item and saves to local storage.

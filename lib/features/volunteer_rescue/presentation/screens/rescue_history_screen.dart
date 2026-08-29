@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
+import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-/// Rescue History Screen (Stitch ID: `a978dd78e811493d9f8a4274bed18b5f`).
+/// **Rescue History Screen** — `/rescue/history`.
 ///
 /// Historical operations log & impact analytics screen. Displays AI mission insights banner,
-/// status filter tabs, and historical rescue incident cards.
+/// status filter tabs, search filter, and exportable rescue mission debriefs.
 class RescueHistoryScreen extends StatefulWidget {
   const RescueHistoryScreen({super.key});
 
@@ -20,6 +22,7 @@ class RescueHistoryScreen extends StatefulWidget {
 
 class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
   String _selectedStatus = 'All';
+  String _searchQuery = '';
 
   final List<Map<String, dynamic>> _historyItems = [
     {
@@ -30,6 +33,7 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
       'distance': '1.2 mi',
       'status': 'Success',
       'statusColor': AppColors.success,
+      'notes': 'Reunited with owner safely. No acute clinical injuries detected.',
     },
     {
       'date': 'Oct 18 • 09:15',
@@ -39,6 +43,7 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
       'distance': '3.4 mi',
       'status': 'Resolved',
       'statusColor': AppColors.info,
+      'notes': 'Transferred to Oakridge Animal Shelter for health screening & foster.',
     },
     {
       'date': 'Oct 10 • 18:40',
@@ -48,21 +53,83 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
       'distance': '0.5 mi',
       'status': 'Escalated',
       'statusColor': AppColors.warning,
+      'notes': 'Municipal animal control dispatched with specialized hydraulic hoist.',
+    },
+    {
+      'date': 'Sep 28 • 11:20',
+      'title': 'Milo - Beagle Mix',
+      'location': 'East Lake Recreation Park',
+      'duration': '35 mins',
+      'distance': '0.8 mi',
+      'status': 'Success',
+      'statusColor': AppColors.success,
+      'notes': 'Collar beacon tracked within 50m. Owner notified on site.',
     },
   ];
+
+  void _exportHistoryReport() {
+    final buffer = StringBuffer();
+    buffer.writeln('====================================================');
+    buffer.writeln('     OFFICIAL VOLUNTEER RESCUE MISSION ARCHIVE      ');
+    buffer.writeln('          PetConnect AI Emergency Response          ');
+    buffer.writeln('====================================================');
+    buffer.writeln('Export Date: ${DateTime.now().toIso8601String()}');
+    buffer.writeln('Total Operations Logged: ${_historyItems.length}');
+    buffer.writeln();
+
+    for (final item in _historyItems) {
+      buffer.writeln('• ${item['title']} (${item['date']})');
+      buffer.writeln('  Location: ${item['location']}');
+      buffer.writeln('  Outcome:  ${item['status']} | Duration: ${item['duration']}');
+      buffer.writeln('  Notes:    ${item['notes']}');
+      buffer.writeln();
+    }
+
+    buffer.writeln('====================================================');
+    buffer.writeln('Verified by PetConnect AI Volunteer Network         ');
+    buffer.writeln('====================================================');
+
+    ExternalActions.shareText(
+      buffer.toString(),
+      subject: 'PetConnect AI Rescue Operations Archive',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final filtered = _historyItems.where((item) {
+      final matchesQuery = _searchQuery.isEmpty ||
+          item['title'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item['location'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+
+      final matchesStatus = _selectedStatus == 'All' || item['status'] == _selectedStatus;
+
+      return matchesQuery && matchesStatus;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Rescue History & Impact Log'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/rescue'),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/rescue');
+            }
+          },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Export Rescue Report',
+            onPressed: _exportHistoryReport,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -74,19 +141,33 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
               children: [
                 // ── AI Mission Insights Banner ───────────────────────
                 _buildAiInsightsBanner(theme, colorScheme),
-
                 AppSpacing.vGapLg,
 
-                // ── Filter Chips ────────────────────────────────────
+                // ── Search & Filter Controls ─────────────────────────
+                AppTextField(
+                  hintText: 'Search past rescues by pet name or location…',
+                  prefixIcon: const Icon(Icons.search),
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                ),
+                AppSpacing.vGapSm,
                 _buildFilterChips(theme, colorScheme),
-
                 AppSpacing.vGapMd,
 
                 // ── History Incident Cards ──────────────────────────
-                ..._historyItems.map(
-                  (item) =>
-                      _buildHistoryCard(context, theme, colorScheme, item),
-                ),
+                if (filtered.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Text(
+                        'No rescue missions match your criteria.',
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                  )
+                else
+                  ...filtered.map(
+                    (item) => _buildHistoryCard(context, theme, colorScheme, item),
+                  ),
 
                 AppSpacing.vGapXl,
               ],
@@ -98,33 +179,29 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
   }
 
   Widget _buildAiInsightsBanner(ThemeData theme, ColorScheme colorScheme) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
-      ),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.auto_awesome, color: colorScheme.primary, size: 28),
+          Icon(Icons.auto_awesome, color: colorScheme.primary, size: 24),
           AppSpacing.hGapMd,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI Mission Impact Summary',
+                  'Operations Impact Analysis',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: AppTypography.bold,
-                    color: colorScheme.primary,
                   ),
                 ),
                 AppSpacing.vGapXs,
                 Text(
-                  "You've successfully completed 12 rescues this month, covering 72 km. Average response time improved by 15% compared to last month!",
+                  'Your sector response team maintains a 94.2% successful recovery rate with an average response time of 38 minutes.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -136,24 +213,20 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
   }
 
   Widget _buildFilterChips(ThemeData theme, ColorScheme colorScheme) {
-    final filters = ['All', 'Completed', 'Resolved', 'Escalated'];
+    final statuses = ['All', 'Success', 'Resolved', 'Escalated'];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: filters.map((f) {
-          final isSelected = _selectedStatus == f;
+        children: statuses.map((status) {
+          final isSelected = _selectedStatus == status;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: AppChip(
-              label: f,
-              isSelected: isSelected,
-              onTap: () => setState(() => _selectedStatus = f),
-              backgroundColor: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.surfaceContainerHigh,
-              textColor: isSelected
-                  ? colorScheme.onPrimary
-                  : colorScheme.onSurface,
+            child: FilterChip(
+              label: Text(status),
+              selected: isSelected,
+              selectedColor: colorScheme.primaryContainer,
+              onSelected: (_) => setState(() => _selectedStatus = status),
             ),
           );
         }).toList(),
@@ -167,69 +240,73 @@ class _RescueHistoryScreenState extends State<RescueHistoryScreen> {
     ColorScheme colorScheme,
     Map<String, dynamic> item,
   ) {
-    final statusColor = item['statusColor'] as Color;
+    final statusColor = item['statusColor'] as Color? ?? Colors.green;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  item['date'] as String,
-                  style: theme.textTheme.labelSmall?.copyWith(
+                  item['date'].toString(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const Spacer(),
-                AppChip(
-                  label: item['status'] as String,
-                  backgroundColor: statusColor.withValues(alpha: 0.15),
-                  textColor: statusColor,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: AppRadius.brPill,
+                  ),
+                  child: Text(
+                    item['status'].toString().toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                  ),
                 ),
               ],
             ),
-            AppSpacing.vGapXs,
+            AppSpacing.vGapSm,
             Text(
-              item['title'] as String,
+              item['title'].toString(),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: AppTypography.bold,
               ),
             ),
-            Text(
-              item['location'] as String,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            AppSpacing.vGapSm,
+            AppSpacing.vGapXs,
             Row(
               children: [
-                Icon(
-                  Icons.timer_outlined,
-                  size: 14,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Duration: ${item['duration']}',
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-                ),
-                AppSpacing.hGapMd,
-                Icon(
-                  Icons.route_outlined,
-                  size: 14,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Covered: ${item['distance']}',
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                AppSpacing.hGapXs,
+                Expanded(
+                  child: Text(
+                    item['location'].toString(),
+                    style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                  ),
                 ),
               ],
+            ),
+            AppSpacing.vGapSm,
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Text(
+                item['notes']?.toString() ?? '',
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ],
         ),

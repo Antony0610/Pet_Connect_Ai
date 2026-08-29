@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -179,8 +178,6 @@ class _MedicalHistoryContent extends StatelessWidget {
         AppSpacing.vGapLg,
         const _MedicalCards(),
         AppSpacing.vGapLg,
-        _AiSummaryCard(petName: petName, recordCount: records.length),
-        AppSpacing.vGapLg,
         _RecordHistory(records: filtered),
       ],
     );
@@ -265,74 +262,6 @@ class _MedicalCards extends StatelessWidget {
           emptyIcon: Icons.check_circle_outline_rounded,
         ),
       ],
-    );
-  }
-}
-
-class _AiSummaryCard extends StatelessWidget {
-  const _AiSummaryCard({required this.petName, required this.recordCount});
-
-  final String petName;
-  final int recordCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = PortalPalettes.of(AppPortal.petOwner);
-    final brightness = context.theme.brightness;
-    final scheme = context.colorScheme;
-    final container = palette.accentContainer(brightness);
-    final onContainer = palette.onAccentContainer(brightness);
-
-    final summaryText = recordCount > 0
-        ? '$petName has $recordCount clinical medical record${recordCount == 1 ? '' : 's'} registered in Health Passport. Routine checkups and vet consultations are logged.'
-        : '$petName has a clean medical profile with no acute clinical conditions reported. Routine preventative checkups are recommended.';
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: AppRadius.brSection,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            container.withValues(alpha: 0.6),
-            scheme.surfaceContainerLow,
-          ],
-        ),
-        border: Border.all(color: palette.accent.withValues(alpha: 0.25)),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          HealthCircleIcon(
-            icon: Icons.auto_awesome_rounded,
-            background: container,
-            foreground: onContainer,
-            size: 40,
-          ),
-          AppSpacing.hGapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI Health Summary',
-                  style: context.textTheme.titleSmall?.copyWith(
-                    fontWeight: AppTypography.semiBold,
-                  ),
-                ),
-                AppSpacing.vGapXs,
-                Text(
-                  summaryText,
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

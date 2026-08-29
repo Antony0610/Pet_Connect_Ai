@@ -99,7 +99,9 @@ class _NotifData {
     } else {
       kind = _NotifKind.social;
       filter = _NotifFilter.social;
-      icon = Icons.favorite;
+      icon = (typeUpper.contains('COMMENT') || entity.title.toLowerCase().contains('comment') || entity.body.toLowerCase().contains('comment'))
+          ? Icons.chat_bubble_rounded
+          : Icons.favorite_rounded;
     }
 
     final now = DateTime.now();
@@ -147,6 +149,47 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to mark all as read: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearAll() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear All Notifications?'),
+        content: const Text('This will delete all notifications from your account. This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Clear All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ref.read(userNotificationsProvider.notifier).clearAll();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All notifications cleared')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to clear notifications: $e')),
         );
       }
     }
@@ -229,9 +272,19 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     TextButton(
                       onPressed: _markAllRead,
                       child: Text(
-                        'Mark all as read',
-                        style: text.labelLarge?.copyWith(
+                        'Mark all read',
+                        style: text.labelMedium?.copyWith(
                           color: scheme.primary,
+                          fontWeight: AppTypography.semiBold,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _clearAll,
+                      child: Text(
+                        'Clear all',
+                        style: text.labelMedium?.copyWith(
+                          color: scheme.error,
                           fontWeight: AppTypography.semiBold,
                         ),
                       ),
@@ -291,15 +344,76 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     return Column(
                       children: [
                         for (var i = 0; i < visible.length; i++) ...[
-                          _NotificationCard(
-                            data: visible[i],
-                            onTap: () async {
-                              if (visible[i].unread) {
-                                await ref
-                                    .read(userNotificationsProvider.notifier)
-                                    .markRead(visible[i].id);
-                              }
+                          Dismissible(
+                            key: ValueKey('notif-${visible[i].id}'),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: AppSpacing.lg),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: scheme.errorContainer,
+                                borderRadius: AppRadius.brCard,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Clear',
+                                    style: text.labelMedium?.copyWith(
+                                      color: scheme.onErrorContainer,
+                                      fontWeight: AppTypography.bold,
+                                    ),
+                                  ),
+                                  AppSpacing.hGapSm,
+                                  Icon(Icons.delete_outline, color: scheme.onErrorContainer),
+                                ],
+                              ),
+                            ),
+                            onDismissed: (_) {
+                              final id = visible[i].id;
+                              ref.read(userNotificationsProvider.notifier).deleteNotification(id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Notification cleared'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
                             },
+                            child: _NotificationCard(
+                              data: visible[i],
+                              onTap: () async {
+                                if (visible[i].unread) {
+                                  await ref
+                                      .read(userNotificationsProvider.notifier)
+                                      .markRead(visible[i].id);
+                                }
+                                if (!context.mounted) return;
+                                final item = visible[i];
+                                final t = item.title.toLowerCase();
+                                final b = item.body.toLowerCase();
+                                if (item.filter == _NotifFilter.social ||
+                                    t.contains('comment') ||
+                                    t.contains('like') ||
+                                    b.contains('comment') ||
+                                    b.contains('liked') ||
+                                    b.contains('loved')) {
+                                  await context.push(RoutePaths.ownerCommunity);
+                                } else if (item.filter == _NotifFilter.collar ||
+                                    t.contains('collar') ||
+                                    t.contains('battery') ||
+                                    t.contains('geofence')) {
+                                  await context.push(RoutePaths.ownerCollarTracking);
+                                } else if (item.filter == _NotifFilter.health ||
+                                    t.contains('health') ||
+                                    t.contains('vaccine') ||
+                                    t.contains('prescription')) {
+                                  await context.push(RoutePaths.ownerHealthMedical);
+                                } else if (item.filter == _NotifFilter.ai) {
+                                  await context.push(RoutePaths.ownerAiChat);
+                                }
+                              },
+                            ),
                           ),
                           if (i != visible.length - 1) AppSpacing.vGapMd,
                         ],

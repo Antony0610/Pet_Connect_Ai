@@ -26,6 +26,7 @@ class UserProfile extends Entity {
     required this.fullName,
     required this.role,
     this.avatarUrl,
+    this.phone,
     this.isSuspended = false,
     this.createdAt,
     this.updatedAt,
@@ -36,6 +37,7 @@ class UserProfile extends Entity {
   final String fullName;
   final AppPortal role;
   final String? avatarUrl;
+  final String? phone;
   final bool isSuspended;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -46,6 +48,7 @@ class UserProfile extends Entity {
     String? fullName,
     AppPortal? role,
     String? avatarUrl,
+    String? phone,
     bool? isSuspended,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -56,6 +59,7 @@ class UserProfile extends Entity {
       fullName: fullName ?? this.fullName,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      phone: phone ?? this.phone,
       isSuspended: isSuspended ?? this.isSuspended,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -69,6 +73,7 @@ class UserProfile extends Entity {
     fullName,
     role,
     avatarUrl,
+    phone,
     isSuspended,
     createdAt,
     updatedAt,

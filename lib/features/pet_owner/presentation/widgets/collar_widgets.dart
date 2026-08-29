@@ -13,6 +13,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -261,6 +262,9 @@ class CollarMapPreview extends StatelessWidget {
     this.safeZones = const [],
     this.breadcrumbs = const [],
     this.onTap,
+    this.onMapTap,
+    this.isEditMode = false,
+    this.editModeMessage,
     super.key,
   });
 
@@ -272,6 +276,9 @@ class CollarMapPreview extends StatelessWidget {
   final List<MapSafeZone> safeZones;
   final List<MapBreadcrumb> breadcrumbs;
   final VoidCallback? onTap;
+  final ValueChanged<LatLng>? onMapTap;
+  final bool isEditMode;
+  final String? editModeMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +291,9 @@ class CollarMapPreview extends StatelessWidget {
       safeZones: safeZones,
       breadcrumbs: breadcrumbs,
       onTap: onTap,
+      onMapTap: onMapTap,
+      isEditMode: isEditMode,
+      editModeMessage: editModeMessage,
     );
   }
 }

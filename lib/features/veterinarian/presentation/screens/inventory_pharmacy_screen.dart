@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:intl/intl.dart';
+
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/pharmacy_inventory_notifier.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
+/// **Interactive Inventory & Pharmacy Manager** — `/vet/inventory`.
+///
+/// Live pharmacy management with stock adjustments, restock order dispatches,
+/// low-stock threshold triggers, expiration date trackers, and SKU registration.
 class InventoryPharmacyScreen extends ConsumerStatefulWidget {
   const InventoryPharmacyScreen({super.key});
 
@@ -19,63 +29,35 @@ class InventoryPharmacyScreen extends ConsumerStatefulWidget {
 class _InventoryPharmacyScreenState
     extends ConsumerState<InventoryPharmacyScreen> {
   String _searchQuery = '';
+  String _selectedCategory = 'ALL';
 
-  final List<Map<String, dynamic>> _inventoryItems = [
-    {
-      'name': 'Apoquel 16mg',
-      'category': 'Pharmacy',
-      'sku': 'PH-1024',
-      'stock': '4 units',
-      'status': 'Low Stock',
-      'statusColor': AppColors.lightError,
-      'isCritical': true,
-    },
-    {
-      'name': 'Rabies Vaccine',
-      'category': 'Biologics',
-      'sku': 'BIO-883',
-      'stock': '32 doses',
-      'status': 'Exp. Soon',
-      'statusColor': AppColors.warning,
-      'isCritical': false,
-    },
-    {
-      'name': 'Heartgard Plus (Blue)',
-      'category': 'Preventatives',
-      'sku': 'PRV-092',
-      'stock': '12 packs',
-      'status': 'Optimal',
-      'statusColor': AppColors.success,
-      'isCritical': false,
-    },
-    {
-      'name': 'Carprofen 75mg',
-      'category': 'Pharmacy',
-      'sku': 'PH-2041',
-      'stock': '45 bottles',
-      'status': 'Optimal',
-      'statusColor': AppColors.success,
-      'isCritical': false,
-    },
+  final List<String> _categories = [
+    'ALL',
+    'Pharmacy',
+    'Biologics',
+    'Preventatives',
+    'Surgical',
   ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final inventory = ref.watch(pharmacyInventoryStateProvider);
 
-    final filtered = _inventoryItems.where((item) {
-      return _searchQuery.isEmpty ||
-          item['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          item['sku'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          item['category'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
+    final filtered = inventory.where((item) {
+      final matchesQuery = _searchQuery.isEmpty ||
+          item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.sku.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.batchNumber.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      final matchesCat =
+          _selectedCategory == 'ALL' || item.category == _selectedCategory;
+
+      return matchesQuery && matchesCat;
     }).toList();
+
+    final lowStockCount = inventory.where((i) => i.isLowStock).length;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -84,7 +66,7 @@ class _InventoryPharmacyScreenState
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
-              context.pop();
+              Navigator.of(context).pop();
             } else {
               context.go(RoutePaths.vetHome);
             }
@@ -94,13 +76,13 @@ class _InventoryPharmacyScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Inventory & Pharmacy',
+              'Pharmacy & Medical Inventory',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
-              'Manage stock levels & reorder supplies',
+              '${inventory.length} active SKUs • $lowStockCount low stock alerts',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -109,297 +91,312 @@ class _InventoryPharmacyScreenState
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_box_rounded),
+            tooltip: 'Add Medical Item',
             onPressed: () => _showAddItemDialog(context),
-            tooltip: 'Add Item',
           ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Search Input Bar
-              AppTextField(
-                hintText: 'Search medication, SKU, category...',
-                prefixIcon: Icons.search,
-                onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Critical Low Stock Alert Card
-              _buildLowStockAlert(context, theme, colorScheme),
-              const SizedBox(height: 12),
-
-              // AI Expiry Rotation Insight Banner
-              _buildExpiryInsightBanner(context, theme, colorScheme),
-              const SizedBox(height: 20),
-
-              // Inventory Register Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          children: [
+            // ── Search & Categories ────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
                 children: [
-                  Text(
-                    'Inventory Register',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  AppTextField(
+                    hintText: 'Search by medication name, SKU, or batch LOT…',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    onChanged: (val) => setState(() => _searchQuery = val),
                   ),
-                  Text(
-                    '${filtered.length} Items Listed',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                  AppSpacing.vGapSm,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _categories.map((cat) {
+                        final isSelected = _selectedCategory == cat;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: FilterChip(
+                            label: Text(cat),
+                            selected: isSelected,
+                            selectedColor: colorScheme.primaryContainer,
+                            onSelected: (_) {
+                              HapticFeedback.selectionClick();
+                              setState(() => _selectedCategory = cat);
+                            },
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+            ),
 
-              // Inventory Register Cards List
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filtered.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final item = filtered[index];
-                  return _buildInventoryCard(context, theme, colorScheme, item);
-                },
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            // ── Inventory List ─────────────────────────────────────
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.inventory_2_outlined, size: 48),
+                          AppSpacing.vGapSm,
+                          Text(
+                            'No inventory items found',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => AppSpacing.vGapSm,
+                      itemBuilder: (ctx, index) {
+                        final item = filtered[index];
+                        return _buildInventoryCard(context, item);
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLowStockAlert(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.error.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, color: colorScheme.error, size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Low Stock Alert',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.error,
-                  ),
-                ),
-                Text(
-                  'Apoquel 16mg is running critically low. Only 4 units remaining.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          AppButton(
-            text: 'Reorder',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Reorder order created')),
-              );
-            },
-            backgroundColor: colorScheme.error,
-            textColor: colorScheme.onError,
-            height: 36,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExpiryInsightBanner(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.tertiaryContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.tertiary.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.auto_awesome, color: colorScheme.tertiary, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Expiry Insight (AI Generated)',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.tertiary,
-                  ),
-                ),
-                Text(
-                  'Rabies Vaccine batch #4492 will likely expire before full utilization (Expires in 14 days).',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddItemDialog(context),
+        icon: const Icon(Icons.add),
+        label: const Text('Add SKU'),
       ),
     );
   }
 
   Widget _buildInventoryCard(
     BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-    Map<String, dynamic> item,
+    PharmacyInventoryEntry item,
   ) {
-    final statusColor = item['statusColor'] as Color;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final expiryFormatted = DateFormat('MMM yyyy').format(item.expirationDate);
 
     return AppCard(
-      padding: const EdgeInsets.all(14),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(10),
+                  color: item.isLowStock
+                      ? Colors.red.shade50
+                      : colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(Icons.medication, color: colorScheme.primary),
+                child: Icon(
+                  item.isCritical
+                      ? Icons.emergency_rounded
+                      : Icons.medication_rounded,
+                  color: item.isLowStock ? Colors.red : colorScheme.primary,
+                ),
               ),
-              const SizedBox(width: 12),
+              AppSpacing.hGapMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item['name'] as String,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        _buildStatusBadge(item),
+                      ],
                     ),
+                    AppSpacing.vGapXs,
                     Text(
-                      '${item['category']} • SKU: ${item['sku']}',
-                      style: theme.textTheme.bodySmall?.copyWith(
+                      'SKU: ${item.sku} • LOT: ${item.batchNumber} • Exp: $expiryFormatted',
+                      style: TextStyle(
+                        fontSize: 11,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              AppChip(
-                label: item['status'] as String,
-                backgroundColor: statusColor.withValues(alpha: 0.15),
-                textColor: statusColor,
-              ),
             ],
           ),
-          const SizedBox(height: 10),
+          AppSpacing.vGapMd,
+          const Divider(height: 1),
+          AppSpacing.vGapSm,
+
+          // Live Stock Counts & Adjustment Controls
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Stock: ${item['stock']}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'CURRENT STOCK',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
+                  Text(
+                    '${item.stockQuantity} ${item.unit}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: item.isLowStock ? Colors.red.shade700 : colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
               Row(
                 children: [
-                  OutlinedButton(
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text(item['name'] as String),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Category: ${item['category']}'),
-                              const SizedBox(height: 6),
-                              Text('SKU Code: ${item['sku']}'),
-                              const SizedBox(height: 6),
-                              Text('Current On-Hand Stock: ${item['stock']} units'),
-                              const SizedBox(height: 6),
-                              const Text('Storage Requirement: Controlled (15-25°C)'),
-                              const SizedBox(height: 6),
-                              const Text('Batch: #PC-2026-B8 · Expiry: 12/2027'),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              child: const Text('Close'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                    ),
-                    child: const Text(
-                      'Details',
-                      style: TextStyle(fontSize: 12),
-                    ),
+                  IconButton.filledTonal(
+                    icon: const Icon(Icons.remove, size: 18),
+                    tooltip: 'Dispense / Reduce 1',
+                    onPressed: item.stockQuantity > 0
+                        ? () {
+                            HapticFeedback.lightImpact();
+                            ref
+                                .read(pharmacyInventoryStateProvider.notifier)
+                                .adjustStock(item.id, -1);
+                          }
+                        : null,
                   ),
-                  const SizedBox(width: 6),
-                  ElevatedButton(
+                  AppSpacing.hGapXs,
+                  IconButton.filledTonal(
+                    icon: const Icon(Icons.add, size: 18),
+                    tooltip: 'Add / Stock 1',
                     onPressed: () {
-                      final isCritical = item['isCritical'] == true;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isCritical
-                              ? 'Purchase order created for ${item['name']} (50 units requested).'
-                              : '1 unit of ${item['name']} logged for clinical use.',
-                          ),
-                        ),
-                      );
+                      HapticFeedback.lightImpact();
+                      ref
+                          .read(pharmacyInventoryStateProvider.notifier)
+                          .adjustStock(item.id, 1);
                     },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                    ),
-                    child: Text(
-                      (item['isCritical'] == true) ? 'Reorder' : 'Log Use',
-                      style: const TextStyle(fontSize: 12),
-                    ),
+                  ),
+                  AppSpacing.hGapSm,
+                  AppButton.outlined(
+                    label: 'Reorder',
+                    icon: Icons.local_shipping_outlined,
+                    onPressed: () => _showReorderDialog(context, item),
                   ),
                 ],
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(PharmacyInventoryEntry item) {
+    Color bg = Colors.green.shade50;
+    Color fg = Colors.green.shade800;
+
+    if (item.stockQuantity <= 0) {
+      bg = Colors.red.shade100;
+      fg = Colors.red.shade900;
+    } else if (item.isLowStock) {
+      bg = Colors.amber.shade100;
+      fg = Colors.amber.shade900;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: AppRadius.brPill,
+      ),
+      child: Text(
+        item.statusText.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: fg,
+        ),
+      ),
+    );
+  }
+
+  void _showReorderDialog(BuildContext context, PharmacyInventoryEntry item) {
+    int reorderUnits = 25;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text('Reorder ${item.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Current on hand: ${item.stockQuantity} ${item.unit} (Min Threshold: ${item.minThreshold})',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              AppSpacing.vGapMd,
+              const Text('Select Reorder Batch Quantity:', style: TextStyle(fontWeight: FontWeight.bold)),
+              AppSpacing.vGapSm,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton.outlined(
+                    icon: const Icon(Icons.remove),
+                    onPressed: reorderUnits > 5
+                        ? () => setDialogState(() => reorderUnits -= 5)
+                        : null,
+                  ),
+                  AppSpacing.hGapMd,
+                  Text(
+                    '$reorderUnits ${item.unit}',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  AppSpacing.hGapMd,
+                  IconButton.outlined(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => setDialogState(() => reorderUnits += 5),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            AppButton.filled(
+              label: 'Dispatch PO',
+              icon: Icons.check,
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                ref
+                    .read(pharmacyInventoryStateProvider.notifier)
+                    .reorderStock(item.id, reorderUnits);
+                Navigator.of(ctx).pop();
+                context.showSnackbar(
+                  '✓ Purchase order for $reorderUnits ${item.unit} of ${item.name} dispatched!',
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -407,92 +404,88 @@ class _InventoryPharmacyScreenState
   void _showAddItemDialog(BuildContext context) {
     final nameCtrl = TextEditingController();
     final skuCtrl = TextEditingController();
-    final stockCtrl = TextEditingController();
+    final stockCtrl = TextEditingController(text: '20');
+    final minCtrl = TextEditingController(text: '5');
+    final batchCtrl = TextEditingController(text: 'LOT-NEW-01');
     String category = 'Pharmacy';
 
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add Inventory Item'),
-          content: SingleChildScrollView(
+        builder: (ctx, setModalState) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+          ),
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Item Name',
-                    hintText: 'e.g. Amoxicillin 250mg',
+                Text(
+                  'Register New Pharmacy SKU',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: AppTypography.bold,
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: skuCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'SKU / Code',
-                    hintText: 'e.g. PH-3091',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: stockCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Initial Stock Quantity',
-                    hintText: 'e.g. 50 units',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: category,
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  items: const [
-                    DropdownMenuItem(value: 'Pharmacy', child: Text('Pharmacy')),
-                    DropdownMenuItem(value: 'Biologics', child: Text('Biologics / Vaccines')),
-                    DropdownMenuItem(value: 'Preventatives', child: Text('Preventatives')),
-                    DropdownMenuItem(value: 'Surgical', child: Text('Surgical Supplies')),
+                AppSpacing.vGapMd,
+                AppTextField(controller: nameCtrl, labelText: 'Medication / Item Name'),
+                AppSpacing.vGapSm,
+                AppTextField(controller: skuCtrl, labelText: 'SKU Code (e.g. PH-5021)'),
+                AppSpacing.vGapSm,
+                Row(
+                  children: [
+                    Expanded(child: AppTextField(controller: stockCtrl, labelText: 'Initial Stock')),
+                    AppSpacing.hGapSm,
+                    Expanded(child: AppTextField(controller: minCtrl, labelText: 'Min Alert Level')),
                   ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() => category = val);
-                    }
+                ),
+                AppSpacing.vGapSm,
+                AppTextField(controller: batchCtrl, labelText: 'LOT Batch Code'),
+                AppSpacing.vGapMd,
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'Pharmacy', label: Text('Pharmacy')),
+                    ButtonSegment(value: 'Biologics', label: Text('Biologics')),
+                    ButtonSegment(value: 'Surgical', label: Text('Surgical')),
+                  ],
+                  selected: {category},
+                  onSelectionChanged: (set) => setModalState(() => category = set.first),
+                ),
+                AppSpacing.vGapLg,
+                AppButton.filled(
+                  label: 'Add to Inventory Catalog',
+                  icon: Icons.check,
+                  onPressed: () {
+                    if (nameCtrl.text.trim().isEmpty) return;
+                    ref.read(pharmacyInventoryStateProvider.notifier).addItem(
+                          name: nameCtrl.text.trim(),
+                          category: category,
+                          sku: skuCtrl.text.trim().isNotEmpty
+                              ? skuCtrl.text.trim()
+                              : 'SKU-TEMP',
+                          initialStock: int.tryParse(stockCtrl.text) ?? 20,
+                          unit: 'units',
+                          minThreshold: int.tryParse(minCtrl.text) ?? 5,
+                          isCritical: false,
+                          batchNumber: batchCtrl.text.trim(),
+                          expirationDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                    Navigator.of(ctx).pop();
+                    context.showSnackbar('✓ Added ${nameCtrl.text.trim()} to catalog');
                   },
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = nameCtrl.text.trim();
-                final sku = skuCtrl.text.trim();
-                final stock = stockCtrl.text.trim();
-                if (name.isNotEmpty) {
-                  setState(() {
-                    _inventoryItems.insert(0, {
-                      'name': name,
-                      'category': category,
-                      'sku': sku.isNotEmpty ? sku : 'SKU-${DateTime.now().millisecondsSinceEpoch % 10000}',
-                      'stock': stock.isNotEmpty ? (stock.contains(' ') ? stock : '$stock units') : '25 units',
-                      'status': 'Optimal',
-                      'statusColor': AppColors.success,
-                      'isCritical': false,
-                    });
-                  });
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Item "$name" added to inventory!')),
-                  );
-                }
-              },
-              child: const Text('Add Item'),
-            ),
-          ],
         ),
       ),
     );

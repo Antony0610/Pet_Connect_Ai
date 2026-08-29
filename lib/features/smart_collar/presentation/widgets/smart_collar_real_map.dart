@@ -1,5 +1,6 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -19,7 +20,8 @@ class MapSafeZone {
     required this.id,
     required this.name,
     required this.radiusMeters,
-    required this.centerOffset,
+    this.centerOffset = Offset.zero,
+    this.centerLatLng,
     this.color = AppColors.success,
   });
 
@@ -27,27 +29,35 @@ class MapSafeZone {
   final String name;
   final double radiusMeters;
   final Offset centerOffset;
+  final LatLng? centerLatLng;
   final Color color;
 }
 
 /// Waypoint on the pet's movement path.
 class MapBreadcrumb {
   const MapBreadcrumb({
-    required this.offset,
+    this.offset = Offset.zero,
+    this.latLng,
     required this.time,
     required this.speedKmh,
   });
 
   final Offset offset;
+  final LatLng? latLng;
   final String time;
   final double speedKmh;
 }
 
 /// **Smart Collar Real Interactive Map Engine**
 ///
-/// An interactive map featuring real vector cartography, live pulsing GPS
-/// radar pin, geofence boundary rings, historical breadcrumbs, satellite/street/dark
-/// layer toggles, and gesture pan/zoom controls.
+/// Powered by **OpenStreetMap (100% Free, Zero API Keys, Zero Quotas)**.
+/// Features:
+/// - Real live tile streaming (OSM Standard, ArcGIS Satellite, CartoDB Dark Matter)
+/// - Live pulsing GPS radar marker
+/// - Real geofence boundary rings (with exact metric radius)
+/// - Historical movement breadcrumb polyline
+/// - Interactive gestures (pinch-to-zoom, pan, double-tap zoom)
+/// - Zoom, recenter, layer-switching, and telemetry overlays
 class SmartCollarRealMap extends StatefulWidget {
   const SmartCollarRealMap({
     super.key,
@@ -61,6 +71,9 @@ class SmartCollarRealMap extends StatefulWidget {
     this.showControls = true,
     this.isInteractive = true,
     this.onTap,
+    this.onMapTap,
+    this.isEditMode = false,
+    this.editModeMessage,
   });
 
   final double height;
@@ -73,6 +86,9 @@ class SmartCollarRealMap extends StatefulWidget {
   final bool showControls;
   final bool isInteractive;
   final VoidCallback? onTap;
+  final ValueChanged<LatLng>? onMapTap;
+  final bool isEditMode;
+  final String? editModeMessage;
 
   @override
   State<SmartCollarRealMap> createState() => _SmartCollarRealMapState();
@@ -81,11 +97,9 @@ class SmartCollarRealMap extends StatefulWidget {
 class _SmartCollarRealMapState extends State<SmartCollarRealMap>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
-  final TransformationController _transformController =
-      TransformationController();
+  final MapController _mapController = MapController();
 
   MapLayerStyle _currentLayer = MapLayerStyle.street;
-  double _zoomLevel = 1.0;
   bool _showGeofences = true;
   bool _showBreadcrumbs = true;
 
@@ -101,31 +115,42 @@ class _SmartCollarRealMapState extends State<SmartCollarRealMap>
   @override
   void dispose() {
     _pulseController.dispose();
-    _transformController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
+  String _getTileUrl(MapLayerStyle style) {
+    switch (style) {
+      case MapLayerStyle.satellite:
+        // Free global satellite imagery provided by Esri ArcGIS
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case MapLayerStyle.darkNight:
+        // Free Dark Matter raster tiles by CartoDB
+        return 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+      case MapLayerStyle.street:
+        // Free standard OpenStreetMap tiles
+        return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+  }
+
   void _zoomIn() {
-    setState(() {
-      _zoomLevel = (_zoomLevel * 1.25).clamp(0.6, 3.5);
-      _transformController.value =
-          Matrix4.diagonal3Values(_zoomLevel, _zoomLevel, 1.0);
-    });
+    final current = _mapController.camera.zoom;
+    _mapController.move(
+      _mapController.camera.center,
+      (current + 1.0).clamp(3.0, 18.0),
+    );
   }
 
   void _zoomOut() {
-    setState(() {
-      _zoomLevel = (_zoomLevel / 1.25).clamp(0.6, 3.5);
-      _transformController.value =
-          Matrix4.diagonal3Values(_zoomLevel, _zoomLevel, 1.0);
-    });
+    final current = _mapController.camera.zoom;
+    _mapController.move(
+      _mapController.camera.center,
+      (current - 1.0).clamp(3.0, 18.0),
+    );
   }
 
   void _recenter() {
-    setState(() {
-      _zoomLevel = 1.0;
-      _transformController.value = Matrix4.identity();
-    });
+    _mapController.move(LatLng(widget.latitude, widget.longitude), 15.5);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Centered on ${widget.petName}\'s live GPS signal'),
@@ -149,31 +174,34 @@ class _SmartCollarRealMapState extends State<SmartCollarRealMap>
     final scheme = context.colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final List<MapBreadcrumb> defaultBreadcrumbs = widget.breadcrumbs.isNotEmpty
-        ? widget.breadcrumbs
+    final petCenter = LatLng(widget.latitude, widget.longitude);
+
+    // Build breadcrumbs path
+    final breadcrumbPoints = widget.breadcrumbs.isNotEmpty
+        ? widget.breadcrumbs.map((b) {
+            return b.latLng ??
+                LatLng(
+                  widget.latitude + (b.offset.dy * 0.00004),
+                  widget.longitude + (b.offset.dx * 0.00004),
+                );
+          }).toList()
         : [
-            const MapBreadcrumb(offset: Offset(-80, 50), time: '10m ago', speedKmh: 4.2),
-            const MapBreadcrumb(offset: Offset(-45, 30), time: '6m ago', speedKmh: 3.8),
-            const MapBreadcrumb(offset: Offset(-20, 10), time: '3m ago', speedKmh: 2.1),
-            const MapBreadcrumb(offset: Offset(0, 0), time: 'Now', speedKmh: 0.0),
+            LatLng(widget.latitude - 0.0015, widget.longitude - 0.0018),
+            LatLng(widget.latitude - 0.0009, widget.longitude - 0.0008),
+            LatLng(widget.latitude - 0.0003, widget.longitude - 0.0002),
+            petCenter,
           ];
 
-    final List<MapSafeZone> defaultSafeZones = widget.safeZones.isNotEmpty
+    // Build safe zones
+    final activeSafeZones = widget.safeZones.isNotEmpty
         ? widget.safeZones
         : [
-            const MapSafeZone(
+            MapSafeZone(
               id: 'home_base',
               name: 'Home Perimeter (150m)',
-              radiusMeters: 90,
-              centerOffset: Offset(0, 0),
+              radiusMeters: 150,
+              centerLatLng: petCenter,
               color: AppColors.success,
-            ),
-            const MapSafeZone(
-              id: 'park_zone',
-              name: 'Centennial Dog Park',
-              radiusMeters: 140,
-              centerOffset: Offset(60, -40),
-              color: AppColors.info,
             ),
           ];
 
@@ -195,48 +223,204 @@ class _SmartCollarRealMapState extends State<SmartCollarRealMap>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // ── Interactive Map Canvas ─────────────────────────────────────
-            InteractiveViewer(
-              transformationController: _transformController,
-              panEnabled: widget.isInteractive,
-              scaleEnabled: widget.isInteractive,
-              minScale: 0.6,
-              maxScale: 3.5,
-              onInteractionEnd: (details) {
-                _zoomLevel = _transformController.value.getMaxScaleOnAxis();
-              },
-              child: GestureDetector(
-                onTap: widget.onTap,
-                child: AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, _) {
-                    return CustomPaint(
-                      size: Size.infinite,
-                      painter: _CartographyPainter(
-                        layerStyle: _currentLayer,
-                        isDarkMode: isDark,
-                        pulseValue: _pulseController.value,
-                        safeZones: _showGeofences ? defaultSafeZones : [],
-                        breadcrumbs: _showBreadcrumbs ? defaultBreadcrumbs : [],
-                        petName: widget.petName,
-                        latitude: widget.latitude,
-                        longitude: widget.longitude,
-                        primaryColor: scheme.primary,
-                      ),
-                    );
-                  },
+            // ── Real OpenStreetMap Tile Canvas ─────────────────────────────
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: petCenter,
+                initialZoom: 15.5,
+                minZoom: 3.0,
+                maxZoom: 18.5,
+                interactionOptions: InteractionOptions(
+                  flags: widget.isInteractive
+                      ? InteractiveFlag.all
+                      : InteractiveFlag.none,
                 ),
+                onTap: (_, point) {
+                  widget.onMapTap?.call(point);
+                  widget.onTap?.call();
+                },
               ),
+              children: [
+                // 1. OpenStreetMap Tile Layer
+                TileLayer(
+                  urlTemplate: _getTileUrl(_currentLayer),
+                  userAgentPackageName: 'com.petconnect.ai',
+                  maxZoom: 19,
+                ),
+
+                // 2. Safe Zone Geofence Circles
+                if (_showGeofences)
+                  CircleLayer(
+                    circles: activeSafeZones.map((zone) {
+                      final center = zone.centerLatLng ??
+                          LatLng(
+                            widget.latitude + (zone.centerOffset.dy * 0.00004),
+                            widget.longitude + (zone.centerOffset.dx * 0.00004),
+                          );
+                      return CircleMarker(
+                        point: center,
+                        radius: zone.radiusMeters,
+                        useRadiusInMeter: true,
+                        color: zone.color.withValues(alpha: 0.22),
+                        borderColor: zone.color,
+                        borderStrokeWidth: 2.0,
+                      );
+                    }).toList(),
+                  ),
+
+                // 3. Historical Breadcrumbs Path
+                if (_showBreadcrumbs && breadcrumbPoints.length > 1)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: breadcrumbPoints,
+                        color: scheme.primary.withValues(alpha: 0.85),
+                        strokeWidth: 3.5,
+                      ),
+                    ],
+                  ),
+
+                // 4. Markers Layer (Pulsing Pet Marker & Safe Zone Icons)
+                MarkerLayer(
+                  markers: [
+                    // Safe Zone Badges
+                    ...activeSafeZones.map((zone) {
+                      final center = zone.centerLatLng ??
+                          LatLng(
+                            widget.latitude + (zone.centerOffset.dy * 0.00004),
+                            widget.longitude + (zone.centerOffset.dx * 0.00004),
+                          );
+                      return Marker(
+                        point: center,
+                        width: 28,
+                        height: 28,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: zone.color,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.shield, color: Colors.white, size: 14),
+                        ),
+                      );
+                    }),
+
+                    // Live Pulsing GPS Pet Marker
+                    Marker(
+                      point: petCenter,
+                      width: 64,
+                      height: 64,
+                      child: AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, _) {
+                          final pulse = _pulseController.value;
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Outer expanding ripple
+                              Container(
+                                width: 32 + (pulse * 28),
+                                height: 32 + (pulse * 28),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: scheme.primary.withValues(alpha: (1.0 - pulse) * 0.45),
+                                ),
+                              ),
+                              // Halo
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: scheme.primary.withValues(alpha: 0.25),
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                              // Core Pin
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: scheme.primary,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.35),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(Icons.pets, color: Colors.white, size: 15),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
 
+            // ── Floating Edit Mode Banner ──────────────────────────────────
+            if (widget.isEditMode)
+              Positioned(
+                top: AppSpacing.sm,
+                left: 70,
+                right: 70,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: AppRadius.brPill,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.touch_app_rounded, color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          widget.editModeMessage ?? 'Tap map to relocate safe zone',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // ── Top-Left: Map Layer & Telemetry Indicator ──────────────────
-            Positioned(
-              top: AppSpacing.sm,
-              left: AppSpacing.sm,
+            if (!widget.isEditMode)
+              Positioned(
+                top: AppSpacing.sm,
+                left: AppSpacing.sm,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: 0.85),
+                  color: scheme.surface.withValues(alpha: 0.88),
                   borderRadius: AppRadius.brPill,
                   border: Border.all(
                     color: scheme.outlineVariant.withValues(alpha: 0.25),
@@ -277,7 +461,7 @@ class _SmartCollarRealMapState extends State<SmartCollarRealMap>
                       ),
                       child: Text(
                         _currentLayer == MapLayerStyle.street
-                            ? 'STREET'
+                            ? 'OSM STREET'
                             : (_currentLayer == MapLayerStyle.satellite ? 'SATELLITE' : 'NIGHT GPS'),
                         style: TextStyle(
                           fontSize: 9,
@@ -305,7 +489,7 @@ class _SmartCollarRealMapState extends State<SmartCollarRealMap>
                           : (_currentLayer == MapLayerStyle.satellite
                               ? Icons.satellite_alt_outlined
                               : Icons.dark_mode_outlined),
-                      tooltip: 'Switch Map Style (Street / Satellite / Night)',
+                      tooltip: 'Switch Map Style (OSM / Satellite / Night)',
                       onPressed: _cycleLayer,
                       scheme: scheme,
                     ),
@@ -475,14 +659,14 @@ class _SmartCollarRealMapState extends State<SmartCollarRealMap>
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.90),
-        shape: BoxShape.circle,
+        color: scheme.surface.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: scheme.outlineVariant.withValues(alpha: 0.25),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -490,309 +674,10 @@ class _SmartCollarRealMapState extends State<SmartCollarRealMap>
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        iconSize: 16,
-        icon: Icon(icon, color: iconColor ?? scheme.onSurface),
+        icon: Icon(icon, size: 16, color: iconColor ?? scheme.onSurface),
         tooltip: tooltip,
         onPressed: onPressed,
       ),
     );
   }
-}
-
-/// **Vector Cartography & Live GPS Radar Painter**
-class _CartographyPainter extends CustomPainter {
-  _CartographyPainter({
-    required this.layerStyle,
-    required this.isDarkMode,
-    required this.pulseValue,
-    required this.safeZones,
-    required this.breadcrumbs,
-    required this.petName,
-    required this.latitude,
-    required this.longitude,
-    required this.primaryColor,
-  });
-
-  final MapLayerStyle layerStyle;
-  final bool isDarkMode;
-  final double pulseValue;
-  final List<MapSafeZone> safeZones;
-  final List<MapBreadcrumb> breadcrumbs;
-  final String petName;
-  final double latitude;
-  final double longitude;
-  final Color primaryColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-
-    // ── 1. Render Map Base & Terrain Grids ────────────────────────────────
-    _drawTerrainAndRoads(canvas, size, center);
-
-    // ── 2. Render Safe Zones (Geofence Circles) ───────────────────────────
-    _drawSafeZones(canvas, center);
-
-    // ── 3. Render Breadcrumb Path (Trail) ─────────────────────────────────
-    _drawBreadcrumbs(canvas, center);
-
-    // ── 4. Render Live Animated Pet GPS Pin with Pulsing Radar ────────────
-    _drawPetMarker(canvas, center);
-  }
-
-  void _drawTerrainAndRoads(Canvas canvas, Size size, Offset center) {
-    final bgPaint = Paint()..style = PaintingStyle.fill;
-    final roadPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final arteryPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final parkPaint = Paint()..style = PaintingStyle.fill;
-    final waterPaint = Paint()..style = PaintingStyle.fill;
-
-    switch (layerStyle) {
-      case MapLayerStyle.satellite:
-        bgPaint.color = const Color(0xFF1B2E24);
-        roadPaint
-          ..color = const Color(0xFF5A6E63)
-          ..strokeWidth = 3.0;
-        arteryPaint
-          ..color = const Color(0xFF889C91)
-          ..strokeWidth = 6.0;
-        parkPaint.color = const Color(0xFF264A35);
-        waterPaint.color = const Color(0xFF1E3A4B);
-      case MapLayerStyle.darkNight:
-        bgPaint.color = const Color(0xFF0B132B);
-        roadPaint
-          ..color = const Color(0xFF1C2541)
-          ..strokeWidth = 2.5;
-        arteryPaint
-          ..color = const Color(0xFF3A506B)
-          ..strokeWidth = 5.0;
-        parkPaint.color = const Color(0xFF102820);
-        waterPaint.color = const Color(0xFF0A2239);
-      case MapLayerStyle.street:
-        bgPaint.color = isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
-        roadPaint
-          ..color = isDarkMode ? const Color(0xFF334155) : const Color(0xFFE2E8F0)
-          ..strokeWidth = 3.0;
-        arteryPaint
-          ..color = isDarkMode ? const Color(0xFF475569) : const Color(0xFFCBD5E1)
-          ..strokeWidth = 6.0;
-        parkPaint.color = isDarkMode ? const Color(0xFF1E3A2B) : const Color(0xFFDCFCE7);
-        waterPaint.color = isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFBAE6FD);
-    }
-
-    // Fill canvas
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    // Draw Park polygons
-    final parkPath = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: center + const Offset(90, -70), width: 180, height: 120),
-          const Radius.circular(24),
-        ),
-      )
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: center + const Offset(-120, 80), width: 140, height: 90),
-          const Radius.circular(16),
-        ),
-      );
-    canvas.drawPath(parkPath, parkPaint);
-
-    // Draw Water River Path
-    final riverPath = Path()
-      ..moveTo(-50, size.height + 40)
-      ..cubicTo(size.width * 0.2, size.height * 0.7, size.width * 0.6, size.height * 0.85, size.width + 50, size.height * 0.6)
-      ..lineTo(size.width + 50, size.height + 50)
-      ..lineTo(-50, size.height + 50)
-      ..close();
-    canvas.drawPath(riverPath, waterPaint);
-
-    // Draw Major Road Arteries
-    canvas.drawLine(Offset(0, center.dy + 40), Offset(size.width, center.dy + 40), arteryPaint);
-    canvas.drawLine(Offset(center.dx - 60, 0), Offset(center.dx - 60, size.height), arteryPaint);
-
-    // Draw Secondary Street Grids
-    for (double y = -240; y <= 240; y += 50) {
-      canvas.drawLine(Offset(0, center.dy + y), Offset(size.width, center.dy + y), roadPaint);
-    }
-    for (double x = -300; x <= 300; x += 60) {
-      canvas.drawLine(Offset(center.dx + x, 0), Offset(center.dx + x, size.height), roadPaint);
-    }
-
-    // Draw Street Names / Cartography Labels
-    _drawStreetLabel(canvas, 'PINE AVENUE', center + const Offset(-50, 48), isDarkMode);
-    _drawStreetLabel(canvas, 'CENTENNIAL BLVD', center + const Offset(-54, -90), isDarkMode, vertical: true);
-    _drawStreetLabel(canvas, 'CENTENNIAL PARK', center + const Offset(90, -70), isDarkMode, isPark: true);
-  }
-
-  void _drawStreetLabel(
-    Canvas canvas,
-    String text,
-    Offset pos,
-    bool isDark, {
-    bool vertical = false,
-    bool isPark = false,
-  }) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontSize: isPark ? 10 : 8,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-          color: isPark
-              ? (isDark ? const Color(0xFF86EFAC) : const Color(0xFF166534))
-              : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    canvas.save();
-    canvas.translate(pos.dx, pos.dy);
-    if (vertical) canvas.rotate(-math.pi / 2);
-    textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
-    canvas.restore();
-  }
-
-  void _drawSafeZones(Canvas canvas, Offset center) {
-    for (final zone in safeZones) {
-      final zoneCenter = center + zone.centerOffset;
-
-      // Fill circle
-      final fillPaint = Paint()
-        ..color = zone.color.withValues(alpha: 0.12)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(zoneCenter, zone.radiusMeters, fillPaint);
-
-      // Dashed boundary ring
-      final borderPaint = Paint()
-        ..color = zone.color.withValues(alpha: 0.6)
-        ..strokeWidth = 2.0
-        ..style = PaintingStyle.stroke;
-      canvas.drawCircle(zoneCenter, zone.radiusMeters, borderPaint);
-
-      // Safe Zone Name Tag
-      final tagPainter = TextPainter(
-        text: TextSpan(
-          text: zone.name,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: zone.color,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      tagPainter.paint(
-        canvas,
-        Offset(zoneCenter.dx - tagPainter.width / 2, zoneCenter.dy - zone.radiusMeters - 14),
-      );
-    }
-  }
-
-  void _drawBreadcrumbs(Canvas canvas, Offset center) {
-    if (breadcrumbs.length < 2) return;
-
-    final pathPaint = Paint()
-      ..color = primaryColor.withValues(alpha: 0.7)
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    final path = Path();
-    for (var i = 0; i < breadcrumbs.length; i++) {
-      final pt = center + breadcrumbs[i].offset;
-      if (i == 0) {
-        path.moveTo(pt.dx, pt.dy);
-      } else {
-        path.lineTo(pt.dx, pt.dy);
-      }
-
-      // Small waypoint dot
-      final dotPaint = Paint()
-        ..color = (i == breadcrumbs.length - 1)
-            ? primaryColor
-            : primaryColor.withValues(alpha: 0.5)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(pt, (i == breadcrumbs.length - 1) ? 5 : 3, dotPaint);
-    }
-
-    canvas.drawPath(path, pathPaint);
-  }
-
-  void _drawPetMarker(Canvas canvas, Offset center) {
-    // ── Radar Ripple Pulse (Concentric expanding rings) ───────────────────
-    final pulseRadius1 = 20.0 + (pulseValue * 36.0);
-    final pulseOpacity1 = (1.0 - pulseValue).clamp(0.0, 1.0);
-
-    final radarPaint1 = Paint()
-      ..color = primaryColor.withValues(alpha: pulseOpacity1 * 0.35)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, pulseRadius1, radarPaint1);
-
-    final pulseRadius2 = 14.0 + (pulseValue * 22.0);
-    final radarPaint2 = Paint()
-      ..color = primaryColor.withValues(alpha: pulseOpacity1 * 0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawCircle(center, pulseRadius2, radarPaint2);
-
-    // ── Outer Glow Pin Base ───────────────────────────────────────────────
-    final basePaint = Paint()
-      ..color = primaryColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, 18, basePaint);
-
-    final innerPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, 15, innerPaint);
-
-    final corePaint = Paint()
-      ..color = primaryColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, 12, corePaint);
-
-    // ── Pet Name & Compass Heading Badge ──────────────────────────────────
-    final labelPainter = TextPainter(
-      text: TextSpan(
-        text: '🐾 $petName',
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final bgRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: center + const Offset(0, -30),
-        width: labelPainter.width + 16,
-        height: labelPainter.height + 8,
-      ),
-      const Radius.circular(12),
-    );
-
-    final bgPaint = Paint()
-      ..color = const Color(0xFF0F172A).withValues(alpha: 0.85)
-      ..style = PaintingStyle.fill;
-    canvas.drawRRect(bgRect, bgPaint);
-
-    labelPainter.paint(
-      canvas,
-      Offset(center.dx - labelPainter.width / 2, center.dy - 30 - labelPainter.height / 2),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_CartographyPainter oldDelegate) => true;
 }

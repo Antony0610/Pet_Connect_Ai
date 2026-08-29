@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -53,10 +51,6 @@ class AiHubDashboardScreen extends StatelessWidget {
                   _Greeting(),
                   AppSpacing.vGapLg,
                   _AssistantHero(),
-                  AppSpacing.vGapLg,
-                  _InsightCard(),
-                  AppSpacing.vGapLg,
-                  _FoodToxicityChecker(),
                   AppSpacing.vGapLg,
                   _QuickActions(),
                   AppSpacing.vGapLg,
@@ -157,273 +151,127 @@ class _AssistantHero extends ConsumerWidget {
   }
 }
 
-/// "Today's Insight": Dynamically synthesized from real companion telemetry,
-/// active health scans, and clinical biometric targets.
-class _InsightCard extends ConsumerWidget {
-  const _InsightCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = context.colorScheme;
-    final palette = PortalPalettes.of(AppPortal.petOwner);
-    final brightness = context.theme.brightness;
-    final activePet = ref.watch(selectedPetProvider);
-    final petName = activePet?.name ?? 'Companion';
-    final isCat = activePet?.species.toLowerCase() == 'cat';
-
-    final scansAsync = ref.watch(aiHealthScansProvider);
-    final scans = scansAsync.asData?.value ?? [];
-    final validScans = scans
-        .where((s) => !s.analysisSummary.contains('404') && !s.analysisSummary.toLowerCase().contains('failed'))
-        .toList();
-
-    String insightCategory = "Today's Clinical Insight";
-    var insightBody = '';
-    var sourceBadge = 'Real-time Telemetry';
-
-    if (validScans.isNotEmpty) {
-      final latestScan = validScans.first;
-      insightCategory = 'Latest Triage (${latestScan.urgencyLevel})';
-      insightBody = latestScan.analysisSummary.length > 140
-          ? '${latestScan.analysisSummary.substring(0, 140)}...'
-          : latestScan.analysisSummary;
-      sourceBadge = 'AI Diagnostic Scan';
-    } else if (activePet != null) {
-      final breed = activePet.breed ?? activePet.species;
-      final weight = activePet.weightKg;
-      final weightDisplay = weight != null ? '${weight.toStringAsFixed(1)} kg' : 'optimal baseline';
-      final kcal = (70 * (weight != null && weight > 0 ? (weight * 0.75) : 10)).round();
-
-      if (isCat) {
-        insightCategory = 'Feline Vitality & Nutrition';
-        insightBody = '$petName ($breed, $weightDisplay) shows steady movement patterns. Daily recommended caloric intake is ~$kcal kcal with interactive play.';
-      } else {
-        insightCategory = 'Canine Activity & Energy Baseline';
-        insightBody = '$petName ($breed, $weightDisplay) is tracking well on exercise. Basal metabolic target is ~$kcal kcal/day across 2 measured meals.';
-      }
-      sourceBadge = 'Personalized for $petName';
-    } else {
-      insightCategory = 'Companion Wellness Telemetry';
-      insightBody = 'Smart Collar activity is consistent, and restorative sleep indicators remain optimal today.';
-      sourceBadge = 'Community Benchmark';
-    }
-
-    return AppCard(
-      backgroundColor: scheme.surfaceContainer,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              AiConfidenceBadge(
-                label: 'High Confidence',
-                background: palette.accentContainer(brightness),
-                foreground: palette.onAccentContainer(brightness),
-              ),
-              const Spacer(),
-              Icon(
-                Icons.lightbulb_rounded,
-                color: scheme.tertiary,
-                size: AppIconSizes.md,
-              ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          Text(
-            insightCategory,
-            style: context.textTheme.labelLarge?.copyWith(
-              color: scheme.primary,
-              fontWeight: AppTypography.bold,
-            ),
-          ),
-          AppSpacing.vGapXs,
-          Text(
-            insightBody,
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurface,
-            ),
-          ),
-          AppSpacing.vGapSm,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                sourceBadge,
-                style: context.textTheme.labelSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () => context.push(RoutePaths.ownerHealth),
-                icon: const Icon(
-                  Icons.arrow_forward_rounded,
-                  size: AppIconSizes.sm,
-                ),
-                label: const Text('View details'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// One quick-action: label, glyph, tinted circular icon and a tap target.
-class _Action {
-  const _Action(this.icon, this.label, this.onTap, this.tint);
-
-  final IconData icon;
-  final String label;
-  final void Function(BuildContext) onTap;
-  final _Tint tint;
-}
-
-/// Which container role tints an action's circular icon.
-enum _Tint { primary, secondary, tertiary }
-
-/// The Quick Actions grid: 3 columns on mobile (2x3 compact grid), 6 across on wide layouts.
 class _QuickActions extends StatelessWidget {
   const _QuickActions();
 
   @override
   Widget build(BuildContext context) {
-    final width = context.screenWidth;
-    final columns = width < AppBreakpoints.tablet ? 3 : 6;
+    final isDesktop = context.screenWidth >= AppBreakpoints.tablet;
 
-    final actions = <_Action>[
-      _Action(
-        Icons.forum_rounded,
-        'Ask AI',
-        (c) => c.push(RoutePaths.ownerAiChat),
-        _Tint.primary,
+    final actions = [
+      QuickActionItemSpec(
+        icon: Icons.biotech_rounded,
+        title: 'Disease\nAI',
+        gradientColors: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+        badgeText: 'AI',
+        onTap: () => context.push(RoutePaths.ownerAiDiagnostic),
       ),
-      _Action(
-        Icons.image_search_rounded,
-        'Analyze Image',
-        (c) => c.push(RoutePaths.ownerAiAnalysis),
-        _Tint.secondary,
+      QuickActionItemSpec(
+        icon: Icons.camera_alt_rounded,
+        title: 'Visual\nScanner',
+        gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+        onTap: () => context.push(RoutePaths.ownerAiScan),
       ),
-      _Action(
-        Icons.camera_alt_outlined,
-        'AI HUD Scanner',
-        (c) => c.push(RoutePaths.ownerAiScan),
-        _Tint.primary,
+      QuickActionItemSpec(
+        icon: Icons.local_florist_rounded,
+        title: 'Toxicity\nChecker',
+        gradientColors: const [Color(0xFF10B981), Color(0xFF047857)],
+        onTap: () => context.push(RoutePaths.ownerAiToxicity),
       ),
-      _Action(
-        Icons.assessment_rounded,
-        'View Reports',
-        (c) => c.push(RoutePaths.ownerAiReports),
-        _Tint.tertiary,
+      QuickActionItemSpec(
+        icon: Icons.calculate_rounded,
+        title: 'Calorie\nPlanner',
+        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
+        onTap: () => context.push(
+          '${RoutePaths.ownerAiChat}?prompt=${Uri.encodeComponent("Calculate daily caloric requirements (RER/MER) and feeding plan for my companion")}',
+        ),
       ),
-      _Action(
-        Icons.groups_rounded,
-        'Community Hub',
-        (c) => c.push(RoutePaths.ownerCommunity),
-        _Tint.primary,
+      QuickActionItemSpec(
+        icon: Icons.psychology_rounded,
+        title: 'Behavior\nCoach',
+        gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+        onTap: () => context.push(
+          '${RoutePaths.ownerAiChat}?prompt=${Uri.encodeComponent("Provide evidence-based behavior modification and training guidance for my companion")}',
+        ),
       ),
-      _Action(
-        Icons.monitor_heart_rounded,
-        'Health Trends',
-        (c) => c.push(RoutePaths.ownerHealthGrowth),
-        _Tint.secondary,
+      QuickActionItemSpec(
+        icon: Icons.assessment_rounded,
+        title: 'AI Health\nReports',
+        gradientColors: const [Color(0xFFEC4899), Color(0xFFBE185D)],
+        onTap: () => context.push(RoutePaths.ownerAiReports),
       ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Quick Actions',
-          style: context.textTheme.titleMedium?.copyWith(
-            fontWeight: AppTypography.semiBold,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Quick Actions',
+              style: context.textTheme.titleMedium?.copyWith(
+                fontWeight: AppTypography.semiBold,
+              ),
+            ),
+            Text(
+              '${actions.length} Tools',
+              style: context.textTheme.labelSmall?.copyWith(
+                color: context.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         AppSpacing.vGapSm,
-        GridView.count(
-          crossAxisCount: columns,
-          mainAxisSpacing: AppSpacing.xs,
-          crossAxisSpacing: AppSpacing.xs,
-          childAspectRatio: 1.05,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [for (final a in actions) _ActionTile(action: a)],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          decoration: BoxDecoration(
+            color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
+            ),
+          ),
+          child: isDesktop
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: actions.map((act) => Expanded(
+                    child: QuickActionButton(
+                      title: act.title,
+                      icon: act.icon,
+                      gradientColors: act.gradientColors,
+                      badgeText: act.badgeText,
+                      onTap: act.onTap,
+                    ),
+                  )).toList(),
+                )
+              : Wrap(
+                  alignment: WrapAlignment.start,
+                  spacing: 6,
+                  runSpacing: 10,
+                  children: actions.map((act) {
+                    final width = (context.screenWidth - 56) / 3;
+                    return SizedBox(
+                      width: width.clamp(80.0, 115.0),
+                      child: QuickActionButton(
+                        title: act.title,
+                        icon: act.icon,
+                        gradientColors: act.gradientColors,
+                        badgeText: act.badgeText,
+                        onTap: act.onTap,
+                      ),
+                    );
+                  }).toList(),
+                ),
         ),
       ],
     );
   }
 }
 
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({required this.action});
-
-  final _Action action;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-
-    final (bg, fg) = switch (action.tint) {
-      _Tint.primary => (scheme.primaryContainer, scheme.onPrimaryContainer),
-      _Tint.secondary => (
-        scheme.secondaryContainer,
-        scheme.onSecondaryContainer,
-      ),
-      _Tint.tertiary => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
-    };
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: AppRadius.brCard,
-      clipBehavior: Clip.antiAlias,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLowest,
-          borderRadius: AppRadius.brCard,
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            action.onTap(context);
-          },
-          borderRadius: AppRadius.brCard,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xs,
-              vertical: AppSpacing.sm,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AiCircleIcon(
-                  icon: action.icon,
-                  background: bg,
-                  foreground: fg,
-                  size: 34,
-                ),
-                AppSpacing.vGapXs,
-                Text(
-                  action.label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurface,
-                    fontWeight: AppTypography.semiBold,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Which container role tints an activity's circular icon.
+enum _Tint { primary, secondary, tertiary }
 
 /// A recent AI activity entry, resolved to theme tokens by [tint].
 class _Activity {

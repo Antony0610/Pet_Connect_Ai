@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -31,6 +32,21 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
     super.dispose();
   }
 
+  void _exportAuditCsv(List<AuditLogEntry> logs) {
+    final buffer = StringBuffer();
+    buffer.writeln('ID,TIMESTAMP,ACTION,RESOURCE_TYPE,SEVERITY,ACTOR_ID,RESOURCE_ID');
+    for (final l in logs) {
+      buffer.writeln(
+        '${l.id},${l.createdAt.toIso8601String()},${l.action},${l.resourceType},${l.severity},${l.actorId},${l.resourceId ?? ""}',
+      );
+    }
+
+    ExternalActions.shareText(
+      buffer.toString(),
+      subject: 'PetConnect AI System Audit Log Export (${DateTime.now().toIso8601String()})',
+    );
+  }
+
   Color _severityColor(String severity) {
     switch (severity.toUpperCase()) {
       case 'CRITICAL':
@@ -54,19 +70,22 @@ class _AdminAuditLogsScreenState extends ConsumerState<AdminAuditLogsScreen> {
         title: const Text('System Audit & Security Logs'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/admin');
+            }
+          },
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.download_outlined),
+            icon: const Icon(Icons.share_outlined),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Downloading full Audit Log CSV...'),
-                ),
-              );
+              final logs = auditAsync.valueOrNull ?? [];
+              _exportAuditCsv(logs);
             },
-            tooltip: 'Export Audit Logs',
+            tooltip: 'Export Audit Logs (CSV)',
           ),
         ],
       ),

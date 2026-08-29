@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -40,16 +41,7 @@ class CommunityHubScreen extends ConsumerStatefulWidget {
 class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
   static const double _maxContentWidth = 1200;
 
-  String _selectedCategory = 'All';
   bool _isGridView = false;
-
-  final List<String> _categories = const [
-    'All',
-    'Photos 📸',
-    'Health 🩺',
-    'Questions ❓',
-    'Lost & Found 🚨',
-  ];
 
   EdgeInsets _horizontalMargin(double width) {
     if (width >= 1024) return const EdgeInsets.symmetric(horizontal: 40);
@@ -57,19 +49,10 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
     return const EdgeInsets.symmetric(horizontal: AppSpacing.md);
   }
 
-  String? get _resolvedCategoryParam {
-    if (_selectedCategory == 'All') return null;
-    if (_selectedCategory.startsWith('Photos')) return 'Photo/Video';
-    if (_selectedCategory.startsWith('Health')) return 'Health';
-    if (_selectedCategory.startsWith('Questions')) return 'Question';
-    if (_selectedCategory.startsWith('Lost')) return 'Lost & Found';
-    return _selectedCategory;
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final postsAsync = ref.watch(communityPostsProvider(_resolvedCategoryParam));
+    final postsAsync = ref.watch(communityPostsProvider(null));
 
     return OwnerScaffold(
       currentTab: OwnerTab.community,
@@ -125,7 +108,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
 
           return RefreshIndicator(
             onRefresh: () async =>
-                ref.refresh(communityPostsProvider(_resolvedCategoryParam).future),
+                ref.refresh(communityPostsProvider(null).future),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: margin.copyWith(
@@ -143,8 +126,8 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
                       _buildQuickNavGrid(context),
                       AppSpacing.vGapSm,
 
-                      // ── Category Filter Pills & View Switcher ──────────
-                      _buildCategoryAndFilterBar(context),
+                      // ── Feed Header & View Switcher ───────────────────
+                      _buildFeedHeaderBar(context),
                       AppSpacing.vGapSm,
 
                       // ── Feed / Grid Posts ──────────────────────────────
@@ -174,179 +157,131 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
     );
   }
 
-  Widget _buildCategoryAndFilterBar(BuildContext context) {
+  Widget _buildFeedHeaderBar(BuildContext context) {
     final scheme = context.colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        Text(
+          _isGridView ? 'Explore Photos' : 'Community Feed',
+          style: context.textTheme.titleMedium?.copyWith(
+            fontWeight: AppTypography.bold,
+          ),
+        ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _isGridView ? 'Explore Photos' : 'Community Feed',
-              style: context.textTheme.titleMedium?.copyWith(
-                fontWeight: AppTypography.bold,
+            IconButton(
+              icon: Icon(
+                Icons.view_agenda_rounded,
+                color: !_isGridView ? scheme.primary : scheme.onSurfaceVariant,
+                size: 20,
               ),
+              tooltip: 'Feed View',
+              onPressed: () => setState(() => _isGridView = false),
             ),
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.view_agenda_rounded,
-                    color: !_isGridView ? scheme.primary : scheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  tooltip: 'Feed View',
-                  onPressed: () => setState(() => _isGridView = false),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.grid_view_rounded,
-                    color: _isGridView ? scheme.primary : scheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  tooltip: 'Grid Explore View',
-                  onPressed: () => setState(() => _isGridView = true),
-                ),
-              ],
+            IconButton(
+              icon: Icon(
+                Icons.grid_view_rounded,
+                color: _isGridView ? scheme.primary : scheme.onSurfaceVariant,
+                size: 20,
+              ),
+              tooltip: 'Grid Explore View',
+              onPressed: () => setState(() => _isGridView = true),
             ),
           ],
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 36,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 6),
-            itemBuilder: (context, index) {
-              final cat = _categories[index];
-              final isSelected = _selectedCategory == cat;
-              return ChoiceChip(
-                label: Text(cat),
-                selected: isSelected,
-                selectedColor: scheme.primary,
-                backgroundColor: scheme.surfaceContainerHigh,
-                labelStyle: TextStyle(
-                  color: isSelected ? scheme.onPrimary : scheme.onSurface,
-                  fontWeight: isSelected ? AppTypography.bold : AppTypography.medium,
-                  fontSize: 12,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                shape: const RoundedRectangleBorder(borderRadius: AppRadius.brPill),
-                onSelected: (selected) {
-                  if (selected) setState(() => _selectedCategory = cat);
-                },
-              );
-            },
-          ),
         ),
       ],
     );
   }
 
   Widget _buildQuickNavGrid(BuildContext context) {
-    final scheme = context.colorScheme;
+    final isDesktop = context.screenWidth >= AppBreakpoints.tablet;
 
     final actions = [
-      _NavActionData(
+      QuickActionItemSpec(
         title: 'Discover',
-        icon: Icons.explore_outlined,
-        color: scheme.primaryContainer,
-        onColor: scheme.onPrimaryContainer,
+        icon: Icons.explore_rounded,
+        gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
         onTap: () => context.push(RoutePaths.ownerCommunityDiscover),
       ),
-      _NavActionData(
+      QuickActionItemSpec(
         title: 'Create Post',
-        icon: Icons.edit_square,
-        color: scheme.secondaryContainer,
-        onColor: scheme.onSecondaryContainer,
+        icon: Icons.add_photo_alternate_rounded,
+        gradientColors: const [Color(0xFF10B981), Color(0xFF047857)],
         onTap: () => context.push(RoutePaths.ownerCommunityCreatePost),
       ),
-      _NavActionData(
-        title: 'Local',
-        icon: Icons.location_on_outlined,
-        color: scheme.tertiaryContainer,
-        onColor: scheme.onTertiaryContainer,
+      QuickActionItemSpec(
+        title: 'Local Radar',
+        icon: Icons.near_me_rounded,
+        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
         onTap: () => context.push(RoutePaths.ownerCommunityLocal),
       ),
-      _NavActionData(
+      QuickActionItemSpec(
         title: 'Lost & Found',
-        icon: Icons.campaign_outlined,
-        color: scheme.errorContainer,
-        onColor: scheme.onErrorContainer,
+        icon: Icons.campaign_rounded,
+        gradientColors: const [Color(0xFFEF4444), Color(0xFFB91C1C)],
+        badgeText: 'SOS',
+        isDanger: true,
         onTap: () => context.push(RoutePaths.ownerCommunityLostFound),
       ),
-      _NavActionData(
-        title: 'Adoption',
-        icon: Icons.favorite_outline,
-        color: scheme.secondaryContainer,
-        onColor: scheme.onSecondaryContainer,
+      QuickActionItemSpec(
+        title: 'Adopt a Pet',
+        icon: Icons.favorite_rounded,
+        gradientColors: const [Color(0xFFEC4899), Color(0xFFBE185D)],
         onTap: () => context.push(RoutePaths.ownerCommunityAdoption),
       ),
-      _NavActionData(
+      QuickActionItemSpec(
         title: 'Events',
-        icon: Icons.event_outlined,
-        color: scheme.primaryContainer,
-        onColor: scheme.onPrimaryContainer,
+        icon: Icons.event_available_rounded,
+        gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
         onTap: () => context.push(RoutePaths.ownerCommunityEvents),
       ),
     ];
 
-    return SizedBox(
-      height: 42,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: actions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final action = actions[index];
-          return InkWell(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              action.onTap();
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.35),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: action.color,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      action.icon,
-                      size: 14,
-                      color: action.onColor,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    action.title,
-                    style: context.textTheme.labelMedium?.copyWith(
-                      fontWeight: AppTypography.semiBold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
+        ),
       ),
+      child: isDesktop
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: actions.map((act) => Expanded(
+                child: QuickActionButton(
+                  title: act.title,
+                  icon: act.icon,
+                  gradientColors: act.gradientColors,
+                  onTap: act.onTap,
+                  badgeText: act.badgeText,
+                  isDanger: act.isDanger,
+                ),
+              )).toList(),
+            )
+          : Wrap(
+              alignment: WrapAlignment.start,
+              spacing: 6,
+              runSpacing: 10,
+              children: actions.map((act) {
+                final width = (context.screenWidth - 56) / 4;
+                return SizedBox(
+                  width: width.clamp(72.0, 110.0),
+                  child: QuickActionButton(
+                    title: act.title,
+                    icon: act.icon,
+                    gradientColors: act.gradientColors,
+                    onTap: act.onTap,
+                    badgeText: act.badgeText,
+                    isDanger: act.isDanger,
+                  ),
+                );
+              }).toList(),
+            ),
     );
   }
 
@@ -1956,20 +1891,4 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
       ),
     );
   }
-}
-
-class _NavActionData {
-  const _NavActionData({
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.onColor,
-    required this.onTap,
-  });
-
-  final String title;
-  final IconData icon;
-  final Color color;
-  final Color onColor;
-  final VoidCallback onTap;
 }

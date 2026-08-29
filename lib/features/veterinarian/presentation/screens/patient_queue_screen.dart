@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/patient_queue_notifier.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
+/// **Interactive Patient Triage Queue** — `/vet/queue`.
+///
+/// Live patient flow manager supporting clinical status transitions,
+/// urgency triage prioritization, vital metrics telemetry, and direct
+/// consultation workspace routing.
 class PatientQueueScreen extends ConsumerStatefulWidget {
   const PatientQueueScreen({super.key});
 
@@ -17,74 +28,29 @@ class PatientQueueScreen extends ConsumerStatefulWidget {
 
 class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
   String _searchQuery = '';
-  String _selectedPriority = 'ALL';
-
-  final List<Map<String, dynamic>> _queuePatients = [
-    {
-      'id': 'p1',
-      'name': 'Buster',
-      'breedAge': 'Golden Retriever • 5y',
-      'priority': 'HIGH',
-      'reason': 'Severe allergic reaction, facial swelling.',
-      'waitTime': '25m',
-      'owner': 'Sarah Jenkins',
-      'avatarColor': Colors.amber,
-    },
-    {
-      'id': 'p2',
-      'name': 'Luna',
-      'breedAge': 'Domestic Shorthair • 2y',
-      'priority': 'MED',
-      'reason': 'Limping on front left paw.',
-      'waitTime': '15m',
-      'owner': 'Michael Chen',
-      'avatarColor': Colors.purple,
-    },
-    {
-      'id': 'p3',
-      'name': 'Winston',
-      'breedAge': 'Pug • 6mo',
-      'priority': 'ROUTINE',
-      'reason': 'Annual vaccinations & checkup.',
-      'waitTime': '5m',
-      'owner': 'Emily Davis',
-      'avatarColor': Colors.blue,
-    },
-    {
-      'id': 'p4',
-      'name': 'Oliver',
-      'breedAge': 'Tabby Cat • 4y',
-      'priority': 'HIGH',
-      'reason': 'Post-op vitals anomaly drop.',
-      'waitTime': '30m',
-      'owner': 'Robert Wilson',
-      'avatarColor': Colors.teal,
-    },
-  ];
+  TriageStatus? _selectedStatusFilter;
+  TriagePriority? _selectedPriorityFilter;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final allPatients = ref.watch(patientQueueStateProvider);
 
-    final filtered = _queuePatients.where((patient) {
-      final matchesQuery =
-          _searchQuery.isEmpty ||
-          patient['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          patient['breedAge'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          patient['reason'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
+    final filtered = allPatients.where((patient) {
+      final matchesQuery = _searchQuery.isEmpty ||
+          patient.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          patient.breedAge.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          patient.ownerName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          patient.reason.toLowerCase().contains(_searchQuery.toLowerCase());
 
-      final matchesPriority =
-          _selectedPriority == 'ALL' ||
-          patient['priority'] == _selectedPriority;
+      final matchesStatus =
+          _selectedStatusFilter == null || patient.status == _selectedStatusFilter;
 
-      return matchesQuery && matchesPriority;
+      final matchesPriority = _selectedPriorityFilter == null ||
+          patient.priority == _selectedPriorityFilter;
+
+      return matchesQuery && matchesStatus && matchesPriority;
     }).toList();
 
     return Scaffold(
@@ -94,7 +60,7 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
-              context.pop();
+              Navigator.of(context).pop();
             } else {
               context.go(RoutePaths.vetHome);
             }
@@ -104,13 +70,13 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Patient Queue',
+              'Patient Triage Queue',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
-              'Currently waiting: ${filtered.length} patients',
+              '${filtered.length} active patient${filtered.length == 1 ? "" : "s"} in pipeline',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -119,47 +85,46 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Queue refreshed')));
-            },
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+            tooltip: 'Admit Patient to Queue',
+            onPressed: () => _showAddPatientDialog(context),
           ),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Search & Filter Header
+            // ── Search & Filter Controls ───────────────────────────
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Column(
                 children: [
                   AppTextField(
-                    hintText: 'Search patient, breed, reason...',
-                    prefixIcon: Icons.search,
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val;
-                      });
-                    },
+                    hintText: 'Search patient, breed, owner, or symptom…',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    onChanged: (val) => setState(() => _searchQuery = val),
                   ),
-                  const SizedBox(height: 12),
+                  AppSpacing.vGapSm,
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
                         _buildFilterChip(
-                          'ALL',
-                          'All (${_queuePatients.length})',
+                          label: 'All Stages',
+                          isSelected: _selectedStatusFilter == null,
+                          onSelected: () =>
+                              setState(() => _selectedStatusFilter = null),
                         ),
-                        const SizedBox(width: 8),
-                        _buildFilterChip('HIGH', 'HIGH Priority'),
-                        const SizedBox(width: 8),
-                        _buildFilterChip('MED', 'MED Priority'),
-                        const SizedBox(width: 8),
-                        _buildFilterChip('ROUTINE', 'ROUTINE'),
+                        AppSpacing.hGapXs,
+                        for (final status in TriageStatus.values) ...[
+                          _buildFilterChip(
+                            label: status.label,
+                            isSelected: _selectedStatusFilter == status,
+                            onSelected: () =>
+                                setState(() => _selectedStatusFilter = status),
+                          ),
+                          AppSpacing.hGapXs,
+                        ],
                       ],
                     ),
                   ),
@@ -167,7 +132,7 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
               ),
             ),
 
-            // Queue Patients List
+            // ── Active Patient Cards List ──────────────────────────
             Expanded(
               child: filtered.isEmpty
                   ? Center(
@@ -175,14 +140,20 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.check_circle_outline,
+                            Icons.check_circle_outline_rounded,
                             size: 48,
-                            color: colorScheme.outline,
+                            color: colorScheme.primary.withValues(alpha: 0.6),
                           ),
-                          const SizedBox(height: 12),
+                          AppSpacing.vGapSm,
                           Text(
-                            'No patients in queue',
+                            'Queue is clear',
                             style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'No patients match the selected filter criteria.',
+                            style: theme.textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -195,95 +166,113 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
                         vertical: 8,
                       ),
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return _buildQueueCard(
-                          context,
-                          theme,
-                          colorScheme,
-                          item,
-                        );
+                      separatorBuilder: (_, __) => AppSpacing.vGapSm,
+                      itemBuilder: (ctx, index) {
+                        final patient = filtered[index];
+                        return _buildPatientQueueCard(context, patient);
                       },
                     ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context, theme, colorScheme),
-    );
-  }
-
-  Widget _buildFilterChip(String key, String label) {
-    final selected = _selectedPriority == key;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (val) {
-        if (val) {
-          setState(() {
-            _selectedPriority = key;
-          });
-        }
-      },
-      selectedColor: colorScheme.primaryContainer,
-      labelStyle: TextStyle(
-        color: selected
-            ? colorScheme.onPrimaryContainer
-            : colorScheme.onSurfaceVariant,
-        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddPatientDialog(context),
+        icon: const Icon(Icons.add),
+        label: const Text('Check-In Patient'),
       ),
     );
   }
 
-  Widget _buildQueueCard(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-    Map<String, dynamic> item,
-  ) {
-    final priority = item['priority'] as String;
-    Color priorityColor;
-    Color priorityContainer;
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    if (priority == 'HIGH') {
-      priorityColor = colorScheme.error;
-      priorityContainer = colorScheme.errorContainer;
-    } else if (priority == 'MED') {
-      priorityColor = colorScheme.tertiary;
-      priorityContainer = colorScheme.tertiaryContainer;
-    } else {
-      priorityColor = colorScheme.primary;
-      priorityContainer = colorScheme.primaryContainer;
-    }
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) {
+        HapticFeedback.selectionClick();
+        onSelected();
+      },
+      selectedColor: colorScheme.primaryContainer,
+      labelStyle: TextStyle(
+        fontSize: 12,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
+      ),
+    );
+  }
+
+  Widget _buildPatientQueueCard(BuildContext context, TriagePatientItem patient) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final (priorityColor, priorityBg) = _getPriorityColors(patient.priority);
 
     return AppCard(
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                backgroundColor: item['avatarColor'] as Color,
-                child: const Icon(Icons.pets, color: Colors.white),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: priorityColor.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Icon(
+                    patient.species.toLowerCase().contains('cat')
+                        ? Icons.pets
+                        : Icons.pets_rounded,
+                    color: priorityColor,
+                  ),
+                ),
               ),
-              const SizedBox(width: 12),
+              AppSpacing.hGapMd,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item['name'] as String,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          patient.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: priorityBg,
+                            borderRadius: AppRadius.brPill,
+                          ),
+                          child: Text(
+                            patient.priority.label,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: priorityColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
-                      item['breedAge'] as String,
+                      patient.breedAge,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -291,70 +280,108 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
                   ],
                 ),
               ),
-              AppChip(
-                label: '$priority Priority',
-                backgroundColor: priorityContainer,
-                textColor: priorityColor,
-              ),
             ],
           ),
-          const SizedBox(height: 12),
+          AppSpacing.vGapSm,
+
+          // Reason Box
           Container(
-            padding: const EdgeInsets.all(10),
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(8),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 18,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Reason: ${item['reason']}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              patient.reason,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          AppSpacing.vGapSm,
+
+          // Vitals & Owner Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.schedule,
-                    size: 16,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Wait: ${item['waitTime']}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurfaceVariant,
+                  if (patient.temperatureC != null) ...[
+                    Icon(Icons.thermostat_rounded, size: 14, color: colorScheme.primary),
+                    Text(
+                      ' ${patient.temperatureC}°C',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
-                  ),
+                    AppSpacing.hGapSm,
+                  ],
+                  if (patient.heartRateBpm != null) ...[
+                    const Icon(Icons.favorite_rounded, size: 14, color: Colors.redAccent),
+                    Text(
+                      ' ${patient.heartRateBpm} bpm',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ],
               ),
-              AppButton(
-                text: priority == 'HIGH' ? 'Begin Triage' : 'Review Details',
-                onPressed: () => context.push('/vet/consultation/${item['id']}'),
-                backgroundColor: priorityColor,
-                textColor: priority == 'HIGH'
-                    ? colorScheme.onError
-                    : (priority == 'MED'
-                          ? colorScheme.onTertiary
-                          : colorScheme.onPrimary),
-                height: 36,
+              InkWell(
+                onTap: () => ExternalActions.callPhoneNumber(patient.ownerPhone),
+                child: Row(
+                  children: [
+                    Icon(Icons.phone_rounded, size: 14, color: colorScheme.primary),
+                    AppSpacing.hGapXs,
+                    Text(
+                      patient.ownerName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.vGapMd,
+
+          // Action Buttons Bar
+          Row(
+            children: [
+              // Advance Status Action
+              if (patient.status != TriageStatus.discharged) ...[
+                Expanded(
+                  child: AppButton.outlined(
+                    label: _getNextStageLabel(patient.status),
+                    icon: _getNextStageIcon(patient.status),
+                    onPressed: () async {
+                      await HapticFeedback.mediumImpact();
+                      ref
+                          .read(patientQueueStateProvider.notifier)
+                          .advanceStatus(patient.id);
+                      if (context.mounted) {
+                        context.showSnackbar(
+                          '✓ ${patient.name} advanced to ${_getNextStageLabel(patient.status)}',
+                        );
+                      }
+                    },
+                  ),
+                ),
+                AppSpacing.hGapSm,
+              ],
+
+              // Direct Consultation Action
+              Expanded(
+                child: AppButton.filled(
+                  label: 'Consultation',
+                  icon: Icons.medical_services_outlined,
+                  onPressed: () {
+                    context.push(
+                      '${RoutePaths.vetConsultation}?appointmentId=${patient.appointmentId}',
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -363,51 +390,133 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
     );
   }
 
-  Widget _buildBottomNav(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return NavigationBar(
-      selectedIndex: 1,
-      onDestinationSelected: (index) {
-        if (index == 0) {
-          context.go(RoutePaths.vetHome);
-        } else if (index == 2) {
-          context.push(RoutePaths.vetAppointments);
-        } else if (index == 3) {
-          context.push(RoutePaths.vetPatients);
-        } else if (index == 4) {
-          context.push(RoutePaths.vetProfile);
-        }
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: 'Dashboard',
+  void _showAddPatientDialog(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final breedCtrl = TextEditingController();
+    final speciesCtrl = TextEditingController(text: 'Canine');
+    final reasonCtrl = TextEditingController();
+    final ownerNameCtrl = TextEditingController();
+    final ownerPhoneCtrl = TextEditingController();
+    var priority = TriagePriority.routine;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+          ),
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Admit Patient to Triage',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: AppTypography.bold,
+                  ),
+                ),
+                AppSpacing.vGapMd,
+                AppTextField(controller: nameCtrl, labelText: 'Pet Name (e.g. Charlie)'),
+                AppSpacing.vGapSm,
+                AppTextField(controller: breedCtrl, labelText: 'Breed & Age (e.g. Beagle • 3y)'),
+                AppSpacing.vGapSm,
+                AppTextField(controller: reasonCtrl, labelText: 'Clinical Reason / Chief Complaint'),
+                AppSpacing.vGapSm,
+                AppTextField(controller: ownerNameCtrl, labelText: 'Owner Full Name'),
+                AppSpacing.vGapSm,
+                AppTextField(controller: ownerPhoneCtrl, labelText: 'Owner Contact Phone'),
+                AppSpacing.vGapMd,
+                const Text('Triage Urgency Priority:', style: TextStyle(fontWeight: FontWeight.bold)),
+                AppSpacing.vGapXs,
+                SegmentedButton<TriagePriority>(
+                  segments: const [
+                    ButtonSegment(value: TriagePriority.critical, label: Text('🚨 Critical')),
+                    ButtonSegment(value: TriagePriority.urgent, label: Text('⚠️ Urgent')),
+                    ButtonSegment(value: TriagePriority.routine, label: Text('🩺 Routine')),
+                  ],
+                  selected: {priority},
+                  onSelectionChanged: (set) => setModalState(() => priority = set.first),
+                ),
+                AppSpacing.vGapLg,
+                AppButton.filled(
+                  label: 'Add to Triage Pipeline',
+                  icon: Icons.check,
+                  onPressed: () {
+                    if (nameCtrl.text.trim().isEmpty) return;
+                    ref.read(patientQueueStateProvider.notifier).addPatient(
+                          name: nameCtrl.text.trim(),
+                          breedAge: breedCtrl.text.trim().isNotEmpty
+                              ? breedCtrl.text.trim()
+                              : 'Unknown Breed',
+                          species: speciesCtrl.text.trim(),
+                          priority: priority,
+                          reason: reasonCtrl.text.trim().isNotEmpty
+                              ? reasonCtrl.text.trim()
+                              : 'General Examination',
+                          ownerName: ownerNameCtrl.text.trim().isNotEmpty
+                              ? ownerNameCtrl.text.trim()
+                              : 'Verified Client',
+                          ownerPhone: ownerPhoneCtrl.text.trim().isNotEmpty
+                              ? ownerPhoneCtrl.text.trim()
+                              : '+1 (555) 000-0000',
+                        );
+                    Navigator.of(ctx).pop();
+                    context.showSnackbar('✓ Added ${nameCtrl.text.trim()} to patient queue');
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
-        NavigationDestination(
-          icon: Icon(Icons.groups_outlined),
-          selectedIcon: Icon(Icons.groups),
-          label: 'Queue',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.calendar_today_outlined),
-          selectedIcon: Icon(Icons.calendar_today),
-          label: 'Schedule',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.pets_outlined),
-          selectedIcon: Icon(Icons.pets),
-          label: 'Patients',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.person_outlined),
-          selectedIcon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ],
+      ),
     );
+  }
+
+  static (Color, Color) _getPriorityColors(TriagePriority priority) {
+    switch (priority) {
+      case TriagePriority.critical:
+        return (Colors.red.shade700, Colors.red.shade50);
+      case TriagePriority.urgent:
+        return (Colors.orange.shade800, Colors.orange.shade50);
+      case TriagePriority.routine:
+        return (Colors.blue.shade700, Colors.blue.shade50);
+    }
+  }
+
+  static String _getNextStageLabel(TriageStatus current) {
+    switch (current) {
+      case TriageStatus.waiting:
+        return 'Call to Triage';
+      case TriageStatus.inTriage:
+        return 'Send to Vet';
+      case TriageStatus.inConsultation:
+        return 'Discharge';
+      case TriageStatus.discharged:
+        return 'Completed';
+    }
+  }
+
+  static IconData _getNextStageIcon(TriageStatus current) {
+    switch (current) {
+      case TriageStatus.waiting:
+        return Icons.forward_to_inbox_rounded;
+      case TriageStatus.inTriage:
+        return Icons.arrow_forward_rounded;
+      case TriageStatus.inConsultation:
+        return Icons.done_all_rounded;
+      case TriageStatus.discharged:
+        return Icons.check_circle_outline;
+    }
   }
 }

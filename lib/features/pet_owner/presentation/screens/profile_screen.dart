@@ -205,6 +205,41 @@ class _ProfileHeaderCardState extends ConsumerState<_ProfileHeaderCard> {
             ),
             AppSpacing.vGapXs,
 
+            // Phone number
+            if (profile.phone != null && profile.phone!.trim().isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.phone_outlined, size: 14, color: scheme.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    profile.phone!,
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              AppSpacing.vGapXs,
+            ] else ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_call, size: 13, color: scheme.error),
+                  const SizedBox(width: 4),
+                  Text(
+                    'No phone number • Tap Edit to add',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: scheme.error,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              AppSpacing.vGapXs,
+            ],
+
             // Role badge
             Container(
               padding: const EdgeInsets.symmetric(
@@ -335,6 +370,7 @@ class _EditProfileSheet extends ConsumerStatefulWidget {
 
 class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
   bool _saving = false;
   String? _error;
 
@@ -343,16 +379,20 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     super.initState();
     _nameController =
         TextEditingController(text: widget.profile.fullName);
+    _phoneController =
+        TextEditingController(text: widget.profile.phone ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
     if (name.isEmpty) {
       setState(() => _error = 'Name cannot be empty.');
       return;
@@ -364,7 +404,12 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     });
 
     final upsert = ref.read(upsertUserProfileProvider);
-    final result = await upsert(widget.profile.copyWith(fullName: name));
+    final result = await upsert(
+      widget.profile.copyWith(
+        fullName: name,
+        phone: phone.isNotEmpty ? phone : null,
+      ),
+    );
 
     result.fold(
       (failure) {
@@ -412,10 +457,25 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             decoration: InputDecoration(
               labelText: 'Full Name',
               hintText: 'Your display name',
+              prefixIcon: const Icon(Icons.person_outline),
               errorText: _error,
               border: const OutlineInputBorder(
                   borderRadius: AppRadius.brCard),
             ),
+            textInputAction: TextInputAction.next,
+          ),
+          AppSpacing.vGapMd,
+          TextField(
+            controller: _phoneController,
+            decoration: const InputDecoration(
+              labelText: 'Emergency Contact Phone',
+              hintText: 'e.g. +1 555-0199 or 9876543210',
+              prefixIcon: Icon(Icons.phone_outlined),
+              helperText: 'Displayed on Missing Pet Posters & Health Passports',
+              border: OutlineInputBorder(
+                  borderRadius: AppRadius.brCard),
+            ),
+            keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _save(),
           ),
