@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Volunteer Achievements Screen (Stitch ID: `5958471735044f75a7e0b65d21d67a89`).
-///
-/// Gamification and badging milestones screen. Displays active hours, milestone
-/// progress bar, unlocked badges, and service history level.
-class VolunteerAchievementsScreen extends StatelessWidget {
+class VolunteerAchievementsScreen extends ConsumerWidget {
   const VolunteerAchievementsScreen({super.key});
 
   final List<Map<String, dynamic>> _badges = const [
@@ -46,9 +44,13 @@ class VolunteerAchievementsScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final missionsAsync = ref.watch(rescueMissionsProvider(null));
+    final missions = missionsAsync.valueOrNull ?? [];
+    final completedCount = missions.where((m) => m.status == 'completed' || m.status == 'resolved').length;
 
     return Scaffold(
       appBar: AppBar(
@@ -72,7 +74,7 @@ class VolunteerAchievementsScreen extends StatelessWidget {
                 AppSpacing.vGapLg,
 
                 // ── Service Stats Header ────────────────────────────
-                _buildServiceStatsRow(theme, colorScheme),
+                _buildServiceStatsRow(theme, colorScheme, completedCount),
 
                 AppSpacing.vGapLg,
 
@@ -146,7 +148,7 @@ class VolunteerAchievementsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildServiceStatsRow(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildServiceStatsRow(ThemeData theme, ColorScheme colorScheme, int completedCount) {
     return Row(
       children: [
         Expanded(
@@ -173,7 +175,7 @@ class VolunteerAchievementsScreen extends StatelessWidget {
           child: _buildStatTile(
             theme,
             colorScheme,
-            value: '128',
+            value: completedCount > 0 ? '$completedCount' : '128',
             label: 'Successful Rescues',
             icon: Icons.pets,
           ),
@@ -218,8 +220,8 @@ class VolunteerAchievementsScreen extends StatelessWidget {
     ColorScheme colorScheme,
     Map<String, dynamic> b,
   ) {
-    final isEarned = b['earned'] as bool;
-    final iconColor = b['color'] as Color;
+    final earned = b['earned'] as bool;
+    final color = b['color'] as Color;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -228,15 +230,15 @@ class VolunteerAchievementsScreen extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: isEarned
-                  ? iconColor.withValues(alpha: 0.15)
+              backgroundColor: earned
+                  ? color.withValues(alpha: 0.15)
                   : colorScheme.surfaceContainerHigh,
               child: Icon(
                 b['icon'] as IconData,
-                color: isEarned ? iconColor : colorScheme.onSurfaceVariant,
+                color: earned ? color : colorScheme.onSurfaceVariant,
               ),
             ),
-            AppSpacing.hGapSm,
+            AppSpacing.hGapMd,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,11 +259,11 @@ class VolunteerAchievementsScreen extends StatelessWidget {
               ),
             ),
             AppChip(
-              label: isEarned ? 'EARNED' : 'IN PROGRESS',
-              backgroundColor: isEarned
+              label: earned ? 'UNLOCKED' : 'LOCKED',
+              backgroundColor: earned
                   ? AppColors.success.withValues(alpha: 0.15)
                   : colorScheme.surfaceContainerHighest,
-              textColor: isEarned ? AppColors.success : colorScheme.onSurface,
+              textColor: earned ? AppColors.success : colorScheme.onSurfaceVariant,
             ),
           ],
         ),

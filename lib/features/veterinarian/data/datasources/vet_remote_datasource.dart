@@ -5,7 +5,9 @@ import 'package:petconnect_ai/features/veterinarian/data/models/consultation_mod
 import 'package:petconnect_ai/features/veterinarian/data/models/patient_queue_item_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/pharmacy_item_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/prescription_model.dart';
+import 'package:petconnect_ai/features/veterinarian/data/models/treatment_plan_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/vet_clinic_model.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_patient.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract class VetRemoteDataSource {
@@ -34,6 +36,14 @@ abstract class VetRemoteDataSource {
   Future<PrescriptionModel> createPrescription(PrescriptionModel prescription);
 
   Future<List<PharmacyItemModel>> getPharmacyInventory(String clinicId);
+
+  // Treatment Plans
+  Future<List<TreatmentPlanModel>> getTreatmentPlans(String petId);
+  Future<TreatmentPlanModel> saveTreatmentPlan(TreatmentPlanModel plan);
+
+  // Patients
+  Future<List<VetPatient>> getPatients({String? clinicId});
+  Future<VetPatient> registerPatient(VetPatient patient);
 
   // Phase 11 — Analytics
   Future<List<ClinicAnalyticsSummaryModel>> getClinicAnalytics(
@@ -298,6 +308,149 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to fetch pharmacy inventory: $e');
+    }
+  }
+
+  // Treatment Plans
+  @override
+  Future<List<TreatmentPlanModel>> getTreatmentPlans(String petId) async {
+    try {
+      final response = await _client
+          .from('treatment_plans')
+          .select()
+          .eq('pet_id', petId)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map(
+            (json) => TreatmentPlanModel.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch treatment plans: $e');
+    }
+  }
+
+  @override
+  Future<TreatmentPlanModel> saveTreatmentPlan(TreatmentPlanModel plan) async {
+    try {
+      final json = plan.toJson();
+      if (plan.id.isEmpty) {
+        json.remove('id');
+      }
+      final response = await _client
+          .from('treatment_plans')
+          .upsert(json)
+          .select()
+          .single();
+      return TreatmentPlanModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to save treatment plan: $e');
+    }
+  }
+
+  // Patients
+  @override
+  Future<List<VetPatient>> getPatients({String? clinicId}) async {
+    try {
+      final response = await _client
+          .from('pets')
+          .select('*, profiles:owner_id(full_name, phone, email)')
+          .order('name', ascending: true);
+
+      return (response as List).map((row) {
+        final map = row as Map<String, dynamic>;
+        final owner = map['profiles'] as Map<String, dynamic>?;
+        return VetPatient(
+          id: map['id'] as String,
+          name: map['name'] as String? ?? 'Unknown',
+          species: map['species'] as String? ?? 'dog',
+          breed: map['breed'] as String?,
+          gender: map['gender'] as String? ?? 'unknown',
+          dateOfBirth: map['date_of_birth'] != null
+              ? DateTime.tryParse(map['date_of_birth'] as String)
+              : null,
+          ownerId: map['owner_id'] as String?,
+          ownerName: owner?['full_name'] as String? ?? 'Guardian',
+          ownerPhone: owner?['phone'] as String?,
+          ownerEmail: owner?['email'] as String?,
+          status: 'Stable',
+          healthStatus: map['health_status'] as String? ?? 'optimal',
+          weightKg: (map['weight_kg'] as num?)?.toDouble(),
+          microchipId: map['microchip_id'] as String?,
+          imageUrl: map['image_url'] as String?,
+        );
+      }).toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch patients: $e');
+    }
+  }
+
+  @override
+  Future<VetPatient> registerPatient(VetPatient patient) async {
+    try {
+      final json = {
+        'name': patient.name,
+        'species': patient.species,
+        'breed': patient.breed,
+        'gender': patient.gender,
+        if (patient.dateOfBirth != null)
+          'date_of_birth': patient.dateOfBirth!.toIso8601String().split('T').first,
+        if (patient.ownerId != null) 'owner_id': patient.ownerId,
+        'health_status': patient.healthStatus,
+        if (patient.weightKg != null) 'weight_kg': patient.weightKg,
+        if (patient.microchipId != null) 'microchip_id': patient.microchipId,
+      };
+
+      final response = await _client
+          .from('pets')
+          .insert(json)
+          .select('*, profiles:owner_id(full_name, phone, email)')
+          .single();
+
+      final map = response;
+      final owner = map['profiles'] as Map<String, dynamic>?;
+      return VetPatient(
+        id: map['id'] as String,
+        name: map['name'] as String? ?? 'Unknown',
+        species: map['species'] as String? ?? 'dog',
+        breed: map['breed'] as String?,
+        gender: map['gender'] as String? ?? 'unknown',
+        dateOfBirth: map['date_of_birth'] != null
+            ? DateTime.tryParse(map['date_of_birth'] as String)
+            : null,
+        ownerId: map['owner_id'] as String?,
+        ownerName: owner?['full_name'] as String? ?? 'Guardian',
+        ownerPhone: owner?['phone'] as String?,
+        ownerEmail: owner?['email'] as String?,
+        status: 'Stable',
+        healthStatus: map['health_status'] as String? ?? 'optimal',
+        weightKg: (map['weight_kg'] as num?)?.toDouble(),
+        microchipId: map['microchip_id'] as String?,
+        imageUrl: map['image_url'] as String?,
+      );
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to register patient: $e');
     }
   }
 

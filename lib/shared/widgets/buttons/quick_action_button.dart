@@ -38,6 +38,17 @@ class QuickActionButton extends StatelessWidget {
     this.containerSize = 46,
   });
 
+  factory QuickActionButton.fromSpec(QuickActionItemSpec spec) {
+    return QuickActionButton(
+      title: spec.title,
+      icon: spec.icon,
+      gradientColors: spec.gradientColors,
+      onTap: spec.onTap,
+      badgeText: spec.badgeText,
+      isDanger: spec.isDanger,
+    );
+  }
+
   final String title;
   final IconData icon;
   final List<Color> gradientColors;

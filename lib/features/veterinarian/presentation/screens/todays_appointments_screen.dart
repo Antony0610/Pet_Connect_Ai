@@ -1,66 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/appointment.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-class TodaysAppointmentsScreen extends StatefulWidget {
+class TodaysAppointmentsScreen extends ConsumerStatefulWidget {
   const TodaysAppointmentsScreen({super.key});
 
   @override
-  State<TodaysAppointmentsScreen> createState() =>
+  ConsumerState<TodaysAppointmentsScreen> createState() =>
       _TodaysAppointmentsScreenState();
 }
 
-class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
+class _TodaysAppointmentsScreenState
+    extends ConsumerState<TodaysAppointmentsScreen> {
   String _selectedView = 'Day';
-
-  final List<Map<String, dynamic>> _scheduleSlots = [
-    {'time': '09:00 AM', 'isBooked': false},
-    {
-      'time': '10:00 AM',
-      'isBooked': true,
-      'patientName': 'Luna',
-      'breed': 'Siberian Husky',
-      'duration': '10:30 - 11:00',
-      'status': 'Checked-in',
-      'statusColor': AppColors.success,
-      'reason': 'Routine Checkup',
-      'type': 'General',
-    },
-    {
-      'time': '11:00 AM',
-      'isBooked': true,
-      'patientName': 'Max',
-      'breed': 'Labrador Retriever',
-      'duration': '11:15 - 11:45',
-      'status': 'In Progress',
-      'statusColor': AppColors.info,
-      'reason': 'Vaccination & Microchip',
-      'type': 'Vaccine',
-    },
-    {'time': '12:00 PM', 'isBooked': false},
-    {'time': '01:00 PM', 'isBooked': false},
-    {
-      'time': '02:00 PM',
-      'isBooked': true,
-      'patientName': 'Bella',
-      'breed': 'Persian Cat',
-      'duration': '14:00 - 14:45',
-      'status': 'Upcoming',
-      'statusColor': AppColors.warning,
-      'reason': 'Dental Check & Cleaning',
-      'type': 'Dental',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final clinicsAsync = ref.watch(vetClinicsProvider);
+    final clinics = clinicsAsync.valueOrNull ?? [];
+    final clinicId = clinics.isNotEmpty ? clinics.first.id : null;
+
+    final appointmentsAsync = ref.watch(appointmentsProvider({'clinicId': clinicId}));
+    final appointments = appointmentsAsync.valueOrNull ?? [];
+
+    final today = DateTime.now();
+    final todaysAppointments = appointments.where((a) {
+      return a.appointmentDate.year == today.year &&
+          a.appointmentDate.month == today.month &&
+          a.appointmentDate.day == today.day;
+    }).toList();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -85,7 +64,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
               ),
             ),
             Text(
-              DateFormat('EEEE, MMMM d, y').format(DateTime.now()),
+              DateFormat('EEEE, MMMM d, y').format(today),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -94,8 +73,13 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.invalidate(appointmentsProvider),
+            tooltip: 'Refresh',
+          ),
+          IconButton(
             icon: const Icon(Icons.calendar_month),
-            onPressed: () => context.push(RoutePaths.vetAppointmentSchedule),
+            onPressed: () => context.push(RoutePaths.vetAppointments),
             tooltip: 'Schedule Management',
           ),
         ],
@@ -119,18 +103,65 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
 
             // Schedule Timeline Grid
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                itemCount: _scheduleSlots.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final slot = _scheduleSlots[index];
-                  return _buildTimeSlotCard(context, theme, colorScheme, slot);
-                },
-              ),
+              child: appointmentsAsync.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : todaysAppointments.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: AppCard(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.event_available_outlined,
+                                    size: 48,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'No Consultations Scheduled For Today',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Clinical slots are open for walk-in triage or online bookings.',
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  FilledButton.icon(
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Schedule Appointment'),
+                                    onPressed: () => context.push(RoutePaths.vetAppointments),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          itemCount: todaysAppointments.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final appt = todaysAppointments[index];
+                            return _buildAppointmentSlotCard(
+                              context,
+                              theme,
+                              colorScheme,
+                              appt,
+                            );
+                          },
+                        ),
             ),
           ],
         ),
@@ -150,7 +181,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
           _selectedView = label;
         });
         if (label == 'Month' || label == 'Week') {
-          context.push(RoutePaths.vetAppointmentSchedule);
+          context.push(RoutePaths.vetAppointments);
         }
       },
       borderRadius: BorderRadius.circular(8),
@@ -174,59 +205,19 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
     );
   }
 
-  Widget _buildTimeSlotCard(
+  Widget _buildAppointmentSlotCard(
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
-    Map<String, dynamic> slot,
+    Appointment appt,
   ) {
-    final isBooked = slot['isBooked'] as bool;
-    final time = slot['time'] as String;
+    final statusColor = appt.status.toLowerCase() == 'completed'
+        ? AppColors.success
+        : (appt.status.toLowerCase() == 'cancelled'
+            ? colorScheme.error
+            : AppColors.info);
 
-    if (!isBooked) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 75,
-            child: Text(
-              time,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            child: AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              color: colorScheme.surfaceContainerLow,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Available Time Slot',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: colorScheme.primary,
-                    tooltip: 'Schedule Appointment in Slot',
-                    onPressed: () => context.push(RoutePaths.vetAppointments),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    final status = slot['status'] as String;
-    final statusColor = slot['statusColor'] as Color;
+    final timeStr = DateFormat('hh:mm a').format(appt.appointmentDate);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,14 +228,14 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                time,
+                timeStr,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
               ),
               Text(
-                slot['duration'] as String,
+                '${appt.durationMinutes} min',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -254,7 +245,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
         ),
         Expanded(
           child: InkWell(
-            onTap: () => context.push('/vet/consultation/c1'),
+            onTap: () => context.push('${RoutePaths.vetConsultation}?appointmentId=${appt.id}'),
             borderRadius: BorderRadius.circular(16),
             child: AppCard(
               padding: const EdgeInsets.all(14),
@@ -273,13 +264,15 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${slot['patientName']} (${slot['breed']})',
+                              appt.reason,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              slot['reason'] as String,
+                              'Priority: ${appt.priority.toUpperCase()}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -288,7 +281,7 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
                         ),
                       ),
                       AppChip(
-                        label: status,
+                        label: appt.status.toUpperCase(),
                         backgroundColor: statusColor.withValues(alpha: 0.15),
                         textColor: statusColor,
                       ),
@@ -301,12 +294,12 @@ class _TodaysAppointmentsScreenState extends State<TodaysAppointmentsScreen> {
                       OutlinedButton.icon(
                         icon: const Icon(Icons.medical_information, size: 16),
                         label: const Text('Chart'),
-                        onPressed: () => context.push('/vet/patients/p1'),
+                        onPressed: () => context.push('/vet/patients/${appt.petId.isNotEmpty ? appt.petId : "p1"}'),
                       ),
                       const SizedBox(width: 8),
                       AppButton(
                         text: 'Start Visit',
-                        onPressed: () => context.push('/vet/consultation/c1'),
+                        onPressed: () => context.push('${RoutePaths.vetConsultation}?appointmentId=${appt.id}'),
                         backgroundColor: colorScheme.primary,
                         textColor: colorScheme.onPrimary,
                         height: 36,

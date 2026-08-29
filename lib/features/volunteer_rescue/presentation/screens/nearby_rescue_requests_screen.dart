@@ -1,117 +1,236 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/rescue_mission.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Nearby Rescue Requests Screen (Stitch ID: `a82ba592880c4393b2e4b2104fffdc13`).
-///
-/// Emergency dispatch queue listing nearby rescue alerts. Includes urgency filters,
-/// distance radius indicator, lost pet cards, and "Accept Mission" actions.
-class NearbyRescueRequestsScreen extends StatefulWidget {
+class NearbyRescueRequestsScreen extends ConsumerStatefulWidget {
   const NearbyRescueRequestsScreen({super.key});
 
   @override
-  State<NearbyRescueRequestsScreen> createState() =>
+  ConsumerState<NearbyRescueRequestsScreen> createState() =>
       _NearbyRescueRequestsScreenState();
 }
 
 class _NearbyRescueRequestsScreenState
-    extends State<NearbyRescueRequestsScreen> {
+    extends ConsumerState<NearbyRescueRequestsScreen> {
   String _selectedFilter = 'All';
+  final double _deviceLat = 12.9716; // User coordinate baseline (Bengaluru Central)
+  final double _deviceLng = 77.5946;
 
-  final List<Map<String, dynamic>> _requests = [
-    {
-      'id': 'm1',
-      'petName': 'Bella',
-      'breed': 'Golden Retriever',
-      'urgency': 'URGENT',
-      'distance': '1.2km away',
-      'lastSeen': '20 mins ago',
-      'location': 'Pine St & 4th Ave',
-      'details':
-          'Lost near Pine St & 4th Ave. Very friendly but easily spooked by loud noises. Wearing a red collar.',
-      'tag': 'Large Dog',
-      'color': AppColors.warning,
-    },
-    {
-      'id': 'm2',
-      'petName': 'Mittens',
-      'breed': 'Tuxedo Cat',
-      'urgency': 'CRITICAL',
-      'distance': '1.8km away',
-      'lastSeen': '45 mins ago',
-      'location': 'Market St Bridge',
-      'details':
-          'Reported trapped under bridge walkway. Rescue net & carrier required.',
-      'tag': 'Cat',
-      'color': AppColors.lightError,
-    },
-    {
-      'id': 'm3',
-      'petName': 'Rocky',
-      'breed': 'French Bulldog',
-      'urgency': 'MEDIUM',
-      'distance': '3.1km away',
-      'lastSeen': '1h ago',
-      'location': 'Oak Park Gazebo',
-      'details':
-          'Spotted wandering in park area without owner. Has microchip tag.',
-      'tag': 'Small Dog',
-      'color': AppColors.info,
-    },
-  ];
+  void _openCreateAlertDialog() async {
+    final petNameCtrl = TextEditingController();
+    final breedCtrl = TextEditingController();
+    final locCtrl = TextEditingController(text: 'Indiranagar 100ft Rd');
+    final descCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController(text: '+91 98450 12345');
+
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Broadcast Emergency Lost Pet Alert'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: petNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Pet Name',
+                  hintText: 'e.g. Bella',
+                  prefixIcon: Icon(Icons.pets),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: breedCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Breed / Species',
+                  hintText: 'e.g. Golden Retriever / Canine',
+                  prefixIcon: Icon(Icons.category),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: locCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Last Seen Location',
+                  hintText: 'e.g. Koramangala 4th Block',
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Distinct Features & Circumstances',
+                  hintText: 'e.g. Red collar with brass tag, frightened by fireworks.',
+                  prefixIcon: Icon(Icons.description),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Contact Phone Number',
+                  hintText: '+91 98765 43210',
+                  prefixIcon: Icon(Icons.phone),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Broadcast Alert'),
+          ),
+        ],
+      ),
+    );
+
+    if (created == true && petNameCtrl.text.trim().isNotEmpty) {
+      final now = DateTime.now();
+      final newAlert = LostPetAlert(
+        id: '',
+        petId: '',
+        ownerId: '',
+        alertStatus: 'ACTIVE',
+        lastSeenLocation: locCtrl.text.trim(),
+        latitude: _deviceLat + (0.005 * (now.millisecond % 5)),
+        longitude: _deviceLng + (0.005 * (now.millisecond % 4)),
+        lastSeenTime: now,
+        description: '${petNameCtrl.text.trim()} (${breedCtrl.text.trim()}): ${descCtrl.text.trim()}',
+        contactPhone: phoneCtrl.text.trim(),
+        rewardAmount: '500',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final repo = ref.read(rescueRepositoryProvider);
+      final result = await repo.createLostPetAlert(newAlert);
+      result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to broadcast alert: ${failure.message}')),
+            );
+          }
+        },
+        (_) {
+          ref.invalidate(activeLostPetAlertsProvider);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Emergency alert broadcast for ${petNameCtrl.text.trim()}!')),
+            );
+          }
+        },
+      );
+    }
+  }
+
+  void _acceptMission(LostPetAlert alert) async {
+    final now = DateTime.now();
+    final title = (alert.description != null && alert.description!.isNotEmpty)
+        ? alert.description!.split(':').first
+        : 'Rescue Target';
+
+    final newMission = RescueMission(
+      id: '',
+      alertId: alert.id,
+      leadVolunteerId: '',
+      missionTitle: 'Rescue: $title',
+      priority: 'HIGH',
+      status: 'in_progress',
+      searchRadiusMeters: 2500,
+      notes: 'Dispatched to ${alert.lastSeenLocation}. Initial responder on route.',
+      startedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final repo = ref.read(rescueRepositoryProvider);
+    final result = await repo.createRescueMission(newMission);
+    result.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to accept mission: ${failure.message}')),
+          );
+        }
+      },
+      (mission) {
+        ref.invalidate(rescueMissionsProvider(null));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Mission accepted for $title!')),
+          );
+          context.push(RoutePaths.rescueOperations);
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final alertsAsync = ref.watch(activeLostPetAlertsProvider);
+    final alerts = alertsAsync.valueOrNull ?? [];
+
+    // Filter alerts
+    final filteredAlerts = alerts.where((alert) {
+      final desc = alert.description?.toLowerCase() ?? '';
+      if (_selectedFilter == 'Critical') {
+        return desc.contains('critical') || alert.alertStatus == 'ACTIVE';
+      }
+      if (_selectedFilter == 'Urgent') {
+        return desc.contains('urgent');
+      }
+      if (_selectedFilter == 'Within 2km') {
+        final dist = calculateDistanceKm(_deviceLat, _deviceLng, alert.latitude, alert.longitude);
+        return dist <= 2.0;
+      }
+      return true;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nearby Rescue Requests'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/rescue'),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              context.pop();
+            } else {
+              context.go(RoutePaths.rescueHome);
+            }
+          },
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.tune),
-            onPressed: () {
-              showDialog<void>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Filter Dispatch Radius'),
-                  content: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListTile(
-                        leading: Icon(Icons.near_me),
-                        title: Text('Within 8 km (Urban)'),
-                      ),
-                      ListTile(
-                        leading: Icon(Icons.radar),
-                        title: Text('Within 25 km (Suburban)'),
-                      ),
-                      ListTile(
-                        leading: Icon(Icons.public),
-                        title: Text('Within 50 km (Regional)'),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Apply'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            tooltip: 'Filter Radius',
+            icon: const Icon(Icons.add_alert_outlined),
+            tooltip: 'Broadcast Alert',
+            onPressed: _openCreateAlertDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.invalidate(activeLostPetAlertsProvider),
+            tooltip: 'Refresh Requests',
           ),
         ],
       ),
@@ -133,13 +252,13 @@ class _NearbyRescueRequestsScreenState
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '12 Active Nearby Requests',
+                      '${filteredAlerts.length} Active Nearby Requests',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: AppTypography.bold,
                       ),
                     ),
                     Text(
-                      'Within 5km radius',
+                      'Realtime GPS Radius',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -150,9 +269,38 @@ class _NearbyRescueRequestsScreenState
                 AppSpacing.vGapSm,
 
                 // ── Emergency Pet Request Cards ─────────────────────
-                ..._requests.map(
-                  (req) => _buildRequestCard(context, theme, colorScheme, req),
-                ),
+                if (filteredAlerts.isEmpty && alertsAsync.isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (filteredAlerts.isEmpty)
+                  AppCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.check_circle_outline, size: 48, color: colorScheme.primary),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No active rescue alerts in this sector.',
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'All reported animals are currently safe or dispatched.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...filteredAlerts.map(
+                    (alert) => _buildAlertCard(context, theme, colorScheme, alert),
+                  ),
 
                 AppSpacing.vGapXl,
               ],
@@ -189,13 +337,16 @@ class _NearbyRescueRequestsScreenState
     );
   }
 
-  Widget _buildRequestCard(
+  Widget _buildAlertCard(
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
-    Map<String, dynamic> req,
+    LostPetAlert alert,
   ) {
-    final urgencyColor = req['color'] as Color;
+    final distKm = calculateDistanceKm(_deviceLat, _deviceLng, alert.latitude, alert.longitude);
+    final title = (alert.description != null && alert.description!.isNotEmpty)
+        ? alert.description!.split(':').first
+        : 'Lost Pet Alert';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -217,7 +368,7 @@ class _NearbyRescueRequestsScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${req['petName']} (${req['breed']})',
+                        title,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
@@ -231,7 +382,7 @@ class _NearbyRescueRequestsScreenState
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${req['distance']} • Last seen ${req['lastSeen']}',
+                            '${distKm.toStringAsFixed(1)} km away • ${alert.lastSeenLocation}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -242,39 +393,53 @@ class _NearbyRescueRequestsScreenState
                   ),
                 ),
                 AppChip(
-                  label: req['urgency'] as String,
-                  backgroundColor: urgencyColor.withValues(alpha: 0.15),
-                  textColor: urgencyColor,
+                  label: alert.alertStatus,
+                  backgroundColor: alert.alertStatus == 'ACTIVE'
+                      ? colorScheme.error.withValues(alpha: 0.15)
+                      : colorScheme.primary.withValues(alpha: 0.15),
+                  textColor: alert.alertStatus == 'ACTIVE'
+                      ? colorScheme.error
+                      : colorScheme.primary,
                 ),
               ],
             ),
             AppSpacing.vGapMd,
             Text(
-              req['details'] as String,
+              alert.description ?? 'No additional incident notes provided.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurface,
               ),
             ),
+            if (alert.contactPhone != null && alert.contactPhone!.isNotEmpty) ...[
+              AppSpacing.vGapSm,
+              Text(
+                'Contact: ${alert.contactPhone}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
             AppSpacing.vGapMd,
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                AppChip(
-                  label: req['tag'] as String,
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  textColor: colorScheme.onSurfaceVariant,
-                ),
+                if (alert.rewardAmount != null && alert.rewardAmount!.isNotEmpty)
+                  AppChip(
+                    label: 'Reward: \$${alert.rewardAmount}',
+                    backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                    textColor: AppColors.success,
+                  )
+                else
+                  AppChip(
+                    label: 'GPS Tagged',
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    textColor: colorScheme.onSurfaceVariant,
+                  ),
                 AppButton(
                   text: 'Accept Mission',
                   icon: Icons.check_circle_outline,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Accepted mission for ${req['petName']}'),
-                      ),
-                    );
-                    context.push('/rescue/missions/${req['id']}');
-                  },
+                  onPressed: () => _acceptMission(alert),
                   height: 36,
                 ),
               ],

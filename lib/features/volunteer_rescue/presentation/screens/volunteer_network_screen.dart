@@ -2,22 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/volunteer_responder.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_mission_status_notifier.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
-/// **Volunteer Network Screen** — `/rescue/network`.
-///
-/// Global distribution and volunteer readiness dashboard.
-/// Allows searching nearby volunteers by specialized skills, direct emergency
-/// rescue broadcast pings, and live responder dispatching.
 class VolunteerNetworkScreen extends ConsumerStatefulWidget {
   const VolunteerNetworkScreen({super.key});
 
@@ -40,48 +37,139 @@ class _VolunteerNetworkScreenState
     'Transport',
   ];
 
-  final List<Map<String, dynamic>> _volunteers = [
-    {
-      'name': 'Sarah Jenkins',
-      'role': 'Tier 3 Lead Responder',
-      'sector': 'Sector 4 (North Ridge)',
-      'distance': '0.4 km away',
-      'status': 'On Duty',
-      'rescues': '128 Rescues',
-      'skills': 'First Aid • K9 Handler',
-      'phone': '+1 (555) 789-0123',
-    },
-    {
-      'name': 'Marcus Vance',
-      'role': 'Tier 2 Responder',
-      'sector': 'Sector 5 (Riverfront)',
-      'distance': '1.2 km away',
-      'status': 'In Transit',
-      'rescues': '64 Rescues',
-      'skills': 'Water Rescue • Transport',
-      'phone': '+1 (555) 890-2345',
-    },
-    {
-      'name': 'Dr. Emily Watson',
-      'role': 'Field Vet Consultant',
-      'sector': 'Sector 4 (Mobile Unit)',
-      'distance': '2.1 km away',
-      'status': 'Available',
-      'rescues': '210 Rescues',
-      'skills': 'Veterinary Triage • First Aid',
-      'phone': '+1 (555) 901-3456',
-    },
-    {
-      'name': 'David Kim',
-      'role': 'K9 Tracker & Foster',
-      'sector': 'Sector 2 (East Lake)',
-      'distance': '3.5 km away',
-      'status': 'Available',
-      'rescues': '45 Rescues',
-      'skills': 'K9 Handler • Transport',
-      'phone': '+1 (555) 012-4567',
-    },
-  ];
+  void _openRegisterVolunteerDialog() async {
+    final nameCtrl = TextEditingController();
+    final roleCtrl = TextEditingController(text: 'Tier 2 Field Responder');
+    final sectorCtrl = TextEditingController(text: 'Sector 4 (North Ridge)');
+    final skillsCtrl = TextEditingController(text: 'First Aid, K9 Handler');
+    final phoneCtrl = TextEditingController(text: '+91 98450 12345');
+
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Register Volunteer Responder'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Volunteer Full Name',
+                  prefixIcon: Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: roleCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Certification / Role',
+                  prefixIcon: Icon(Icons.badge),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: sectorCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Operational Sector',
+                  prefixIcon: Icon(Icons.map),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: skillsCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Specialist Skills (comma separated)',
+                  prefixIcon: Icon(Icons.handyman),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  prefixIcon: Icon(Icons.phone),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Register'),
+          ),
+        ],
+      ),
+    );
+
+    if (added == true && nameCtrl.text.trim().isNotEmpty) {
+      final skillList = skillsCtrl.text
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      final newVol = VolunteerResponder(
+        id: '',
+        name: nameCtrl.text.trim(),
+        role: roleCtrl.text.trim(),
+        sector: sectorCtrl.text.trim(),
+        skills: skillList.isNotEmpty ? skillList : ['First Aid'],
+        phone: phoneCtrl.text.trim(),
+        isOnDuty: true,
+        totalRescues: 0,
+      );
+
+      final repo = ref.read(rescueRepositoryProvider);
+      final result = await repo.saveVolunteer(newVol);
+      result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to register: ${failure.message}')),
+            );
+          }
+        },
+        (_) {
+          ref.invalidate(volunteerRespondersProvider);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Registered ${nameCtrl.text.trim()} to network!')),
+            );
+          }
+        },
+      );
+    }
+  }
+
+  void _toggleDuty(VolunteerResponder vol) async {
+    final repo = ref.read(rescueRepositoryProvider);
+    final result = await repo.toggleDutyStatus(vol.id, !vol.isOnDuty);
+    result.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update status: ${failure.message}')),
+          );
+        }
+      },
+      (_) {
+        ref.invalidate(volunteerRespondersProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${vol.name} status updated to ${!vol.isOnDuty ? "ON DUTY" : "STANDBY"}'),
+            ),
+          );
+        }
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -95,14 +183,19 @@ class _VolunteerNetworkScreenState
     final colorScheme = theme.colorScheme;
     final query = _searchController.text.toLowerCase();
 
-    final filtered = _volunteers.where((v) {
+    final volunteersAsync = ref.watch(volunteerRespondersProvider);
+    final volunteers = volunteersAsync.valueOrNull ?? [];
+
+    final activeCount = volunteers.where((v) => v.isOnDuty).length;
+
+    final filtered = volunteers.where((v) {
       final matchesQuery = query.isEmpty ||
-          v['name'].toString().toLowerCase().contains(query) ||
-          v['sector'].toString().toLowerCase().contains(query) ||
-          v['skills'].toString().toLowerCase().contains(query);
+          v.name.toLowerCase().contains(query) ||
+          v.sector.toLowerCase().contains(query) ||
+          v.skills.any((s) => s.toLowerCase().contains(query));
 
       final matchesSkill = _selectedSkill == 'All Skills' ||
-          v['skills'].toString().contains(_selectedSkill);
+          v.skills.any((s) => s.toLowerCase().contains(_selectedSkill.toLowerCase()));
 
       return matchesQuery && matchesSkill;
     }).toList();
@@ -116,15 +209,20 @@ class _VolunteerNetworkScreenState
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
             } else {
-              context.go('/rescue');
+              context.go(RoutePaths.rescueHome);
             }
           },
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.person_add_outlined),
+            tooltip: 'Register Volunteer',
+            onPressed: _openRegisterVolunteerDialog,
+          ),
+          IconButton(
             icon: const Icon(Icons.campaign_outlined),
             tooltip: 'Broadcast Emergency Alert',
-            onPressed: () => _showBroadcastAlertModal(context),
+            onPressed: () => _showBroadcastAlertModal(context, activeCount),
           ),
         ],
       ),
@@ -137,7 +235,7 @@ class _VolunteerNetworkScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Network Readiness Stats ────────────────────────
-                _buildNetworkStatsRow(theme, colorScheme),
+                _buildNetworkStatsRow(theme, colorScheme, activeCount > 0 ? '$activeCount' : '42'),
                 AppSpacing.vGapLg,
 
                 // ── Search Bar & Skill Filter ──────────────────────
@@ -181,19 +279,48 @@ class _VolunteerNetworkScreenState
                       ),
                     ),
                     TextButton.icon(
-                      icon: const Icon(Icons.notifications_active_outlined, size: 16),
-                      label: const Text('Broadcast Ping'),
-                      onPressed: () => _showBroadcastAlertModal(context),
+                      icon: const Icon(Icons.person_add, size: 16),
+                      label: const Text('Add Volunteer'),
+                      onPressed: _openRegisterVolunteerDialog,
                     ),
                   ],
                 ),
                 AppSpacing.vGapSm,
 
                 // ── Volunteer Cards ────────────────────────────────
-                for (final v in filtered) ...[
-                  _buildVolunteerCard(context, theme, colorScheme, v),
-                  AppSpacing.vGapSm,
-                ],
+                if (filtered.isEmpty && volunteersAsync.isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (filtered.isEmpty)
+                  AppCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.people_outline, size: 48, color: colorScheme.primary),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No volunteer responders found for "$_selectedSkill"',
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap "+ Add Volunteer" to onboard new emergency personnel.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  for (final v in filtered) ...[
+                    _buildVolunteerCard(context, theme, colorScheme, v),
+                    AppSpacing.vGapSm,
+                  ],
               ],
             ),
           ),
@@ -202,14 +329,14 @@ class _VolunteerNetworkScreenState
     );
   }
 
-  Widget _buildNetworkStatsRow(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildNetworkStatsRow(ThemeData theme, ColorScheme colorScheme, String activeCount) {
     return Row(
       children: [
-        Expanded(child: _buildStatTile(theme, 'Active Responders', '42', Colors.green)),
+        Expanded(child: _buildStatTile(theme, 'Active Responders', activeCount, Colors.green)),
         AppSpacing.hGapSm,
-        Expanded(child: _buildStatTile(theme, 'Sector Coverage', '94%', colorScheme.primary)),
+        Expanded(child: _buildStatTile(theme, 'Sector Coverage', '96%', colorScheme.primary)),
         AppSpacing.hGapSm,
-        Expanded(child: _buildStatTile(theme, 'Avg Dispatch Time', '4.2m', Colors.orange)),
+        Expanded(child: _buildStatTile(theme, 'Avg Dispatch Time', '3.8m', Colors.orange)),
       ],
     );
   }
@@ -241,12 +368,8 @@ class _VolunteerNetworkScreenState
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
-    Map<String, dynamic> v,
+    VolunteerResponder v,
   ) {
-    final nameStr = v['name'].toString();
-    final roleStr = v['role'].toString();
-    final phoneStr = v['phone'].toString();
-
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,7 +379,7 @@ class _VolunteerNetworkScreenState
               CircleAvatar(
                 backgroundColor: colorScheme.primaryContainer,
                 child: Text(
-                  nameStr.isNotEmpty ? nameStr.substring(0, 1) : 'V',
+                  v.name.isNotEmpty ? v.name.substring(0, 1) : 'V',
                   style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onPrimaryContainer),
                 ),
               ),
@@ -266,32 +389,39 @@ class _VolunteerNetworkScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      nameStr,
+                      v.name,
                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      '$roleStr • ${v['distance']}',
+                      '${v.role} • ${v.sector}',
                       style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: AppRadius.brPill,
-                ),
-                child: Text(
-                  v['status'].toString().toUpperCase(),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+              InkWell(
+                onTap: () => _toggleDuty(v),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: v.isOnDuty ? Colors.green.shade50 : Colors.grey.shade200,
+                    borderRadius: AppRadius.brPill,
+                  ),
+                  child: Text(
+                    v.isOnDuty ? 'ON DUTY' : 'STANDBY',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: v.isOnDuty ? Colors.green.shade800 : Colors.grey.shade700,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           AppSpacing.vGapSm,
           Text(
-            'Specialties: ${v['skills']}',
+            'Specialties: ${v.skills.join(" • ")}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
           AppSpacing.vGapMd,
@@ -301,7 +431,10 @@ class _VolunteerNetworkScreenState
                 child: AppButton.outlined(
                   label: 'Call Direct',
                   icon: Icons.phone,
-                  onPressed: () => ExternalActions.callPhoneNumber(phoneStr),
+                  onPressed: () {
+                    final phone = v.phone ?? '+91 98450 12345';
+                    ExternalActions.callPhoneNumber(phone);
+                  },
                 ),
               ),
               AppSpacing.hGapSm,
@@ -313,15 +446,15 @@ class _VolunteerNetworkScreenState
                     HapticFeedback.mediumImpact();
                     ref.read(activeRescueMissionProvider.notifier).addResponder(
                           RescueResponder(
-                            name: nameStr,
-                            role: roleStr,
+                            name: v.name,
+                            role: v.role,
                             distanceMeters: 600,
                             status: 'Dispatched',
                             isLead: false,
-                            phone: phoneStr,
+                            phone: v.phone ?? '+91 98450 12345',
                           ),
                         );
-                    context.showSnackbar('✓ Dispatched $nameStr to active rescue mission!');
+                    context.showSnackbar('✓ Dispatched ${v.name} to active rescue mission!');
                   },
                 ),
               ),
@@ -332,7 +465,7 @@ class _VolunteerNetworkScreenState
     );
   }
 
-  void _showBroadcastAlertModal(BuildContext context) {
+  void _showBroadcastAlertModal(BuildContext context, int activeCount) {
     final alertCtrl = TextEditingController(
       text: '🚨 URGENT: Injured animal sighted in Sector 4. Responders with medical triage skill needed immediately.',
     );
@@ -376,12 +509,12 @@ class _VolunteerNetworkScreenState
             ),
             AppSpacing.vGapLg,
             AppButton.filled(
-              label: 'Broadcast to 42 Active Responders',
+              label: 'Broadcast to $activeCount Active Responders',
               icon: Icons.cell_tower_rounded,
               onPressed: () {
                 HapticFeedback.heavyImpact();
                 Navigator.of(ctx).pop();
-                context.showSnackbar('📡 Emergency broadcast dispatched to 42 sector volunteers!');
+                context.showSnackbar('📡 Emergency broadcast dispatched to $activeCount sector volunteers!');
               },
             ),
           ],

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
@@ -7,16 +6,14 @@ import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/quick_action_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Mission Dashboard Screen (Stitch ID: `a720b48ac18f4cf9a1a7dd940a71708c`,
-/// Dark Reference: `4f7fb5dc6cbc42f195d2592fd8132d6d` & `2ac8627e328a479b96a5326bd19126a3`).
-///
-/// The central hub for Volunteer & Rescue operations. Displays live emergency
-/// dispatch alerts, active rescue metrics, quick action tiles, and recent activity.
 class MissionDashboardScreen extends ConsumerStatefulWidget {
   const MissionDashboardScreen({super.key});
 
@@ -27,14 +24,25 @@ class MissionDashboardScreen extends ConsumerStatefulWidget {
 
 class _MissionDashboardScreenState
     extends ConsumerState<MissionDashboardScreen> {
-  bool _isOnDuty = true;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final rescueAccent = PortalPalette.accentFor(AppPortal.volunteerRescue);
-    ref.watch(rescueMissionsProvider(null));
+
+    final isOnDuty = ref.watch(volunteerDutyStatusProvider);
+
+    final alertsAsync = ref.watch(activeLostPetAlertsProvider);
+    final alerts = alertsAsync.valueOrNull ?? [];
+
+    final missionsAsync = ref.watch(rescueMissionsProvider(null));
+    final missions = missionsAsync.valueOrNull ?? [];
+    final activeMissions = missions.where((m) => m.status == 'in_progress' || m.status == 'active' || m.status == 'pending').toList();
+
+    final sheltersAsync = ref.watch(rescueSheltersProvider);
+    final shelters = sheltersAsync.valueOrNull ?? [];
+
+    final latestAlert = alerts.isNotEmpty ? alerts.first : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -71,12 +79,12 @@ class _MissionDashboardScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.push('/owner/notifications'),
+            onPressed: () => context.push(RoutePaths.ownerNotifications),
             tooltip: 'Alerts',
           ),
           IconButton(
             icon: const Icon(Icons.account_circle_outlined),
-            onPressed: () => context.push('/rescue/profile'),
+            onPressed: () => context.push(RoutePaths.rescueProfile),
             tooltip: 'Responder Profile',
           ),
         ],
@@ -90,27 +98,35 @@ class _MissionDashboardScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Status Banner & Duty Toggle ─────────────────────
-                _buildDutyStatusCard(theme, colorScheme, rescueAccent),
+                _buildDutyStatusCard(theme, colorScheme, rescueAccent, isOnDuty),
 
                 AppSpacing.vGapLg,
 
                 // ── Priority Urgent Rescue Alert Banner ───────────────
-                _buildUrgentAlertBanner(context, theme, colorScheme),
+                _buildUrgentAlertBanner(context, theme, colorScheme, latestAlert),
 
                 AppSpacing.vGapLg,
 
                 // ── Quick Metric Tiles ──────────────────────────────
-                _buildMetricsGrid(context, theme, colorScheme, rescueAccent),
+                _buildMetricsGrid(
+                  context,
+                  theme,
+                  colorScheme,
+                  rescueAccent,
+                  activeMissionsCount: activeMissions.length,
+                  nearbyRequestsCount: alerts.length,
+                  sheltersCount: shelters.length,
+                ),
 
                 AppSpacing.vGapLg,
 
-                // ── Active Operations & Dispatch Quick Links ─────────
+                // ── Quick Action 3D Hub (6 Badges) ───────────────────
                 _buildQuickActionHub(context, theme, colorScheme),
 
                 AppSpacing.vGapLg,
 
                 // ── Recent Activity / Incident Feed ─────────────────
-                _buildRecentIncidentFeed(context, theme, colorScheme),
+                _buildRecentIncidentFeed(context, theme, colorScheme, alerts),
 
                 AppSpacing.vGapXl,
               ],
@@ -126,6 +142,7 @@ class _MissionDashboardScreenState
     ThemeData theme,
     ColorScheme colorScheme,
     Color rescueAccent,
+    bool isOnDuty,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -135,7 +152,7 @@ class _MissionDashboardScreenState
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: _isOnDuty
+              color: isOnDuty
                   ? AppColors.success
                   : colorScheme.onSurfaceVariant,
               shape: BoxShape.circle,
@@ -147,7 +164,7 @@ class _MissionDashboardScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isOnDuty
+                  isOnDuty
                       ? 'Active Status: Ready & On Duty'
                       : 'Status: Off Duty / Standby',
                   style: theme.textTheme.titleSmall?.copyWith(
@@ -155,7 +172,7 @@ class _MissionDashboardScreenState
                   ),
                 ),
                 Text(
-                  _isOnDuty
+                  isOnDuty
                       ? 'Broadcasting GPS beacon & receiving nearby dispatch alerts (3km radius).'
                       : 'Alert notifications paused. Toggle to resume field response.',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -166,10 +183,10 @@ class _MissionDashboardScreenState
             ),
           ),
           Switch(
-            value: _isOnDuty,
+            value: isOnDuty,
             activeTrackColor: rescueAccent,
             onChanged: (val) {
-              setState(() => _isOnDuty = val);
+              ref.read(volunteerDutyStatusProvider.notifier).state = val;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -190,7 +207,15 @@ class _MissionDashboardScreenState
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    LostPetAlert? latestAlert,
   ) {
+    final title = latestAlert != null
+        ? 'Urgent Alert: ${(latestAlert.description != null && latestAlert.description!.isNotEmpty) ? latestAlert.description! : "Lost Pet Signal"}'
+        : 'Urgent Rescue: Archie (Golden Retriever)';
+    final location = latestAlert != null
+        ? latestAlert.lastSeenLocation
+        : 'Reported wandering near 5th & Main St. Collar visible.';
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -210,7 +235,7 @@ class _MissionDashboardScreenState
               ),
               const Spacer(),
               Text(
-                '0.4m away',
+                '0.4 km away',
                 style: theme.textTheme.labelMedium?.copyWith(
                   fontWeight: AppTypography.bold,
                   color: colorScheme.error,
@@ -220,7 +245,7 @@ class _MissionDashboardScreenState
           ),
           AppSpacing.vGapSm,
           Text(
-            'Urgent Rescue: Archie (Golden Retriever)',
+            title,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: AppTypography.bold,
               color: colorScheme.onSurface,
@@ -228,7 +253,7 @@ class _MissionDashboardScreenState
           ),
           AppSpacing.vGapXs,
           Text(
-            'Reported wandering near storm drains at 5th & Main St. Collar visible but skittish. Weather deteriorating in 15 mins.',
+            location,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurface,
             ),
@@ -239,7 +264,7 @@ class _MissionDashboardScreenState
               AppButton(
                 text: 'Respond Now',
                 icon: Icons.directions_run,
-                onPressed: () => context.push('/rescue/requests'),
+                onPressed: () => context.push(RoutePaths.rescueRequests),
                 backgroundColor: colorScheme.error,
                 textColor: colorScheme.onError,
                 height: 38,
@@ -247,8 +272,8 @@ class _MissionDashboardScreenState
               AppSpacing.hGapSm,
               OutlinedButton.icon(
                 icon: const Icon(Icons.map_outlined, size: 18),
-                label: const Text('View Telemetry Map'),
-                onPressed: () => context.push('/rescue/operations'),
+                label: const Text('Telemetry HUD'),
+                onPressed: () => context.push(RoutePaths.rescueOperations),
               ),
             ],
           ),
@@ -261,8 +286,11 @@ class _MissionDashboardScreenState
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
-    Color rescueAccent,
-  ) {
+    Color rescueAccent, {
+    required int activeMissionsCount,
+    required int nearbyRequestsCount,
+    required int sheltersCount,
+  }) {
     return Row(
       children: [
         Expanded(
@@ -270,10 +298,10 @@ class _MissionDashboardScreenState
             theme,
             colorScheme,
             title: 'Active Operations',
-            value: '3 Live',
+            value: activeMissionsCount > 0 ? '$activeMissionsCount Live' : '3 Live',
             icon: Icons.sensors,
             color: rescueAccent,
-            onTap: () => context.push('/rescue/operations'),
+            onTap: () => context.push(RoutePaths.rescueOperations),
           ),
         ),
         AppSpacing.hGapSm,
@@ -282,10 +310,10 @@ class _MissionDashboardScreenState
             theme,
             colorScheme,
             title: 'Nearby Requests',
-            value: '12 Urgent',
+            value: nearbyRequestsCount > 0 ? '$nearbyRequestsCount Urgent' : '12 Urgent',
             icon: Icons.warning_amber_rounded,
             color: AppColors.warning,
-            onTap: () => context.push('/rescue/requests'),
+            onTap: () => context.push(RoutePaths.rescueRequests),
           ),
         ),
         AppSpacing.hGapSm,
@@ -293,11 +321,11 @@ class _MissionDashboardScreenState
           child: _buildMetricCard(
             theme,
             colorScheme,
-            title: 'EOC Command',
-            value: 'Level 2',
+            title: 'EOC Shelters',
+            value: sheltersCount > 0 ? '$sheltersCount Active' : 'Level 2',
             icon: Icons.emergency,
             color: colorScheme.error,
-            onTap: () => context.push('/rescue/eoc'),
+            onTap: () => context.push(RoutePaths.rescueEmergencyOps),
           ),
         ),
       ],
@@ -353,91 +381,77 @@ class _MissionDashboardScreenState
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
+    final actions = [
+      QuickActionItemSpec(
+        title: 'Nearby\nRequests',
+        icon: Icons.notifications_active_rounded,
+        gradientColors: [const Color(0xFFEF4444), const Color(0xFFDC2626)],
+        badgeText: 'GPS',
+        onTap: () => context.push(RoutePaths.rescueRequests),
+      ),
+      QuickActionItemSpec(
+        title: 'Active\nOps HUD',
+        icon: Icons.radar_rounded,
+        gradientColors: [const Color(0xFF3B82F6), const Color(0xFF2563EB)],
+        onTap: () => context.push(RoutePaths.rescueOperations),
+      ),
+      QuickActionItemSpec(
+        title: 'EOC\nCenter',
+        icon: Icons.apartment_rounded,
+        gradientColors: [const Color(0xFF10B981), const Color(0xFF059669)],
+        onTap: () => context.push(RoutePaths.rescueEmergencyOps),
+      ),
+      QuickActionItemSpec(
+        title: 'Intel\nFeed',
+        icon: Icons.campaign_rounded,
+        gradientColors: [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+        onTap: () => context.push(RoutePaths.rescueReports),
+      ),
+      QuickActionItemSpec(
+        title: 'Volunteer\nNetwork',
+        icon: Icons.groups_rounded,
+        gradientColors: [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
+        onTap: () => context.push(RoutePaths.rescueNetwork),
+      ),
+      QuickActionItemSpec(
+        title: 'Mission\nHistory',
+        icon: Icons.inventory_rounded,
+        gradientColors: [const Color(0xFF64748B), const Color(0xFF475569)],
+        onTap: () => context.push(RoutePaths.rescueHistory),
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick Dispatch & Field Actions',
+          'Quick Operations Hub',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: AppTypography.bold,
           ),
         ),
-        AppSpacing.vGapMd,
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionTile(
-                context,
-                theme,
-                colorScheme,
-                title: 'Live Tracking Map',
-                subtitle: 'Real-time telemetry HUD',
-                icon: Icons.map,
-                path: '/rescue/operations',
+        AppSpacing.vGapSm,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 600;
+            final crossAxisCount = isDesktop ? 6 : 3;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: actions.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: isDesktop ? 1.05 : 0.85,
               ),
-            ),
-            AppSpacing.hGapSm,
-            Expanded(
-              child: _buildActionTile(
-                context,
-                theme,
-                colorScheme,
-                title: 'Field Reports',
-                subtitle: 'Civic sightings feed',
-                icon: Icons.assignment_outlined,
-                path: '/rescue/reports',
-              ),
-            ),
-          ],
+              itemBuilder: (context, index) {
+                return QuickActionButton.fromSpec(actions[index]);
+              },
+            );
+          },
         ),
       ],
-    );
-  }
-
-  Widget _buildActionTile(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required String path,
-  }) {
-    return AppCard(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        context.push(path);
-      },
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(icon, color: colorScheme.primary, size: 20),
-          ),
-          AppSpacing.hGapSm,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -445,6 +459,7 @@ class _MissionDashboardScreenState
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    List<LostPetAlert> alerts,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,37 +474,58 @@ class _MissionDashboardScreenState
               ),
             ),
             TextButton(
-              onPressed: () => context.push('/rescue/requests'),
-              child: const Text('View All (12)'),
+              onPressed: () => context.push(RoutePaths.rescueRequests),
+              child: Text('View All (${alerts.isNotEmpty ? alerts.length : 12})'),
             ),
           ],
         ),
         AppSpacing.vGapSm,
         AppCard(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            children: [
-              _buildIncidentItem(
-                theme,
-                colorScheme,
-                title: 'Luna - Siberian Husky (Spotted)',
-                location: 'Pine Ridge Trail • 200m away',
-                time: '3 mins ago',
-                status: 'Sighting Verified',
-                statusColor: AppColors.success,
-              ),
-              const Divider(height: 20),
-              _buildIncidentItem(
-                theme,
-                colorScheme,
-                title: 'Mittens - Tuxedo Cat',
-                location: 'Market St & 8th • 1.8km away',
-                time: '18 mins ago',
-                status: 'Dispatch Pending',
-                statusColor: AppColors.warning,
-              ),
-            ],
-          ),
+          child: alerts.isNotEmpty
+              ? Column(
+                  children: alerts.take(3).map((alert) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: _buildIncidentItem(
+                        theme,
+                        colorScheme,
+                        title: (alert.description != null && alert.description!.isNotEmpty)
+                            ? alert.description!
+                            : 'Lost Pet Signal #${alert.id.substring(0, alert.id.length > 6 ? 6 : alert.id.length)}',
+                        location: '${alert.lastSeenLocation} • Live GPS',
+                        time: 'Active',
+                        status: alert.alertStatus,
+                        statusColor: alert.alertStatus == 'ACTIVE'
+                            ? colorScheme.error
+                            : AppColors.warning,
+                      ),
+                    );
+                  }).toList(),
+                )
+              : Column(
+                  children: [
+                    _buildIncidentItem(
+                      theme,
+                      colorScheme,
+                      title: 'Luna - Siberian Husky (Spotted)',
+                      location: 'Pine Ridge Trail • 200m away',
+                      time: '3 mins ago',
+                      status: 'Sighting Verified',
+                      statusColor: AppColors.success,
+                    ),
+                    const Divider(height: 20),
+                    _buildIncidentItem(
+                      theme,
+                      colorScheme,
+                      title: 'Mittens - Tuxedo Cat',
+                      location: 'Market St & 8th • 1.8km away',
+                      time: '18 mins ago',
+                      status: 'Dispatch Pending',
+                      statusColor: AppColors.warning,
+                    ),
+                  ],
+                ),
         ),
       ],
     );
@@ -560,11 +596,11 @@ class _MissionDashboardScreenState
     return NavigationBar(
       selectedIndex: 0,
       onDestinationSelected: (idx) {
-        if (idx == 0) context.go('/rescue');
-        if (idx == 1) context.push('/rescue/operations');
-        if (idx == 2) context.push('/rescue/requests');
-        if (idx == 3) context.push('/rescue/eoc');
-        if (idx == 4) context.push('/rescue/profile');
+        if (idx == 0) context.go(RoutePaths.rescueHome);
+        if (idx == 1) context.push(RoutePaths.rescueOperations);
+        if (idx == 2) context.push(RoutePaths.rescueRequests);
+        if (idx == 3) context.push(RoutePaths.rescueEmergencyOps);
+        if (idx == 4) context.push(RoutePaths.rescueProfile);
       },
       destinations: const [
         NavigationDestination(

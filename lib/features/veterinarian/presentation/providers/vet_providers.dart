@@ -9,7 +9,9 @@ import 'package:petconnect_ai/features/veterinarian/domain/entities/consultation
 import 'package:petconnect_ai/features/veterinarian/domain/entities/patient_queue_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/pharmacy_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/prescription.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/treatment_plan.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_clinic.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_patient.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/repositories/vet_repository.dart';
 
 final vetRemoteDataSourceProvider = Provider<VetRemoteDataSource>((ref) {
@@ -109,3 +111,23 @@ final vetClinicAnalyticsProvider =
         );
       },
     );
+
+final treatmentPlansProvider =
+    FutureProvider.family<List<TreatmentPlan>, String>((ref, petId) async {
+      final repo = ref.watch(vetRepositoryProvider);
+      final result = await repo.getTreatmentPlans(petId);
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (plans) => plans,
+      );
+    });
+
+final vetPatientsProvider =
+    FutureProvider.family<List<VetPatient>, String?>((ref, clinicId) async {
+      final repo = ref.watch(vetRepositoryProvider);
+      final result = await repo.getPatients(clinicId: clinicId);
+      return result.fold(
+        (failure) => throw Exception(failure.message),
+        (patients) => patients,
+      );
+    });

@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -21,17 +22,21 @@ class VolunteerProfileScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final missionsAsync = ref.watch(rescueMissionsProvider(null));
+    final missions = missionsAsync.valueOrNull ?? [];
+    final completedCount = missions.where((m) => m.status == 'completed' || m.status == 'resolved').length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Responder Profile'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/rescue'),
+          onPressed: () => context.go(RoutePaths.rescueHome),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/rescue/settings'),
+            onPressed: () => context.push(RoutePaths.rescueSettings),
             tooltip: 'Volunteer Settings',
           ),
         ],
@@ -50,7 +55,7 @@ class VolunteerProfileScreen extends ConsumerWidget {
                 AppSpacing.vGapLg,
 
                 // ── Service Impact Metrics ───────────────────────────
-                _buildMetricsGrid(theme, colorScheme),
+                _buildMetricsGrid(theme, colorScheme, completedCount),
 
                 AppSpacing.vGapLg,
 
@@ -86,6 +91,8 @@ class VolunteerProfileScreen extends ConsumerWidget {
     final volId = userProfile != null && userProfile.id.length >= 6
         ? userProfile.id.substring(0, 6).toUpperCase()
         : 'VOL-01';
+
+    final isOnDuty = ref.watch(volunteerDutyStatusProvider);
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -124,10 +131,10 @@ class VolunteerProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 AppSpacing.vGapXs,
-                const AppChip(
-                  label: 'ON DUTY • ACTIVE DISPATCH',
-                  backgroundColor: AppColors.success,
-                  textColor: AppColors.white,
+                AppChip(
+                  label: isOnDuty ? 'ON DUTY • ACTIVE DISPATCH' : 'STANDBY • OFF DUTY',
+                  backgroundColor: isOnDuty ? AppColors.success : colorScheme.surfaceContainerHighest,
+                  textColor: isOnDuty ? AppColors.white : colorScheme.onSurfaceVariant,
                 ),
                 AppSpacing.vGapSm,
                 OutlinedButton.icon(
@@ -201,14 +208,14 @@ class VolunteerProfileScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildMetricsGrid(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildMetricsGrid(ThemeData theme, ColorScheme colorScheme, int completedCount) {
     return Row(
       children: [
         Expanded(
           child: _buildMetricCard(
             theme,
             colorScheme,
-            value: '128',
+            value: completedCount > 0 ? '$completedCount' : '128',
             label: 'Rescues',
             icon: Icons.shield_outlined,
           ),

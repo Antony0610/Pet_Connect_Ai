@@ -1,18 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/pharmacy_inventory_notifier.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-class ClinicManagementScreen extends StatelessWidget {
+class ClinicManagementScreen extends ConsumerWidget {
   const ClinicManagementScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final clinicsAsync = ref.watch(vetClinicsProvider);
+    final clinics = clinicsAsync.valueOrNull ?? [];
+    final clinic = clinics.isNotEmpty ? clinics.first : null;
+    final clinicId = clinic?.id ?? '';
+    final clinicName = clinic?.name ?? 'Oakridge Veterinary Clinic';
+
+    final analyticsAsync = clinicId.isNotEmpty
+        ? ref.watch(vetClinicAnalyticsProvider(clinicId))
+        : null;
+    final rows = analyticsAsync?.valueOrNull ?? [];
+
+    final totalPatients = rows.fold<int>(0, (sum, r) => sum + r.uniquePatients);
+    final totalConsultations = rows.fold<int>(0, (sum, r) => sum + r.totalConsultations);
+
+    final inventory = ref.watch(pharmacyInventoryStateProvider);
+    final lowStockCount = inventory.where((i) => i.isLowStock).length;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -37,10 +57,12 @@ class ClinicManagementScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'Clinic Performance & Practice Ops',
+              clinicName,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -64,11 +86,11 @@ class ClinicManagementScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Overview Card
-              _buildOverviewBanner(context, theme, colorScheme),
+              _buildOverviewBanner(context, theme, colorScheme, clinicName),
               const SizedBox(height: 16),
 
               // KPI Metrics Cards Row
-              _buildKpiMetricsRow(context, theme, colorScheme),
+              _buildKpiMetricsRow(context, theme, colorScheme, totalPatients, lowStockCount, totalConsultations),
               const SizedBox(height: 20),
 
               // Recent Clinic Activity Log
@@ -90,6 +112,7 @@ class ClinicManagementScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    String clinicName,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
@@ -101,14 +124,14 @@ class ClinicManagementScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Oakridge Veterinary Clinic',
+                  clinicName,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Today\'s clinic performance at a glance.',
+                  'Practice Performance, Staff, and Clinical Operations Hub.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -120,8 +143,7 @@ class ClinicManagementScreen extends StatelessWidget {
             children: [
               AppButton(
                 text: '+ Appt',
-                onPressed: () =>
-                    context.push(RoutePaths.vetAppointmentSchedule),
+                onPressed: () => context.push(RoutePaths.vetAppointments),
                 backgroundColor: colorScheme.primary,
                 textColor: colorScheme.onPrimary,
                 height: 36,
@@ -145,6 +167,9 @@ class ClinicManagementScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    int totalPatients,
+    int lowStockCount,
+    int totalConsultations,
   ) {
     return Row(
       children: [
@@ -159,7 +184,7 @@ class ClinicManagementScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.groups, color: colorScheme.primary, size: 22),
                     AppChip(
-                      label: '+12%',
+                      label: 'Active',
                       backgroundColor: AppColors.success.withValues(
                         alpha: 0.15,
                       ),
@@ -169,7 +194,7 @@ class ClinicManagementScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '124',
+                  totalPatients > 0 ? '$totalPatients' : '124',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -199,26 +224,26 @@ class ClinicManagementScreen extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.warning_amber_rounded,
-                        color: colorScheme.error,
+                        color: lowStockCount > 0 ? colorScheme.error : colorScheme.primary,
                         size: 22,
                       ),
                       AppChip(
                         label: 'View',
-                        backgroundColor: colorScheme.errorContainer,
-                        textColor: colorScheme.onErrorContainer,
+                        backgroundColor: lowStockCount > 0 ? colorScheme.errorContainer : colorScheme.surfaceContainerHighest,
+                        textColor: lowStockCount > 0 ? colorScheme.onErrorContainer : colorScheme.onSurfaceVariant,
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '4',
+                    '$lowStockCount',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: colorScheme.error,
+                      color: lowStockCount > 0 ? colorScheme.error : colorScheme.onSurface,
                     ),
                   ),
                   Text(
-                    'Low Stock Alerts',
+                    'Low Stock Items',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -244,40 +269,14 @@ class ClinicManagementScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Recent Clinic Activity',
+              'Practice Activity Stream',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             TextButton(
-              onPressed: () {
-                showDialog<void>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Practice Activity Audit Log'),
-                    content: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('• 10:14 AM — Dr. Miller completed checkup for Archie'),
-                        SizedBox(height: 6),
-                        Text('• 09:30 AM — Oakridge Pharmacy stock adjusted (+20 amoxicillin)'),
-                        SizedBox(height: 6),
-                        Text('• 08:45 AM — New patient Luna registered by Dr. Miller'),
-                        SizedBox(height: 6),
-                        Text('• 08:00 AM — Practice system online and synced with cloud'),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              child: const Text('View Log'),
+              onPressed: () => context.push(RoutePaths.vetAnalytics),
+              child: const Text('Full Analytics'),
             ),
           ],
         ),
@@ -290,18 +289,18 @@ class ClinicManagementScreen extends StatelessWidget {
                 theme,
                 colorScheme,
                 icon: Icons.science_outlined,
-                title: 'Lab results available for Bella',
-                subtitle: 'Dr. Smith • Blood Panel',
-                time: '10m ago',
+                title: 'Clinical Diagnostic Panel Online',
+                subtitle: 'Automated telemetry ingestion active',
+                time: 'Realtime',
               ),
               const Divider(height: 16),
               _buildActivityItem(
                 theme,
                 colorScheme,
-                icon: Icons.medical_services_outlined,
-                title: 'Surgery prep completed for Charlie',
-                subtitle: 'Tech. Johnson • Orthopedic',
-                time: '1h ago',
+                icon: Icons.medication_outlined,
+                title: 'Pharmacy Formulary Synchronized',
+                subtitle: 'Batch numbers and expiration trackers up to date',
+                time: 'Synced',
               ),
             ],
           ),
@@ -334,7 +333,7 @@ class ClinicManagementScreen extends StatelessWidget {
               ),
               Text(
                 subtitle,
-                style: theme.textTheme.labelSmall?.copyWith(
+                style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -360,7 +359,7 @@ class ClinicManagementScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick Practice Operations',
+          'Operations & Settings',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -369,24 +368,24 @@ class ClinicManagementScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _buildOperationCard(
+              child: _buildTile(
                 context,
                 theme,
                 colorScheme,
-                icon: Icons.inventory_2_outlined,
-                title: 'Pharmacy & Stock',
-                onTap: () => context.push(RoutePaths.vetPharmacy),
+                icon: Icons.analytics_outlined,
+                label: 'Performance Analytics',
+                onTap: () => context.push(RoutePaths.vetAnalytics),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _buildOperationCard(
+              child: _buildTile(
                 context,
                 theme,
                 colorScheme,
-                icon: Icons.insights,
-                title: 'Analytics & Reports',
-                onTap: () => context.push(RoutePaths.vetAnalytics),
+                icon: Icons.inventory_2_outlined,
+                label: 'Pharmacy Formulary',
+                onTap: () => context.push(RoutePaths.vetPharmacy),
               ),
             ),
           ],
@@ -395,30 +394,25 @@ class ClinicManagementScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOperationCard(
+  Widget _buildTile(
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme, {
     required IconData icon,
-    required String title,
+    required String label,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
+      borderRadius: BorderRadius.circular(14),
+      child: AppCard(
+        padding: const EdgeInsets.all(14),
         child: Column(
           children: [
-            Icon(icon, color: colorScheme.primary, size: 28),
+            Icon(icon, color: colorScheme.primary, size: 26),
             const SizedBox(height: 8),
             Text(
-              title,
+              label,
               textAlign: TextAlign.center,
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -443,7 +437,9 @@ class ClinicManagementScreen extends StatelessWidget {
         } else if (index == 2) {
           context.push(RoutePaths.vetAppointments);
         } else if (index == 3) {
-          context.push(RoutePaths.vetPharmacy);
+          context.push(RoutePaths.vetPatients);
+        } else if (index == 4) {
+          context.push(RoutePaths.vetProfile);
         }
       },
       destinations: const [
@@ -463,9 +459,14 @@ class ClinicManagementScreen extends StatelessWidget {
           label: 'Schedule',
         ),
         NavigationDestination(
-          icon: Icon(Icons.inventory_2_outlined),
-          selectedIcon: Icon(Icons.inventory_2),
-          label: 'Inventory',
+          icon: Icon(Icons.pets_outlined),
+          selectedIcon: Icon(Icons.pets),
+          label: 'Patients',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_outlined),
+          selectedIcon: Icon(Icons.person),
+          label: 'Profile',
         ),
       ],
     );

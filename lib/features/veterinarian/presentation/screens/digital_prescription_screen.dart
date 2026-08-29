@@ -1,19 +1,154 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_dosage_calculator_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-class DigitalPrescriptionScreen extends StatelessWidget {
+class DigitalPrescriptionScreen extends ConsumerStatefulWidget {
   const DigitalPrescriptionScreen({super.key});
+
+  @override
+  ConsumerState<DigitalPrescriptionScreen> createState() =>
+      _DigitalPrescriptionScreenState();
+}
+
+class _DigitalPrescriptionScreenState
+    extends ConsumerState<DigitalPrescriptionScreen> {
+  final List<Map<String, String>> _medications = [
+    {
+      'name': 'Apoquel (Oclacitinib) 16mg',
+      'dosage': '16 mg',
+      'frequency': 'Twice Daily (q12h) for 14 days, then once daily',
+      'duration': '30 Days',
+      'instructions': 'Administer with or without food. Monitor for itch relief.',
+    },
+    {
+      'name': 'Synacore Digestive Probiotics',
+      'dosage': '1 Sachet',
+      'frequency': 'Once Daily (q24h)',
+      'duration': '14 Days',
+      'instructions': 'Mix with morning meal to support gastrointestinal flora.',
+    },
+  ];
+
+  void _openAddMedicationDialog() async {
+    final nameCtrl = TextEditingController();
+    final dosageCtrl = TextEditingController(text: '1 tablet');
+    final freqCtrl = TextEditingController(text: 'Twice daily (q12h)');
+    final durCtrl = TextEditingController(text: '7 Days');
+    final instrCtrl = TextEditingController(text: 'Administer with food.');
+
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Prescription Medication'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Medication Name & Strength',
+                  hintText: 'e.g. Amoxicillin 250mg, Meloxicam 1.5mg/ml',
+                  prefixIcon: Icon(Icons.medication),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: dosageCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Dosage',
+                  hintText: 'e.g. 1 tablet, 2.5 ml',
+                  prefixIcon: Icon(Icons.scale),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: freqCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Frequency',
+                  hintText: 'e.g. Twice Daily (q12h)',
+                  prefixIcon: Icon(Icons.repeat),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: durCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Duration',
+                  hintText: 'e.g. 10 Days',
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: instrCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Special Clinical Instructions',
+                  hintText: 'e.g. Take with food. Finish full course.',
+                  prefixIcon: Icon(Icons.note_alt_outlined),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Add Medication'),
+          ),
+        ],
+      ),
+    );
+
+    if (added == true && nameCtrl.text.trim().isNotEmpty) {
+      setState(() {
+        _medications.add({
+          'name': nameCtrl.text.trim(),
+          'dosage': dosageCtrl.text.trim(),
+          'frequency': freqCtrl.text.trim(),
+          'duration': durCtrl.text.trim(),
+          'instructions': instrCtrl.text.trim(),
+        });
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${nameCtrl.text.trim()} added to prescription.'),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final userProfile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final doctorName = (userProfile != null && userProfile.fullName.isNotEmpty)
+        ? (userProfile.fullName.startsWith('Dr.') ? userProfile.fullName : 'Dr. ${userProfile.fullName}')
+        : 'Dr. Practitioner (DVM)';
+
+    final clinicsAsync = ref.watch(vetClinicsProvider);
+    final clinics = clinicsAsync.valueOrNull ?? [];
+    final clinicName = clinics.isNotEmpty ? clinics.first.name : 'Oakridge Veterinary Clinic';
+    final clinicAddress = clinics.isNotEmpty && clinics.first.address != null ? clinics.first.address! : 'Bengaluru, Karnataka';
+    final clinicPhone = clinics.isNotEmpty && clinics.first.phone != null ? clinics.first.phone! : '+91 98450 12345';
+
+    final rxNumber = 'RX-${DateTime.now().year}-${1000 + DateTime.now().millisecond}';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -38,7 +173,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'Rx #RX-2024-8841',
+              'Rx #$rxNumber',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -54,16 +189,32 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                 context,
                 initialWeightKg: 28.5,
                 initialSpecies: 'Canine',
+                onApplyDosage: (dosageInstruction) {
+                  setState(() {
+                    _medications.add({
+                      'name': 'Calculated Therapeutic Agent',
+                      'dosage': dosageInstruction,
+                      'frequency': 'As Directed',
+                      'duration': '7 Days',
+                      'instructions': 'Administered per electronic dosage protocol.',
+                    });
+                  });
+                },
               );
             },
           ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: () => ExternalActions.shareText(
-              '🐾 PetConnect AI Digital Veterinary Prescription\nRx #RX-2024-8841\nAuthorized by Dr. Smith (DVM)\nVerified clinical protocol & dosing instructions.',
-              subject: 'Digital Prescription #RX-2024-8841',
+              '🐾 PetConnect AI Digital Veterinary Prescription\n'
+              'Rx #$rxNumber\n'
+              'Clinic: $clinicName ($clinicAddress)\n'
+              'Authorized by: $doctorName\n'
+              'Date: ${DateFormat("MMM d, yyyy").format(DateTime.now())}\n\n'
+              'Medications:\n${_medications.map((m) => "• ${m["name"]} - ${m["dosage"]} | ${m["frequency"]} | Duration: ${m["duration"]}\n  Instructions: ${m["instructions"]}").join("\n\n")}',
+              subject: 'Digital Prescription #$rxNumber',
             ),
-            tooltip: 'Share PDF',
+            tooltip: 'Share Prescription',
           ),
         ],
       ),
@@ -106,19 +257,44 @@ class DigitalPrescriptionScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Clinic Letterhead Box
-              _buildClinicHeader(context, theme, colorScheme),
+              _buildClinicHeader(context, theme, colorScheme, clinicName, clinicAddress, clinicPhone, rxNumber),
               const SizedBox(height: 16),
 
               // Patient & Owner Info Card
               _buildPatientOwnerCard(context, theme, colorScheme),
               const SizedBox(height: 16),
 
-              // Prescription Medication Details Card
-              _buildMedicationCard(context, theme, colorScheme),
+              // Header for Medications List + Add Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Prescribed Pharmaceuticals (${_medications.length})',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Drug'),
+                    onPressed: _openAddMedicationDialog,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Prescription Medication Details Cards
+              ...List.generate(_medications.length, (index) {
+                final med = _medications[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: _buildMedicationCard(context, theme, colorScheme, med, index),
+                );
+              }),
               const SizedBox(height: 16),
 
               // Digital Signature & Verification Box
-              _buildSignatureCard(context, theme, colorScheme),
+              _buildSignatureCard(context, theme, colorScheme, doctorName),
               const SizedBox(height: 24),
 
               // Action Buttons Row
@@ -129,12 +305,9 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                       icon: const Icon(Icons.share, size: 18),
                       label: const Text('Share PDF'),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Prescription PDF shared successfully.',
-                            ),
-                          ),
+                        ExternalActions.shareText(
+                          '🐾 PetConnect AI Digital Veterinary Prescription\nRx #$rxNumber\nAuthorized by: $doctorName\nClinic: $clinicName',
+                          subject: 'Prescription $rxNumber',
                         );
                       },
                     ),
@@ -147,7 +320,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                              'Prescription sent to Oakridge Pharmacy!',
+                              'Prescription dispatched to In-House & Partner Pharmacy!',
                             ),
                           ),
                         );
@@ -172,6 +345,10 @@ class DigitalPrescriptionScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    String clinicName,
+    String clinicAddress,
+    String clinicPhone,
+    String rxNumber,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
@@ -198,19 +375,19 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Oakridge Veterinary Clinic',
+                      clinicName,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      'Koramangala 4th Block, Bengaluru, Karnataka 560034',
+                      clinicAddress,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
-                      'Phone: +91 98450 12345 | VCI Reg: VCI/KA/2026/8924',
+                      'Phone: $clinicPhone | VCI Reg: VCI/KA/2026/8924',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.primary,
                       ),
@@ -225,13 +402,13 @@ class DigitalPrescriptionScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Prescription #: RX-9824-A',
+                'Prescription #: $rxNumber',
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                'Date: Oct 24, 2023',
+                'Date: ${DateFormat("MMM d, yyyy").format(DateTime.now())}',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -273,7 +450,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
             ),
           ),
           Text(
-            'Weight: 32 kg',
+            'Weight: 32.4 kg',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -284,7 +461,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
               Icon(Icons.person_outline, color: colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Owner: Sarah Jenkins',
+                'Owner / Guardian: Sarah Jenkins',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -307,6 +484,8 @@ class DigitalPrescriptionScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    Map<String, String> med,
+    int index,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
@@ -321,89 +500,37 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                   Icon(Icons.medication, color: colorScheme.primary, size: 24),
                   const SizedBox(width: 8),
                   Text(
-                    'Apoquel 16mg',
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    med['name'] ?? 'Medication',
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.primary,
                     ),
                   ),
                 ],
               ),
-              AppChip(
-                label: 'Oral Tablet',
-                backgroundColor: colorScheme.secondaryContainer,
-                textColor: colorScheme.onSecondaryContainer,
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                color: colorScheme.error,
+                onPressed: () {
+                  setState(() => _medications.removeAt(index));
+                },
               ),
             ],
           ),
-          Text(
-            '(Oclacitinib tablet)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildRxMeta(context, 'Quantity', '28 Tablets'),
-              _buildRxMeta(context, 'Refills', '2'),
-              _buildRxMeta(context, 'Duration', '14 Days'),
+              _buildRxMeta(context, 'Dosage', med['dosage'] ?? ''),
+              _buildRxMeta(context, 'Frequency', med['frequency'] ?? ''),
+              _buildRxMeta(context, 'Duration', med['duration'] ?? ''),
             ],
           ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Instructions (Sig):',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Give 1 tablet by mouth twice daily for 14 days.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: colorScheme.errorContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: colorScheme.error,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Warning: Give with food to minimize GI upset.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+          const Divider(height: 20),
+          Text(
+            'Instructions: ${med['instructions'] ?? ""}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -411,18 +538,24 @@ class DigitalPrescriptionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRxMeta(BuildContext context, String label, String val) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildRxMeta(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
-          val,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -432,33 +565,36 @@ class DigitalPrescriptionScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    String doctorName,
   ) {
     return AppCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
+      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       child: Row(
         children: [
-          Icon(Icons.verified, color: colorScheme.primary, size: 32),
-          const SizedBox(width: 12),
+          Icon(Icons.draw_outlined, color: colorScheme.primary, size: 32),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Electronically Signed',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  'Dr. Emily Chen, DVM (Lic # NY-987654)',
+                  'Digitally Signed & Certified',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  'Valid under state veterinary pharmacy regulations.',
-                  style: theme.textTheme.labelSmall?.copyWith(
+                  doctorName,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                     color: colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  'Verified cryptographic timestamp • VCI Compliant',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

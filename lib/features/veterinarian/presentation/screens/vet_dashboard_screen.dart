@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/patient_queue_notifier.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
-import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
+import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 class VetDashboardScreen extends ConsumerWidget {
   const VetDashboardScreen({super.key});
@@ -18,6 +18,10 @@ class VetDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final clinicsAsync = ref.watch(vetClinicsProvider);
+    final clinics = clinicsAsync.valueOrNull ?? [];
+    final clinicId = clinics.isNotEmpty ? clinics.first.id : null;
+    final clinicName = clinics.isNotEmpty ? clinics.first.name : 'Veterinary Clinic';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -37,10 +41,25 @@ class VetDashboardScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              'VetOps Clinical Dashboard',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'VetOps Workspace',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    clinicName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
           ],
@@ -85,23 +104,23 @@ class VetDashboardScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome Banner
-              _buildHeaderBanner(context, theme, colorScheme, ref),
+              _buildHeaderBanner(context, theme, colorScheme, ref, clinicName),
               const SizedBox(height: 16),
 
               // Summary Metrics Row
-              _buildMetricsRow(context, theme, colorScheme),
+              _buildMetricsRow(context, theme, colorScheme, ref),
+              const SizedBox(height: 20),
+
+              // Quick Actions Grid (Reference Style)
+              _buildQuickActions(context, theme, colorScheme),
               const SizedBox(height: 20),
 
               // High Priority AI Alert
-              _buildAiAlertCard(context, theme, colorScheme),
+              _buildAiAlertCard(context, theme, colorScheme, ref),
               const SizedBox(height: 20),
 
               // Upcoming Consultations
-              _buildUpcomingConsultations(context, theme, colorScheme),
-              const SizedBox(height: 20),
-
-              // Quick Actions Grid
-              _buildQuickActions(context, theme, colorScheme),
+              _buildUpcomingConsultations(context, theme, colorScheme, ref, clinicId),
               const SizedBox(height: 20),
 
               // Recent Updates
@@ -120,6 +139,7 @@ class VetDashboardScreen extends ConsumerWidget {
     ThemeData theme,
     ColorScheme colorScheme,
     WidgetRef ref,
+    String clinicName,
   ) {
     final userProfile = ref.watch(currentUserProfileProvider).valueOrNull;
     final doctorName = (userProfile != null && userProfile.fullName.isNotEmpty)
@@ -146,7 +166,7 @@ class VetDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'VetOps Clinical Workspace is active and ready for patient consultations.',
+                  'Active at $clinicName • Ready for triage and clinical consultations.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -176,7 +196,13 @@ class VetDashboardScreen extends ConsumerWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    WidgetRef ref,
   ) {
+    final queuePatients = ref.watch(patientQueueStateProvider);
+    final waitingCount = queuePatients.where((p) => p.status == TriageStatus.waiting || p.status == TriageStatus.inTriage).length;
+    final criticalCount = queuePatients.where((p) => p.priority == TriagePriority.critical || p.priority == TriagePriority.urgent).length;
+    final totalAlerts = queuePatients.where((p) => p.priority != TriagePriority.routine).length;
+
     return Row(
       children: [
         // Queue Metric Card
@@ -198,7 +224,7 @@ class VetDashboardScreen extends ConsumerWidget {
                         size: 24,
                       ),
                       AppChip(
-                        label: 'View',
+                        label: 'Live',
                         backgroundColor: colorScheme.primary.withValues(
                           alpha: 0.1,
                         ),
@@ -208,14 +234,14 @@ class VetDashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '8',
+                    '$waitingCount',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
-                    'Today\'s Queue',
+                    'Waiting in Queue',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -228,43 +254,127 @@ class VetDashboardScreen extends ConsumerWidget {
         const SizedBox(width: 12),
         // Alerts Metric Card
         Expanded(
-          child: AppCard(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: colorScheme.error,
-                      size: 24,
-                    ),
-                    AppChip(
-                      label: 'Action',
-                      backgroundColor: colorScheme.errorContainer,
-                      textColor: colorScheme.onErrorContainer,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '2 / 1',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.error,
+          child: InkWell(
+            onTap: () => context.push(RoutePaths.vetQueue),
+            borderRadius: BorderRadius.circular(16),
+            child: AppCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: criticalCount > 0 ? colorScheme.error : AppColors.warning,
+                        size: 24,
+                      ),
+                      AppChip(
+                        label: criticalCount > 0 ? 'Urgent' : 'Active',
+                        backgroundColor: criticalCount > 0 ? colorScheme.errorContainer : colorScheme.surfaceContainerHighest,
+                        textColor: criticalCount > 0 ? colorScheme.onErrorContainer : colorScheme.onSurfaceVariant,
+                      ),
+                    ],
                   ),
-                ),
-                Text(
-                  'Alerts / Critical',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 10),
+                  Text(
+                    '$totalAlerts / $criticalCount',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: criticalCount > 0 ? colorScheme.error : colorScheme.onSurface,
+                    ),
                   ),
-                ),
-              ],
+                  Text(
+                    'Alerts / Critical',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActions(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    final actions = [
+      QuickActionItemSpec(
+        icon: Icons.groups_rounded,
+        title: 'Triage\nQueue',
+        gradientColors: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+        badgeText: 'LIVE',
+        onTap: () => context.push(RoutePaths.vetQueue),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.calendar_today_rounded,
+        title: 'Daily\nSchedule',
+        gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+        onTap: () => context.push(RoutePaths.vetAppointments),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.folder_shared_rounded,
+        title: 'Patient\nRegistry',
+        gradientColors: const [Color(0xFF10B981), Color(0xFF047857)],
+        onTap: () => context.push(RoutePaths.vetPatients),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.medication_rounded,
+        title: 'Digital\nPrescription',
+        gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+        onTap: () => context.push(RoutePaths.vetPrescription),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.inventory_2_rounded,
+        title: 'Pharmacy\nInventory',
+        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
+        onTap: () => context.push(RoutePaths.vetPharmacy),
+      ),
+      QuickActionItemSpec(
+        icon: Icons.analytics_rounded,
+        title: 'Practice\nAnalytics',
+        gradientColors: const [Color(0xFFEF4444), Color(0xFFB91C1C)],
+        onTap: () => context.push(RoutePaths.vetAnalytics),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Practice Quick Actions',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= AppBreakpoints.tablet;
+            final crossAxisCount = isDesktop ? 6 : 3;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: actions.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: isDesktop ? 1.05 : 0.85,
+              ),
+              itemBuilder: (context, index) {
+                return QuickActionButton.fromSpec(actions[index]);
+              },
+            );
+          },
         ),
       ],
     );
@@ -274,7 +384,52 @@ class VetDashboardScreen extends ConsumerWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    WidgetRef ref,
   ) {
+    final queuePatients = ref.watch(patientQueueStateProvider);
+    final critical = queuePatients.where((p) => p.priority == TriagePriority.critical).toList();
+    final urgent = queuePatients.where((p) => p.priority == TriagePriority.urgent).toList();
+    final alertPatient = critical.isNotEmpty ? critical.first : (urgent.isNotEmpty ? urgent.first : null);
+
+    if (alertPatient == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check_circle_outline_rounded, color: colorScheme.onPrimary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Clinical Triage Steady',
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'No critical physiological anomalies currently flagged by AI Telemetry.',
+                    style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.errorContainer.withValues(alpha: 0.35),
@@ -302,7 +457,7 @@ class VetDashboardScreen extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'High Priority AI Alert',
+                  'High Priority Triage Alert',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.error,
@@ -310,7 +465,7 @@ class VetDashboardScreen extends ConsumerWidget {
                 ),
               ),
               Text(
-                'Just now',
+                'Live Sensor',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -319,7 +474,7 @@ class VetDashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Patient Vitals Alert • Post-Op Monitoring',
+            '${alertPatient.name} (${alertPatient.breedAge}) • ${alertPatient.priority.label.toUpperCase()}',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: colorScheme.onSurface,
@@ -327,7 +482,7 @@ class VetDashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Recovery Ward Patient #1042: Smart telemetry collar indicates a heart rate fluctuation below target baseline during sedation recovery. Clinical assessment recommended.',
+            'Chief Complaint: ${alertPatient.reason}. Smart Telemetry Collar indicates elevated vitals. Urgent clinical exam recommended.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -337,14 +492,8 @@ class VetDashboardScreen extends ConsumerWidget {
             children: [
               Expanded(
                 child: AppButton(
-                  text: 'Acknowledge & Route Staff',
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Staff dispatched to Recovery Ward • Triage acknowledged.'),
-                      ),
-                    );
-                  },
+                  text: 'Attend in Queue',
+                  onPressed: () => context.push(RoutePaths.vetQueue),
                   backgroundColor: colorScheme.error,
                   textColor: colorScheme.onError,
                   height: 40,
@@ -352,13 +501,13 @@ class VetDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: () => context.push('/vet/patients/p1'),
+                onPressed: () => context.push('/vet/patients/${alertPatient.id}'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   side: BorderSide(color: colorScheme.error),
                 ),
                 child: Text(
-                  'Vitals',
+                  'View Record',
                   style: TextStyle(color: colorScheme.error),
                 ),
               ),
@@ -373,7 +522,12 @@ class VetDashboardScreen extends ConsumerWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    WidgetRef ref,
+    String? clinicId,
   ) {
+    final appointmentsAsync = ref.watch(appointmentsProvider({'clinicId': clinicId}));
+    final appointments = appointmentsAsync.valueOrNull ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -393,190 +547,98 @@ class VetDashboardScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 8),
-        _buildConsultationCard(
-          context,
-          theme,
-          colorScheme,
-          petName: 'Luna',
-          breed: 'Calico, 2y',
-          reason: 'Annual Vaccination & Checkup',
-          time: '09:30 AM',
-          room: 'Room 2',
-        ),
-        const SizedBox(height: 8),
-        _buildConsultationCard(
-          context,
-          theme,
-          colorScheme,
-          petName: 'Max',
-          breed: 'Bulldog, 4y',
-          reason: 'Dermatology Consult - Rash',
-          time: '10:15 AM',
-          room: 'Room 1',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildConsultationCard(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme, {
-    required String petName,
-    required String breed,
-    required String reason,
-    required String time,
-    required String room,
-  }) {
-    return AppCard(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: colorScheme.secondaryContainer,
-            child: Icon(Icons.pets, color: colorScheme.onSecondaryContainer),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        if (appointments.isEmpty)
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                Text(
-                  '$petName ($breed)',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Icon(Icons.calendar_month_outlined, color: colorScheme.primary, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No Scheduled Consultations for Today',
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Tap "View All" or use Quick Actions to book appointments.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  reason,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                FilledButton.tonal(
+                  onPressed: () => context.push(RoutePaths.vetAppointments),
+                  child: const Text('Book'),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              AppChip(
-                label: time,
-                backgroundColor: colorScheme.primaryContainer,
-                textColor: colorScheme.onPrimaryContainer,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                room,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionButton(
-                context,
-                theme,
-                colorScheme,
-                icon: Icons.note_add_outlined,
-                label: 'New Record',
-                onTap: () => context.push(RoutePaths.vetPatients),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildActionButton(
-                context,
-                theme,
-                colorScheme,
-                icon: Icons.medication_outlined,
-                label: 'Prescription',
-                onTap: () => context.push(RoutePaths.vetPrescription),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildActionButton(
-                context,
-                theme,
-                colorScheme,
-                icon: Icons.video_camera_front_outlined,
-                label: 'Start Consult',
-                onTap: () => context.push(RoutePaths.vetQueue),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onTap();
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-            child: Column(
-              children: [
-                Icon(icon, color: colorScheme.primary, size: 24),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+          )
+        else
+          ...appointments.take(3).map(
+            (apt) => Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: InkWell(
+                onTap: () => context.push('${RoutePaths.vetConsultation}?appointmentId=${apt.id}'),
+                borderRadius: BorderRadius.circular(12),
+                child: AppCard(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: colorScheme.secondaryContainer,
+                        child: Icon(Icons.pets, color: colorScheme.onSecondaryContainer),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              apt.reason,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${apt.durationMinutes} min • Status: ${apt.status}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          AppChip(
+                            label: '${apt.appointmentDate.hour}:${apt.appointmentDate.minute.toString().padLeft(2, '0')}',
+                            backgroundColor: colorScheme.primaryContainer,
+                            textColor: colorScheme.onPrimaryContainer,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            apt.priority.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+      ],
     );
   }
 
@@ -589,7 +651,7 @@ class VetDashboardScreen extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Recent Updates',
+          'Clinical Practice Feed',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -609,14 +671,15 @@ class VetDashboardScreen extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Lab results ready for Bella.',
+                      'AI Diagnostic Pathology model active & ready.',
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
                   Text(
-                    '10m ago',
+                    'Online',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                      color: AppColors.success,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -632,12 +695,12 @@ class VetDashboardScreen extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Surgery prep completed for Charlie.',
+                      'Telemedicine and prescription dispatch module operational.',
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
                   Text(
-                    '45m ago',
+                    'Active',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),

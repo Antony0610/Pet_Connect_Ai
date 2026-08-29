@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/consultation.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_dosage_calculator_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
@@ -109,8 +111,27 @@ class _ConsultationWorkspaceScreenState
           ),
           IconButton(
             icon: const Icon(Icons.save_outlined),
-            onPressed: () {
-              context.showSnackbar('✓ Consultation draft saved to EMR');
+            onPressed: () async {
+              final now = DateTime.now();
+              final consultation = Consultation(
+                id: '',
+                appointmentId: widget.appointmentId,
+                petId: widget.appointmentId,
+                veterinarianId: '',
+                subjective: _subjectiveController.text.trim(),
+                objective: _objectiveController.text.trim(),
+                assessment: _assessmentController.text.trim(),
+                plan: _planController.text.trim(),
+                consultationDate: now,
+                createdAt: now,
+                updatedAt: now,
+              );
+              final repo = ref.read(vetRepositoryProvider);
+              final result = await repo.saveConsultation(consultation);
+              result.fold(
+                (f) => context.showSnackbar('Draft save error: ${f.message}'),
+                (_) => context.showSnackbar('✓ Consultation draft saved to EMR'),
+              );
             },
             tooltip: 'Save Draft',
           ),
@@ -155,7 +176,7 @@ class _ConsultationWorkspaceScreenState
                 theme,
                 colorScheme,
                 letter: 'S',
-                label: 'Subjective (History & Chief Complaint)',
+                label: 'Subjective (Owner History & Chief Complaint)',
                 controller: _subjectiveController,
               ),
               const SizedBox(height: 12),
@@ -166,7 +187,7 @@ class _ConsultationWorkspaceScreenState
                 theme,
                 colorScheme,
                 letter: 'O',
-                label: 'Objective (Vitals & Physical Exam)',
+                label: 'Objective (Vitals, Physical Exam & Lab Findings)',
                 controller: _objectiveController,
               ),
               const SizedBox(height: 12),
@@ -177,7 +198,7 @@ class _ConsultationWorkspaceScreenState
                 theme,
                 colorScheme,
                 letter: 'A',
-                label: 'Assessment (Differential Diagnoses)',
+                label: 'Assessment (Differential & Working Diagnosis)',
                 controller: _assessmentController,
               ),
               const SizedBox(height: 12),
@@ -188,7 +209,7 @@ class _ConsultationWorkspaceScreenState
                 theme,
                 colorScheme,
                 letter: 'P',
-                label: 'Plan (Diagnostics, Rx & Home Care)',
+                label: 'Plan (Diagnostics, Therapeutics & Follow-up)',
                 controller: _planController,
               ),
               const SizedBox(height: 24),
@@ -200,7 +221,7 @@ class _ConsultationWorkspaceScreenState
                     child: AppButton.outlined(
                       label: 'Rx Prescription',
                       icon: Icons.medication_outlined,
-                      onPressed: () => context.push(RoutePaths.vetPrescription),
+                      onPressed: () => context.push('${RoutePaths.vetPrescription}?consultationId=${widget.appointmentId}'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -208,9 +229,30 @@ class _ConsultationWorkspaceScreenState
                     child: AppButton.filled(
                       label: 'Complete & Bill',
                       icon: Icons.check_circle_outline,
-                      onPressed: () {
-                        context.showSnackbar('✓ Consultation finalized and added to Health Passport');
-                        context.push(RoutePaths.vetTreatmentPlan);
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final consultation = Consultation(
+                          id: '',
+                          appointmentId: widget.appointmentId,
+                          petId: widget.appointmentId,
+                          veterinarianId: '',
+                          subjective: _subjectiveController.text.trim(),
+                          objective: _objectiveController.text.trim(),
+                          assessment: _assessmentController.text.trim(),
+                          plan: _planController.text.trim(),
+                          consultationDate: now,
+                          createdAt: now,
+                          updatedAt: now,
+                        );
+                        final repo = ref.read(vetRepositoryProvider);
+                        final result = await repo.saveConsultation(consultation);
+                        result.fold(
+                          (f) => context.showSnackbar('Failed to finalize: ${f.message}'),
+                          (_) {
+                            context.showSnackbar('✓ Consultation finalized and added to Health Passport');
+                            context.push('${RoutePaths.vetTreatmentPlan}?patientId=${widget.appointmentId}');
+                          },
+                        );
                       },
                     ),
                   ),

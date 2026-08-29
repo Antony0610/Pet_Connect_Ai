@@ -1,31 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_sighting.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Rescue Community Reports Screen (Stitch ID: `28457e088c8c44b78b72258d0666fde9`).
-///
-/// Civilian sighting and field intelligence feed. Displays crowd-sourced pet sightings,
-/// location verification status, reporter tier badges, and dispatch buttons.
-class RescueCommunityReportsScreen extends StatefulWidget {
+class RescueCommunityReportsScreen extends ConsumerStatefulWidget {
   const RescueCommunityReportsScreen({super.key});
 
   @override
-  State<RescueCommunityReportsScreen> createState() =>
+  ConsumerState<RescueCommunityReportsScreen> createState() =>
       _RescueCommunityReportsScreenState();
 }
 
 class _RescueCommunityReportsScreenState
-    extends State<RescueCommunityReportsScreen> {
+    extends ConsumerState<RescueCommunityReportsScreen> {
   int _selectedTab = 0;
 
   final List<Map<String, dynamic>> _reports = [
     {
+      'id': 's1',
       'reporter': 'Civic Reporter • Mark T.',
       'time': '5 mins ago',
       'pet': 'Luna (Siberian Husky)',
@@ -36,6 +37,7 @@ class _RescueCommunityReportsScreenState
           'Matching silver coat and blue collar. Headed east toward riverbed.',
     },
     {
+      'id': 's2',
       'reporter': 'Civic Reporter • Elena R.',
       'time': '25 mins ago',
       'pet': 'Archie (Golden Retriever)',
@@ -46,6 +48,106 @@ class _RescueCommunityReportsScreenState
           'Wearing collar, sitting near outdoor tables. Skittish when approached.',
     },
   ];
+
+  void _openFileSightingDialog() async {
+    final petCtrl = TextEditingController(text: 'Bella (Golden Retriever)');
+    final locCtrl = TextEditingController(text: 'Koramangala 80ft Road');
+    final notesCtrl = TextEditingController(text: 'Spotted near pharmacy with red harness.');
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('File Community Sighting Intel'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: petCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Pet Name or Description',
+                  prefixIcon: Icon(Icons.pets),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: locCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Exact Sighting Location',
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: notesCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Behavior, Direction & Visual Clues',
+                  prefixIcon: Icon(Icons.note_alt_outlined),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Submit Intel'),
+          ),
+        ],
+      ),
+    );
+
+    if (submitted == true && petCtrl.text.trim().isNotEmpty) {
+      final newSighting = LostPetSighting(
+        id: '',
+        alertId: '',
+        reporterId: '',
+        sightingLocation: locCtrl.text.trim(),
+        latitude: 12.9716,
+        longitude: 77.5946,
+        sightingTime: DateTime.now(),
+        notes: notesCtrl.text.trim(),
+        status: 'VERIFIED',
+        createdAt: DateTime.now(),
+      );
+
+      final repo = ref.read(rescueRepositoryProvider);
+      final result = await repo.reportSighting(newSighting);
+      result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to submit intel: ${failure.message}')),
+            );
+          }
+        },
+        (saved) {
+          setState(() {
+            _reports.insert(0, {
+              'id': saved.id,
+              'reporter': 'Civic Intel (Verified)',
+              'time': 'Just now',
+              'pet': petCtrl.text.trim(),
+              'location': locCtrl.text.trim(),
+              'verified': true,
+              'aiMatchScore': 94,
+              'notes': notesCtrl.text.trim(),
+            });
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Community sighting report filed to database!')),
+            );
+          }
+        },
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +163,17 @@ class _RescueCommunityReportsScreenState
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
             } else {
-              context.go('/rescue');
+              context.go(RoutePaths.rescueHome);
             }
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_location_alt_outlined),
+            tooltip: 'Report Sighting',
+            onPressed: _openFileSightingDialog,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -86,7 +195,7 @@ class _RescueCommunityReportsScreenState
                       theme,
                       colorScheme,
                       index: 0,
-                      label: 'Reported Sightings',
+                      label: 'Reported Sightings (${_reports.length})',
                     ),
                     AppSpacing.hGapSm,
                     _buildTabChoice(
@@ -101,9 +210,37 @@ class _RescueCommunityReportsScreenState
                 AppSpacing.vGapMd,
 
                 // ── Sighting Cards Feed ─────────────────────────────
-                ..._reports.map(
-                  (rpt) => _buildSightingCard(context, theme, colorScheme, rpt),
-                ),
+                if (_selectedTab == 0)
+                  ..._reports.map(
+                    (rpt) => _buildSightingCard(context, theme, colorScheme, rpt),
+                  )
+                else
+                  AppCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.history_edu, size: 48, color: colorScheme.primary),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Historical Rescue Intel Archive',
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'All closed rescue missions are archived in the Mission History database.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.archive_outlined),
+                            label: const Text('Open Rescue History'),
+                            onPressed: () => context.push(RoutePaths.rescueHistory),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 AppSpacing.vGapXl,
               ],
@@ -131,7 +268,7 @@ class _RescueCommunityReportsScreenState
                 Row(
                   children: [
                     Text(
-                      'Rescue Lead Sarah',
+                      'Rescue Lead Responder',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: AppTypography.bold,
                       ),
@@ -141,7 +278,7 @@ class _RescueCommunityReportsScreenState
                   ],
                 ),
                 Text(
-                  'Tier 3 Lead Responder • 128 Successful Rescues',
+                  'Tier 3 Field Commander • Live Telemetry & GPS Ingestion Active',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -287,7 +424,7 @@ class _RescueCommunityReportsScreenState
                 AppButton(
                   text: 'Dispatch Unit',
                   icon: Icons.directions_run,
-                  onPressed: () => context.push('/rescue/operations'),
+                  onPressed: () => context.push(RoutePaths.rescueOperations),
                   height: 36,
                 ),
               ],

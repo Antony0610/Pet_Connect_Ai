@@ -7,9 +7,13 @@ import 'package:petconnect_ai/features/volunteer_rescue/data/datasources/rescue_
 import 'package:petconnect_ai/features/volunteer_rescue/data/models/lost_pet_alert_model.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/data/models/lost_pet_sighting_model.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/data/models/rescue_mission_model.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/data/models/rescue_shelter_model.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/data/models/volunteer_responder_model.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_sighting.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/rescue_mission.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/rescue_shelter.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/volunteer_responder.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/repositories/rescue_repository.dart';
 
 class RescueRepositoryImpl implements RescueRepository {
@@ -140,6 +144,73 @@ class RescueRepositoryImpl implements RescueRepository {
   ) async {
     try {
       final updated = await _remote.updateMissionStatus(missionId, status);
+      return Right(updated);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<List<RescueShelter>> getShelters() async {
+    try {
+      final list = await _remote.getShelters();
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<RescueShelter> saveShelter(RescueShelter shelter) async {
+    try {
+      final model = RescueShelterModel.fromEntity(shelter);
+      final saved = await _remote.saveShelter(model);
+      return Right(saved);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<List<VolunteerResponder>> getVolunteers() async {
+    try {
+      final list = await _remote.getVolunteers();
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<VolunteerResponder> saveVolunteer(
+    VolunteerResponder volunteer,
+  ) async {
+    try {
+      final model = VolunteerResponderModel.fromEntity(volunteer);
+      final saved = await _remote.saveVolunteer(model);
+      return Right(saved);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<VolunteerResponder> toggleDutyStatus(
+    String volunteerId,
+    bool isOnDuty,
+  ) async {
+    try {
+      final updated = await _remote.toggleDutyStatus(volunteerId, isOnDuty);
       return Right(updated);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));

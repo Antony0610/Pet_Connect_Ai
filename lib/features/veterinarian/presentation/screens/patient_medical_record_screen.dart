@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_patient.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-class PatientMedicalRecordScreen extends StatefulWidget {
+class PatientMedicalRecordScreen extends ConsumerStatefulWidget {
   final String patientId;
 
   const PatientMedicalRecordScreen({super.key, required this.patientId});
 
   @override
-  State<PatientMedicalRecordScreen> createState() =>
+  ConsumerState<PatientMedicalRecordScreen> createState() =>
       _PatientMedicalRecordScreenState();
 }
 
-class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
+class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecordScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -37,6 +41,23 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final patientsAsync = ref.watch(vetPatientsProvider(null));
+    final patients = patientsAsync.valueOrNull ?? [];
+    final patient = patients.firstWhere(
+      (p) => p.id == widget.patientId,
+      orElse: () => VetPatient(
+        id: widget.patientId,
+        name: 'Patient Record',
+        species: 'canine',
+        breed: 'Golden Retriever',
+        gender: 'Male Neutered',
+        ownerName: 'Sarah J.',
+        status: 'Stable',
+        healthStatus: 'optimal',
+        weightKg: 32.4,
+      ),
+    );
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -54,13 +75,13 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Buddy\'s Record',
+              '${patient.name}\'s Record',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
-              'Golden Retriever • Male Neutered',
+              '${patient.breedLine} • ${patient.gender ?? "Unknown"}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -72,9 +93,9 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
             icon: const Icon(Icons.share_outlined),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                SnackBar(
                   content: Text(
-                    'Secure medical record link generated for guardian.',
+                    'Secure medical record link generated for ${patient.ownerName}.',
                   ),
                 ),
               );
@@ -82,9 +103,9 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
             tooltip: 'Share Record',
           ),
           IconButton(
-            icon: const Icon(Icons.edit_note),
-            onPressed: () => context.push('/vet/consultation/c1'),
-            tooltip: 'Start Visit / Add Note',
+            icon: const Icon(Icons.assignment_outlined),
+            onPressed: () => context.push('${RoutePaths.vetTreatmentPlan}?patientId=${patient.id}'),
+            tooltip: 'Treatment Plan',
           ),
         ],
       ),
@@ -95,11 +116,11 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Hero Patient Metadata Card
-              _buildPatientHeroCard(context, theme, colorScheme),
+              _buildPatientHeroCard(context, theme, colorScheme, patient),
               const SizedBox(height: 16),
 
               // Smart Collar Live Telemetry Widget
-              _buildLiveCollarWidget(context, theme, colorScheme),
+              _buildLiveCollarWidget(context, theme, colorScheme, patient),
               const SizedBox(height: 16),
 
               // Record Section Tabs
@@ -112,7 +133,7 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
                 tabs: const [
                   Tab(text: 'History & Notes'),
                   Tab(text: 'Vaccines'),
-                  Tab(text: 'Labs & Imaging'),
+                  Tab(text: 'Treatment Plan'),
                   Tab(text: 'AI Insights'),
                 ],
               ),
@@ -135,24 +156,24 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
                 context,
                 theme,
                 colorScheme,
-                title: 'Annual Wellness Exam',
-                doctor: 'Dr. Emily Chen • General Practice',
-                date: 'Today, 10:00 AM',
+                title: 'Annual Comprehensive Exam',
+                doctor: 'Clinical Practitioner • General Medicine',
+                date: DateFormat('MMM d, yyyy').format(DateTime.now()),
                 content:
-                    'Patient presented for annual exam. BCS 5/9. Heart and lungs auscultate normally. Minor dental tartar (Grade 1). Discussed weight maintenance and dental chews. Administered annual vaccines.',
-                badges: ['Rabies 3yr', 'Bloodwork Sent'],
+                    'Patient examined with optimal vitals. Normal cardiac rhythm, clear pulmonary fields. Weight at ${patient.weightKg ?? 30.0} kg. Recommended routine preventative protocol.',
+                badges: const ['Preventative Care', 'Exam Optimal'],
               ),
               const SizedBox(height: 12),
               _buildTimelineCard(
                 context,
                 theme,
                 colorScheme,
-                title: 'Dermatology Consult',
-                doctor: 'Dr. Mark Ruffalo • Specialist',
-                date: 'Aug 14, 2023',
+                title: 'Clinical Follow-up & Lab Panel',
+                doctor: 'Veterinary Diagnostic Laboratory',
+                date: 'Recent Visit',
                 content:
-                    'Follow up on seasonal allergies. Owner reports less scratching since starting Apoquel. Ears clear. Continue current regimen.',
-                badges: ['Apoquel 16mg'],
+                    'Routine biochemistry and CBC panel unremarkable. Renal and hepatic markers within reference boundaries. Microchip #${patient.microchipId ?? "Verified"} confirmed.',
+                badges: const ['Biochem Normal', 'CBC Verified'],
               ),
               const SizedBox(height: 20),
 
@@ -160,16 +181,27 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
               _buildVaccinesSummaryCard(context, theme, colorScheme),
               const SizedBox(height: 24),
 
-              // Primary Action Button
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  text: 'Start Visit / Open Consultation',
-                  onPressed: () => context.push('/vet/consultation/c1'),
-                  backgroundColor: colorScheme.primary,
-                  textColor: colorScheme.onPrimary,
-                  height: 48,
-                ),
+              // Primary Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.assignment),
+                      label: const Text('Treatment Plan'),
+                      onPressed: () => context.push('${RoutePaths.vetTreatmentPlan}?patientId=${patient.id}'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppButton(
+                      text: 'Start Consultation',
+                      onPressed: () => context.push('${RoutePaths.vetConsultation}?appointmentId=${patient.id}'),
+                      backgroundColor: colorScheme.primary,
+                      textColor: colorScheme.onPrimary,
+                      height: 44,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -182,6 +214,7 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    VetPatient patient,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
@@ -192,7 +225,13 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
               CircleAvatar(
                 radius: 30,
                 backgroundColor: colorScheme.primaryContainer,
-                child: Icon(Icons.pets, size: 32, color: colorScheme.primary),
+                child: Text(
+                  patient.name.isNotEmpty ? patient.name[0].toUpperCase() : 'P',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -202,14 +241,14 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
                     Row(
                       children: [
                         Text(
-                          'Buddy',
+                          patient.name,
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(width: 8),
                         AppChip(
-                          label: 'Male Neutered',
+                          label: patient.status,
                           backgroundColor: colorScheme.secondaryContainer,
                           textColor: colorScheme.onSecondaryContainer,
                         ),
@@ -217,7 +256,7 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Golden Retriever • DOB: Oct 12, 2020',
+                      '${patient.breedLine} • Guardian: ${patient.ownerName}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -231,10 +270,10 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildMetaItem(theme, colorScheme, 'Age', '3y 2m'),
-              _buildMetaItem(theme, colorScheme, 'Weight', '32.4 kg'),
-              _buildMetaItem(theme, colorScheme, 'BCS', '5/9'),
-              _buildMetaItem(theme, colorScheme, 'Owner', 'Sarah J.'),
+              _buildMetaItem(theme, colorScheme, 'Weight', '${patient.weightKg ?? 30.0} kg'),
+              _buildMetaItem(theme, colorScheme, 'Status', patient.healthStatus.toUpperCase()),
+              _buildMetaItem(theme, colorScheme, 'Owner', patient.ownerName),
+              _buildMetaItem(theme, colorScheme, 'Phone', patient.ownerPhone ?? 'On File'),
             ],
           ),
         ],
@@ -271,6 +310,7 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    VetPatient patient,
   ) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -288,14 +328,14 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Smart Collar Live Telemetry',
+                  'Smart Collar Live Telemetry HUD',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.tertiary,
                   ),
                 ),
                 Text(
-                  '78 BPM • Resting HR average normal',
+                  '78 BPM • Resting HR baseline normal • Active Collar Sync',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -303,7 +343,11 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
               ],
             ),
           ),
-          Icon(Icons.chevron_right, color: colorScheme.tertiary),
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios, size: 16),
+            color: colorScheme.tertiary,
+            onPressed: () => context.push('/owner/collar-tracking'),
+          ),
         ],
       ),
     );
@@ -317,21 +361,21 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
+        color: colorScheme.primaryContainer.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.auto_awesome, color: colorScheme.primary, size: 22),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Clinical Insight',
+                  'AI Clinical Intelligence Summary',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.primary,
@@ -339,9 +383,9 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Based on Buddy\'s breed (Golden Retriever), age (3y), and recent weight trend (+1.2kg over 6mo), AI suggests monitoring for early signs of joint stress. Consider discussing proactive joint supplements.',
+                  'Vitals and metabolic profile are stable. No drug allergy contraindications detected in recent electronic prescription records.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -384,16 +428,18 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
               ),
             ],
           ),
+          const SizedBox(height: 2),
           Text(
             doctor,
-            style: theme.textTheme.labelSmall?.copyWith(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.primary,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             content,
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -425,40 +471,53 @@ class _PatientMedicalRecordScreenState extends State<PatientMedicalRecordScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Vaccination Status (Health Passport)',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Immunization Passport',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              AppChip(
+                label: 'Up to Date',
+                backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                textColor: AppColors.success,
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          _buildVaccineItem('Rabies', 'Valid to Oct 2026', AppColors.success),
-          const Divider(height: 12),
-          _buildVaccineItem('DHPP', 'Valid to Oct 2024', AppColors.success),
-          const Divider(height: 12),
-          _buildVaccineItem('Bordetella', 'Due in 2 wks', AppColors.warning),
+          const Divider(height: 16),
+          _buildVaccineRow(theme, colorScheme, 'DHPP Core Vaccine', 'Valid until Dec 2026'),
+          const SizedBox(height: 6),
+          _buildVaccineRow(theme, colorScheme, 'Rabies 3-Year Booster', 'Valid until Oct 2027'),
+          const SizedBox(height: 6),
+          _buildVaccineRow(theme, colorScheme, 'Bordetella Intranasal', 'Valid until Jun 2027'),
         ],
       ),
     );
   }
 
-  Widget _buildVaccineItem(String name, String status, Color color) {
+  Widget _buildVaccineRow(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    String name,
+    String expiry,
+  ) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(Icons.check_circle, color: color, size: 18),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+        Row(
+          children: [
+            const Icon(Icons.check_circle, size: 16, color: AppColors.success),
+            const SizedBox(width: 8),
+            Text(name, style: theme.textTheme.bodyMedium),
+          ],
         ),
         Text(
-          status,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+          expiry,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
       ],

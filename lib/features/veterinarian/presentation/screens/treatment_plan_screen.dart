@@ -1,23 +1,149 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:petconnect_ai/features/veterinarian/domain/entities/treatment_plan.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:share_plus/share_plus.dart';
 
-class VetTreatmentPlanScreen extends StatelessWidget {
-  const VetTreatmentPlanScreen({super.key});
+class VetTreatmentPlanScreen extends ConsumerStatefulWidget {
+  final String? patientId;
+
+  const VetTreatmentPlanScreen({super.key, this.patientId});
+
+  @override
+  ConsumerState<VetTreatmentPlanScreen> createState() =>
+      _VetTreatmentPlanScreenState();
+}
+
+class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen> {
+  String _diagnosis = 'Seasonal Atopic Dermatitis & Pruritus';
+  String _notes = 'Target complete clinical remission within 3 weeks. Medicated bath protocol and oral therapy.';
+  int _progress = 35;
+  final String _stage1 = 'Symptom Relief (Medication) • Active Stage';
+  final String _stage2 = 'Allergen Avoidance & Environmental Controls';
+  final String _stage3 = 'Re-Evaluation & Tapering Protocol';
+
+  void _openEditPlanDialog(String targetPetId) async {
+    final diagCtrl = TextEditingController(text: _diagnosis);
+    final notesCtrl = TextEditingController(text: _notes);
+    int progressVal = _progress;
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          title: const Text('Edit Treatment Plan'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: diagCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Diagnosis & Primary Condition',
+                    hintText: 'e.g. Seasonal Atopic Dermatitis',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Clinical Notes & Goal',
+                    hintText: 'e.g. Remission within 3 weeks',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('Treatment Progress: $progressVal%'),
+                Slider(
+                  value: progressVal.toDouble(),
+                  min: 0,
+                  max: 100,
+                  divisions: 20,
+                  label: '$progressVal%',
+                  onChanged: (val) {
+                    setDlgState(() => progressVal = val.toInt());
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Save Plan'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (updated == true) {
+      setState(() {
+        _diagnosis = diagCtrl.text.trim();
+        _notes = notesCtrl.text.trim();
+        _progress = progressVal;
+      });
+
+      final plan = TreatmentPlan(
+        id: '',
+        petId: targetPetId,
+        title: _diagnosis,
+        category: 'Dermatology',
+        targetDate: DateTime.now().add(const Duration(days: 21)),
+        progressPercent: _progress,
+        status: _progress >= 100 ? 'completed' : 'active',
+        notes: _notes,
+      );
+
+      final repo = ref.read(vetRepositoryProvider);
+      final result = await repo.saveTreatmentPlan(plan);
+      result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to save to database: ${failure.message}')),
+            );
+          }
+        },
+        (_) {
+          ref.invalidate(treatmentPlansProvider(targetPetId));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Treatment plan persisted to Supabase!')),
+            );
+          }
+        },
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final targetPetId = widget.patientId ?? 'p1';
+    final plansAsync = ref.watch(treatmentPlansProvider(targetPetId));
+    final existingPlans = plansAsync.valueOrNull ?? [];
+
+    if (existingPlans.isNotEmpty) {
+      _diagnosis = existingPlans.first.title;
+      _notes = existingPlans.first.notes ?? _notes;
+      _progress = existingPlans.first.progressPercent;
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -42,59 +168,19 @@ class VetTreatmentPlanScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'Buddy • Seasonal Atopic Dermatitis',
+              _diagnosis,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_document),
-            onPressed: () {
-              showDialog<void>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Edit Treatment Plan'),
-                  content: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Diagnosis & Primary Condition',
-                          hintText: 'e.g. Seasonal Atopic Dermatitis',
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Clinical Notes & Goal',
-                          hintText: 'e.g. Remission within 3 weeks',
-                        ),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Treatment plan updated successfully.'),
-                          ),
-                        );
-                      },
-                      child: const Text('Save Plan'),
-                    ),
-                  ],
-                ),
-              );
-            },
+            onPressed: () => _openEditPlanDialog(targetPetId),
             tooltip: 'Edit Plan',
           ),
         ],
@@ -125,9 +211,9 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                 stepNumber: '1',
                 badge: 'Active Stage • Current',
                 badgeColor: colorScheme.primary,
-                title: 'Symptom Relief (Medication)',
+                title: _stage1,
                 desc:
-                    'Administer prescribed Apoquel daily to manage acute pruritus and inflammation. Monitor for side effects.',
+                    'Administer prescribed therapeutic regimen daily to manage acute symptoms and inflammation. Monitor for tolerance.',
               ),
               const SizedBox(height: 10),
               _buildProtocolStep(
@@ -137,9 +223,9 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                 stepNumber: '2',
                 badge: 'Next Phase',
                 badgeColor: colorScheme.secondary,
-                title: 'Allergen Avoidance',
+                title: _stage2,
                 desc:
-                    'Implement environmental controls based on allergy panel results. Wipe paws after outdoor walks.',
+                    'Implement environmental and dietary controls based on clinical panel results. Maintain hygiene and skin integrity.',
               ),
               const SizedBox(height: 10),
               _buildProtocolStep(
@@ -149,48 +235,18 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                 stepNumber: '3',
                 badge: 'Milestone',
                 badgeColor: colorScheme.tertiary,
-                title: 'Follow-up Exam',
+                title: _stage3,
                 desc:
-                    'Scheduled check-in 14 days post-initiation to assess medication efficacy and skin barrier recovery.',
+                    'Clinical re-assessment and scheduled in-clinic follow-up to evaluate response and gradually taper medications.',
               ),
               const SizedBox(height: 20),
 
-              // Owner Home Care Instructions Card
+              // Home Care Owner Instructions Card
               _buildHomeCareCard(context, theme, colorScheme),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // AI Prognosis & Recovery Tracking Tile
+              // AI Prognosis & Recovery Tracking
               _buildAiPrognosisCard(context, theme, colorScheme),
-              const SizedBox(height: 24),
-
-              // Action Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('Download PDF'),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Treatment Plan PDF exported to device.'),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: AppButton(
-                      text: 'Prescribe Meds',
-                      onPressed: () => context.push(RoutePaths.vetPrescription),
-                      backgroundColor: colorScheme.primary,
-                      textColor: colorScheme.onPrimary,
-                      height: 44,
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -207,33 +263,46 @@ class VetTreatmentPlanScreen extends StatelessWidget {
     return AppCard(
       padding: const EdgeInsets.all(16),
       color: colorScheme.primaryContainer.withValues(alpha: 0.35),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: colorScheme.primary,
-            child: Icon(Icons.pets, color: colorScheme.onPrimary, size: 28),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              AppChip(
+                label: 'CLINICAL TREATMENT PLAN',
+                backgroundColor: colorScheme.primary,
+                textColor: colorScheme.onPrimary,
+              ),
+              Text(
+                'Goal: $_progress% Complete',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Treatment Plan: Buddy',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Diagnosis: Seasonal Atopic Dermatitis',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 12),
+          Text(
+            _diagnosis,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _notes,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: _progress / 100,
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(4),
           ),
         ],
       ),
@@ -255,19 +324,15 @@ class VetTreatmentPlanScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: badgeColor,
-              shape: BoxShape.circle,
-            ),
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: badgeColor,
             child: Text(
               stepNumber,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: Colors.white,
+              style: TextStyle(
+                color: colorScheme.onPrimary,
                 fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
             ),
           ),
@@ -292,7 +357,7 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   desc,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -326,7 +391,7 @@ class VetTreatmentPlanScreen extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Owner Instructions',
+                'Guardian Care Guidelines',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -335,14 +400,14 @@ class VetTreatmentPlanScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Bathing Routine:',
+            'Medication & Bathing Protocol:',
             style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Bathe twice weekly with medicated shampoo (Chlorhexidine 4%). Leave on for 10 minutes before rinsing thoroughly.',
+            'Administer prescribed medication per dosing schedule. Maintain skin cleansing protocol and monitor appetite and activity daily.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -372,7 +437,7 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
-                            'PetConnect AI Veterinary Network • Patient: Buster (Canine)',
+                            'PetConnect AI Veterinary Network • Condition: $_diagnosis',
                             style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                           ),
                           pw.Divider(thickness: 1.5, color: PdfColor.fromHex('#137A63')),
@@ -383,28 +448,18 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
-                            'Canine Atopic Dermatitis & Secondary Malassezia Pyoderma',
+                            _diagnosis,
                             style: const pw.TextStyle(fontSize: 10),
                           ),
                           pw.SizedBox(height: 14),
                           pw.Text(
-                            'Medication & Dosage Instructions',
+                            'Clinical Protocol Notes',
                             style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
                           ),
                           pw.SizedBox(height: 6),
-                          pw.Bullet(text: 'Apoquel 16mg: 1 tablet orally every 12 hours for 14 days, then once daily.'),
-                          pw.Bullet(text: 'Cephalexin 500mg: 1 capsule with food twice daily for 21 days.'),
-                          pw.Bullet(text: 'Medicated Bath: Chlorhexidine 4% shampoo twice weekly (10-minute contact time).'),
-                          pw.SizedBox(height: 14),
-                          pw.Text(
-                            'Re-check Appointment',
-                            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
-                          ),
-                          pw.SizedBox(height: 4),
-                          pw.Text(
-                            'Scheduled in 3 weeks for dermatological re-evaluation.',
-                            style: const pw.TextStyle(fontSize: 10),
-                          ),
+                          pw.Bullet(text: _notes),
+                          pw.Bullet(text: 'Progress: $_progress% Complete'),
+                          pw.Bullet(text: 'Scheduled re-evaluation within 3 weeks.'),
                         ],
                       );
                     },
@@ -419,8 +474,8 @@ class VetTreatmentPlanScreen extends StatelessWidget {
                 // ignore: deprecated_member_use
                 await Share.shareXFiles(
                   [XFile(file.path, mimeType: 'application/pdf')],
-                  text: '📋 Attached is the Veterinary Home Care Protocol (PDF).',
-                  subject: 'Home Care Protocol (PDF)',
+                  text: '📋 Attached is the Veterinary Treatment Protocol (PDF).',
+                  subject: 'Treatment Protocol (PDF)',
                 );
               } catch (_) {
                 if (context.mounted) {
@@ -468,9 +523,9 @@ class VetTreatmentPlanScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Pruritus Score (VAS):', style: theme.textTheme.bodySmall),
+              Text('Clinical Remission Index:', style: theme.textTheme.bodySmall),
               Text(
-                '8/10 → Target 2/10',
+                '$_progress% (On Target)',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.tertiary,
@@ -482,9 +537,9 @@ class VetTreatmentPlanScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Erythema Reduction:', style: theme.textTheme.bodySmall),
+              Text('Therapeutic Tolerance:', style: theme.textTheme.bodySmall),
               AppChip(
-                label: 'In Progress',
+                label: 'Optimal',
                 backgroundColor: colorScheme.tertiaryContainer,
                 textColor: colorScheme.onTertiaryContainer,
               ),
@@ -492,7 +547,7 @@ class VetTreatmentPlanScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Expected significant relief within 48-72 hrs.',
+            'Expected clinical remission within target timeframe with ongoing adherence.',
             style: theme.textTheme.labelSmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,

@@ -2,6 +2,8 @@ import 'package:petconnect_ai/core/utils/typedefs.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_sighting.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/rescue_mission.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/rescue_shelter.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/volunteer_responder.dart';
 
 /// Repository interface for Volunteer & Rescue Portal operations.
 abstract class RescueRepository {
@@ -17,4 +19,13 @@ abstract class RescueRepository {
     String missionId,
     String status,
   );
+
+  // Shelters
+  ResultFuture<List<RescueShelter>> getShelters();
+  ResultFuture<RescueShelter> saveShelter(RescueShelter shelter);
+
+  // Volunteers
+  ResultFuture<List<VolunteerResponder>> getVolunteers();
+  ResultFuture<VolunteerResponder> saveVolunteer(VolunteerResponder volunteer);
+  ResultFuture<VolunteerResponder> toggleDutyStatus(String volunteerId, bool isOnDuty);
 }

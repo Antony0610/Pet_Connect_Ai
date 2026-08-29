@@ -7,6 +7,7 @@ import 'package:petconnect_ai/features/veterinarian/data/datasources/vet_remote_
 import 'package:petconnect_ai/features/veterinarian/data/models/appointment_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/consultation_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/prescription_model.dart';
+import 'package:petconnect_ai/features/veterinarian/data/models/treatment_plan_model.dart';
 import 'package:petconnect_ai/features/veterinarian/data/models/vet_clinic_model.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/appointment.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/clinic_analytics_summary.dart';
@@ -14,7 +15,9 @@ import 'package:petconnect_ai/features/veterinarian/domain/entities/consultation
 import 'package:petconnect_ai/features/veterinarian/domain/entities/patient_queue_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/pharmacy_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/prescription.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/treatment_plan.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_clinic.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_patient.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/repositories/vet_repository.dart';
 
 class VetRepositoryImpl implements VetRepository {
@@ -223,6 +226,57 @@ class VetRepositoryImpl implements VetRepository {
     try {
       final list = await _remote.getPharmacyInventory(clinicId);
       return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Treatment Plans
+  @override
+  ResultFuture<List<TreatmentPlan>> getTreatmentPlans(String petId) async {
+    try {
+      final list = await _remote.getTreatmentPlans(petId);
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<TreatmentPlan> saveTreatmentPlan(TreatmentPlan plan) async {
+    try {
+      final model = TreatmentPlanModel.fromEntity(plan);
+      final saved = await _remote.saveTreatmentPlan(model);
+      return Right(saved);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Patients
+  @override
+  ResultFuture<List<VetPatient>> getPatients({String? clinicId}) async {
+    try {
+      final list = await _remote.getPatients(clinicId: clinicId);
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<VetPatient> registerPatient(VetPatient patient) async {
+    try {
+      final created = await _remote.registerPatient(patient);
+      return Right(created);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
     } catch (e) {

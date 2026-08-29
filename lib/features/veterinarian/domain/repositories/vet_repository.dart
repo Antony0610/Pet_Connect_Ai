@@ -5,7 +5,9 @@ import 'package:petconnect_ai/features/veterinarian/domain/entities/consultation
 import 'package:petconnect_ai/features/veterinarian/domain/entities/patient_queue_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/pharmacy_item.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/prescription.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/treatment_plan.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_clinic.dart';
+import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_patient.dart';
 
 /// Repository interface for Veterinarian Portal domain operations.
 abstract class VetRepository {
@@ -42,6 +44,14 @@ abstract class VetRepository {
 
   // Pharmacy Inventory
   ResultFuture<List<PharmacyItem>> getPharmacyInventory(String clinicId);
+
+  // Treatment Plans
+  ResultFuture<List<TreatmentPlan>> getTreatmentPlans(String petId);
+  ResultFuture<TreatmentPlan> saveTreatmentPlan(TreatmentPlan plan);
+
+  // Patients
+  ResultFuture<List<VetPatient>> getPatients({String? clinicId});
+  ResultFuture<VetPatient> registerPatient(VetPatient patient);
 
   // Analytics (Phase 11)
   ResultFuture<List<ClinicAnalyticsSummary>> getClinicAnalytics(

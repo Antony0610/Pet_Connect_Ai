@@ -2,6 +2,8 @@ import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/data/models/lost_pet_alert_model.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/data/models/lost_pet_sighting_model.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/data/models/rescue_mission_model.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/data/models/rescue_shelter_model.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/data/models/volunteer_responder_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract class RescueRemoteDataSource {
@@ -17,6 +19,15 @@ abstract class RescueRemoteDataSource {
     String missionId,
     String status,
   );
+
+  // Shelters
+  Future<List<RescueShelterModel>> getShelters();
+  Future<RescueShelterModel> saveShelter(RescueShelterModel shelter);
+
+  // Volunteers
+  Future<List<VolunteerResponderModel>> getVolunteers();
+  Future<VolunteerResponderModel> saveVolunteer(VolunteerResponderModel volunteer);
+  Future<VolunteerResponderModel> toggleDutyStatus(String volunteerId, bool isOnDuty);
 }
 
 class RescueRemoteDataSourceImpl implements RescueRemoteDataSource {
@@ -184,6 +195,142 @@ class RescueRemoteDataSourceImpl implements RescueRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to update mission status: $e');
+    }
+  }
+
+  @override
+  Future<List<RescueShelterModel>> getShelters() async {
+    try {
+      final response = await _client
+          .from('rescue_shelters')
+          .select()
+          .order('name', ascending: true);
+
+      return (response as List)
+          .map(
+            (json) => RescueShelterModel.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch rescue shelters: $e');
+    }
+  }
+
+  @override
+  Future<RescueShelterModel> saveShelter(RescueShelterModel shelter) async {
+    try {
+      final json = shelter.toJson();
+      if (shelter.id.isEmpty) {
+        json.remove('id');
+        final response = await _client
+            .from('rescue_shelters')
+            .insert(json)
+            .select()
+            .single();
+        return RescueShelterModel.fromJson(response);
+      } else {
+        final response = await _client
+            .from('rescue_shelters')
+            .upsert(json)
+            .select()
+            .single();
+        return RescueShelterModel.fromJson(response);
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to save shelter: $e');
+    }
+  }
+
+  @override
+  Future<List<VolunteerResponderModel>> getVolunteers() async {
+    try {
+      final response = await _client
+          .from('volunteer_responders')
+          .select()
+          .order('is_on_duty', ascending: false)
+          .order('name', ascending: true);
+
+      return (response as List)
+          .map(
+            (json) =>
+                VolunteerResponderModel.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to fetch volunteer responders: $e');
+    }
+  }
+
+  @override
+  Future<VolunteerResponderModel> saveVolunteer(
+    VolunteerResponderModel volunteer,
+  ) async {
+    try {
+      final json = volunteer.toJson();
+      if (volunteer.id.isEmpty) {
+        json.remove('id');
+        final response = await _client
+            .from('volunteer_responders')
+            .insert(json)
+            .select()
+            .single();
+        return VolunteerResponderModel.fromJson(response);
+      } else {
+        final response = await _client
+            .from('volunteer_responders')
+            .upsert(json)
+            .select()
+            .single();
+        return VolunteerResponderModel.fromJson(response);
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to save volunteer: $e');
+    }
+  }
+
+  @override
+  Future<VolunteerResponderModel> toggleDutyStatus(
+    String volunteerId,
+    bool isOnDuty,
+  ) async {
+    try {
+      final response = await _client
+          .from('volunteer_responders')
+          .update({
+            'is_on_duty': isOnDuty,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', volunteerId)
+          .select()
+          .single();
+      return VolunteerResponderModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        e.message,
+        statusCode: int.tryParse(e.code ?? '500'),
+      );
+    } catch (e) {
+      throw ServerException('Failed to toggle duty status: $e');
     }
   }
 }

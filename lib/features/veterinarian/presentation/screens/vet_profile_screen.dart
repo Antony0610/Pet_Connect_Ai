@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -60,7 +61,7 @@ class VetProfileScreen extends ConsumerWidget {
                 AppSpacing.vGapLg,
 
                 // ── Operating Hours & Location ───────────────────────
-                _buildHoursLocationCard(theme, colorScheme),
+                _buildHoursLocationCard(theme, colorScheme, ref),
 
                 AppSpacing.vGapLg,
 
@@ -296,7 +297,13 @@ class VetProfileScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildHoursLocationCard(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildHoursLocationCard(ThemeData theme, ColorScheme colorScheme, WidgetRef ref) {
+    final clinicsAsync = ref.watch(vetClinicsProvider);
+    final clinics = clinicsAsync.valueOrNull ?? [];
+    final clinic = clinics.isNotEmpty ? clinics.first : null;
+    final address = clinic?.address ?? '123 Wellness Way, Suite 400 • Medical Sector 4';
+    final phone = clinic?.phone ?? '+91 98450 12345';
+
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
@@ -312,9 +319,28 @@ class VetProfileScreen extends ConsumerWidget {
               AppSpacing.hGapSm,
               Expanded(
                 child: Text(
-                  '123 Wellness Way, Suite 400 • Medical Sector 4',
+                  address,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: AppTypography.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
+          Row(
+            children: [
+              Icon(
+                Icons.phone_outlined,
+                color: colorScheme.primary,
+                size: 20,
+              ),
+              AppSpacing.hGapSm,
+              Expanded(
+                child: Text(
+                  'Contact: $phone • Emergency On-Call Active',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
