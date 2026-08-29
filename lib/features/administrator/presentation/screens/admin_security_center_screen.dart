@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/security_posture_summary.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/states/error_view.dart';
@@ -77,7 +78,7 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
                   AppSpacing.vGapLg,
 
                   // ── Recent Threat & Audit Ticker ─────────────────────
-                  _buildThreatTickerSection(theme, colorScheme, auditLogsAsync),
+                  _buildThreatTickerSection(context, theme, colorScheme, auditLogsAsync),
 
                   AppSpacing.vGapXl,
                 ],
@@ -364,6 +365,7 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
   }
 
   Widget _buildThreatTickerSection(
+    BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
     AsyncValue<List<AuditLogEntry>> auditLogsAsync,
@@ -381,7 +383,7 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
               ),
             ),
             TextButton(
-              onPressed: () => theme,
+              onPressed: () => context.push(RoutePaths.adminAuditLogs),
               child: const Text('View All in Audit Log'),
             ),
           ],
