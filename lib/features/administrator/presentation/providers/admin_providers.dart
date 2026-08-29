@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/features/administrator/data/datasources/admin_remote_datasource.dart';
 import 'package:petconnect_ai/features/administrator/data/repositories/admin_repository_impl.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/admin_article.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/security_posture_summary.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/staff_member.dart';
 import 'package:petconnect_ai/features/administrator/domain/repositories/admin_repository.dart';
 
 final adminRemoteDataSourceProvider = Provider<AdminRemoteDataSource>((ref) {
@@ -49,9 +51,37 @@ final adminUserDirectoryProvider = FutureProvider<List<AdminUserEntry>>(
   },
 );
 
+/// Staff Members provider.
+final adminStaffMembersProvider = FutureProvider<List<StaffMember>>((ref) async {
+  final repo = ref.watch(adminRepositoryProvider);
+  final result = await repo.getStaffMembers();
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (members) => members,
+  );
+});
+
+/// Articles & CMS provider.
+final adminArticlesProvider = FutureProvider.family<List<AdminArticle>, String?>((ref, status) async {
+  final repo = ref.watch(adminRepositoryProvider);
+  final result = await repo.getArticles(status: status);
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (articles) => articles,
+  );
+});
+
+/// Live Database Table Counts inspector.
+final adminDatabaseCountsProvider = FutureProvider<Map<String, int>>((ref) async {
+  final repo = ref.watch(adminRepositoryProvider);
+  final result = await repo.getDatabaseTableCounts();
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (counts) => counts,
+  );
+});
+
 /// Phase 11 — Platform Reports provider.
-/// Restricted to administrator role at the database level.
-/// Returns null when no aggregate data exists yet.
 final adminPlatformReportsProvider =
     FutureProvider<PlatformReportSummary?>((ref) async {
       final repo = ref.watch(adminRepositoryProvider);
@@ -63,7 +93,6 @@ final adminPlatformReportsProvider =
     });
 
 /// Phase 12 — Security Posture provider.
-/// Restricted to administrator role at the database level via get_security_posture_summary() RPC.
 final adminSecurityPostureProvider =
     FutureProvider<SecurityPostureSummary>((ref) async {
       final repo = ref.watch(adminRepositoryProvider);

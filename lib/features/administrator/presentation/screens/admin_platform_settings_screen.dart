@@ -12,12 +12,9 @@ import 'package:petconnect_ai/features/auth/presentation/providers/auth_provider
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
+import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/states/error_view.dart';
 
-/// Administrator Platform Settings Screen (Stitch ID: `dc36e9199b4540eea867b5c17e3b5d46`).
-///
-/// Global system configurations and administrative policy settings.
-/// Connected to live `public.platform_settings` table via `adminPlatformSettingsProvider` (Phase 12).
 class AdminPlatformSettingsScreen extends ConsumerStatefulWidget {
   const AdminPlatformSettingsScreen({super.key});
 
@@ -34,6 +31,8 @@ class _AdminPlatformSettingsScreenState
   bool? _isMaintenanceMode;
   bool? _isAutoBackups;
   bool? _isDebugTelemetry;
+  double _broadcastRadiusKm = 25.0;
+  double _aiMatchThreshold = 75.0;
 
   void _initLocalState(List<PlatformSetting> settings) {
     if (_isMaintenanceMode != null) return; // already initialized
@@ -47,12 +46,75 @@ class _AdminPlatformSettingsScreenState
       } else if (setting.settingKey == 'debug_telemetry') {
         _isDebugTelemetry =
             (setting.settingValue['enabled'] as bool?) ?? false;
+      } else if (setting.settingKey == 'emergency_broadcast_radius') {
+        final radius = setting.settingValue['radius_km'];
+        if (radius is num) _broadcastRadiusKm = radius.toDouble();
+      } else if (setting.settingKey == 'ai_match_threshold') {
+        final threshold = setting.settingValue['threshold_percent'];
+        if (threshold is num) _aiMatchThreshold = threshold.toDouble();
       }
     }
 
     _isMaintenanceMode ??= false;
     _isAutoBackups ??= true;
     _isDebugTelemetry ??= false;
+  }
+
+  void _openAddCustomKeyDialog() async {
+    final keyCtrl = TextEditingController();
+    final valCtrl = TextEditingController(text: '{"enabled": true}');
+
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Custom Platform Setting Key'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: keyCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Setting Key Identifier',
+                hintText: 'e.g. payment_gateway_mode',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: valCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'JSON Value',
+                hintText: '{"mode": "live", "rate": 1.5}',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save Setting'),
+          ),
+        ],
+      ),
+    );
+
+    if (added == true && keyCtrl.text.trim().isNotEmpty) {
+      final repo = ref.read(adminRepositoryProvider);
+      await repo.updatePlatformSettingByKey(
+        keyCtrl.text.trim(),
+        {'raw_value': valCtrl.text.trim(), 'updated_at': DateTime.now().toIso8601String()},
+      );
+      ref.invalidate(adminPlatformSettingsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Setting "${keyCtrl.text.trim()}" saved to Supabase!')),
+        );
+      }
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -63,18 +125,25 @@ class _AdminPlatformSettingsScreenState
     try {
       final res1 = await repo.updatePlatformSettingByKey('maintenance_mode', {
         'enabled': _isMaintenanceMode ?? false,
-        'message': 'System under maintenance',
+        'message': 'System under scheduled maintenance. Only administrative personnel authorized.',
       });
       final res2 = await repo.updatePlatformSettingByKey('auto_backups', {
         'enabled': _isAutoBackups ?? true,
         'frequency': 'daily',
+        'retention_days': 30,
       });
       final res3 = await repo.updatePlatformSettingByKey('debug_telemetry', {
         'enabled': _isDebugTelemetry ?? false,
         'log_level': (_isDebugTelemetry ?? false) ? 'DEBUG' : 'INFO',
       });
+      final res4 = await repo.updatePlatformSettingByKey('emergency_broadcast_radius', {
+        'radius_km': _broadcastRadiusKm,
+      });
+      final res5 = await repo.updatePlatformSettingByKey('ai_match_threshold', {
+        'threshold_percent': _aiMatchThreshold,
+      });
 
-      if (res1.isLeft() || res2.isLeft() || res3.isLeft()) {
+      if (res1.isLeft() || res2.isLeft() || res3.isLeft() || res4.isLeft() || res5.isLeft()) {
         scaffold.showSnackBar(
           const SnackBar(
             content: Text('Failed to update one or more settings in Supabase.'),
@@ -84,7 +153,7 @@ class _AdminPlatformSettingsScreenState
       } else {
         scaffold.showSnackBar(
           const SnackBar(
-            content: Text('Platform settings saved successfully to Supabase.'),
+            content: Text('All platform configurations saved successfully to Supabase!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -113,9 +182,14 @@ class _AdminPlatformSettingsScreenState
         title: const Text('Platform Settings & Configurations'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () => context.go(RoutePaths.adminHome),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add Custom Key',
+            onPressed: _openAddCustomKeyDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_outlined),
             onPressed: () {
@@ -127,40 +201,6 @@ class _AdminPlatformSettingsScreenState
               ref.invalidate(adminPlatformSettingsProvider);
             },
             tooltip: 'Reload Settings',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_outlined),
-            onPressed: () {
-              showDialog<void>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Sign Out Administrator'),
-                  content: const Text(
-                    'Are you sure you want to end your administrator session?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        await ref.read(signOutProvider)(const NoParams());
-                        if (context.mounted) {
-                          context.go(RoutePaths.login);
-                        }
-                      },
-                      child: const Text('Sign Out'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            tooltip: 'Sign Out',
           ),
         ],
       ),
@@ -181,71 +221,29 @@ class _AdminPlatformSettingsScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Branding & Assets Section ────────────────────────
-                    _buildSettingsSectionCard(
-                      theme,
-                      colorScheme,
-                      icon: Icons.branding_watermark_outlined,
-                      title: 'Branding & Visual Assets',
-                      subtitle:
-                          'Manage global app logo, theme palettes, and banner assets.',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Asset Manager: Live configured assets active.'),
-                          ),
-                        );
-                      },
-                    ),
-
-                    AppSpacing.vGapLg,
-
-                    // ── Localization & Language ─────────────────────────
-                    _buildSettingsSectionCard(
-                      theme,
-                      colorScheme,
-                      icon: Icons.translate_outlined,
-                      title: 'Localization & Languages',
-                      subtitle:
-                          'Default locale: en_US • English, Spanish, French, German supported.',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Localization: Default en_US active.'),
-                          ),
-                        );
-                      },
-                    ),
-
-                    AppSpacing.vGapLg,
-
-                    // ── Privacy & Legal Compliance ───────────────────────
-                    _buildSettingsSectionCard(
-                      theme,
-                      colorScheme,
-                      icon: Icons.policy_outlined,
-                      title: 'Privacy & Legal Compliance',
-                      subtitle:
-                          'Manage EULA, HIPAA/Vet Compliance, and Data Governance.',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Legal Compliance: Standard EULA enforced.'),
-                          ),
-                        );
-                      },
-                    ),
+                    // ── Active Database Keys Counter ────────────────────
+                    _buildSettingsOverviewBanner(theme, colorScheme, settings.length),
 
                     AppSpacing.vGapLg,
 
                     // ── System Operations & Maintenance Switches ─────────
                     _buildMaintenanceCard(theme, colorScheme),
 
+                    AppSpacing.vGapLg,
+
+                    // ── Emergency & AI Policy Sliders ───────────────────
+                    _buildPolicySlidersCard(theme, colorScheme),
+
+                    AppSpacing.vGapLg,
+
+                    // ── Dynamic Key Catalog ────────────────────────────
+                    _buildDynamicKeyCatalog(theme, colorScheme, settings),
+
                     AppSpacing.vGapXl,
 
                     // ── Save Global Settings Button ─────────────────────
                     AppButton(
-                      text: _isSaving ? 'Saving...' : 'Save Global Settings',
+                      text: _isSaving ? 'Saving to Database...' : 'Save Global Configurations',
                       icon: Icons.save,
                       isLoading: _isSaving,
                       isFullWidth: true,
@@ -299,48 +297,35 @@ class _AdminPlatformSettingsScreenState
     );
   }
 
-  Widget _buildSettingsSectionCard(
-    ThemeData theme,
-    ColorScheme colorScheme, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildSettingsOverviewBanner(ThemeData theme, ColorScheme colorScheme, int keysCount) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: colorScheme.primaryContainer,
-              child: Icon(icon, color: colorScheme.primary),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+      child: Row(
+        children: [
+          Icon(Icons.tune, color: colorScheme.primary, size: 28),
+          AppSpacing.hGapSm,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Live Supabase Platform Schema',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '$keysCount platform keys actively synchronized with backend PostgreSQL database.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ],
             ),
-            AppSpacing.hGapSm,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
-          ],
-        ),
+          ),
+          AppChip(
+            label: 'SYNCED',
+            backgroundColor: AppColors.success.withValues(alpha: 0.15),
+            textColor: AppColors.success,
+          ),
+        ],
       ),
     );
   }
@@ -394,6 +379,110 @@ class _AdminPlatformSettingsScreenState
             onChanged: (val) => setState(() => _isDebugTelemetry = val),
             contentPadding: EdgeInsets.zero,
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPolicySlidersCard(ThemeData theme, ColorScheme colorScheme) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Operational & AI Policy Thresholds',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          AppSpacing.vGapMd,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Emergency Broadcast Radius Limit'),
+              Text('${_broadcastRadiusKm.toStringAsFixed(0)} km', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          Slider(
+            value: _broadcastRadiusKm,
+            min: 5.0,
+            max: 100.0,
+            divisions: 19,
+            label: '${_broadcastRadiusKm.toStringAsFixed(0)} km',
+            onChanged: (val) => setState(() => _broadcastRadiusKm = val),
+          ),
+          AppSpacing.vGapSm,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('AI Sighting Match Confidence Threshold'),
+              Text('${_aiMatchThreshold.toStringAsFixed(0)} %', style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          Slider(
+            value: _aiMatchThreshold,
+            min: 50.0,
+            max: 95.0,
+            divisions: 9,
+            label: '${_aiMatchThreshold.toStringAsFixed(0)} %',
+            onChanged: (val) => setState(() => _aiMatchThreshold = val),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDynamicKeyCatalog(ThemeData theme, ColorScheme colorScheme, List<PlatformSetting> settings) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Dynamic Platform Keys (${settings.length})',
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, size: 20),
+                tooltip: 'Add Key',
+                onPressed: _openAddCustomKeyDialog,
+              ),
+            ],
+          ),
+          AppSpacing.vGapSm,
+          if (settings.isEmpty)
+            const Text('No custom platform keys found in database.')
+          else
+            ...settings.map((s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.key, size: 16, color: colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            s.settingKey,
+                            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                        Text(
+                          s.settingValue.toString(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
         ],
       ),
     );

@@ -196,6 +196,11 @@ class _AdminUserManagementScreenState
                 rescuers: rescuers,
               ),
 
+              AppSpacing.vGapMd,
+
+              // ── Quick Module Jump Navigation ─────────────────────
+              _buildQuickModulesRow(theme, colorScheme),
+
               AppSpacing.vGapLg,
 
               // ── Search Bar & Role Filters ────────────────────────
@@ -326,6 +331,39 @@ class _AdminUserManagementScreenState
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickModulesRow(ThemeData theme, ColorScheme colorScheme) {
+    final modules = [
+      {'label': 'Staff & Ops', 'icon': Icons.badge_outlined, 'path': RoutePaths.adminStaff},
+      {'label': 'CMS Articles', 'icon': Icons.article_outlined, 'path': RoutePaths.adminContent},
+      {'label': 'Platform Analytics', 'icon': Icons.insights_outlined, 'path': RoutePaths.adminReports},
+      {'label': 'Security Posture', 'icon': Icons.security_outlined, 'path': RoutePaths.adminSecurity},
+      {'label': 'System Health', 'icon': Icons.monitor_heart_outlined, 'path': RoutePaths.adminHealth},
+      {'label': 'Global Settings', 'icon': Icons.tune_outlined, 'path': RoutePaths.adminSettings},
+      {'label': 'Moderation Queue', 'icon': Icons.gavel_outlined, 'path': RoutePaths.adminModeration},
+      {'label': 'Audit Logs', 'icon': Icons.receipt_long_outlined, 'path': RoutePaths.adminAuditLogs},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: modules.map((m) {
+          final icon = m['icon'] as IconData;
+          final label = m['label'] as String;
+          final path = m['path'] as String;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ActionChip(
+              avatar: Icon(icon, size: 16, color: colorScheme.primary),
+              label: Text(label, style: const TextStyle(fontSize: 12)),
+              onPressed: () => context.push(path),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

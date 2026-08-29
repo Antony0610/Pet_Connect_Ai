@@ -1,9 +1,11 @@
 import 'package:petconnect_ai/core/utils/typedefs.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/admin_article.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/security_posture_summary.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/staff_member.dart';
 
 /// Repository interface for Administrator operations.
 abstract class AdminRepository {
@@ -31,6 +33,19 @@ abstract class AdminRepository {
     required String role,
     required String password,
   });
+
+  // Staff Management
+  ResultFuture<List<StaffMember>> getStaffMembers();
+  ResultFuture<StaffMember> saveStaffMember(StaffMember member);
+  ResultFuture<void> deleteStaffMember(String id);
+
+  // Content Management System (CMS)
+  ResultFuture<List<AdminArticle>> getArticles({String? status});
+  ResultFuture<AdminArticle> saveArticle(AdminArticle article);
+  ResultFuture<void> deleteArticle(String id);
+
+  // Live Database Assessment
+  ResultFuture<Map<String, int>> getDatabaseTableCounts();
 
   // Moderation
   ResultFuture<List<Map<String, dynamic>>> getFlaggedContent();

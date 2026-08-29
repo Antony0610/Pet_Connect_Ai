@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/states/error_view.dart';
@@ -27,6 +29,34 @@ class AdminPlatformReportsScreen extends ConsumerStatefulWidget {
 
 class _AdminPlatformReportsScreenState
     extends ConsumerState<AdminPlatformReportsScreen> {
+  void _exportReportCsv(PlatformReportSummary? summary) {
+    if (summary == null) return;
+    final buffer = StringBuffer();
+    buffer.writeln('====================================================');
+    buffer.writeln('      PETCONNECT AI PLATFORM ANALYTICS REPORT       ');
+    buffer.writeln('====================================================');
+    buffer.writeln('Export Timestamp: ${DateTime.now().toIso8601String()}');
+    buffer.writeln('Report Month: ${summary.reportMonth.toIso8601String()}');
+    buffer.writeln('Total Registered Users: ${summary.totalUsers}');
+    buffer.writeln('Active Pet Owners: ${summary.totalPetOwners}');
+    buffer.writeln('Licensed Veterinarians: ${summary.totalVeterinarians}');
+    buffer.writeln('Field Rescuers: ${summary.totalRescuers}');
+    buffer.writeln('System Administrators: ${summary.totalAdministrators}');
+    buffer.writeln('Appointments Booked: ${summary.totalAppointments}');
+    buffer.writeln('Completed Consultations: ${summary.completedAppointments}');
+    buffer.writeln('AI Triage Conversations: ${summary.totalAiConversations}');
+    buffer.writeln('AI Health Scans: ${summary.totalAiScans}');
+    buffer.writeln('Rescue Missions Dispatched: ${summary.totalRescueMissions}');
+    buffer.writeln('Missing Pet Alerts: ${summary.totalLostPetAlerts}');
+    buffer.writeln('Refreshed At: ${summary.refreshedAt.toIso8601String()}');
+    buffer.writeln('====================================================');
+
+    ExternalActions.shareText(
+      buffer.toString(),
+      subject: 'PetConnect AI Platform Analytics Report',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final reportsAsync = ref.watch(adminPlatformReportsProvider);
@@ -36,7 +66,7 @@ class _AdminPlatformReportsScreenState
         title: const Text('Reports & Platform Analytics'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () => context.go(RoutePaths.adminHome),
         ),
         actions: [
           IconButton(
@@ -46,13 +76,7 @@ class _AdminPlatformReportsScreenState
           ),
           IconButton(
             icon: const Icon(Icons.download_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Export feature coming in Phase 14.'),
-                ),
-              );
-            },
+            onPressed: () => _exportReportCsv(reportsAsync.valueOrNull),
             tooltip: 'Export CSV',
           ),
         ],

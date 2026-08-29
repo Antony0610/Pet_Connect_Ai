@@ -1,82 +1,248 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/admin_article.dart';
+import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Administrator Content Management Screen (Stitch ID: `d809643e6f6b48fcbf4c05af7551f919`).
-///
-/// CMS and educational article management dashboard screen. Displays published articles,
-/// draft reviews, view/like telemetry stats, and publication actions.
-class AdminContentManagementScreen extends StatefulWidget {
+class AdminContentManagementScreen extends ConsumerStatefulWidget {
   const AdminContentManagementScreen({super.key});
 
   @override
-  State<AdminContentManagementScreen> createState() =>
+  ConsumerState<AdminContentManagementScreen> createState() =>
       _AdminContentManagementScreenState();
 }
 
 class _AdminContentManagementScreenState
-    extends State<AdminContentManagementScreen> {
+    extends ConsumerState<AdminContentManagementScreen> {
   String _selectedTab = 'Published';
 
-  final List<Map<String, dynamic>> _articles = [
-    {
-      'title': 'Top 5 Dog Parks in the City',
-      'summary':
-          'Discover the best places to let your furry friend run free. From sprawling fields to agility courses...',
-      'views': '1.2k',
-      'likes': '342',
-      'status': 'Published',
-      'publishedAgo': '2h ago',
-      'statusColor': AppColors.success,
-    },
-    {
-      'title': 'Nutritional Needs for Senior Cats',
-      'summary':
-          'As cats age, their dietary requirements change significantly. Here is a comprehensive guide to keeping them healthy...',
-      'views': '3.4k',
-      'likes': '890',
-      'status': 'Published',
-      'publishedAgo': '1d ago',
-      'statusColor': AppColors.success,
-    },
-    {
-      'title': 'Understanding Canine Allergy Symptoms',
-      'summary':
-          'Seasonal allergies in dogs can cause itchiness and discomfort. Learn how to recognize and treat them...',
-      'views': '0',
-      'likes': '0',
-      'status': 'Draft',
-      'publishedAgo': 'Editing',
-      'statusColor': AppColors.warning,
-    },
+  final List<AdminArticle> _fallbackArticles = [
+    AdminArticle(
+      id: 'art_1',
+      title: 'Top 5 Dog Parks in the City',
+      summary: 'Discover the best places to let your furry friend run free. From sprawling fields to agility courses...',
+      content: 'Full article body with recommended dog parks, hydration stations, and off-leash safety rules.',
+      authorName: 'Editorial Staff',
+      category: 'Pet Care & Recreation',
+      status: 'Published',
+      viewsCount: 1240,
+      likesCount: 342,
+      publishedAt: DateTime.now().subtract(const Duration(hours: 2)),
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+    AdminArticle(
+      id: 'art_2',
+      title: 'Nutritional Needs for Senior Cats',
+      summary: 'As cats age, their dietary requirements change significantly. Here is a comprehensive guide to keeping them healthy...',
+      content: 'Detailed guidelines on protein density, kidney health, moisture content in senior feline diets.',
+      authorName: 'Dr. Emily Chen, DVM',
+      category: 'Veterinary Advice',
+      status: 'Published',
+      viewsCount: 3420,
+      likesCount: 890,
+      publishedAt: DateTime.now().subtract(const Duration(days: 1)),
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    AdminArticle(
+      id: 'art_3',
+      title: 'Understanding Canine Allergy Symptoms',
+      summary: 'Seasonal allergies in dogs can cause itchiness and discomfort. Learn how to recognize and treat them...',
+      content: 'Early detection protocol for environmental and dietary allergies in canines.',
+      authorName: 'Clinical Editorial',
+      category: 'Health & Wellness',
+      status: 'Draft',
+      viewsCount: 0,
+      likesCount: 0,
+      createdAt: DateTime.now(),
+    ),
   ];
+
+  void _openCreateArticleDialog() async {
+    final titleCtrl = TextEditingController();
+    final summaryCtrl = TextEditingController();
+    final contentCtrl = TextEditingController();
+    final authorCtrl = TextEditingController(text: 'Admin Editorial');
+    String category = 'Health & Wellness';
+    String status = 'Published';
+
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          title: const Text('Publish / Draft CMS Article'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Article Headline',
+                    hintText: 'e.g. Essential Summer Hydration Tips',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: summaryCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Summary / Teaser',
+                    hintText: 'Brief summary displayed on mobile feed',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: contentCtrl,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Content Body',
+                    hintText: 'Markdown or plain text article contents',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: const [
+                    DropdownMenuItem(value: 'Health & Wellness', child: Text('Health & Wellness')),
+                    DropdownMenuItem(value: 'Veterinary Advice', child: Text('Veterinary Advice')),
+                    DropdownMenuItem(value: 'Pet Care & Recreation', child: Text('Pet Care & Recreation')),
+                    DropdownMenuItem(value: 'Official Announcements', child: Text('Official Announcements')),
+                  ],
+                  onChanged: (val) => setDlgState(() => category = val ?? 'Health & Wellness'),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: status,
+                  decoration: const InputDecoration(labelText: 'Publication State'),
+                  items: const [
+                    DropdownMenuItem(value: 'Published', child: Text('Published')),
+                    DropdownMenuItem(value: 'Draft', child: Text('Draft')),
+                    DropdownMenuItem(value: 'Archived', child: Text('Archived')),
+                  ],
+                  onChanged: (val) => setDlgState(() => status = val ?? 'Published'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save to CMS'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (created == true && titleCtrl.text.trim().isNotEmpty) {
+      final newArticle = AdminArticle(
+        id: '',
+        title: titleCtrl.text.trim(),
+        summary: summaryCtrl.text.trim(),
+        content: contentCtrl.text.trim(),
+        authorName: authorCtrl.text.trim(),
+        category: category,
+        status: status,
+        publishedAt: status == 'Published' ? DateTime.now() : null,
+        createdAt: DateTime.now(),
+      );
+
+      final repo = ref.read(adminRepositoryProvider);
+      final result = await repo.saveArticle(newArticle);
+      result.fold(
+        (failure) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to save article: ${failure.message}')),
+            );
+          }
+        },
+        (_) {
+          ref.invalidate(adminArticlesProvider(null));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Article "${titleCtrl.text.trim()}" published to database!')),
+            );
+          }
+        },
+      );
+    }
+  }
+
+  void _deleteArticle(AdminArticle article) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Article'),
+        content: Text('Are you sure you want to remove "${article.title}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final repo = ref.read(adminRepositoryProvider);
+      await repo.deleteArticle(article.id);
+      ref.invalidate(adminArticlesProvider(null));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Article "${article.title}" removed.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final articlesAsync = ref.watch(adminArticlesProvider(null));
+    final articleList = (articlesAsync.valueOrNull != null && articlesAsync.valueOrNull!.isNotEmpty)
+        ? articlesAsync.valueOrNull!
+        : _fallbackArticles;
+
+    final filtered = articleList.where((a) {
+      if (_selectedTab == 'Published') return a.status == 'Published';
+      if (_selectedTab == 'Drafts') return a.status == 'Draft';
+      if (_selectedTab == 'Archived Posts') return a.status == 'Archived';
+      return true;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Content Management System'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () => context.go(RoutePaths.adminHome),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.post_add_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening Article Editor...')),
-              );
-            },
+            onPressed: _openCreateArticleDialog,
             tooltip: 'New Article',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.invalidate(adminArticlesProvider(null)),
+            tooltip: 'Refresh CMS',
           ),
         ],
       ),
@@ -99,9 +265,38 @@ class _AdminContentManagementScreenState
                 AppSpacing.vGapMd,
 
                 // ── Content Article List ────────────────────────────
-                ..._articles.map(
-                  (art) => _buildArticleCard(context, theme, colorScheme, art),
-                ),
+                if (filtered.isEmpty && articlesAsync.isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (filtered.isEmpty)
+                  AppCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.article_outlined, size: 48, color: colorScheme.primary),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No articles found in "$_selectedTab".',
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap "Create Post" to publish new educational content or announcements.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...filtered.map(
+                    (art) => _buildArticleCard(context, theme, colorScheme, art),
+                  ),
 
                 AppSpacing.vGapXl,
               ],
@@ -144,11 +339,7 @@ class _AdminContentManagementScreenState
           AppButton(
             text: 'Create Post',
             icon: Icons.add,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Creating new post draft...')),
-              );
-            },
+            onPressed: _openCreateArticleDialog,
             height: 36,
           ),
         ],
@@ -157,7 +348,7 @@ class _AdminContentManagementScreenState
   }
 
   Widget _buildStatusFilterChips(ThemeData theme, ColorScheme colorScheme) {
-    final tabs = ['Published', 'Drafts', 'Archived Posts', 'Pending Review'];
+    final tabs = ['Published', 'Drafts', 'Archived Posts'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -186,9 +377,11 @@ class _AdminContentManagementScreenState
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
-    Map<String, dynamic> art,
+    AdminArticle art,
   ) {
-    final statusColor = art['statusColor'] as Color;
+    final statusColor = art.status == 'Published'
+        ? AppColors.success
+        : (art.status == 'Draft' ? AppColors.warning : AppColors.info);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -201,14 +394,14 @@ class _AdminContentManagementScreenState
               children: [
                 Expanded(
                   child: Text(
-                    art['title'] as String,
+                    art.title,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: AppTypography.bold,
                     ),
                   ),
                 ),
                 AppChip(
-                  label: art['status'] as String,
+                  label: art.status.toUpperCase(),
                   backgroundColor: statusColor.withValues(alpha: 0.15),
                   textColor: statusColor,
                 ),
@@ -216,7 +409,7 @@ class _AdminContentManagementScreenState
             ),
             AppSpacing.vGapXs,
             Text(
-              art['summary'] as String,
+              art.summary,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -225,13 +418,28 @@ class _AdminContentManagementScreenState
             Row(
               children: [
                 Icon(
+                  Icons.category_outlined,
+                  size: 14,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  art.category,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                AppSpacing.hGapMd,
+                Icon(
                   Icons.visibility_outlined,
                   size: 14,
                   color: colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  art['views'] as String,
+                  '${art.viewsCount}',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -244,20 +452,16 @@ class _AdminContentManagementScreenState
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  art['likes'] as String,
+                  '${art.likesCount}',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const Spacer(),
-                TextButton.icon(
-                  icon: const Icon(Icons.edit, size: 14),
-                  label: const Text('Edit'),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Editing ${art['title']}')),
-                    );
-                  },
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                  tooltip: 'Delete Article',
+                  onPressed: () => _deleteArticle(art),
                 ),
               ],
             ),

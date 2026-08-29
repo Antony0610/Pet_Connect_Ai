@@ -1,15 +1,18 @@
 import 'package:dartz/dartz.dart';
-
 import 'package:petconnect_ai/core/error/exceptions.dart';
 import 'package:petconnect_ai/core/error/failure_mapper.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
 import 'package:petconnect_ai/features/administrator/data/datasources/admin_remote_datasource.dart';
+import 'package:petconnect_ai/features/administrator/data/models/admin_article_model.dart';
 import 'package:petconnect_ai/features/administrator/data/models/audit_log_model.dart';
+import 'package:petconnect_ai/features/administrator/data/models/staff_member_model.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/admin_article.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/security_posture_summary.dart';
+import 'package:petconnect_ai/features/administrator/domain/entities/staff_member.dart';
 import 'package:petconnect_ai/features/administrator/domain/repositories/admin_repository.dart';
 
 class AdminRepositoryImpl implements AdminRepository {
@@ -174,6 +177,95 @@ class AdminRepositoryImpl implements AdminRepository {
         password: password,
       );
       return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Staff Management
+  @override
+  ResultFuture<List<StaffMember>> getStaffMembers() async {
+    try {
+      final list = await _remote.getStaffMembers();
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<StaffMember> saveStaffMember(StaffMember member) async {
+    try {
+      final model = StaffMemberModel.fromEntity(member);
+      final saved = await _remote.saveStaffMember(model);
+      return Right(saved);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> deleteStaffMember(String id) async {
+    try {
+      await _remote.deleteStaffMember(id);
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Content Management System (CMS)
+  @override
+  ResultFuture<List<AdminArticle>> getArticles({String? status}) async {
+    try {
+      final list = await _remote.getArticles(status: status);
+      return Right(list);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<AdminArticle> saveArticle(AdminArticle article) async {
+    try {
+      final model = AdminArticleModel.fromEntity(article);
+      final saved = await _remote.saveArticle(model);
+      return Right(saved);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  @override
+  ResultFuture<void> deleteArticle(String id) async {
+    try {
+      await _remote.deleteArticle(id);
+      return const Right(null);
+    } on AppException catch (e) {
+      return Left(FailureMapper.fromException(e));
+    } catch (e) {
+      return Left(FailureMapper.fromException(ServerException(e.toString())));
+    }
+  }
+
+  // Live Database Table Assessment
+  @override
+  ResultFuture<Map<String, int>> getDatabaseTableCounts() async {
+    try {
+      final map = await _remote.getDatabaseTableCounts();
+      return Right(map);
     } on AppException catch (e) {
       return Left(FailureMapper.fromException(e));
     } catch (e) {

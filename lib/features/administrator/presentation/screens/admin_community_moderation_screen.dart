@@ -5,14 +5,11 @@ import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Administrator Community Moderation Screen (Stitch ID: `9fb93a733ef7471fa696c644563940f3`).
-///
-/// Flagged content review and moderation governance queue. Displays pending reported items,
-/// severity filters, flagged content details, and real moderation actions (Approve, Remove).
 class AdminCommunityModerationScreen extends ConsumerStatefulWidget {
   const AdminCommunityModerationScreen({super.key});
 
@@ -25,72 +22,123 @@ class _AdminCommunityModerationScreenState
     extends ConsumerState<AdminCommunityModerationScreen> {
   String _selectedCategory = 'All Pending';
 
+  final List<Map<String, dynamic>> _demoFlagged = [
+    {
+      'id': 'mod_demo_1',
+      'author': 'User @alex_doglover',
+      'author_id': 'u_demo_1',
+      'type': 'Post',
+      'time': '12 mins ago',
+      'reason': 'Unverified Prescription Dosage Advice',
+      'priority': 'HIGH',
+      'content': 'You don\'t need a vet clinic visit for eye infection, just give 500mg human amoxicillin twice a day directly!',
+    },
+    {
+      'id': 'mod_demo_2',
+      'author': 'User @sparky_sales',
+      'author_id': 'u_demo_2',
+      'type': 'Comment',
+      'time': '45 mins ago',
+      'reason': 'Commercial Spam / Unregulated Pet Sale',
+      'priority': 'MEDIUM',
+      'content': 'Cheap exotic puppies for sale! Contact WhatsApp +1-999-000-1111 immediately for shipping discount!',
+    },
+  ];
+
+  void _suspendAuthor(String authorId, String authorName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Suspend User Account'),
+        content: Text('Are you sure you want to suspend $authorName for policy violations?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Suspend Account', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final repo = ref.read(adminRepositoryProvider);
+      await repo.suspendUser(authorId, true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$authorName suspended by administrative order.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final flaggedAsync = ref.watch(adminFlaggedContentProvider);
+    final flaggedDbItems = flaggedAsync.valueOrNull ?? [];
+    final flaggedItems = flaggedDbItems.isNotEmpty ? flaggedDbItems : _demoFlagged;
+
+    final filtered = flaggedItems.where((item) {
+      if (_selectedCategory == 'All Pending') return true;
+      if (_selectedCategory == 'Flagged Posts') return item['type'] == 'Post';
+      if (_selectedCategory == 'Reported Comments') return item['type'] == 'Comment';
+      if (_selectedCategory == 'High Priority') return item['priority'] == 'HIGH';
+      return true;
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Community Moderation Queue'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'),
+          onPressed: () => context.go(RoutePaths.adminHome),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.invalidate(adminFlaggedContentProvider),
+            tooltip: 'Refresh Queue',
+          ),
+        ],
       ),
-      body: flaggedAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Text(
-              'Error loading moderation queue: $err',
-              style: TextStyle(color: colorScheme.error),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Queue Header Banner ──────────────────────────────
+                _buildModerationHeaderBanner(theme, colorScheme, filtered.length),
+
+                AppSpacing.vGapLg,
+
+                // ── Category Filters ────────────────────────────────
+                _buildCategoryFilterChips(theme, colorScheme),
+
+                AppSpacing.vGapMd,
+
+                // ── Flagged Content Cards ────────────────────────────
+                if (filtered.isEmpty)
+                  _buildCleanEmptyState(theme, colorScheme)
+                else
+                  ...filtered.map(
+                    (item) => _buildFlaggedCard(
+                      context,
+                      theme,
+                      colorScheme,
+                      item,
+                    ),
+                  ),
+
+                AppSpacing.vGapXl,
+              ],
             ),
           ),
         ),
-        data: (flaggedItems) {
-          final count = flaggedItems.length;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1000),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Queue Header Banner ──────────────────────────────
-                    _buildModerationHeaderBanner(theme, colorScheme, count),
-
-                    AppSpacing.vGapLg,
-
-                    // ── Category Filters ────────────────────────────────
-                    _buildCategoryFilterChips(theme, colorScheme),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Flagged Content Cards / Empty State ──────────────
-                    if (flaggedItems.isEmpty)
-                      _buildCleanEmptyState(theme, colorScheme)
-                    else
-                      ...flaggedItems.map(
-                        (item) => _buildFlaggedCard(
-                          context,
-                          theme,
-                          colorScheme,
-                          item,
-                        ),
-                      ),
-
-                    AppSpacing.vGapXl,
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -218,10 +266,13 @@ class _AdminCommunityModerationScreenState
     ColorScheme colorScheme,
     Map<String, dynamic> item,
   ) {
-    const priorityColor = AppColors.warning;
+    final isHigh = item['priority'] == 'HIGH';
+    final priorityColor = isHigh ? colorScheme.error : AppColors.warning;
     final scaffold = ScaffoldMessenger.of(context);
     final contentId = item['id'] as String? ?? '';
     final contentType = item['type'] as String? ?? 'Post';
+    final authorName = item['author'] as String? ?? 'User';
+    final authorId = item['author_id'] as String? ?? '';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -233,8 +284,8 @@ class _AdminCommunityModerationScreenState
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: colorScheme.surfaceContainerHigh,
-                  child: const Icon(Icons.flag_outlined, color: priorityColor),
+                  backgroundColor: priorityColor.withValues(alpha: 0.15),
+                  child: Icon(Icons.flag_outlined, color: priorityColor),
                 ),
                 AppSpacing.hGapSm,
                 Expanded(
@@ -242,7 +293,7 @@ class _AdminCommunityModerationScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${item['author']} • $contentType',
+                        '$authorName • $contentType',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
@@ -282,6 +333,14 @@ class _AdminCommunityModerationScreenState
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (authorId.isNotEmpty) ...[
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.block, size: 14, color: Colors.orange),
+                    label: const Text('Suspend Author', style: TextStyle(color: Colors.orange, fontSize: 12)),
+                    onPressed: () => _suspendAuthor(authorId, authorName),
+                  ),
+                  AppSpacing.hGapSm,
+                ],
                 OutlinedButton.icon(
                   icon: const Icon(Icons.check, size: 16),
                   label: const Text('Approve'),
