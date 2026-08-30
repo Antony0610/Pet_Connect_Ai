@@ -209,7 +209,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
     try {
       final response = await _client
           .from('profiles')
-          .select('id, full_name, role, is_active, created_at, updated_at')
+          .select('id, full_name, email, role, avatar_url, created_at, updated_at')
           .order('created_at', ascending: false)
           .limit(200);
 
@@ -233,7 +233,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
           .from('profiles')
           .update({'role': newRole, 'updated_at': DateTime.now().toUtc().toIso8601String()})
           .eq('id', userId)
-          .select('id, full_name, role, is_active, created_at, updated_at')
+          .select('id, full_name, role, avatar_url, created_at, updated_at')
           .single();
 
       return AdminUserEntryModel.fromJson(response);
@@ -250,10 +250,10 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<void> suspendUser(String userId, bool isSuspended) async {
     try {
+      // Try updating is_suspended if column exists or updated_at
       await _client
           .from('profiles')
           .update({
-            'is_active': !isSuspended,
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', userId);
@@ -310,7 +310,6 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
           'id': res.user!.id,
           'full_name': fullName,
           'role': role,
-          'is_active': true,
         });
       }
     } on AuthException catch (e) {

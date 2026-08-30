@@ -22,29 +22,6 @@ class _AdminCommunityModerationScreenState
     extends ConsumerState<AdminCommunityModerationScreen> {
   String _selectedCategory = 'All Pending';
 
-  final List<Map<String, dynamic>> _demoFlagged = [
-    {
-      'id': 'mod_demo_1',
-      'author': 'User @alex_doglover',
-      'author_id': 'u_demo_1',
-      'type': 'Post',
-      'time': '12 mins ago',
-      'reason': 'Unverified Prescription Dosage Advice',
-      'priority': 'HIGH',
-      'content': 'You don\'t need a vet clinic visit for eye infection, just give 500mg human amoxicillin twice a day directly!',
-    },
-    {
-      'id': 'mod_demo_2',
-      'author': 'User @sparky_sales',
-      'author_id': 'u_demo_2',
-      'type': 'Comment',
-      'time': '45 mins ago',
-      'reason': 'Commercial Spam / Unregulated Pet Sale',
-      'priority': 'MEDIUM',
-      'content': 'Cheap exotic puppies for sale! Contact WhatsApp +1-999-000-1111 immediately for shipping discount!',
-    },
-  ];
-
   void _suspendAuthor(String authorId, String authorName) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -77,8 +54,7 @@ class _AdminCommunityModerationScreenState
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final flaggedAsync = ref.watch(adminFlaggedContentProvider);
-    final flaggedDbItems = flaggedAsync.valueOrNull ?? [];
-    final flaggedItems = flaggedDbItems.isNotEmpty ? flaggedDbItems : _demoFlagged;
+    final flaggedItems = flaggedAsync.valueOrNull ?? [];
 
     final filtered = flaggedItems.where((item) {
       if (_selectedCategory == 'All Pending') return true;

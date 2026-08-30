@@ -23,8 +23,8 @@ class QuickActionItemSpec {
   final bool isDanger;
 }
 
-/// A modern, compact quick action button styled with a vibrant gradient container,
-/// subtle 3D drop shadow, and crisp centered label — matching the reference design.
+/// A modern, 3D-styled quick action button styled as an individual standalone elevated card tile
+/// with multi-depth gradient icon container, realistic ambient drop shadow, and crisp centered label.
 class QuickActionButton extends StatelessWidget {
   const QuickActionButton({
     super.key,
@@ -34,11 +34,17 @@ class QuickActionButton extends StatelessWidget {
     required this.onTap,
     this.badgeText,
     this.isDanger = false,
-    this.iconSize = 22,
-    this.containerSize = 46,
+    this.iconSize = 28,
+    this.containerSize = 56,
+    this.isCardTile = true,
   });
 
-  factory QuickActionButton.fromSpec(QuickActionItemSpec spec) {
+  factory QuickActionButton.fromSpec(
+    QuickActionItemSpec spec, {
+    double? containerSize,
+    double? iconSize,
+    bool isCardTile = true,
+  }) {
     return QuickActionButton(
       title: spec.title,
       icon: spec.icon,
@@ -46,6 +52,9 @@ class QuickActionButton extends StatelessWidget {
       onTap: spec.onTap,
       badgeText: spec.badgeText,
       isDanger: spec.isDanger,
+      containerSize: containerSize ?? 56,
+      iconSize: iconSize ?? 28,
+      isCardTile: isCardTile,
     );
   }
 
@@ -57,92 +66,252 @@ class QuickActionButton extends StatelessWidget {
   final bool isDanger;
   final double iconSize;
   final double containerSize;
+  final bool isCardTile;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final primaryColor = gradientColors.first;
+    final secondaryColor = gradientColors.length > 1 ? gradientColors[1] : gradientColors.first;
 
-    return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: containerSize,
-                  height: containerSize,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: gradientColors,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: gradientColors.first.withValues(alpha: 0.35),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 3D Elevated Squircle Icon Tile
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: containerSize,
+                height: containerSize,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.lerp(primaryColor, Colors.white, 0.22) ?? primaryColor,
+                      primaryColor,
+                      secondaryColor,
                     ],
+                    stops: const [0.0, 0.40, 1.0],
                   ),
-                  child: Center(
-                    child: Icon(
-                      icon,
-                      size: iconSize,
-                      color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    // Soft colorful drop shadow for 3D depth
+                    BoxShadow(
+                      color: primaryColor.withValues(alpha: 0.42),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                      spreadRadius: -1,
                     ),
-                  ),
+                    // Darker ambient contact shadow underneath
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.16),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                if (badgeText != null && badgeText!.isNotEmpty)
-                  Positioned(
-                    top: -4,
-                    right: -6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: isDanger ? scheme.error : const Color(0xFFEF4444),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Text(
-                        badgeText!,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.2,
+                child: Stack(
+                  children: [
+                    // Subtle top highlight reflection for glossy 3D effect
+                    Positioned(
+                      top: 1.5,
+                      left: 4,
+                      right: 4,
+                      height: containerSize * 0.44,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withValues(alpha: 0.38),
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                          ),
                         ),
                       ),
                     ),
+                    Center(
+                      child: Icon(
+                        icon,
+                        size: iconSize,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (badgeText != null && badgeText!.isNotEmpty)
+                Positioned(
+                  top: -4,
+                  right: -6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDanger ? scheme.error : const Color(0xFFEF4444),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      badgeText!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Fixed-height centered text to ensure strict uniform row heights
+          SizedBox(
+            height: 30,
+            child: Text(
               title,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: context.textTheme.labelSmall?.copyWith(
-                fontWeight: AppTypography.semiBold,
-                fontSize: 11,
+                fontWeight: AppTypography.bold,
+                fontSize: 12,
                 letterSpacing: -0.2,
                 height: 1.15,
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+
+    if (isCardTile) {
+      return Container(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.25),
+          ),
         ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onTap();
+            },
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: content,
+          ),
+        ),
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: content,
+      ),
+    );
+  }
+}
+
+/// A responsive, perfectly balanced Quick Actions Grid container that
+/// distributes action buttons as separate individual standalone 3D card tiles
+/// into strict uniform columns (e.g. 3 columns x 2 rows, or 4 columns).
+class QuickActionsGridContainer extends StatelessWidget {
+  const QuickActionsGridContainer({
+    super.key,
+    required this.items,
+    this.crossAxisCount = 3,
+    this.tabletCrossAxisCount = 6,
+    this.containerSize = 56,
+    this.iconSize = 28,
+    this.padding,
+    this.mainAxisSpacing = 10,
+    this.crossAxisSpacing = 10,
+  });
+
+  final List<QuickActionItemSpec> items;
+  final int crossAxisCount;
+  final int tabletCrossAxisCount;
+  final double containerSize;
+  final double iconSize;
+  final EdgeInsetsGeometry? padding;
+  final double mainAxisSpacing;
+  final double crossAxisSpacing;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= 768;
+    final cols = isDesktop ? tabletCrossAxisCount : crossAxisCount;
+
+    return Padding(
+      padding: padding ?? EdgeInsets.zero,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final rows = <Widget>[];
+          for (var i = 0; i < items.length; i += cols) {
+            final end = (i + cols < items.length) ? i + cols : items.length;
+            final rowItems = items.sublist(i, end);
+
+            rows.add(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (var j = 0; j < rowItems.length; j++) ...[
+                    if (j > 0) SizedBox(width: crossAxisSpacing),
+                    Expanded(
+                      child: QuickActionButton.fromSpec(
+                        rowItems[j],
+                        containerSize: containerSize,
+                        iconSize: iconSize,
+                        isCardTile: true,
+                      ),
+                    ),
+                  ],
+                  // Fill remaining space in partial rows if any
+                  for (var k = 0; k < (cols - rowItems.length); k++) ...[
+                    SizedBox(width: crossAxisSpacing),
+                    const Expanded(child: SizedBox()),
+                  ],
+                ],
+              ),
+            );
+
+            if (end < items.length) {
+              rows.add(SizedBox(height: mainAxisSpacing));
+            }
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: rows,
+          );
+        },
       ),
     );
   }

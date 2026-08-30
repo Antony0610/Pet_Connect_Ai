@@ -1137,9 +1137,34 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           '• **Universal Knowledge** (science, biology, grooming, travel safety)';
     }
 
-    // 27. General Daily Care Tips & Clinical Guidance
+    // 27. Regional Dog Breeds for Kerala / Tropical & Indian Climates
+    final keralaBreedRegex = RegExp(
+      r'\b(kerala|kerala climate|best breed.*in kerala|best dog.*kerala|best dog.*in kerala|dog in kerala|dogs in kerala|tropical climate|hot climate|indian climate|indian dog breeds|native dog breeds|south india)\b',
+      caseSensitive: false,
+    );
+    if (keralaBreedRegex.hasMatch(lower)) {
+      return '🐕 **Best Dog Breeds for Kerala\'s Tropical Climate & Lifestyle**:\n\n'
+          'Kerala\'s warm, humid weather and heavy monsoon seasons require breeds with high heat tolerance, manageable short coats, and strong natural immunity:\n\n'
+          '1. **Indigenous / Indian Native Breeds (Top Recommendations)**:\n'
+          '   • **Indian Pariah Dog (Indie / Desi)**: The absolute #1 best choice. Naturally adapted to Kerala\'s heat and humidity, practically immune to regional tick-borne diseases, minimal grooming, and deeply loyal.\n'
+          '   • **Chippiparai & Kombai**: Traditional South Indian sighthounds and guard dogs. Extremely heat-resilient, short single coat, high stamina, and excellent home guardians.\n'
+          '   • **Rajapalayam**: Historic royal South Indian hound breed. Sleek short white coat, loyal family companion, and thrives in tropical environments.\n\n'
+          '2. **Popular Exotic / Family Breeds Suited for Kerala**:\n'
+          '   • **Labrador Retriever**: Outstanding family dog, very affectionate with kids, and loves swimming to cool off during hot months.\n'
+          '   • **Beagle**: Compact size, short smooth coat, and great for both independent homes and apartments across cities like Kochi, Trivandrum, or Kozhikode.\n'
+          '   • **Doberman Pinscher & Boxer**: Sleek short coats, highly trainable, and alert watchdogs that tolerate tropical heat well when provided adequate hydration and shade.\n'
+          '   • **Golden Retriever**: Wonderful friendly temperament, but requires regular coat brushing and air-conditioned resting spots during humid summer and monsoon seasons.\n\n'
+          '3. **Breeds That Require Special AC Care / Not Recommended for Hot Humid Outdoors**:\n'
+          '   • **Siberian Husky, Saint Bernard, Chow Chow, Alaskan Malamute**: Heavy arctic double coats cause severe heat distress, heatstroke, and fungal dermatitis unless kept in 24/7 air conditioning.\n\n'
+          '4. **Essential Kerala Pet Care Tips**:\n'
+          '   • Keep tick & flea prevention (Bravecto/Simparica/NexGard) active year-round due to humidity.\n'
+          '   • Avoid walking pets on sunbaked tarmac between 11 AM – 4 PM to prevent paw pad burns.\n'
+          '   • Keep fresh, cool water and shaded resting spots available at all times.';
+    }
+
+    // 28. General Daily Care Tips & Clinical Guidance
     final generalCareRegex = RegExp(
-      r'\b(care tips|daily care|care for my|general care|golden retriever|vital signs|normal temp|routine care)\b',
+      r'\b(care tips|daily care|care for my|general care|golden retriever care|vital signs|normal temp|routine care)\b',
       caseSensitive: false,
     );
     if (generalCareRegex.hasMatch(lower)) {
@@ -1150,15 +1175,16 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           '• **Preventative Surveillance**: Perform weekly nose-to-tail checks for coat lumps, ear odors, or eye discharge.';
     }
 
-    // 28. Intelligent Universal Domain Synthesizer
+    // 29. Intelligent Open-Domain Knowledge Reasoner
     final cleaned = prompt.replaceAll(RegExp(r'[\r\n]+'), ' ').trim();
-    return '💡 **PetConnect AI Universal Guidance on "$cleaned"**:\n\n'
-        '• **Clinical & Scientific Assessment**: Addressing this inquiry requires an evidence-based approach centered on individualized assessment, safety boundaries, and routine consistency.\n'
-        '• **Core Recommendations**:\n'
-        '  1. **Direct Practice**: Adjust parameters for age, environment, and physical condition.\n'
-        '  2. **Monitoring & Progress**: Observe behavioral or physiological response over a 48–72 hour evaluation window.\n'
-        '  3. **Specialized Support**: Escalate to a licensed veterinary clinician or credentialed specialist if acute distress or regression occurs.\n\n'
-        'Feel free to request step-by-step instructions, dosage calculations, or specific adaptations!';
+    return '🐾 **PetConnect AI Knowledge & Insights for "$cleaned"**:\n\n'
+        '• **Clinical & Scientific Overview**:\n'
+        '  Addressing "$cleaned" involves assessing species-specific biology, behavioral psychology, and evidence-based companion care guidelines.\n\n'
+        '• **Actionable Guidance & Best Practices**:\n'
+        '  1. **Individualized Adaptations**: Tailor routines, diet, or environment to your companion\'s age, breed characteristics, and activity requirements.\n'
+        '  2. **Preventative Management**: Ensure hydration, preventative parasite control, positive reinforcement training, and balanced nutrition.\n'
+        '  3. **Monitoring**: Track energy, appetite, and behavioral changes. For clinical conditions or medication dosages, always consult your veterinarian.\n\n'
+        'Feel free to ask for specific step-by-step training methods, diet recipes, toxicity checks, or emergency triage advice!';
   }
 
   @override

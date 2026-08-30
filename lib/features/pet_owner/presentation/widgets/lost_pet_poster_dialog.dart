@@ -432,65 +432,69 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                               doc.addPage(
                                 pw.Page(
                                   pageFormat: PdfPageFormat.a4,
-                                  margin: const pw.EdgeInsets.all(28),
+                                  margin: const pw.EdgeInsets.all(14),
                                   build: (pw.Context ctx) {
                                     return pw.Container(
                                       decoration: pw.BoxDecoration(
-                                        border: pw.Border.all(color: PdfColors.red800, width: 4),
-                                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                                        color: PdfColors.white,
+                                        border: pw.Border.all(color: PdfColors.red800, width: 4.5),
+                                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(14)),
                                       ),
-                                      padding: const pw.EdgeInsets.all(18),
+                                      padding: const pw.EdgeInsets.all(16),
                                       child: pw.Column(
                                         crossAxisAlignment: pw.CrossAxisAlignment.center,
                                         children: [
-                                          // Header
+                                          // ── TOP EMERGENCY HEADER ──
                                           pw.Container(
                                             width: double.infinity,
-                                            padding: const pw.EdgeInsets.symmetric(vertical: 12),
+                                            padding: const pw.EdgeInsets.symmetric(vertical: 14),
                                             decoration: const pw.BoxDecoration(
                                               color: PdfColors.red700,
-                                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(8)),
+                                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
                                             ),
                                             child: pw.Center(
                                               child: pw.Text(
-                                                'MISSING ${pet.species.toUpperCase()} 🚨',
+                                                'MISSING ${pet.species.toUpperCase()}',
                                                 style: const pw.TextStyle(
                                                   color: PdfColors.white,
-                                                  fontSize: 26,
+                                                  fontSize: 32,
                                                   fontWeight: pw.FontWeight.bold,
-                                                  letterSpacing: 2,
+                                                  letterSpacing: 3,
                                                 ),
                                               ),
                                             ),
                                           ),
-                                          pw.SizedBox(height: 14),
+                                          pw.SizedBox(height: 10),
 
-                                          // Pet Name
+                                          // ── PET NAME & BREED ──
                                           pw.Text(
                                             pet.name.toUpperCase(),
                                             style: const pw.TextStyle(
-                                              fontSize: 32,
+                                              fontSize: 36,
                                               fontWeight: pw.FontWeight.bold,
                                               color: PdfColors.red900,
+                                              letterSpacing: 1.2,
                                             ),
                                           ),
-                                          pw.SizedBox(height: 4),
+                                          pw.SizedBox(height: 2),
                                           pw.Text(
                                             pet.breedLine,
                                             style: const pw.TextStyle(
-                                              fontSize: 15,
+                                              fontSize: 16,
+                                              fontWeight: pw.FontWeight.bold,
                                               color: PdfColors.grey800,
                                             ),
                                           ),
-                                          pw.SizedBox(height: 14),
+                                          pw.SizedBox(height: 10),
 
-                                          // Pet Photo
+                                          // ── LARGE DOMINANT HERO PHOTO (280px tall) ──
                                           if (imgBytes != null)
                                             pw.Container(
-                                              height: 180,
-                                              width: 180,
+                                              height: 275,
+                                              width: 360,
                                               decoration: pw.BoxDecoration(
-                                                border: pw.Border.all(color: PdfColors.red700, width: 3),
+                                                color: PdfColors.grey200,
+                                                border: pw.Border.all(color: PdfColors.red700, width: 3.5),
                                                 borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
                                               ),
                                               child: pw.ClipRRect(
@@ -504,23 +508,23 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                             )
                                           else
                                             pw.Container(
-                                              height: 120,
-                                              width: 120,
+                                              height: 200,
+                                              width: 200,
                                               decoration: pw.BoxDecoration(
                                                 color: PdfColors.grey200,
                                                 shape: pw.BoxShape.circle,
-                                                border: pw.Border.all(color: PdfColors.red400, width: 2),
+                                                border: pw.Border.all(color: PdfColors.red600, width: 3),
                                               ),
                                               child: pw.Center(
                                                 child: pw.Text(
                                                   pet.name.isNotEmpty ? pet.name[0].toUpperCase() : 'PET',
-                                                  style: const pw.TextStyle(fontSize: 48, fontWeight: pw.FontWeight.bold, color: PdfColors.red700),
+                                                  style: const pw.TextStyle(fontSize: 64, fontWeight: pw.FontWeight.bold, color: PdfColors.red700),
                                                 ),
                                               ),
                                             ),
-                                          pw.SizedBox(height: 14),
+                                          pw.SizedBox(height: 12),
 
-                                          // Location Box
+                                          // ── STRUCTURED DETAILS CARD ──
                                           pw.Container(
                                             width: double.infinity,
                                             padding: const pw.EdgeInsets.all(12),
@@ -532,53 +536,65 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                             child: pw.Column(
                                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                                               children: [
-                                                pw.Row(children: [
-                                                  pw.Text('LAST SEEN LOCATION: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: PdfColors.red900)),
-                                                  pw.Expanded(child: pw.Text(lastSeenLocation, style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold))),
-                                                ]),
+                                                pw.Row(
+                                                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                                  children: [
+                                                    pw.Text('LAST SEEN LOCATION: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: PdfColors.red900)),
+                                                    pw.Expanded(
+                                                      child: pw.Text(
+                                                        lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Please contact owner for latest location radius',
+                                                        style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey900),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                                 pw.SizedBox(height: 6),
-                                                pw.Row(children: [
-                                                  pw.Text('SPECIES & GENDER: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                                                  pw.Text('${pet.species.toUpperCase()} (${pet.gender?.toUpperCase() ?? "UNKNOWN"})', style: const pw.TextStyle(fontSize: 11)),
-                                                  pw.SizedBox(width: 20),
-                                                  pw.Text('MICROCHIP: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                                                  pw.Text(pet.microchipId?.isNotEmpty == true ? 'CHIPPED' : 'NOT CHIPPED', style: const pw.TextStyle(fontSize: 11)),
-                                                ]),
+                                                pw.Row(
+                                                  children: [
+                                                    pw.Text('SPECIES & GENDER: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.grey800)),
+                                                    pw.Text('${pet.species.toUpperCase()} (${pet.gender?.toUpperCase() ?? "UNKNOWN"})', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                                                    pw.SizedBox(width: 24),
+                                                    pw.Text('MICROCHIP: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.grey800)),
+                                                    pw.Text(pet.microchipId?.isNotEmpty == true ? 'CHIPPED (${pet.microchipId})' : 'NOT CHIPPED', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                                                  ],
+                                                ),
                                               ],
                                             ),
                                           ),
-                                          pw.SizedBox(height: 12),
+                                          pw.SizedBox(height: 10),
 
-                                          // Reward Banner
+                                          // ── REWARD BANNER (No Unicode Tofu Boxes) ──
                                           if (rewardAmount.isNotEmpty)
                                             pw.Container(
                                               width: double.infinity,
-                                              padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                                              padding: const pw.EdgeInsets.symmetric(vertical: 9),
                                               decoration: pw.BoxDecoration(
                                                 color: PdfColor.fromHex('#FEF3C7'),
-                                                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
-                                                border: pw.Border.all(color: PdfColors.amber800, width: 1.5),
+                                                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                                                border: pw.Border.all(color: PdfColors.amber800, width: 2),
                                               ),
                                               child: pw.Center(
                                                 child: pw.Text(
-                                                  '⭐ $rewardAmount CASH REWARD — NO QUESTIONS ASKED ⭐',
+                                                  '$rewardAmount CASH REWARD  *  NO QUESTIONS ASKED',
                                                   style: const pw.TextStyle(
                                                     color: PdfColors.amber900,
                                                     fontWeight: pw.FontWeight.bold,
-                                                    fontSize: 13,
+                                                    fontSize: 14,
+                                                    letterSpacing: 0.5,
                                                   ),
                                                 ),
                                               ),
                                             ),
                                           pw.Spacer(),
 
-                                          // Emergency Call & QR
+                                          // ── EMERGENCY CALL & QR ──
                                           pw.Container(
                                             width: double.infinity,
                                             padding: const pw.EdgeInsets.all(12),
-                                            decoration: const pw.BoxDecoration(
-                                              color: PdfColors.grey100,
-                                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(8)),
+                                            decoration: pw.BoxDecoration(
+                                              color: PdfColor.fromHex('#F1F5F9'),
+                                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                                              border: pw.Border.all(color: PdfColors.grey400, width: 1),
                                             ),
                                             child: pw.Row(
                                               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -594,7 +610,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                                       pw.SizedBox(height: 4),
                                                       pw.Text(
                                                         ownerPhone,
-                                                        style: const pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.red800),
+                                                        style: const pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.red800),
                                                       ),
                                                       pw.SizedBox(height: 2),
                                                       pw.Text('Email: $ownerEmail', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
@@ -604,15 +620,15 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                                 pw.BarcodeWidget(
                                                   data: qrPayload,
                                                   barcode: pw.Barcode.qrCode(),
-                                                  width: 75,
-                                                  height: 75,
+                                                  width: 85,
+                                                  height: 85,
                                                 ),
                                               ],
                                             ),
                                           ),
                                           pw.SizedBox(height: 6),
                                           pw.Text(
-                                            'Generated via PetConnect AI Emergency Rescue Network • Scan QR code to notify owner immediately',
+                                            'Generated via PetConnect AI Emergency Rescue Network  *  Scan QR code to notify owner immediately',
                                             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
                                           ),
                                         ],

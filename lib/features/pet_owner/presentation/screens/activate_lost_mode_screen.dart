@@ -12,6 +12,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/lost_pet_poster_dialog.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/pet_emergency_qr_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 
 /// The Pet Owner **Activate Lost Mode** emergency screen.
@@ -195,6 +197,46 @@ class _ActivateLostModeScreenState extends ConsumerState<ActivateLostModeScreen>
 
                 const _ActionList(),
                 AppSpacing.vGapLg,
+
+                // ── Rapid Recovery Actions ────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          foregroundColor: scheme.error,
+                          side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
+                        ),
+                        icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                        label: const Text('Export Poster', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          if (pet != null) {
+                            LostPetPosterDialog.show(context, pet: pet);
+                          }
+                        },
+                      ),
+                    ),
+                    AppSpacing.hGapSm,
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          foregroundColor: scheme.primary,
+                          side: BorderSide(color: scheme.primary.withValues(alpha: 0.5)),
+                        ),
+                        icon: const Icon(Icons.qr_code_2_rounded, size: 16),
+                        label: const Text('Pet QR Pass', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          if (pet != null) {
+                            PetEmergencyQrModal.show(context, pet);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpacing.vGapMd,
 
                 // ── Actions ────────────────────────────────────────
                 if (_isActivating)

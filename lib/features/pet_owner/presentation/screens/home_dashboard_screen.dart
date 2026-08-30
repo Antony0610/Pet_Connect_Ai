@@ -895,7 +895,17 @@ class _QuickActionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = context.screenWidth >= AppBreakpoints.tablet;
+    final activeSpecs = List.generate(_specs.length, (i) {
+      final spec = _specs[i];
+      return QuickActionItemSpec(
+        title: spec.title,
+        icon: spec.icon,
+        gradientColors: spec.gradientColors,
+        badgeText: spec.badgeText,
+        isDanger: spec.isDanger,
+        onTap: () => _navigate(context, _routes[i]),
+      );
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -918,57 +928,12 @@ class _QuickActionsGrid extends StatelessWidget {
           ],
         ),
         AppSpacing.vGapMd,
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(
-            color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
-            ),
-          ),
-          child: isDesktop
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(_specs.length, (i) {
-                    final spec = _specs[i];
-                    return Expanded(
-                      child: QuickActionButton(
-                        title: spec.title,
-                        icon: spec.icon,
-                        gradientColors: spec.gradientColors,
-                        badgeText: spec.badgeText,
-                        isDanger: spec.isDanger,
-                        containerSize: 50,
-                        iconSize: 24,
-                        onTap: () => _navigate(context, _routes[i]),
-                      ),
-                    );
-                  }),
-                )
-              : Wrap(
-                  alignment: WrapAlignment.spaceAround,
-                  spacing: 8,
-                  runSpacing: 14,
-                  children: List.generate(_specs.length, (i) {
-                    final spec = _specs[i];
-                    final width = (context.screenWidth - 72) / 3;
-                    return SizedBox(
-                      width: width.clamp(80.0, 120.0),
-                      child: QuickActionButton(
-                        title: spec.title,
-                        icon: spec.icon,
-                        gradientColors: spec.gradientColors,
-                        badgeText: spec.badgeText,
-                        isDanger: spec.isDanger,
-                        containerSize: 48,
-                        iconSize: 24,
-                        onTap: () => _navigate(context, _routes[i]),
-                      ),
-                    );
-                  }),
-                ),
+        QuickActionsGridContainer(
+          items: activeSpecs,
+          crossAxisCount: 3,
+          tabletCrossAxisCount: 6,
+          containerSize: 52,
+          iconSize: 26,
         ),
       ],
     );

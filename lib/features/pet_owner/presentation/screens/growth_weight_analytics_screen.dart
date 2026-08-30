@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -8,6 +11,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_weight_log.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
@@ -16,7 +20,7 @@ import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// **Growth & Weight Analytics** — `/owner/health/growth`.
 ///
-/// Fully dynamic growth and weight tracker backed by Supabase weight logs.
+/// Fully dynamic growth and weight tracker backed by Supabase weight logs and growth photos.
 /// ZERO dummy/hardcoded data.
 class GrowthWeightAnalyticsScreen extends ConsumerStatefulWidget {
   const GrowthWeightAnalyticsScreen({super.key});
@@ -28,6 +32,8 @@ class GrowthWeightAnalyticsScreen extends ConsumerStatefulWidget {
 
 class _GrowthWeightAnalyticsScreenState
     extends ConsumerState<GrowthWeightAnalyticsScreen> {
+  final List<String> _localGrowthPhotos = [];
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
@@ -51,7 +57,28 @@ class _GrowthWeightAnalyticsScreenState
         title: selectedPet != null
             ? "$petName's Growth & Weight"
             : 'Growth & Weight',
+        actions: [
+          if (selectedPet != null) ...[
+            IconButton(
+              icon: const Icon(Icons.add_a_photo_outlined),
+              tooltip: 'Add Growth Photo',
+              onPressed: () => _pickAndAddGrowthPhoto(context, selectedPet),
+            ),
+            IconButton(
+              icon: const Icon(Icons.monitor_weight_outlined),
+              tooltip: 'Log Weight',
+              onPressed: () => _showLogWeightModal(context, selectedPet),
+            ),
+          ],
+        ],
       ),
+      floatingActionButton: selectedPet != null
+          ? FloatingActionButton.extended(
+              onPressed: () => _showLogWeightModal(context, selectedPet),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Log Weight'),
+            )
+          : null,
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
@@ -87,6 +114,8 @@ class _GrowthWeightAnalyticsScreenState
                   logs: logs,
                   palette: palette,
                   brightness: brightness,
+                  growthPhotos: _localGrowthPhotos,
+                  onAddPhoto: selectedPet != null ? () => _pickAndAddGrowthPhoto(context, selectedPet) : null,
                 ),
               ) ??
               _GrowthContent(
@@ -98,6 +127,8 @@ class _GrowthWeightAnalyticsScreenState
                 logs: const [],
                 palette: palette,
                 brightness: brightness,
+                growthPhotos: _localGrowthPhotos,
+                onAddPhoto: selectedPet != null ? () => _pickAndAddGrowthPhoto(context, selectedPet) : null,
               ),
             ),
           ),
@@ -111,6 +142,289 @@ class _GrowthWeightAnalyticsScreenState
     if (width < AppBreakpoints.desktop) return AppSpacing.marginTablet;
     return AppSpacing.marginDesktop;
   }
+
+  Future<void> _pickAndAddGrowthPhoto(BuildContext context, Pet pet) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await showModalBottomSheet<XFile?>(
+        context: context,
+        backgroundColor: context.colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Add Growth & Progress Photo',
+                  style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Capture visual development for ${pet.name}',
+                  style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
+                ),
+                AppSpacing.vGapLg,
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_rounded),
+                  title: const Text('Take Photo with Camera'),
+                  onTap: () async {
+                    final file = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+                    if (ctx.mounted) Navigator.pop(ctx, file);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_rounded),
+                  title: const Text('Choose from Gallery'),
+                  onTap: () async {
+                    final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+                    if (ctx.mounted) Navigator.pop(ctx, file);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      if (picked != null) {
+        setState(() {
+          _localGrowthPhotos.add(picked.path);
+        });
+        if (context.mounted) {
+          context.showSnackbar('Growth progress photo added for ${pet.name}!');
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.showSnackbar('Could not add photo: $e');
+      }
+    }
+  }
+
+  void _showLogWeightModal(BuildContext context, Pet pet) {
+    final weightCtrl = TextEditingController(
+      text: pet.weightKg != null ? pet.weightKg.toString() : '',
+    );
+    final notesCtrl = TextEditingController();
+    DateTime logDate = DateTime.now();
+    double bcsRating = 5.0; // Ideal baseline
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.lg,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: context.colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF06B6D4).withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.monitor_weight_rounded, color: Color(0xFF06B6D4), size: 24),
+                        ),
+                        AppSpacing.hGapMd,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Log Weight Measurement',
+                                style: context.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Track growth curve for ${pet.name}',
+                                style: context.textTheme.bodySmall?.copyWith(
+                                  color: context.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    AppSpacing.vGapMd,
+                    TextField(
+                      controller: weightCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Body Weight (kg) *',
+                        hintText: 'e.g. 4.2',
+                        prefixIcon: Icon(Icons.scale_rounded),
+                        suffixText: 'kg',
+                        border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                    InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: logDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) {
+                          setModalState(() => logDate = picked);
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Measurement Date',
+                          prefixIcon: Icon(Icons.calendar_today_rounded, size: 18),
+                          border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                        ),
+                        child: Text(
+                          '${logDate.day}/${logDate.month}/${logDate.year}',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Body Condition Score (BCS 1-9):',
+                              style: context.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              '${bcsRating.toInt()}/9 (${_bcsLabel(bcsRating.toInt())})',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _bcsColor(bcsRating.toInt()),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Slider(
+                          value: bcsRating,
+                          min: 1,
+                          max: 9,
+                          divisions: 8,
+                          label: '${bcsRating.toInt()}',
+                          onChanged: (val) => setModalState(() => bcsRating = val),
+                        ),
+                      ],
+                    ),
+                    AppSpacing.vGapSm,
+                    TextField(
+                      controller: notesCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Notes / Dietary Adjustments (Optional)',
+                        hintText: 'e.g. Post-meal morning weigh-in, optimal posture',
+                        prefixIcon: Icon(Icons.notes_rounded),
+                        border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                      ),
+                    ),
+                    AppSpacing.vGapLg,
+                    FilledButton.icon(
+                      icon: const Icon(Icons.check_circle_rounded),
+                      label: const Text('Save Weight Entry'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
+                      ),
+                      onPressed: () async {
+                        final rawWeight = weightCtrl.text.trim();
+                        final parsed = double.tryParse(rawWeight);
+                        if (parsed == null || parsed <= 0) {
+                          context.showSnackbar('Please enter a valid weight in kg.');
+                          return;
+                        }
+
+                        Navigator.pop(ctx);
+                        try {
+                          final repo = ref.read(healthRepositoryProvider);
+                          final now = DateTime.now();
+                          final newLog = PetWeightLog(
+                            id: 'weight-${now.millisecondsSinceEpoch}',
+                            petId: pet.id,
+                            recordedAt: logDate,
+                            weightKg: parsed,
+                            notes: notesCtrl.text.trim().isNotEmpty
+                                ? '${notesCtrl.text.trim()} (BCS: ${bcsRating.toInt()}/9)'
+                                : 'BCS: ${bcsRating.toInt()}/9 (${_bcsLabel(bcsRating.toInt())})',
+                            createdAt: now,
+                          );
+
+                          await repo.addWeightLog(newLog);
+                          ref.invalidate(petWeightLogsProvider(pet.id));
+                          ref.invalidate(petsProvider);
+                          if (context.mounted) {
+                            context.showSnackbar('Weight log ($parsed kg) recorded successfully!');
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            context.showSnackbar('Failed to save weight log: $e');
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static String _bcsLabel(int score) {
+    if (score <= 3) return 'Under ideal weight';
+    if (score <= 5) return 'Ideal body condition';
+    if (score <= 7) return 'Over ideal weight';
+    return 'Obese condition';
+  }
+
+  static Color _bcsColor(int score) {
+    if (score == 4 || score == 5) return const Color(0xFF10B981);
+    if (score == 3 || score == 6) return const Color(0xFFF59E0B);
+    return const Color(0xFFEF4444);
+  }
 }
 
 class _GrowthContent extends StatelessWidget {
@@ -123,6 +437,8 @@ class _GrowthContent extends StatelessWidget {
     required this.logs,
     required this.palette,
     required this.brightness,
+    this.growthPhotos = const [],
+    this.onAddPhoto,
   });
 
   final String petId;
@@ -133,6 +449,8 @@ class _GrowthContent extends StatelessWidget {
   final List<PetWeightLog> logs;
   final PortalPalette palette;
   final Brightness brightness;
+  final List<String> growthPhotos;
+  final VoidCallback? onAddPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +468,13 @@ class _GrowthContent extends StatelessWidget {
           accent: palette.accent,
           container: palette.accentContainer(brightness),
           onContainer: palette.onAccentContainer(brightness),
+        ),
+        AppSpacing.vGapLg,
+        _GrowthPhotosTimeline(
+          petName: petName,
+          photos: growthPhotos,
+          onAdd: onAddPhoto,
+          accent: palette.accent,
         ),
         AppSpacing.vGapLg,
         _GrowthCurveCard(
@@ -953,6 +1278,160 @@ class _RecentWeighIns extends StatelessWidget {
                 ),
         ),
       ],
+    );
+  }
+}
+
+class _GrowthPhotosTimeline extends StatelessWidget {
+  const _GrowthPhotosTimeline({
+    required this.petName,
+    required this.photos,
+    required this.onAdd,
+    required this.accent,
+  });
+
+  final String petName;
+  final List<String> photos;
+  final VoidCallback? onAdd;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Growth & Progress Photos',
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: AppTypography.semiBold,
+                    ),
+                  ),
+                  AppSpacing.vGapXs,
+                  Text(
+                    'Visual physical development for $petName',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              if (onAdd != null)
+                IconButton.filledTonal(
+                  icon: const Icon(Icons.add_a_photo_rounded, size: 18),
+                  tooltip: 'Add Growth Photo',
+                  onPressed: onAdd,
+                ),
+            ],
+          ),
+          AppSpacing.vGapMd,
+          if (photos.isEmpty)
+            InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              onTap: onAdd,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                    style: BorderStyle.solid,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.photo_library_outlined, size: 36, color: accent),
+                    AppSpacing.vGapSm,
+                    Text(
+                      'No growth photos uploaded yet',
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        fontWeight: AppTypography.semiBold,
+                      ),
+                    ),
+                    Text(
+                      'Tap to snap or upload milestone growth photos',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 120,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: photos.length + 1,
+                separatorBuilder: (_, __) => AppSpacing.hGapSm,
+                itemBuilder: (context, idx) {
+                  if (idx == photos.length) {
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      onTap: onAdd,
+                      child: Container(
+                        width: 100,
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: scheme.outlineVariant),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_rounded, color: accent),
+                            const SizedBox(height: 4),
+                            Text('Add More', style: TextStyle(fontSize: 11, color: accent, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  final photoPath = photos[idx];
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: Stack(
+                      children: [
+                        Image.file(
+                          File(photoPath),
+                          width: 100,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            color: Colors.black54,
+                            child: Text(
+                              'Photo #${idx + 1}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

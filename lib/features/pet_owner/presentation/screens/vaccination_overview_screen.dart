@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
@@ -41,7 +42,22 @@ class VaccinationOverviewScreen extends ConsumerWidget {
         title: selectedPet != null
             ? "$petName's Vaccinations"
             : 'Vaccinations',
+        actions: [
+          if (selectedPet != null)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              tooltip: 'Add Vaccine Record',
+              onPressed: () => _showAddVaccineModal(context, ref, selectedPet),
+            ),
+        ],
       ),
+      floatingActionButton: selectedPet != null
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddVaccineModal(context, ref, selectedPet),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Vaccine'),
+            )
+          : null,
       body: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
@@ -92,6 +108,251 @@ class VaccinationOverviewScreen extends ConsumerWidget {
     if (width < AppBreakpoints.tablet) return AppSpacing.marginMobile;
     if (width < AppBreakpoints.desktop) return AppSpacing.marginTablet;
     return AppSpacing.marginDesktop;
+  }
+
+  void _showAddVaccineModal(BuildContext context, WidgetRef ref, Pet pet) {
+    final nameCtrl = TextEditingController();
+    final batchCtrl = TextEditingController();
+    final clinicCtrl = TextEditingController();
+    DateTime adminDate = DateTime.now();
+    DateTime nextDueDate = DateTime.now().add(const Duration(days: 365));
+
+    final commonVaccines = pet.species.toLowerCase() == 'cat'
+        ? ['Rabies', 'FVRCP (Core)', 'FeLV (Feline Leukemia)', 'FIV', 'Deworming Protocol']
+        : ['Rabies (Core)', 'DHPP / DHLPP (5-in-1)', 'Bordetella (Kennel Cough)', 'Leptospirosis', 'Lyme Disease', 'Deworming Protocol'];
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.lg,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: context.colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.vaccines_rounded, color: Color(0xFF10B981), size: 24),
+                        ),
+                        AppSpacing.hGapMd,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Add Vaccine Record',
+                                style: context.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Immunization for ${pet.name}',
+                                style: context.textTheme.bodySmall?.copyWith(
+                                  color: context.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    AppSpacing.vGapMd,
+                    Text(
+                      'Quick Select Common Vaccine:',
+                      style: context.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    AppSpacing.vGapXs,
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: commonVaccines.map((vax) {
+                        final isSelected = nameCtrl.text == vax;
+                        return ChoiceChip(
+                          label: Text(vax, style: const TextStyle(fontSize: 11)),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setModalState(() {
+                              nameCtrl.text = selected ? vax : '';
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    AppSpacing.vGapMd,
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Vaccine / Treatment Name *',
+                        hintText: 'e.g. Rabies 3-Year, DHPP',
+                        prefixIcon: Icon(Icons.medication_outlined),
+                        border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: adminDate,
+                                firstDate: DateTime(2015),
+                                lastDate: DateTime.now(),
+                              );
+                              if (picked != null) {
+                                setModalState(() => adminDate = picked);
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Administered Date',
+                                prefixIcon: Icon(Icons.calendar_today_rounded, size: 18),
+                                border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                              ),
+                              child: Text(
+                                '${adminDate.day}/${adminDate.month}/${adminDate.year}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                          ),
+                        ),
+                        AppSpacing.hGapSm,
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: nextDueDate,
+                                firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                                lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                              );
+                              if (picked != null) {
+                                setModalState(() => nextDueDate = picked);
+                              }
+                            },
+                            child: InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Next Booster Due',
+                                prefixIcon: Icon(Icons.event_repeat_rounded, size: 18),
+                                border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                              ),
+                              child: Text(
+                                '${nextDueDate.day}/${nextDueDate.month}/${nextDueDate.year}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    AppSpacing.vGapMd,
+                    TextField(
+                      controller: batchCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Batch / Lot Number (Optional)',
+                        hintText: 'e.g. LOT-49281-EXP27',
+                        prefixIcon: Icon(Icons.tag_rounded),
+                        border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                      ),
+                    ),
+                    AppSpacing.vGapMd,
+                    TextField(
+                      controller: clinicCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Veterinarian / Clinic Name (Optional)',
+                        hintText: 'e.g. City Vet Hospital, Dr. Paul',
+                        prefixIcon: Icon(Icons.local_hospital_outlined),
+                        border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                      ),
+                    ),
+                    AppSpacing.vGapLg,
+                    FilledButton.icon(
+                      icon: const Icon(Icons.check_circle_rounded),
+                      label: const Text('Save Vaccination Record'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
+                      ),
+                      onPressed: () async {
+                        final vaxName = nameCtrl.text.trim();
+                        if (vaxName.isEmpty) {
+                          context.showSnackbar('Please enter or select a vaccine name.');
+                          return;
+                        }
+
+                        Navigator.pop(ctx);
+                        try {
+                          final repo = ref.read(healthRepositoryProvider);
+                          final now = DateTime.now();
+                          final newVax = Vaccination(
+                            id: 'vax-${now.millisecondsSinceEpoch}',
+                            petId: pet.id,
+                            vaccineName: vaxName,
+                            administeredDate: adminDate,
+                            nextDueDate: nextDueDate,
+                            batchNumber: batchCtrl.text.trim().isNotEmpty ? batchCtrl.text.trim() : null,
+                            administeredBy: clinicCtrl.text.trim().isNotEmpty ? clinicCtrl.text.trim() : null,
+                            createdAt: now,
+                            updatedAt: now,
+                          );
+
+                          await repo.createVaccination(newVax);
+                          ref.invalidate(vaccinationsProvider(pet.id));
+                          if (context.mounted) {
+                            context.showSnackbar('$vaxName record saved successfully!');
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            context.showSnackbar('Failed to save record: $e');
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 

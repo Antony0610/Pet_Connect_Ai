@@ -195,7 +195,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ref.read(selectedPortalProvider.notifier).state = _selectedPortal;
         final targetPath = RouteGuard.portalHome(_selectedPortal);
 
-        if (profile != null && (profile.phone == null || profile.phone!.trim().isEmpty)) {
+        if (_selectedPortal == AppPortal.petOwner &&
+            profile != null &&
+            (profile.phone == null || profile.phone!.trim().isEmpty)) {
           if (mounted) {
             await _showAddPhonePrompt(context, profile, targetPath);
             return;

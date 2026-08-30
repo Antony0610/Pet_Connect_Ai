@@ -10,8 +10,12 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/ai_services/domain/services/ai_report_pdf_exporter.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_weight_log.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
@@ -81,6 +85,11 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
     final currentWeekRange = '${dateFormat.format(weekStart)} – ${dateFormat.format(now)}, ${yearFormat.format(now)}';
     final lastMonthName = DateFormat('MMMM yyyy').format(DateTime(now.year, now.month - 1));
 
+    final List<PetWeightLog> weightLogs = pet != null ? (ref.watch(petWeightLogsProvider(pet.id)).valueOrNull ?? const []) : const [];
+    final latestWeight = pet?.weightKg != null
+        ? '${pet!.weightKg!.toStringAsFixed(1)} kg'
+        : (weightLogs.isNotEmpty ? '${weightLogs.first.weightKg.toStringAsFixed(1)} kg' : 'Optimal');
+
     final reports = [
       _Report(
         Icons.calendar_view_week_rounded,
@@ -94,7 +103,7 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
         'Monthly Summary',
         lastMonthName,
         _ReportStatus.ready,
-        details: 'Comprehensive monthly health overview for $petName: Weight maintained at ${pet?.weightKg != null ? '${pet!.weightKg} kg' : 'optimal baseline'}, zero emergency triage incidents logged.',
+        details: 'Comprehensive monthly health overview for $petName: Weight maintained at $latestWeight, zero emergency triage incidents logged.',
       ),
       _Report(
         Icons.vaccines_rounded,
@@ -108,7 +117,7 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
         'Quarterly Health Trends',
         'Last 90 Days Telemetry',
         _ReportStatus.ready,
-        details: '90-day smart collar sleep, activity, and weight progression trends for $petName: Daily activity averaged 54 mins, rest quality remained steady, and wellness index is optimal.',
+        details: '90-day telemetry, sleep progression, and weight stability trends for $petName: Body weight maintained at $latestWeight, wellness index is optimal.',
       ),
     ];
 
@@ -207,9 +216,21 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
   }
 
   void _showReportModal(BuildContext context, _Report report, Pet? pet) {
-    final petName = pet?.name ?? 'Companion';
-    final breed = pet?.breed ?? pet?.species ?? 'Pet';
-    final weight = pet?.weightKg != null ? '${pet!.weightKg} kg' : 'Healthy weight';
+    if (pet == null) {
+      context.showSnackbar('Please select a pet to view health reports.');
+      return;
+    }
+
+    final petName = pet.name;
+    final breed = pet.breed ?? pet.species;
+    final weightLogs = ref.read(petWeightLogsProvider(pet.id)).valueOrNull ?? [];
+    final vaxList = ref.read(vaccinationsProvider(pet.id)).valueOrNull ?? [];
+    final healthRecords = ref.read(healthRecordsProvider(pet.id)).valueOrNull ?? [];
+    final owner = ref.read(currentUserProfileProvider).valueOrNull;
+
+    final weight = pet.weightKg != null
+        ? '${pet.weightKg!.toStringAsFixed(1)} kg'
+        : (weightLogs.isNotEmpty ? '${weightLogs.first.weightKg.toStringAsFixed(1)} kg' : 'Baseline');
 
     showModalBottomSheet<void>(
       context: context,
@@ -299,19 +320,19 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
                     ),
                   ),
                   AppSpacing.hGapSm,
-                  const Expanded(
+                  Expanded(
                     child: _MetricBadge(
-                      label: 'Daily Rest',
-                      value: '13.5 hrs',
-                      icon: Icons.bedtime_outlined,
+                      label: 'Vaccines',
+                      value: '${vaxList.length} Recorded',
+                      icon: Icons.vaccines_rounded,
                     ),
                   ),
                   AppSpacing.hGapSm,
-                  const Expanded(
+                  Expanded(
                     child: _MetricBadge(
-                      label: 'Activity',
-                      value: '+15% goal',
-                      icon: Icons.directions_walk_rounded,
+                      label: 'Clinical State',
+                      value: pet.healthStatus.toUpperCase(),
+                      icon: Icons.health_and_safety_outlined,
                     ),
                   ),
                 ],
@@ -323,21 +344,19 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.share_rounded, size: 18),
                       label: const Text('Share with Vet'),
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(ctx);
-                        final summaryText = '''
-🐾 PetConnect AI Clinical Report
-Companion: $petName ($breed)
-Report Type: ${report.title}
-Date Range: ${report.range}
-Body Weight: $weight
-Daily Rest: 13.5 hrs
-Activity Level: +15% target
-
-AI Summary:
-${report.details ?? 'All biometric indicators and health parameters are operating within normal clinical baselines.'}
-''';
-                        ExternalActions.shareText(summaryText, subject: 'PetConnect AI Report: $petName');
+                        await AiReportPdfExporter.exportAndShare(
+                          context: context,
+                          pet: pet,
+                          owner: owner,
+                          reportTitle: report.title,
+                          reportRange: report.range,
+                          reportSummary: report.details ?? 'Clinical health telemetry for ${pet.name}.',
+                          vaccinations: vaxList,
+                          healthRecords: healthRecords,
+                          weightLogs: weightLogs,
+                        );
                       },
                     ),
                   ),
@@ -345,11 +364,20 @@ ${report.details ?? 'All biometric indicators and health parameters are operatin
                   Expanded(
                     child: FilledButton.icon(
                       icon: const Icon(Icons.download_rounded, size: 18),
-                      label: const Text('Export Summary'),
-                      onPressed: () {
+                      label: const Text('Export Summary (PDF)'),
+                      onPressed: () async {
                         Navigator.pop(ctx);
-                        final summaryText = 'PetConnect AI Report for $petName: ${report.title} (${report.range})\n${report.details}';
-                        ExternalActions.shareText(summaryText, subject: 'Health Summary: $petName');
+                        await AiReportPdfExporter.exportAndShare(
+                          context: context,
+                          pet: pet,
+                          owner: owner,
+                          reportTitle: report.title,
+                          reportRange: report.range,
+                          reportSummary: report.details ?? 'Clinical health telemetry for ${pet.name}.',
+                          vaccinations: vaxList,
+                          healthRecords: healthRecords,
+                          weightLogs: weightLogs,
+                        );
                       },
                     ),
                   ),

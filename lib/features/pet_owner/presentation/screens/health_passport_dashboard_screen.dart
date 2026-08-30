@@ -740,35 +740,10 @@ class _QuickActionRail extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          decoration: BoxDecoration(
-            color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
-            ),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: actions.map((act) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: SizedBox(
-                    width: 76,
-                    child: QuickActionButton(
-                      title: act.title,
-                      icon: act.icon,
-                      gradientColors: act.gradientColors,
-                      onTap: act.onTap,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
+        QuickActionsGridContainer(
+          items: actions,
+          crossAxisCount: 3,
+          tabletCrossAxisCount: 5,
         ),
       ],
     );

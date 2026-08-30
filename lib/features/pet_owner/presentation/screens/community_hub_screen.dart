@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/providers/core_providers.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -105,6 +104,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final margin = _horizontalMargin(constraints.maxWidth);
+          final topPad = context.viewPadding.top + kToolbarHeight + AppSpacing.md;
 
           return RefreshIndicator(
             onRefresh: () async =>
@@ -112,7 +112,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: margin.copyWith(
-                top: AppSpacing.sm,
+                top: topPad,
                 bottom: AppSpacing.xxl * 2,
               ),
               child: Align(
@@ -122,9 +122,9 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Quick Nav Actions Bar (Compact Sleek Strip) ───
+                      // ── Quick Nav Actions Bar (3x2 Balanced 3D Grid) ───
                       _buildQuickNavGrid(context),
-                      AppSpacing.vGapSm,
+                      AppSpacing.vGapLg,
 
                       // ── Feed Header & View Switcher ───────────────────
                       _buildFeedHeaderBar(context),
@@ -196,8 +196,6 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
   }
 
   Widget _buildQuickNavGrid(BuildContext context) {
-    final isDesktop = context.screenWidth >= AppBreakpoints.tablet;
-
     final actions = [
       QuickActionItemSpec(
         title: 'Discover',
@@ -239,49 +237,12 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      decoration: BoxDecoration(
-        color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
-        ),
-      ),
-      child: isDesktop
-          ? Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: actions.map((act) => Expanded(
-                child: QuickActionButton(
-                  title: act.title,
-                  icon: act.icon,
-                  gradientColors: act.gradientColors,
-                  onTap: act.onTap,
-                  badgeText: act.badgeText,
-                  isDanger: act.isDanger,
-                ),
-              )).toList(),
-            )
-          : Wrap(
-              alignment: WrapAlignment.start,
-              spacing: 6,
-              runSpacing: 10,
-              children: actions.map((act) {
-                final width = (context.screenWidth - 56) / 4;
-                return SizedBox(
-                  width: width.clamp(72.0, 110.0),
-                  child: QuickActionButton(
-                    title: act.title,
-                    icon: act.icon,
-                    gradientColors: act.gradientColors,
-                    onTap: act.onTap,
-                    badgeText: act.badgeText,
-                    isDanger: act.isDanger,
-                  ),
-                );
-              }).toList(),
-            ),
+    return QuickActionsGridContainer(
+      items: actions,
+      crossAxisCount: 3,
+      tabletCrossAxisCount: 6,
+      containerSize: 52,
+      iconSize: 26,
     );
   }
 

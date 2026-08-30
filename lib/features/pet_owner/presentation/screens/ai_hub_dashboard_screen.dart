@@ -156,8 +156,6 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = context.screenWidth >= AppBreakpoints.tablet;
-
     final actions = [
       QuickActionItemSpec(
         icon: Icons.biotech_rounded,
@@ -223,50 +221,40 @@ class _QuickActions extends StatelessWidget {
           ],
         ),
         AppSpacing.vGapSm,
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          decoration: BoxDecoration(
-            color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
-            ),
-          ),
-          child: isDesktop
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: actions.map((act) => Expanded(
-                    child: QuickActionButton(
-                      title: act.title,
-                      icon: act.icon,
-                      gradientColors: act.gradientColors,
-                      badgeText: act.badgeText,
-                      onTap: act.onTap,
-                    ),
-                  )).toList(),
-                )
-              : Wrap(
-                  alignment: WrapAlignment.start,
-                  spacing: 6,
-                  runSpacing: 10,
-                  children: actions.map((act) {
-                    final width = (context.screenWidth - 56) / 3;
-                    return SizedBox(
-                      width: width.clamp(80.0, 115.0),
-                      child: QuickActionButton(
-                        title: act.title,
-                        icon: act.icon,
-                        gradientColors: act.gradientColors,
-                        badgeText: act.badgeText,
-                        onTap: act.onTap,
-                      ),
-                    );
-                  }).toList(),
-                ),
+        QuickActionsGridContainer(
+          items: actions,
+          crossAxisCount: 3,
+          tabletCrossAxisCount: 6,
+          containerSize: 52,
+          iconSize: 26,
         ),
       ],
     );
+  }
+}
+
+/// Helper function to format timestamp in device local timezone
+String _formatActivityLocalTime(DateTime utcDateTime) {
+  final local = utcDateTime.toLocal();
+  final now = DateTime.now();
+  final diff = now.difference(local);
+
+  final hour = local.hour == 0 ? 12 : (local.hour > 12 ? local.hour - 12 : local.hour);
+  final minute = local.minute.toString().padLeft(2, '0');
+  final ampm = local.hour >= 12 ? 'PM' : 'AM';
+  final timeOfDay = '$hour:$minute $ampm';
+
+  if (diff.inMinutes < 1) {
+    return 'Just now';
+  } else if (diff.inMinutes < 60) {
+    return '${diff.inMinutes}m ago';
+  } else if (local.year == now.year && local.month == now.month && local.day == now.day) {
+    return timeOfDay;
+  } else if (local.year == now.year && local.month == now.month && local.day == now.day - 1) {
+    return 'Yesterday, $timeOfDay';
+  } else {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[local.month - 1]} ${local.day}, $timeOfDay';
   }
 }
 
@@ -315,7 +303,7 @@ class _RecentActivity extends ConsumerWidget {
     final List<_Activity> activities = [];
 
     for (final c in convs.take(2)) {
-      final timeStr = '${c.updatedAt.hour}:${c.updatedAt.minute.toString().padLeft(2, '0')}';
+      final timeStr = _formatActivityLocalTime(c.updatedAt);
       activities.add(
         _Activity(
           Icons.chat_bubble_outline_rounded,
@@ -330,7 +318,7 @@ class _RecentActivity extends ConsumerWidget {
     }
 
     for (final s in scans.take(2)) {
-      final timeStr = '${s.createdAt.hour}:${s.createdAt.minute.toString().padLeft(2, '0')}';
+      final timeStr = _formatActivityLocalTime(s.createdAt);
       final isCritical =
           s.urgencyLevel.toUpperCase() == 'CRITICAL' ||
           s.urgencyLevel.toUpperCase() == 'URGENT';

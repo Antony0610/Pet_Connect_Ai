@@ -14,14 +14,16 @@ class AuditLogModel extends AuditLogEntry {
 
   factory AuditLogModel.fromJson(Map<String, dynamic> json) {
     return AuditLogModel(
-      id: json['id'] as String,
-      actorId: json['actor_id'] as String,
-      action: json['action'] as String,
-      resourceType: json['resource_type'] as String,
+      id: (json['id'] as String?) ?? 'audit-${DateTime.now().millisecondsSinceEpoch}',
+      actorId: (json['actor_id'] as String?) ?? 'system',
+      action: (json['action'] as String?) ?? 'SYSTEM_EVENT',
+      resourceType: (json['resource_type'] as String?) ?? 'system',
       resourceId: json['resource_id'] as String?,
       severity: (json['severity'] as String?) ?? 'INFO',
       metadata: (json['metadata'] as Map<String, dynamic>?) ?? {},
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

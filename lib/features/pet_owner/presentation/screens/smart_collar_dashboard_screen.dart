@@ -550,27 +550,12 @@ class _QuickActions extends StatelessWidget {
           ],
         ),
         AppSpacing.vGapSm,
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-          decoration: BoxDecoration(
-            color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: actions.map((act) => Expanded(
-              child: QuickActionButton(
-                title: act.title,
-                icon: act.icon,
-                gradientColors: act.gradientColors,
-                onTap: act.onTap,
-              ),
-            )).toList(),
-          ),
+        QuickActionsGridContainer(
+          items: actions,
+          crossAxisCount: 4,
+          tabletCrossAxisCount: 4,
+          containerSize: 52,
+          iconSize: 26,
         ),
       ],
     );

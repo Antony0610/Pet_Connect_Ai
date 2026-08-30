@@ -11,6 +11,7 @@ import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/lost_pet_poster_dialog.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/pet_emergency_qr_modal.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
@@ -123,12 +124,18 @@ class _LostPetDashboardScreenState extends ConsumerState<LostPetDashboardScreen>
           ),
         ),
         actions: [
-          if (pet != null)
+          if (pet != null) ...[
+            IconButton(
+              icon: const Icon(Icons.qr_code_2_rounded),
+              tooltip: 'Emergency QR Pass',
+              onPressed: () => PetEmergencyQrModal.show(context, pet),
+            ),
             IconButton(
               icon: const Icon(Icons.print_outlined),
               tooltip: 'Generate Lost Pet Poster',
               onPressed: () => LostPetPosterDialog.show(context, pet: pet),
             ),
+          ],
         ],
       ),
       body: SingleChildScrollView(
@@ -143,6 +150,12 @@ class _LostPetDashboardScreenState extends ConsumerState<LostPetDashboardScreen>
                 // ── Hero Radar Sonar Banner ───────────────────────
                 _buildRadarCard(theme, scheme, petName, petBreed, isLostActive, radiusKm),
                 AppSpacing.vGapLg,
+
+                // ── Emergency Action Toolkit (Poster & QR) ────────
+                if (pet != null) ...[
+                  _buildEmergencyToolkit(theme, scheme, pet),
+                  AppSpacing.vGapLg,
+                ],
 
                 // ── Live Volunteer Response Status ─────────────────
                 _buildVolunteerResponseBanner(theme, scheme, radiusKm),
@@ -161,6 +174,70 @@ class _LostPetDashboardScreenState extends ConsumerState<LostPetDashboardScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmergencyToolkit(ThemeData theme, ColorScheme scheme, Pet pet) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.shield_rounded, size: 20, color: scheme.primary),
+              AppSpacing.hGapXs,
+              Text(
+                'Rapid Recovery Toolkit',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: AppTypography.bold,
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.vGapSm,
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                  label: const Text('Export Poster', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  onPressed: () => LostPetPosterDialog.show(context, pet: pet),
+                ),
+              ),
+              AppSpacing.hGapSm,
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.qr_code_rounded, size: 18),
+                  label: const Text('Pet QR Pass', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  onPressed: () => PetEmergencyQrModal.show(context, pet),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -430,49 +430,12 @@ class _QuickActionsGrid extends ConsumerWidget {
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      decoration: BoxDecoration(
-        color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: context.colorScheme.outlineVariant.withValues(alpha: 0.25),
-        ),
-      ),
-      child: wide
-          ? Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: actions.map((act) => Expanded(
-                child: QuickActionButton(
-                  title: act.title,
-                  icon: act.icon,
-                  gradientColors: act.gradientColors,
-                  badgeText: act.badgeText,
-                  isDanger: act.isDanger,
-                  onTap: act.onTap,
-                ),
-              )).toList(),
-            )
-          : Wrap(
-              alignment: WrapAlignment.start,
-              spacing: 6,
-              runSpacing: 10,
-              children: actions.map((act) {
-                final width = (context.screenWidth - 56) / 3;
-                return SizedBox(
-                  width: width.clamp(80.0, 115.0),
-                  child: QuickActionButton(
-                    title: act.title,
-                    icon: act.icon,
-                    gradientColors: act.gradientColors,
-                    badgeText: act.badgeText,
-                    isDanger: act.isDanger,
-                    onTap: act.onTap,
-                  ),
-                );
-              }).toList(),
-            ),
+    return QuickActionsGridContainer(
+      items: actions,
+      crossAxisCount: 3,
+      tabletCrossAxisCount: 6,
+      containerSize: 52,
+      iconSize: 26,
     );
   }
 }
@@ -854,15 +817,15 @@ class _ActivityLevelCard extends ConsumerWidget {
       }
     } else if (petId != null) {
       final prefs = ref.watch(sharedPreferencesProvider);
-      activeMinutes = prefs.getInt('pet_activity_mins_$petId') ?? 45;
+      activeMinutes = prefs.getInt('pet_activity_mins_$petId') ?? 0;
       steps = (activeMinutes * 110);
     }
 
     const double targetSteps = 10000;
-    final double progress = (steps / targetSteps).clamp(0.05, 1.0);
-    final String activityLevel = progress >= 0.8
-        ? 'High'
-        : (progress >= 0.4 ? 'Moderate' : 'Low');
+    final double progress = steps > 0 ? (steps / targetSteps).clamp(0.0, 1.0) : 0.0;
+    final String activityLevel = (collar == null && steps == 0)
+        ? 'No Collar'
+        : (progress >= 0.8 ? 'High' : (progress >= 0.4 ? 'Moderate' : 'Low'));
 
     return AppCard(
       padding: AppSpacing.cardPaddingPremium,
@@ -920,10 +883,11 @@ class _ActivityLevelCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$steps steps • ${activeMinutes}m active today',
-                style: context.textTheme.labelMedium?.copyWith(
+                collar == null && steps == 0
+                    ? 'No collar connected • Tap + to log exercise'
+                    : '$steps steps • ${activeMinutes}m active today',
+                style: context.textTheme.bodySmall?.copyWith(
                   color: context.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
