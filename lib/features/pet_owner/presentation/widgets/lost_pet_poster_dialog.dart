@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,54 +6,48 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
-import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
-import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Modal dialog that generates a high-visibility, official "LOST PET" poster
-/// complete with pet details, editable last known location, reward badge in INR (₹),
-/// and emergency QR code + full-page A4 PDF export with embedded photo.
+/// Modal dialog for generating and exporting high-impact Lost Pet Posters.
+/// Designed after the classic cream-and-crimson missing pet poster template.
 class LostPetPosterDialog extends ConsumerStatefulWidget {
   const LostPetPosterDialog({
-    super.key,
     required this.pet,
-    this.initialLastSeenLocation = 'Indiranagar 100ft Road / Near Metro Station',
-    this.initialRewardAmount = '₹5,000',
+    this.initialLocation,
+    this.initialReward,
+    this.initialPhone,
+    this.initialNotes,
+    super.key,
   });
 
   final Pet pet;
-  final String initialLastSeenLocation;
-  final String initialRewardAmount;
+  final String? initialLocation;
+  final String? initialReward;
+  final String? initialPhone;
+  final String? initialNotes;
 
-  /// Convenience helper to display the poster dialog.
   static Future<void> show(
     BuildContext context, {
     required Pet pet,
-    String lastSeenLocation = 'Indiranagar 100ft Road / Near Metro Station',
-    String rewardAmount = '₹5,000',
-  }) async {
-    await HapticFeedback.mediumImpact();
-    if (!context.mounted) return;
+    String? lastSeenLocation,
+    String? rewardAmount,
+    String? contactPhone,
+    String? contactEmail,
+    String? notes,
+  }) {
     return showDialog<void>(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.lg),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: LostPetPosterDialog(
-            pet: pet,
-            initialLastSeenLocation: lastSeenLocation,
-            initialRewardAmount: rewardAmount,
-          ),
-        ),
+      builder: (ctx) => LostPetPosterDialog(
+        pet: pet,
+        initialLocation: lastSeenLocation,
+        initialReward: rewardAmount,
+        initialPhone: contactPhone,
+        initialNotes: notes,
       ),
     );
   }
@@ -64,25 +57,103 @@ class LostPetPosterDialog extends ConsumerStatefulWidget {
 }
 
 class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
-  late final TextEditingController _locationController;
-  late final TextEditingController _rewardController;
+  late TextEditingController _locationController;
+  late TextEditingController _rewardController;
+  late TextEditingController _phoneController;
+  late TextEditingController _notesController;
   bool _isGeneratingPdf = false;
 
   @override
   void initState() {
     super.initState();
-    _locationController = TextEditingController(text: widget.initialLastSeenLocation);
-    _rewardController = TextEditingController(text: widget.initialRewardAmount);
+    final profile = ref.read(currentUserProfileProvider).valueOrNull;
+    _locationController = TextEditingController(
+      text: widget.initialLocation ?? 'Indiranagar 100ft Road / Near Metro Station',
+    );
+    _rewardController = TextEditingController(
+      text: widget.initialReward ?? 'RS. 5,000',
+    );
+    _phoneController = TextEditingController(
+      text: widget.initialPhone ?? (profile?.phone ?? '8921998733'),
+    );
+    _notesController = TextEditingController(
+      text: widget.initialNotes ?? 'Wearing blue reflective collar. Very friendly, responds to name.',
+    );
   }
 
   @override
   void dispose() {
     _locationController.dispose();
     _rewardController.dispose();
+    _phoneController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
-  Future<Uint8List?> _fetchPetImageBytes(String? url) async {
+  void _openEditDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Customize Poster Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Last Seen Location',
+                  hintText: 'e.g. Indiranagar 100ft Road',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _rewardController,
+                decoration: const InputDecoration(
+                  labelText: 'Reward Amount',
+                  hintText: 'e.g. RS. 5,000',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Emergency Contact Phone',
+                  hintText: '8921998733',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Save & Update'),
+          ),
+        ],
+      ),
+    ).then((_) => setState(() {}));
+  }
+
+  static String _cleanText(String input) {
+    return input
+        .replaceAll('₹', 'RS. ')
+        .replaceAll('•', '*')
+        .replaceAll('–', '-')
+        .replaceAll('—', '-')
+        .replaceAll('’', "'")
+        .replaceAll('‘', "'")
+        .replaceAll('“', '"')
+        .replaceAll('”', '"')
+        .replaceAll('\u2022', '*')
+        .replaceAll('\u2013', '-')
+        .replaceAll('\u2014', '-')
+        .replaceAll('\u20B9', 'RS. ')
+        .trim();
+  }
+
+  Future<Uint8List?> _fetchImageBytes(String? url) async {
     if (url == null || url.trim().isEmpty) return null;
     try {
       if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -91,7 +162,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
         final request = await client.getUrl(Uri.parse(url));
         final response = await request.close();
         if (response.statusCode == 200) {
-          final bytes = await response.fold<List<int>>([], (prev, elem) => prev..addAll(elem));
+          final bytes = await response.fold<List<int>>([], (p, e) => p..addAll(e));
           return Uint8List.fromList(bytes);
         }
       } else {
@@ -104,591 +175,545 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     return null;
   }
 
-  void _openEditDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Edit Poster Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _locationController,
-              decoration: const InputDecoration(
-                labelText: 'Last Seen Location',
-                hintText: 'e.g. Indiranagar, Bengaluru / Near Park',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _rewardController,
-              decoration: const InputDecoration(
-                labelText: 'Reward Amount (INR)',
-                hintText: 'e.g. ₹5,000',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.currency_rupee),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              setState(() {});
-              Navigator.pop(ctx);
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final pet = widget.pet;
-    final scheme = context.colorScheme;
-    final profileAsync = ref.watch(currentUserProfileProvider);
-    final rawPhone = profileAsync.valueOrNull?.phone?.trim();
-    final hasRealPhone = rawPhone != null && rawPhone.isNotEmpty;
-    final ownerPhone = hasRealPhone ? rawPhone : 'Contact Guardian via App';
-    final ownerEmail = profileAsync.valueOrNull?.email ?? 'emergency@petconnect.ai';
-    final todayStr = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
 
-    final lastSeenLocation = _locationController.text.trim();
-    final rewardAmount = _rewardController.text.trim();
+    final ownerPhone = _cleanText(_phoneController.text.isNotEmpty ? _phoneController.text : (profile?.phone ?? '8921998733'));
+    final ownerEmail = _cleanText(profile?.email ?? 'antonythomson0610@gmail.com');
+    final lastSeenLocation = _cleanText(_locationController.text);
+    final rewardAmount = _cleanText(_rewardController.text);
+    final todayStr = DateFormat('dd MMM').format(DateTime.now());
 
-    final qrPayload = 'https://petconnect.ai/emergency/${pet.id}?'
-        'lost=true&'
-        'name=${Uri.encodeComponent(pet.name)}&'
-        'phone=${Uri.encodeComponent(ownerPhone)}';
+    final qrPayload = 'tel:$ownerPhone';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        border: Border.all(color: scheme.error, width: 4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
+    const creamBg = Color(0xFFFAF6EE);
+    const crimsonColor = Color(0xFFB91C1C);
+    const goldAccent = Color(0xFFB45309);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 420),
+          decoration: BoxDecoration(
+            color: creamBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E0D0), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // ── TOP HEADER BANNER ─────────────────────────────────────
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: scheme.error,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Text(
-                'MISSING ${pet.species.toUpperCase()} 🚨',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ),
-            AppSpacing.vGapMd,
-
-            // ── PET NAME ──────────────────────────────────────────────
-            Text(
-              pet.name.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: scheme.error,
-                letterSpacing: 0.5,
-              ),
-            ),
-            Text(
-              pet.breedLine,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            AppSpacing.vGapMd,
-
-            // ── PET PHOTO & DETAILS ROW ───────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // ── TOP CRIMSON BANNER PILL ─────────────────────────────
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: scheme.error, width: 2),
-                    borderRadius: BorderRadius.circular(52),
+                    color: crimsonColor,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: UserAvatar(
-                    imageUrl: pet.imageUrl,
-                    name: pet.name,
-                    radius: 46,
-                  ),
-                ),
-                AppSpacing.hGapMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPosterField('Species', pet.species.toUpperCase()),
-                      _buildPosterField('Gender', pet.gender?.toUpperCase() ?? 'UNKNOWN'),
-                      _buildPosterField('Weight', pet.weightKg != null ? '${pet.weightKg} kg' : 'Not specified'),
-                      _buildPosterField('Microchip', pet.microchipId?.isNotEmpty == true ? 'CHIPPED' : 'Not chipped'),
-                      _buildPosterField('Date Missing', todayStr),
-                    ],
+                  child: Text(
+                    'MISSING ${pet.species.toUpperCase()}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      letterSpacing: 2.0,
+                      fontFamily: 'serif',
+                    ),
                   ),
                 ),
-              ],
-            ),
-            AppSpacing.vGapMd,
+                AppSpacing.vGapMd,
 
-            // ── LAST SEEN LOCATION BOX ────────────────────────────────
-            InkWell(
-              onTap: _openEditDialog,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: Colors.grey.shade300),
+                // ── PET NAME & BREED ───────────────────────────────────
+                Text(
+                  pet.name.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: crimsonColor,
+                    letterSpacing: 1.5,
+                    fontFamily: 'serif',
+                  ),
                 ),
-                child: Row(
+                Text(
+                  pet.breedLine.toLowerCase(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                AppSpacing.vGapMd,
+
+                // ── HERO PET PHOTO ─────────────────────────────────────
+                Container(
+                  width: 220,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFFE5E7EB),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: pet.imageUrl != null && pet.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            pet.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildFallbackAvatar(pet),
+                          )
+                        : _buildFallbackAvatar(pet),
+                  ),
+                ),
+                AppSpacing.vGapMd,
+
+                // ── DETAILS ROWS ───────────────────────────────────────
+                InkWell(
+                  onTap: _openEditDialog,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'LAST SEEN LOCATION: ',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.black),
+                        ),
+                        Expanded(
+                          child: Text(
+                            lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Indiranagar 100ft Road / Near Metro Station',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 12, thickness: 1.0, color: Color(0xFFD1D5DB)),
+                InkWell(
+                  onTap: _openEditDialog,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'MISSING SINCE: ',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.black),
+                        ),
+                        Text(
+                          todayStr,
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 12, thickness: 1.0, color: Color(0xFFD1D5DB)),
+                AppSpacing.vGapSm,
+
+                // ── GOLDEN REWARD BOX ──────────────────────────────────
+                if (rewardAmount.isNotEmpty)
+                  InkWell(
+                    onTap: _openEditDialog,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: goldAccent, width: 1.5),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '🐾 $rewardAmount CASH REWARD *',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Color(0xFF78350F),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                              letterSpacing: 0.5,
+                              fontFamily: 'serif',
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'NO QUESTIONS ASKED',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Color(0xFF78350F),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                              letterSpacing: 1.0,
+                              fontFamily: 'serif',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                AppSpacing.vGapMd,
+
+                // ── EMERGENCY CONTACT & QR CODE ─────────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(Icons.location_on, size: 16, color: scheme.error),
-                              AppSpacing.hGapXs,
-                              const Text(
-                                'LAST SEEN LOCATION:',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
-                              ),
-                            ],
+                          const Text(
+                            'IF FOUND OR SIGHTED, PLEASE CALL IMMEDIATELY:',
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            ownerPhone,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            lastSeenLocation,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black),
+                            'Email: $ownerEmail',
+                            style: const TextStyle(fontSize: 9.5, color: Color(0xFF4B5563)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Generated via PetConnect AI Emergency Rescue Network * Scan QR code to notify owner immediately',
+                            style: TextStyle(fontSize: 7.5, color: Color(0xFF6B7280)),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.edit_outlined, size: 16, color: scheme.primary),
+                    const SizedBox(width: 10),
+                    PetQrCodeView(
+                      data: qrPayload,
+                      size: 80,
+                      padding: 2,
+                      foregroundColor: Colors.black,
+                      backgroundColor: Colors.white,
+                    ),
                   ],
                 ),
-              ),
-            ),
-            AppSpacing.vGapMd,
+                AppSpacing.vGapLg,
 
-            // ── REWARD BADGE (INR) ────────────────────────────────────
-            if (rewardAmount.isNotEmpty)
-              InkWell(
-                onTap: _openEditDialog,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: Colors.amber.shade700, width: 1.5),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '⭐ $rewardAmount REWARD — NO QUESTIONS ASKED ⭐',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.amber.shade900,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                          ),
-                        ),
+                // ── ACTION BUTTONS ──────────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.share, size: 18),
+                        label: const Text('Share Alert'),
+                        onPressed: () async {
+                          await HapticFeedback.lightImpact();
+                          await ExternalActions.shareText(
+                            '🚨 MISSING PET ALERT: ${pet.name.toUpperCase()}!\n'
+                            'Species: ${pet.species} • Breed: ${pet.breed ?? "Unknown"}\n'
+                            'Last Seen: $lastSeenLocation\n'
+                            'Reward: $rewardAmount\n\n'
+                            'Emergency Phone: $ownerPhone\n'
+                            'Contact immediately if sighted.',
+                            subject: '🚨 MISSING PET ALERT: ${pet.name}',
+                          );
+                        },
                       ),
-                      Icon(Icons.edit_outlined, size: 14, color: Colors.amber.shade900),
-                    ],
-                  ),
-                ),
-              ),
-            AppSpacing.vGapMd,
+                    ),
+                    AppSpacing.hGapSm,
+                    Expanded(
+                      child: FilledButton.icon(
+                        icon: _isGeneratingPdf
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.picture_as_pdf, size: 18),
+                        label: Text(_isGeneratingPdf ? 'Generating...' : 'Export PDF'),
+                        onPressed: _isGeneratingPdf
+                            ? null
+                            : () async {
+                                setState(() => _isGeneratingPdf = true);
+                                try {
+                                  final imgBytes = await _fetchImageBytes(pet.imageUrl);
 
-            // ── QR CODE & DIRECT CONTACT ──────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                PetQrCodeView(
-                  data: qrPayload,
-                  size: 110,
-                  padding: 4,
-                  foregroundColor: Colors.black,
-                  backgroundColor: Colors.white,
-                ),
-                AppSpacing.hGapMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'IF SEEN PLEASE CALL IMMEDIATELY:',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54),
-                      ),
-                      Text(
-                        ownerPhone,
-                        style: TextStyle(
-                          fontSize: hasRealPhone ? 18 : 13,
-                          fontWeight: FontWeight.w900,
-                          color: scheme.error,
-                        ),
-                      ),
-                      if (!hasRealPhone) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '(Add phone in Profile to show direct number)',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: scheme.error,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Scan QR code with any phone camera to view full pet profile & notify guardian instantly.',
-                        style: TextStyle(fontSize: 10, color: Colors.black87),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            AppSpacing.vGapLg,
+                                  final doc = pw.Document(
+                                    title: 'MISSING PET: ${pet.name}',
+                                    author: 'PetConnect AI Emergency Rescue',
+                                  );
 
-            // ── ACTION BUTTONS ────────────────────────────────────────
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton.outlined(
-                    label: 'Share Info',
-                    icon: Icons.share,
-                    onPressed: () async {
-                      await HapticFeedback.lightImpact();
-                      await ExternalActions.shareText(
-                        '🚨 MISSING PET ALERT: ${pet.name.toUpperCase()}!\n'
-                        'Species: ${pet.species} • Breed: ${pet.breed ?? "Unknown"}\n'
-                        'Last Seen: $lastSeenLocation\n'
-                        'Reward: $rewardAmount\n\n'
-                        'If found, please scan or view: $qrPayload\n'
-                        'Emergency Call: $ownerPhone',
-                        subject: '🚨 MISSING PET: ${pet.name}',
-                      );
-                    },
-                  ),
-                ),
-                AppSpacing.hGapSm,
-                Expanded(
-                  child: AppButton.filled(
-                    label: _isGeneratingPdf ? 'Generating...' : 'Export Poster (PDF)',
-                    icon: Icons.picture_as_pdf_rounded,
-                    onPressed: _isGeneratingPdf
-                        ? null
-                        : () async {
-                            await HapticFeedback.lightImpact();
-                            setState(() => _isGeneratingPdf = true);
-
-                            try {
-                              final imgBytes = await _fetchPetImageBytes(pet.imageUrl);
-                              final doc = pw.Document(title: 'Missing Pet Poster - ${pet.name}');
-
-                              doc.addPage(
-                                pw.Page(
-                                  pageFormat: PdfPageFormat.a4,
-                                  margin: const pw.EdgeInsets.all(14),
-                                  build: (pw.Context ctx) {
-                                    return pw.Container(
-                                      decoration: pw.BoxDecoration(
-                                        color: PdfColors.white,
-                                        border: pw.Border.all(color: PdfColors.red800, width: 4.5),
-                                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(14)),
-                                      ),
-                                      padding: const pw.EdgeInsets.all(16),
-                                      child: pw.Column(
-                                        crossAxisAlignment: pw.CrossAxisAlignment.center,
-                                        children: [
-                                          // ── TOP EMERGENCY HEADER ──
-                                          pw.Container(
-                                            width: double.infinity,
-                                            padding: const pw.EdgeInsets.symmetric(vertical: 14),
-                                            decoration: const pw.BoxDecoration(
-                                              color: PdfColors.red700,
-                                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
-                                            ),
-                                            child: pw.Center(
-                                              child: pw.Text(
-                                                'MISSING ${pet.species.toUpperCase()}',
-                                                style: const pw.TextStyle(
-                                                  color: PdfColors.white,
-                                                  fontSize: 32,
-                                                  fontWeight: pw.FontWeight.bold,
-                                                  letterSpacing: 3,
+                                  doc.addPage(
+                                    pw.Page(
+                                      pageFormat: PdfPageFormat.a4,
+                                      margin: const pw.EdgeInsets.all(28),
+                                      build: (pw.Context ctx) {
+                                        return pw.Container(
+                                          decoration: pw.BoxDecoration(
+                                            color: PdfColor.fromHex('#FAF6EE'), // Template cream
+                                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(16)),
+                                          ),
+                                          padding: const pw.EdgeInsets.all(24),
+                                          child: pw.Column(
+                                            crossAxisAlignment: pw.CrossAxisAlignment.center,
+                                            children: [
+                                              // ── TOP CRIMSON BANNER PILL ──
+                                              pw.Container(
+                                                width: double.infinity,
+                                                padding: const pw.EdgeInsets.symmetric(vertical: 14),
+                                                decoration: pw.BoxDecoration(
+                                                  color: PdfColor.fromHex('#B91C1C'),
+                                                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
                                                 ),
-                                              ),
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 10),
-
-                                          // ── PET NAME & BREED ──
-                                          pw.Text(
-                                            pet.name.toUpperCase(),
-                                            style: const pw.TextStyle(
-                                              fontSize: 36,
-                                              fontWeight: pw.FontWeight.bold,
-                                              color: PdfColors.red900,
-                                              letterSpacing: 1.2,
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 2),
-                                          pw.Text(
-                                            pet.breedLine,
-                                            style: const pw.TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: pw.FontWeight.bold,
-                                              color: PdfColors.grey800,
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 10),
-
-                                          // ── LARGE DOMINANT HERO PHOTO (280px tall) ──
-                                          if (imgBytes != null)
-                                            pw.Container(
-                                              height: 275,
-                                              width: 360,
-                                              decoration: pw.BoxDecoration(
-                                                color: PdfColors.grey200,
-                                                border: pw.Border.all(color: PdfColors.red700, width: 3.5),
-                                                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
-                                              ),
-                                              child: pw.ClipRRect(
-                                                horizontalRadius: 9,
-                                                verticalRadius: 9,
-                                                child: pw.Image(
-                                                  pw.MemoryImage(imgBytes),
-                                                  fit: pw.BoxFit.cover,
-                                                ),
-                                              ),
-                                            )
-                                          else
-                                            pw.Container(
-                                              height: 200,
-                                              width: 200,
-                                              decoration: pw.BoxDecoration(
-                                                color: PdfColors.grey200,
-                                                shape: pw.BoxShape.circle,
-                                                border: pw.Border.all(color: PdfColors.red600, width: 3),
-                                              ),
-                                              child: pw.Center(
                                                 child: pw.Text(
-                                                  pet.name.isNotEmpty ? pet.name[0].toUpperCase() : 'PET',
-                                                  style: const pw.TextStyle(fontSize: 64, fontWeight: pw.FontWeight.bold, color: PdfColors.red700),
-                                                ),
-                                              ),
-                                            ),
-                                          pw.SizedBox(height: 12),
-
-                                          // ── STRUCTURED DETAILS CARD ──
-                                          pw.Container(
-                                            width: double.infinity,
-                                            padding: const pw.EdgeInsets.all(12),
-                                            decoration: pw.BoxDecoration(
-                                              color: PdfColor.fromHex('#FEF2F2'),
-                                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                                              border: pw.Border.all(color: PdfColors.red300, width: 1.5),
-                                            ),
-                                            child: pw.Column(
-                                              crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                              children: [
-                                                pw.Row(
-                                                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                                  children: [
-                                                    pw.Text('LAST SEEN LOCATION: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: PdfColors.red900)),
-                                                    pw.Expanded(
-                                                      child: pw.Text(
-                                                        lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Please contact owner for latest location radius',
-                                                        style: const pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey900),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                pw.SizedBox(height: 6),
-                                                pw.Row(
-                                                  children: [
-                                                    pw.Text('SPECIES & GENDER: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.grey800)),
-                                                    pw.Text('${pet.species.toUpperCase()} (${pet.gender?.toUpperCase() ?? "UNKNOWN"})', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                                                    pw.SizedBox(width: 24),
-                                                    pw.Text('MICROCHIP: ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.grey800)),
-                                                    pw.Text(pet.microchipId?.isNotEmpty == true ? 'CHIPPED (${pet.microchipId})' : 'NOT CHIPPED', style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          pw.SizedBox(height: 10),
-
-                                          // ── REWARD BANNER (No Unicode Tofu Boxes) ──
-                                          if (rewardAmount.isNotEmpty)
-                                            pw.Container(
-                                              width: double.infinity,
-                                              padding: const pw.EdgeInsets.symmetric(vertical: 9),
-                                              decoration: pw.BoxDecoration(
-                                                color: PdfColor.fromHex('#FEF3C7'),
-                                                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                                                border: pw.Border.all(color: PdfColors.amber800, width: 2),
-                                              ),
-                                              child: pw.Center(
-                                                child: pw.Text(
-                                                  '$rewardAmount CASH REWARD  *  NO QUESTIONS ASKED',
+                                                  'MISSING ${pet.species.toUpperCase()}',
+                                                  textAlign: pw.TextAlign.center,
                                                   style: const pw.TextStyle(
-                                                    color: PdfColors.amber900,
+                                                    color: PdfColors.white,
+                                                    fontSize: 32,
                                                     fontWeight: pw.FontWeight.bold,
-                                                    fontSize: 14,
-                                                    letterSpacing: 0.5,
+                                                    letterSpacing: 2.5,
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          pw.Spacer(),
+                                              pw.SizedBox(height: 14),
 
-                                          // ── EMERGENCY CALL & QR ──
-                                          pw.Container(
-                                            width: double.infinity,
-                                            padding: const pw.EdgeInsets.all(12),
-                                            decoration: pw.BoxDecoration(
-                                              color: PdfColor.fromHex('#F1F5F9'),
-                                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-                                              border: pw.Border.all(color: PdfColors.grey400, width: 1),
-                                            ),
-                                            child: pw.Row(
-                                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                pw.Expanded(
+                                              // ── PET NAME & BREED ──
+                                              pw.Text(
+                                                pet.name.toUpperCase(),
+                                                style: pw.TextStyle(
+                                                  fontSize: 36,
+                                                  fontWeight: pw.FontWeight.bold,
+                                                  color: PdfColor.fromHex('#B91C1C'),
+                                                  letterSpacing: 1.5,
+                                                ),
+                                              ),
+                                              pw.SizedBox(height: 2),
+                                              pw.Text(
+                                                pet.breedLine.toLowerCase(),
+                                                style: const pw.TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: pw.FontWeight.bold,
+                                                  color: PdfColors.grey900,
+                                                ),
+                                              ),
+                                              pw.SizedBox(height: 14),
+
+                                              // ── HERO PET PHOTO ──
+                                              if (imgBytes != null)
+                                                pw.Container(
+                                                  height: 280,
+                                                  width: 340,
+                                                  child: pw.ClipRRect(
+                                                    horizontalRadius: 16,
+                                                    verticalRadius: 16,
+                                                    child: pw.Image(
+                                                      pw.MemoryImage(imgBytes),
+                                                      fit: pw.BoxFit.cover,
+                                                    ),
+                                                  ),
+                                                )
+                                              else
+                                                pw.Container(
+                                                  height: 200,
+                                                  width: 200,
+                                                  decoration: pw.BoxDecoration(
+                                                    color: PdfColor.fromHex('#E5E7EB'),
+                                                    shape: pw.BoxShape.circle,
+                                                  ),
+                                                  child: pw.Center(
+                                                    child: pw.Text(
+                                                      pet.name.isNotEmpty ? pet.name[0].toUpperCase() : 'PET',
+                                                      style: pw.TextStyle(fontSize: 60, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#B91C1C')),
+                                                    ),
+                                                  ),
+                                                ),
+                                              pw.SizedBox(height: 16),
+
+                                              // ── DETAILS ROWS ──
+                                              pw.Row(
+                                                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                                children: [
+                                                  pw.Text(
+                                                    'LAST SEEN LOCATION: ',
+                                                    style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13, color: PdfColors.black),
+                                                  ),
+                                                  pw.Expanded(
+                                                    child: pw.Text(
+                                                      lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Indiranagar 100ft Road / Near Metro Station',
+                                                      style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey900),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              pw.SizedBox(height: 6),
+                                              pw.Divider(color: PdfColor.fromHex('#D1D5DB'), thickness: 1.0),
+                                              pw.SizedBox(height: 6),
+                                              pw.Row(
+                                                children: [
+                                                  pw.Text(
+                                                    'MISSING SINCE: ',
+                                                    style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13, color: PdfColors.black),
+                                                  ),
+                                                  pw.Text(
+                                                    todayStr,
+                                                    style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey900),
+                                                  ),
+                                                ],
+                                              ),
+                                              pw.SizedBox(height: 6),
+                                              pw.Divider(color: PdfColor.fromHex('#D1D5DB'), thickness: 1.0),
+                                              pw.SizedBox(height: 12),
+
+                                              // ── GOLDEN REWARD BANNER ──
+                                              if (rewardAmount.isNotEmpty)
+                                                pw.Container(
+                                                  width: double.infinity,
+                                                  padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                                  decoration: pw.BoxDecoration(
+                                                    color: PdfColor.fromHex('#FEF3C7'),
+                                                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                                                    border: pw.Border.all(color: PdfColor.fromHex('#B45309'), width: 1.5),
+                                                  ),
                                                   child: pw.Column(
-                                                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                                                     children: [
                                                       pw.Text(
-                                                        'IF FOUND OR SIGHTED, PLEASE CALL IMMEDIATELY:',
-                                                        style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
-                                                      ),
-                                                      pw.SizedBox(height: 4),
-                                                      pw.Text(
-                                                        ownerPhone,
-                                                        style: const pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.red800),
+                                                        '* $rewardAmount CASH REWARD *',
+                                                        style: pw.TextStyle(
+                                                          color: PdfColor.fromHex('#78350F'),
+                                                          fontWeight: pw.FontWeight.bold,
+                                                          fontSize: 16,
+                                                          letterSpacing: 0.5,
+                                                        ),
                                                       ),
                                                       pw.SizedBox(height: 2),
-                                                      pw.Text('Email: $ownerEmail', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                                                      pw.Text(
+                                                        'NO QUESTIONS ASKED',
+                                                        style: pw.TextStyle(
+                                                          color: PdfColor.fromHex('#78350F'),
+                                                          fontWeight: pw.FontWeight.bold,
+                                                          fontSize: 16,
+                                                          letterSpacing: 1.0,
+                                                        ),
+                                                      ),
                                                     ],
                                                   ),
                                                 ),
-                                                pw.BarcodeWidget(
-                                                  data: qrPayload,
-                                                  barcode: pw.Barcode.qrCode(),
-                                                  width: 85,
-                                                  height: 85,
-                                                ),
-                                              ],
-                                            ),
+                                              pw.Spacer(),
+
+                                              // ── EMERGENCY CONTACT & QR CODE ──
+                                              pw.Row(
+                                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                                                children: [
+                                                  pw.Expanded(
+                                                    child: pw.Column(
+                                                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                                      children: [
+                                                        pw.Text(
+                                                          'IF FOUND OR SIGHTED, PLEASE CALL IMMEDIATELY:',
+                                                          style: const pw.TextStyle(fontSize: 10.5, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                                                        ),
+                                                        pw.SizedBox(height: 4),
+                                                        pw.Text(
+                                                          ownerPhone,
+                                                          style: const pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                                                        ),
+                                                        pw.SizedBox(height: 2),
+                                                        pw.Text('Email: $ownerEmail', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                                                        pw.SizedBox(height: 4),
+                                                        pw.Text(
+                                                          'Generated via PetConnect AI Emergency Rescue Network * Scan QR code to notify owner immediately',
+                                                          style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  pw.SizedBox(width: 14),
+                                                  pw.BarcodeWidget(
+                                                    data: qrPayload,
+                                                    barcode: pw.Barcode.qrCode(),
+                                                    width: 85,
+                                                    height: 85,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
-                                          pw.SizedBox(height: 6),
-                                          pw.Text(
-                                            'Generated via PetConnect AI Emergency Rescue Network  *  Scan QR code to notify owner immediately',
-                                            style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
+                                    ),
+                                  );
+
+                                  final pdfBytes = await doc.save();
+                                  final tempDir = await getTemporaryDirectory();
+                                  final sanitized = pet.name.replaceAll(RegExp(r'[^\w\s]+'), '').trim();
+                                  final file = File('${tempDir.path}/${sanitized}_Missing_Poster.pdf');
+                                  await file.writeAsBytes(pdfBytes, flush: true);
+
+                                  // ignore: deprecated_member_use
+                                  await Share.shareXFiles(
+                                    [XFile(file.path, mimeType: 'application/pdf')],
+                                    text: '🚨 Missing Pet Poster (PDF) for ${pet.name}. Print or distribute immediately.',
+                                    subject: 'MISSING PET POSTER: ${pet.name}',
+                                  );
+                                } catch (_) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to generate poster PDF. Please try again.')),
                                     );
-                                  },
-                                ),
-                              );
-
-                              final pdfBytes = await doc.save();
-                              final tempDir = await getTemporaryDirectory();
-                              final sanitized = pet.name.replaceAll(RegExp(r'[^\w\s]+'), '').trim();
-                              final file = File('${tempDir.path}/${sanitized}_Missing_Poster.pdf');
-                              await file.writeAsBytes(pdfBytes, flush: true);
-
-                              // ignore: deprecated_member_use
-                              await Share.shareXFiles(
-                                [XFile(file.path, mimeType: 'application/pdf')],
-                                text: '🚨 Missing Pet Poster (PDF) for ${pet.name}. Print or distribute immediately.',
-                                subject: 'MISSING PET POSTER: ${pet.name}',
-                              );
-                            } catch (_) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Could not generate PDF poster.')),
-                                );
-                              }
-                            } finally {
-                              if (mounted) {
-                                setState(() => _isGeneratingPdf = false);
-                              }
-                            }
-                          },
-                  ),
+                                  }
+                                } finally {
+                                  if (mounted) setState(() => _isGeneratingPdf = false);
+                                }
+                              },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPosterField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1.5),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54),
+  Widget _buildFallbackAvatar(Pet pet) {
+    return Container(
+      color: const Color(0xFFE5E7EB),
+      child: Center(
+        child: Text(
+          pet.name.isNotEmpty ? pet.name[0].toUpperCase() : 'P',
+          style: const TextStyle(
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFFB91C1C),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

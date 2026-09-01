@@ -10,6 +10,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
@@ -37,6 +38,11 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
     final petsAsync = ref.watch(petsProvider);
 
     final collarsAsync = ref.watch(registeredCollarsProvider);
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+
+    final defaultLat = profile?.latitude ?? 10.2740;
+    final defaultLng = profile?.longitude ?? 76.3216;
+
     final collars = collarsAsync.valueOrNull ?? [];
     final matchingCollars = collars.where((c) => c.petId == selectedPet?.id);
     final CollarDevice? collar = matchingCollars.isNotEmpty
@@ -47,8 +53,8 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
         ? ref.watch(liveGpsLocationStreamProvider(collar.id))
         : null;
 
-    final double lat = gpsStreamAsync?.valueOrNull?.latitude ?? 12.9716;
-    final double lng = gpsStreamAsync?.valueOrNull?.longitude ?? 77.5946;
+    final double lat = gpsStreamAsync?.valueOrNull?.latitude ?? defaultLat;
+    final double lng = gpsStreamAsync?.valueOrNull?.longitude ?? defaultLng;
 
     final locationText = collar != null
         ? (gpsStreamAsync?.when(

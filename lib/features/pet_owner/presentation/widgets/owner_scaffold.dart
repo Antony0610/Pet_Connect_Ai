@@ -57,7 +57,9 @@ class OwnerScaffold extends StatelessWidget {
     final fab =
         floatingActionButton ??
         (showAiFab
-            ? OwnerAiFab(onPressed: () => _openAiAssistant(context))
+            ? RepaintBoundary(
+                child: OwnerAiFab(onPressed: () => _openAiAssistant(context)),
+              )
             : null);
 
     return Scaffold(
@@ -65,11 +67,12 @@ class OwnerScaffold extends StatelessWidget {
       extendBodyBehindAppBar: true,
       appBar: appBar,
       body: body,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: fab == null
           ? null
           : Padding(
-              // Lift the FAB above the floating nav bar.
-              padding: const EdgeInsets.only(bottom: 72),
+              // Lift the FAB comfortably above the floating bottom nav bar.
+              padding: const EdgeInsets.only(bottom: 40, right: 2),
               child: fab,
             ),
       bottomNavigationBar: OwnerBottomNavBar(

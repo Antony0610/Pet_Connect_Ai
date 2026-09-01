@@ -156,7 +156,12 @@ class CommunityRepositoryImpl implements CommunityRepository {
             .maybeSingle();
 
         final currentUserId = _supabase.auth.currentUser?.id;
-        final currentUserName = _supabase.auth.currentUser?.userMetadata?['full_name'] as String? ?? 'Someone';
+        final authUser = _supabase.auth.currentUser;
+        final currentUserName = ((authUser?.userMetadata?['full_name'] as String?)?.trim().isNotEmpty == true)
+            ? authUser!.userMetadata!['full_name'] as String
+            : ((authUser?.email?.isNotEmpty == true)
+                ? '@${authUser!.email!.split('@').first}'
+                : 'Pet Companion');
 
         if (postData != null) {
           final postOwnerId = postData['user_id'] as String?;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -18,6 +18,7 @@ import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.da
 import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The Pet Owner **Profile** screen.
 ///
@@ -257,6 +258,39 @@ class _ProfileHeaderCardState extends ConsumerState<_ProfileHeaderCard> {
               ),
             ),
 
+            if (profile.city != null && profile.city!.trim().isNotEmpty) ...[
+              AppSpacing.vGapXs,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.location_on_outlined, size: 14, color: scheme.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    profile.city!,
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            if (profile.bio != null && profile.bio!.trim().isNotEmpty) ...[
+              AppSpacing.vGapSm,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  profile.bio!,
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+
             AppSpacing.vGapLg,
 
             // Edit Profile Button
@@ -371,6 +405,8 @@ class _EditProfileSheet extends ConsumerStatefulWidget {
 class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _cityController;
+  late final TextEditingController _bioController;
   bool _saving = false;
   String? _error;
 
@@ -381,18 +417,69 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         TextEditingController(text: widget.profile.fullName);
     _phoneController =
         TextEditingController(text: widget.profile.phone ?? '');
+    _cityController =
+        TextEditingController(text: widget.profile.city ?? '');
+    _bioController =
+        TextEditingController(text: widget.profile.bio ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _cityController.dispose();
+    _bioController.dispose();
     super.dispose();
+  }
+
+  (double, double) _resolveCoordinatesForCity(String city) {
+    final lower = city.toLowerCase().trim();
+    if (lower.contains('annamanada')) {
+      return (10.2312, 76.2829); // Annamanada, Thrissur, Kerala
+    } else if (lower.contains('meladoor')) {
+      return (10.2740, 76.3216); // Meladoor, Thrissur, Kerala
+    } else if (lower.contains('mala')) {
+      return (10.2456, 76.2978);
+    } else if (lower.contains('chalakudy')) {
+      return (10.3070, 76.3330);
+    } else if (lower.contains('aluva')) {
+      return (10.1076, 76.3516);
+    } else if (lower.contains('angamaly')) {
+      return (10.1960, 76.3860);
+    } else if (lower.contains('thrissur') || lower.contains('trichur')) {
+      return (10.5276, 76.2144);
+    } else if (lower.contains('kochi') || lower.contains('cochin') || lower.contains('ernakulam')) {
+      return (9.9312, 76.2673);
+    } else if (lower.contains('trivandrum') || lower.contains('thiruvananthapuram')) {
+      return (8.5241, 76.9366);
+    } else if (lower.contains('kozhikode') || lower.contains('calicut')) {
+      return (11.2588, 75.7804);
+    } else if (lower.contains('kottayam')) {
+      return (9.5916, 76.5222);
+    } else if (lower.contains('kollam') || lower.contains('quilon')) {
+      return (8.8932, 76.6141);
+    } else if (lower.contains('palakkad') || lower.contains('palghat')) {
+      return (10.7867, 76.6548);
+    } else if (lower.contains('bengaluru') || lower.contains('bangalore')) {
+      return (12.9716, 77.5946);
+    } else if (lower.contains('mumbai') || lower.contains('bombay')) {
+      return (19.0760, 72.8777);
+    } else if (lower.contains('delhi') || lower.contains('ncr')) {
+      return (28.6139, 77.2090);
+    } else if (lower.contains('chennai') || lower.contains('madras')) {
+      return (13.0827, 80.2707);
+    } else if (lower.contains('hyderabad')) {
+      return (17.3850, 78.4867);
+    }
+    // Dynamic fallback
+    return (widget.profile.latitude ?? 10.2312, widget.profile.longitude ?? 76.2829);
   }
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
+    final city = _cityController.text.trim();
+    final bio = _bioController.text.trim();
     if (name.isEmpty) {
       setState(() => _error = 'Name cannot be empty.');
       return;
@@ -403,11 +490,33 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       _error = null;
     });
 
+    final (lat, lng) = _resolveCoordinatesForCity(city);
+
+    try {
+      final client = ref.read(supabaseClientProvider);
+      await client.auth.updateUser(
+        UserAttributes(
+          data: {
+            'full_name': name,
+            if (phone.isNotEmpty) 'phone': phone,
+            if (city.isNotEmpty) 'city': city,
+            if (bio.isNotEmpty) 'bio': bio,
+            'latitude': lat,
+            'longitude': lng,
+          },
+        ),
+      );
+    } catch (_) {}
+
     final upsert = ref.read(upsertUserProfileProvider);
     final result = await upsert(
       widget.profile.copyWith(
         fullName: name,
         phone: phone.isNotEmpty ? phone : null,
+        city: city.isNotEmpty ? city : null,
+        bio: bio.isNotEmpty ? bio : null,
+        latitude: lat,
+        longitude: lng,
       ),
     );
 
@@ -434,7 +543,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xl,
         AppSpacing.xl,
@@ -466,10 +575,36 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
           ),
           AppSpacing.vGapMd,
           TextField(
+            controller: _cityController,
+            decoration: const InputDecoration(
+              labelText: 'Home City / Location',
+              hintText: 'e.g. Annamanada, Kerala or Kochi',
+              prefixIcon: Icon(Icons.location_on_outlined),
+              helperText: 'Sets default center for Smart Collar map & tracking',
+              border: OutlineInputBorder(
+                  borderRadius: AppRadius.brCard),
+            ),
+            textInputAction: TextInputAction.next,
+          ),
+          AppSpacing.vGapMd,
+          TextField(
+            controller: _bioController,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'About / Bio',
+              hintText: 'Share a little about yourself and your pets...',
+              prefixIcon: Icon(Icons.info_outline),
+              border: OutlineInputBorder(
+                  borderRadius: AppRadius.brCard),
+            ),
+            textInputAction: TextInputAction.next,
+          ),
+          AppSpacing.vGapMd,
+          TextField(
             controller: _phoneController,
             decoration: const InputDecoration(
               labelText: 'Emergency Contact Phone',
-              hintText: 'e.g. +1 555-0199 or 9876543210',
+              hintText: 'e.g. +91 9876543210',
               prefixIcon: Icon(Icons.phone_outlined),
               helperText: 'Displayed on Missing Pet Posters & Health Passports',
               border: OutlineInputBorder(

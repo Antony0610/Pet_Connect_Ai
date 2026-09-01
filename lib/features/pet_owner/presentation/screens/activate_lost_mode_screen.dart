@@ -10,6 +10,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_elevation.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/lost_pet_poster_dialog.dart';
@@ -47,10 +48,11 @@ class _ActivateLostModeScreenState extends ConsumerState<ActivateLostModeScreen>
 
     try {
       final repo = ref.read(petRepositoryProvider);
+      final profile = ref.read(currentUserProfileProvider).valueOrNull;
       final result = await repo.activateLostMode(
         petId: pet.id,
-        latitude: 12.9716,
-        longitude: 77.5946,
+        latitude: profile?.latitude ?? 10.2740,
+        longitude: profile?.longitude ?? 76.3216,
         radiusKm: _broadcastRadiusKm,
         description: _descriptionCtrl.text.trim(),
       );

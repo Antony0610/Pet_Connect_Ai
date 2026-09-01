@@ -27,6 +27,10 @@ class UserProfile extends Entity {
     required this.role,
     this.avatarUrl,
     this.phone,
+    this.city,
+    this.latitude,
+    this.longitude,
+    this.bio,
     this.isSuspended = false,
     this.createdAt,
     this.updatedAt,
@@ -38,6 +42,10 @@ class UserProfile extends Entity {
   final AppPortal role;
   final String? avatarUrl;
   final String? phone;
+  final String? city;
+  final double? latitude;
+  final double? longitude;
+  final String? bio;
   final bool isSuspended;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -49,6 +57,10 @@ class UserProfile extends Entity {
     AppPortal? role,
     String? avatarUrl,
     String? phone,
+    String? city,
+    double? latitude,
+    double? longitude,
+    String? bio,
     bool? isSuspended,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -60,6 +72,10 @@ class UserProfile extends Entity {
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       phone: phone ?? this.phone,
+      city: city ?? this.city,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      bio: bio ?? this.bio,
       isSuspended: isSuspended ?? this.isSuspended,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -74,6 +90,10 @@ class UserProfile extends Entity {
     role,
     avatarUrl,
     phone,
+    city,
+    latitude,
+    longitude,
+    bio,
     isSuspended,
     createdAt,
     updatedAt,

@@ -196,15 +196,16 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
   @override
   Future<int> markAllNotificationsRead() async {
     try {
-      final response = await _client.rpc<int>('mark_all_notifications_read');
-      return response;
-    } on PostgrestException catch (e) {
-      throw ServerException(
-        e.message,
-        statusCode: int.tryParse(e.code ?? '500'),
-      );
-    } catch (e) {
-      throw ServerException('Failed to mark all notifications as read: $e');
+      final userId = _client.auth.currentUser?.id;
+      if (userId != null) {
+        await _client
+            .from('user_notifications')
+            .update({'is_read': true})
+            .eq('user_id', userId);
+      }
+      return 1;
+    } catch (_) {
+      return 0;
     }
   }
 

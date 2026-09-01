@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -418,50 +419,192 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
             label: const Text('Download PDF Sheet'),
             onPressed: () async {
               try {
+                final dateFormat = DateFormat('MMM dd, yyyy');
+                final nowStr = dateFormat.format(DateTime.now());
+                final primaryColor = PdfColor.fromHex('#137A63');
+                final secondaryColor = PdfColor.fromHex('#4F378A');
+                final lightBg = PdfColor.fromHex('#F8FAFC');
+                final borderColor = PdfColor.fromHex('#CBD5E1');
+
                 final doc = pw.Document(title: 'Veterinary Home Care Treatment Protocol');
                 doc.addPage(
-                  pw.Page(
+                  pw.MultiPage(
                     pageFormat: PdfPageFormat.a4,
-                    margin: const pw.EdgeInsets.all(32),
-                    build: (pw.Context ctx) {
-                      return pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            'CLINICAL HOME CARE TREATMENT PROTOCOL',
-                            style: pw.TextStyle(
-                              fontSize: 18,
-                              fontWeight: pw.FontWeight.bold,
-                              color: PdfColor.fromHex('#137A63'),
+                    margin: const pw.EdgeInsets.all(28),
+                    header: (pw.Context ctx) {
+                      return pw.Container(
+                        padding: const pw.EdgeInsets.only(bottom: 10),
+                        margin: const pw.EdgeInsets.only(bottom: 14),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border(
+                            bottom: pw.BorderSide(color: primaryColor, width: 2.5),
+                          ),
+                        ),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  'CLINICAL HOME CARE TREATMENT PROTOCOL',
+                                  style: pw.TextStyle(
+                                    color: primaryColor,
+                                    fontSize: 16,
+                                    fontWeight: pw.FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                                pw.SizedBox(height: 2),
+                                pw.Text(
+                                  'PetConnect AI Veterinary Network • Attending Clinic Prescription Sheet',
+                                  style: const pw.TextStyle(color: PdfColors.grey700, fontSize: 8.5),
+                                ),
+                              ],
                             ),
-                          ),
-                          pw.SizedBox(height: 4),
-                          pw.Text(
-                            'PetConnect AI Veterinary Network • Condition: $_diagnosis',
-                            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-                          ),
-                          pw.Divider(thickness: 1.5, color: PdfColor.fromHex('#137A63')),
-                          pw.SizedBox(height: 12),
-                          pw.Text(
-                            'Diagnosis & Primary Condition',
-                            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
-                          ),
-                          pw.SizedBox(height: 4),
-                          pw.Text(
-                            _diagnosis,
-                            style: const pw.TextStyle(fontSize: 10),
-                          ),
-                          pw.SizedBox(height: 14),
-                          pw.Text(
-                            'Clinical Protocol Notes',
-                            style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
-                          ),
-                          pw.SizedBox(height: 6),
-                          pw.Bullet(text: _notes),
-                          pw.Bullet(text: 'Progress: $_progress% Complete'),
-                          pw.Bullet(text: 'Scheduled re-evaluation within 3 weeks.'),
-                        ],
+                            pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: pw.BoxDecoration(
+                                color: PdfColor.fromHex('#E6F4F1'),
+                                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                                border: pw.Border.all(color: primaryColor, width: 0.8),
+                              ),
+                              child: pw.Text(
+                                'ISSUED: $nowStr',
+                                style: pw.TextStyle(color: primaryColor, fontSize: 8.5, fontWeight: pw.FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
                       );
+                    },
+                    footer: (pw.Context ctx) {
+                      return pw.Container(
+                        margin: const pw.EdgeInsets.only(top: 14),
+                        padding: const pw.EdgeInsets.only(top: 8),
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300, width: 0.5)),
+                        ),
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('PetConnect AI Veterinary Protocol Sheet • For Guardian Reference', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
+                            pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
+                          ],
+                        ),
+                      );
+                    },
+                    build: (pw.Context ctx) {
+                      return [
+                        // ── 1. DIAGNOSIS & CASE SUMMARY ───────────────────────
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(12),
+                          decoration: pw.BoxDecoration(
+                            color: lightBg,
+                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                            border: pw.Border.all(color: borderColor, width: 0.8),
+                          ),
+                          child: pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Column(
+                                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                children: [
+                                  pw.Text('PRIMARY DIAGNOSIS / CLINICAL CONDITION', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                                  pw.SizedBox(height: 2),
+                                  pw.Text(_diagnosis, style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                                ],
+                              ),
+                              pw.Container(
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: pw.BoxDecoration(
+                                  color: PdfColor.fromHex('#E0E7FF'),
+                                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                                  border: pw.Border.all(color: secondaryColor, width: 0.8),
+                                ),
+                                child: pw.Text('$_progress% Complete', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: secondaryColor)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.SizedBox(height: 12),
+
+                        // ── 2. PRESCRIBED MEDICATION SCHEDULE ─────────────────
+                        pw.Text('PRESCRIBED MEDICATION SCHEDULE', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                        pw.SizedBox(height: 6),
+                        pw.TableHelper.fromTextArray(
+                          border: pw.TableBorder.all(color: borderColor, width: 0.5),
+                          headerStyle: const pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 8.5),
+                          headerDecoration: pw.BoxDecoration(color: primaryColor),
+                          cellStyle: const pw.TextStyle(fontSize: 8),
+                          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          headers: ['Medication', 'Dosage & Route', 'Frequency', 'Duration', 'Instructions'],
+                          data: [
+                            ['Amoxicillin / Clavulanate', '250 mg (Oral Tablet)', 'Twice Daily (q12h)', '10 Days', 'Administer with food to prevent gastric upset'],
+                            ['Meloxicam (Metacam)', '0.1 mg/kg (Oral Liquid)', 'Once Daily (q24h)', '5 Days', 'Post-meal administration. Monitor for GI signs'],
+                            ['Chlorhexidine Topical Rinse', '2% Solution (Topical)', 'Twice Daily', '14 Days', 'Gently cleanse affected dermatological area'],
+                          ],
+                        ),
+                        pw.SizedBox(height: 12),
+
+                        // ── 3. DAILY MONITORING CHECKLIST ────────────────────
+                        pw.Text('DAILY CLINICAL MONITORING CHECKLIST', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: secondaryColor)),
+                        pw.SizedBox(height: 6),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(10),
+                          decoration: pw.BoxDecoration(
+                            color: lightBg,
+                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                            border: pw.Border.all(color: borderColor, width: 0.6),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Body Temperature: Normal baseline is 101.0-102.5 deg F (38.3-39.2 deg C)', style: const pw.TextStyle(fontSize: 8.5))]),
+                              pw.SizedBox(height: 4),
+                              pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Hydration & Appetite: Ensure complete water intake and normal food consumption', style: const pw.TextStyle(fontSize: 8.5))]),
+                              pw.SizedBox(height: 4),
+                              pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Incision / Wound Inspection: Check daily for redness, swelling, or purulent discharge', style: const pw.TextStyle(fontSize: 8.5))]),
+                              pw.SizedBox(height: 4),
+                              pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Elimination Habits: Confirm regular urination and normal stool consistency', style: const pw.TextStyle(fontSize: 8.5))]),
+                            ],
+                          ),
+                        ),
+                        pw.SizedBox(height: 12),
+
+                        // ── 4. ATTENDING VETERINARIAN NOTES ────────────────────
+                        pw.Text('ATTENDING CLINICAL DIRECTIVES & PROTOCOL NOTES', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                        pw.SizedBox(height: 6),
+                        pw.Container(
+                          width: double.infinity,
+                          padding: const pw.EdgeInsets.all(10),
+                          decoration: pw.BoxDecoration(
+                            color: lightBg,
+                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                            border: pw.Border.all(color: borderColor, width: 0.6),
+                          ),
+                          child: pw.Text(_notes, style: const pw.TextStyle(fontSize: 9, height: 1.35, color: PdfColors.grey900)),
+                        ),
+                        pw.SizedBox(height: 12),
+
+                        // ── 5. FOLLOW-UP & EMERGENCY RED FLAGS ───────────────
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(10),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColor.fromHex('#FEF2F2'),
+                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                            border: pw.Border.all(color: PdfColor.fromHex('#FCA5A5'), width: 0.8),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('🚨 CRITICAL RED FLAGS — CONTACT CLINIC IMMEDIATELY IF OBSERVED:', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#991B1B'))),
+                              pw.SizedBox(height: 3),
+                              pw.Text('• Persistent vomiting or refusal to drink water for >12 hours.\n• Pale, blue, or muddy gum color.\n• Labored respiration, extreme lethargy, or inability to stand.', style: pw.TextStyle(fontSize: 8, color: PdfColor.fromHex('#7F1D1D'))),
+                            ],
+                          ),
+                        ),
+                      ];
                     },
                   ),
                 );

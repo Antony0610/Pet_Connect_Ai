@@ -8,6 +8,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_bottom_nav_bar.dart';
@@ -570,16 +571,22 @@ class _MiniMap extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final collarsAsync = ref.watch(registeredCollarsProvider);
     final collar = collarsAsync.valueOrNull?.firstOrNull;
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
 
-    String locationLabel = 'No collar connected';
+    final defaultLat = profile?.latitude ?? 10.2740;
+    final defaultLng = profile?.longitude ?? 76.3216;
 
-    double lat = 12.9716;
-    double lng = 77.5946;
+    String locationLabel = profile?.city != null
+        ? '${profile!.city} (Home Hub)'
+        : 'Meladoor, Kerala (Home Hub)';
+
+    double lat = defaultLat;
+    double lng = defaultLng;
 
     if (collar != null) {
       final locationAsync = ref.watch(liveGpsLocationStreamProvider(collar.id));
-      lat = locationAsync.valueOrNull?.latitude ?? 12.9716;
-      lng = locationAsync.valueOrNull?.longitude ?? 77.5946;
+      lat = locationAsync.valueOrNull?.latitude ?? defaultLat;
+      lng = locationAsync.valueOrNull?.longitude ?? defaultLng;
       locationLabel = locationAsync.when(
         data: (loc) =>
             '${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)} • Live',

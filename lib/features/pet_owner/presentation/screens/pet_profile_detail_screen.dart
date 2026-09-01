@@ -119,7 +119,6 @@ class PetProfileDetailScreen extends ConsumerWidget {
       ],
     );
 
-    final topPad = context.viewPadding.top + appBar.preferredSize.height;
     final bottomPad = context.viewPadding.bottom + AppSpacing.xxl;
 
     return Scaffold(
@@ -139,7 +138,7 @@ class PetProfileDetailScreen extends ConsumerWidget {
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     margin,
-                    topPad + AppSpacing.md,
+                    AppSpacing.md,
                     margin,
                     0,
                   ),

@@ -22,6 +22,7 @@ abstract class AiRepository {
     required String conversationId,
     required String prompt,
     String? petId,
+    String? ragContext,
   });
 
   /// Invoke `ai-symptom-scan` Edge Function or Vision Model for visual/textual symptom scan.

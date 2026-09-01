@@ -849,9 +849,10 @@ class _QuickActionsGrid extends StatelessWidget {
       onTap: _noop,
     ),
     QuickActionItemSpec(
-      icon: Icons.notifications_active_rounded,
-      title: 'Safety\nAlerts',
-      gradientColors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+      icon: Icons.auto_awesome_rounded,
+      title: 'AI Hub\nServices',
+      gradientColors: [Color(0xFFEC4899), Color(0xFFDB2777)],
+      badgeText: 'AI',
       onTap: _noop,
     ),
     QuickActionItemSpec(
@@ -869,10 +870,9 @@ class _QuickActionsGrid extends StatelessWidget {
       onTap: _noop,
     ),
     QuickActionItemSpec(
-      icon: Icons.auto_awesome_rounded,
-      title: 'AI Hub\nServices',
-      gradientColors: [Color(0xFFEC4899), Color(0xFFDB2777)],
-      badgeText: 'AI',
+      icon: Icons.notifications_active_rounded,
+      title: 'Safety\nAlerts',
+      gradientColors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
       onTap: _noop,
     ),
   ];
@@ -882,10 +882,10 @@ class _QuickActionsGrid extends StatelessWidget {
   static const List<String> _routes = [
     RoutePaths.ownerHealth,
     RoutePaths.ownerCollar,
-    RoutePaths.ownerNotifications,
+    RoutePaths.ownerAi,
     RoutePaths.ownerLostMode,
     RoutePaths.ownerCommunity,
-    RoutePaths.ownerAi,
+    RoutePaths.ownerNotifications,
   ];
 
   void _navigate(BuildContext context, String path) {
@@ -932,8 +932,10 @@ class _QuickActionsGrid extends StatelessWidget {
           items: activeSpecs,
           crossAxisCount: 3,
           tabletCrossAxisCount: 6,
-          containerSize: 52,
-          iconSize: 26,
+          containerSize: 72,
+          iconSize: 34,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 12,
         ),
       ],
     );

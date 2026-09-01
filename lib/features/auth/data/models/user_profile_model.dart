@@ -12,6 +12,10 @@ class UserProfileModel implements Model {
     required this.role,
     this.avatarUrl,
     this.phone,
+    this.city,
+    this.latitude,
+    this.longitude,
+    this.bio,
     this.isSuspended = false,
     this.createdAt,
     this.updatedAt,
@@ -23,6 +27,10 @@ class UserProfileModel implements Model {
   final AppPortal role;
   final String? avatarUrl;
   final String? phone;
+  final String? city;
+  final double? latitude;
+  final double? longitude;
+  final String? bio;
   final bool isSuspended;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -36,6 +44,14 @@ class UserProfileModel implements Model {
       role: AppPortalExtension.fromDbRole(json['role'] as String?),
       avatarUrl: json['avatar_url'] as String?,
       phone: json['phone'] as String?,
+      city: json['city'] as String?,
+      latitude: json['latitude'] != null
+          ? (json['latitude'] as num).toDouble()
+          : null,
+      longitude: json['longitude'] != null
+          ? (json['longitude'] as num).toDouble()
+          : null,
+      bio: json['bio'] as String?,
       isSuspended: (json['is_suspended'] as bool?) ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
@@ -54,6 +70,10 @@ class UserProfileModel implements Model {
     AppPortal? role,
     String? avatarUrl,
     String? phone,
+    String? city,
+    double? latitude,
+    double? longitude,
+    String? bio,
     bool? isSuspended,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -65,6 +85,10 @@ class UserProfileModel implements Model {
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       phone: phone ?? this.phone,
+      city: city ?? this.city,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      bio: bio ?? this.bio,
       isSuspended: isSuspended ?? this.isSuspended,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -79,6 +103,10 @@ class UserProfileModel implements Model {
     role: role,
     avatarUrl: avatarUrl,
     phone: phone,
+    city: city,
+    latitude: latitude,
+    longitude: longitude,
+    bio: bio,
     isSuspended: isSuspended,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -92,6 +120,10 @@ class UserProfileModel implements Model {
     role: profile.role,
     avatarUrl: profile.avatarUrl,
     phone: profile.phone,
+    city: profile.city,
+    latitude: profile.latitude,
+    longitude: profile.longitude,
+    bio: profile.bio,
     isSuspended: profile.isSuspended,
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
@@ -105,6 +137,10 @@ class UserProfileModel implements Model {
     'role': role.toDbRole(),
     if (avatarUrl != null) 'avatar_url': avatarUrl,
     'phone': phone,
+    if (city != null) 'city': city,
+    if (latitude != null) 'latitude': latitude,
+    if (longitude != null) 'longitude': longitude,
+    if (bio != null) 'bio': bio,
     'is_suspended': isSuspended,
     if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),

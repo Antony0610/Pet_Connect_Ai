@@ -6,6 +6,7 @@ import 'package:petconnect_ai/features/realtime/domain/entities/direct_message.d
 import 'package:petconnect_ai/features/realtime/domain/entities/user_notification.dart';
 import 'package:petconnect_ai/features/realtime/domain/repositories/realtime_repository.dart';
 import 'package:petconnect_ai/features/realtime/domain/usecases/realtime_usecases.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final realtimeRemoteDataSourceProvider = Provider<RealtimeRemoteDataSource>((
   ref,
@@ -73,13 +74,40 @@ final userNotificationsProvider =
     );
 
 class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
+  static const String _clearedKey = 'app_user_cleared_notif_ids_v1';
+  static const String _readKey = 'app_user_read_notif_ids_v1';
+
   @override
   Future<List<UserNotification>> build() async {
     final repo = ref.watch(realtimeRepositoryProvider);
     final result = await repo.getUserNotifications();
     return result.fold(
       (failure) => throw Exception(failure.message),
-      (notifications) => notifications,
+      (notifications) async {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final cleared = prefs.getStringList(_clearedKey)?.toSet() ?? {};
+          final readIds = prefs.getStringList(_readKey)?.toSet() ?? {};
+
+          return notifications
+              .where((n) => !cleared.contains(n.id))
+              .map((n) => readIds.contains(n.id)
+                  ? UserNotification(
+                      id: n.id,
+                      userId: n.userId,
+                      title: n.title,
+                      body: n.body,
+                      notificationType: n.notificationType,
+                      isRead: true,
+                      payload: n.payload,
+                      createdAt: n.createdAt,
+                    )
+                  : n)
+              .toList();
+        } catch (_) {
+          return notifications;
+        }
+      },
     );
   }
 
@@ -90,7 +118,31 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
       final result = await repo.getUserNotifications();
       return result.fold(
         (failure) => throw Exception(failure.message),
-        (notifications) => notifications,
+        (notifications) async {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final cleared = prefs.getStringList(_clearedKey)?.toSet() ?? {};
+            final readIds = prefs.getStringList(_readKey)?.toSet() ?? {};
+
+            return notifications
+                .where((n) => !cleared.contains(n.id))
+                .map((n) => readIds.contains(n.id)
+                    ? UserNotification(
+                        id: n.id,
+                        userId: n.userId,
+                        title: n.title,
+                        body: n.body,
+                        notificationType: n.notificationType,
+                        isRead: true,
+                        payload: n.payload,
+                        createdAt: n.createdAt,
+                      )
+                    : n)
+                .toList();
+          } catch (_) {
+            return notifications;
+          }
+        },
       );
     });
   }
@@ -104,6 +156,15 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
   }
 
   Future<void> markRead(String notificationId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList(_readKey) ?? [];
+      if (!readIds.contains(notificationId)) {
+        readIds.add(notificationId);
+        await prefs.setStringList(_readKey, readIds);
+      }
+    } catch (_) {}
+
     final repo = ref.read(realtimeRepositoryProvider);
     await repo.markNotificationRead(notificationId);
     state.whenData((currentList) {
@@ -128,6 +189,19 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
   }
 
   Future<int> markAllRead() async {
+    state.whenData((currentList) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final readIds = prefs.getStringList(_readKey) ?? [];
+        for (final n in currentList) {
+          if (!readIds.contains(n.id)) {
+            readIds.add(n.id);
+          }
+        }
+        await prefs.setStringList(_readKey, readIds);
+      } catch (_) {}
+    });
+
     final repo = ref.read(realtimeRepositoryProvider);
     final result = await repo.markAllNotificationsRead();
     return result.fold((failure) => throw Exception(failure.message), (
@@ -154,6 +228,15 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
   }
 
   Future<void> deleteNotification(String notificationId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cleared = prefs.getStringList(_clearedKey) ?? [];
+      if (!cleared.contains(notificationId)) {
+        cleared.add(notificationId);
+        await prefs.setStringList(_clearedKey, cleared);
+      }
+    } catch (_) {}
+
     // Optimistically update UI
     state.whenData((currentList) {
       final updated = currentList.where((n) => n.id != notificationId).toList();
@@ -164,6 +247,19 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
   }
 
   Future<void> clearAll() async {
+    state.whenData((currentList) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cleared = prefs.getStringList(_clearedKey) ?? [];
+        for (final n in currentList) {
+          if (!cleared.contains(n.id)) {
+            cleared.add(n.id);
+          }
+        }
+        await prefs.setStringList(_clearedKey, cleared);
+      } catch (_) {}
+    });
+
     state = const AsyncValue.data([]);
     final repo = ref.read(realtimeRepositoryProvider);
     await repo.deleteAllNotifications();

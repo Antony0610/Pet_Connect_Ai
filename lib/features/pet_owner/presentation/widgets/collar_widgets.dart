@@ -256,8 +256,8 @@ class CollarMapPreview extends StatelessWidget {
   const CollarMapPreview({
     required this.locationLabel,
     this.height = 192,
-    this.latitude = 12.9716,
-    this.longitude = 77.5946,
+    this.latitude = 10.2740,
+    this.longitude = 76.3216,
     this.petName = 'Companion',
     this.safeZones = const [],
     this.breadcrumbs = const [],

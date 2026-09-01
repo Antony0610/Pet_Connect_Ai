@@ -75,7 +75,7 @@ class QuickActionButton extends StatelessWidget {
     final secondaryColor = gradientColors.length > 1 ? gradientColors[1] : gradientColors.first;
 
     final content = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -140,11 +140,7 @@ class QuickActionButton extends StatelessWidget {
                       ),
                     ),
                     Center(
-                      child: Icon(
-                        icon,
-                        size: iconSize,
-                        color: Colors.white,
-                      ),
+                      child: Icon(icon, color: Colors.white, size: iconSize),
                     ),
                   ],
                 ),
@@ -180,10 +176,9 @@ class QuickActionButton extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Fixed-height centered text to ensure strict uniform row heights
+          const SizedBox(height: 12),
           SizedBox(
-            height: 30,
+            height: 34,
             child: Text(
               title,
               textAlign: TextAlign.center,
@@ -191,9 +186,9 @@ class QuickActionButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: context.textTheme.labelSmall?.copyWith(
                 fontWeight: AppTypography.bold,
-                fontSize: 12,
+                fontSize: 12.5,
                 letterSpacing: -0.2,
-                height: 1.15,
+                height: 1.18,
               ),
             ),
           ),
@@ -204,10 +199,11 @@ class QuickActionButton extends StatelessWidget {
     if (isCardTile) {
       return Container(
         decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.25),
+            color: scheme.outlineVariant.withValues(alpha: 0.35),
+            width: 1.2,
           ),
         ),
         child: Material(
@@ -247,11 +243,11 @@ class QuickActionsGridContainer extends StatelessWidget {
     required this.items,
     this.crossAxisCount = 3,
     this.tabletCrossAxisCount = 6,
-    this.containerSize = 56,
-    this.iconSize = 28,
+    this.containerSize = 60,
+    this.iconSize = 30,
     this.padding,
-    this.mainAxisSpacing = 10,
-    this.crossAxisSpacing = 10,
+    this.mainAxisSpacing = 12,
+    this.crossAxisSpacing = 12,
   });
 
   final List<QuickActionItemSpec> items;

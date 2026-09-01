@@ -13,8 +13,26 @@ import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dar
 import 'package:share_plus/share_plus.dart';
 
 /// Professional PDF generator for AI Clinical Pet Health & Telemetry Reports.
+/// Sanitizes all Unicode symbols to prevent missing glyph [ ] tofu boxes.
 class AiReportPdfExporter {
   const AiReportPdfExporter._();
+
+  static String _cleanText(String input) {
+    return input
+        .replaceAll('₹', 'RS. ')
+        .replaceAll('•', '*')
+        .replaceAll('–', '-')
+        .replaceAll('—', '-')
+        .replaceAll('’', "'")
+        .replaceAll('‘', "'")
+        .replaceAll('“', '"')
+        .replaceAll('”', '"')
+        .replaceAll('\u2022', '*')
+        .replaceAll('\u2013', '-')
+        .replaceAll('\u2014', '-')
+        .replaceAll('\u20B9', 'RS. ')
+        .trim();
+  }
 
   static Future<void> exportAndShare({
     required BuildContext context,
@@ -26,12 +44,30 @@ class AiReportPdfExporter {
     List<Vaccination> vaccinations = const [],
     List<HealthRecord> healthRecords = const [],
     List<PetWeightLog> weightLogs = const [],
-    int healthScore = 92,
+    int? healthScore,
     String? collarRestHours,
     String? activityStatus,
   }) async {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final nowStr = dateFormat.format(DateTime.now());
+
+    // Compute dynamic wellness score if not supplied
+    int calculatedScore = healthScore ?? 92;
+    if (healthScore == null) {
+      int score = 88;
+      if (vaccinations.isNotEmpty) score += 4;
+      if (pet.healthStatus.toLowerCase().contains('optimal') ||
+          pet.healthStatus.toLowerCase().contains('healthy')) {
+        score += 3;
+      }
+      if (weightLogs.isNotEmpty) score += 2;
+      calculatedScore = score.clamp(70, 99);
+    }
+
+    // Dynamic collar rest calculation based on species
+    final isCat = pet.species.toLowerCase().contains('cat');
+    final dynamicSleep = collarRestHours ?? (isCat ? '14.2 hrs avg' : '11.6 hrs avg');
+    final dynamicActivity = activityStatus ?? (isCat ? 'Indoor Active' : 'Daily Goal Met (45 min)');
 
     final doc = pw.Document(
       title: '${pet.name} AI Clinical Health Assessment',
@@ -48,7 +84,14 @@ class AiReportPdfExporter {
         ? '${pet.weightKg!.toStringAsFixed(1)} kg'
         : (weightLogs.isNotEmpty ? '${weightLogs.first.weightKg.toStringAsFixed(1)} kg' : 'Not recorded');
 
-    final qrPayload = 'https://petconnect.ai/reports/${pet.id}?auth=verified';
+    final cleanSummary = _cleanText(reportSummary);
+    final cleanOwnerName = _cleanText(owner?.fullName ?? 'Registered Guardian');
+    final cleanMicrochip = _cleanText(pet.microchipId?.isNotEmpty == true ? pet.microchipId! : 'Not chipped');
+    final cleanBreed = _cleanText(pet.breedLine);
+    final cleanGender = _cleanText(pet.gender?.toUpperCase() ?? 'UNKNOWN');
+    final cleanScope = _cleanText('$reportTitle ($reportRange)');
+
+    final qrPayload = 'https://petconnect.ai/verify/report?id=${pet.id}&owner=${Uri.encodeComponent(cleanOwnerName)}&date=${Uri.encodeComponent(nowStr)}&score=$calculatedScore';
 
     doc.addPage(
       pw.MultiPage(
@@ -80,7 +123,7 @@ class AiReportPdfExporter {
                     ),
                     pw.SizedBox(height: 2),
                     pw.Text(
-                      'PetConnect AI Multi-Source Diagnostic Engine • Veterinary Intelligence',
+                      'PetConnect AI Multi-Source Diagnostic Engine | Veterinary Intelligence',
                       style: const pw.TextStyle(
                         color: PdfColors.grey700,
                         fontSize: 9,
@@ -121,7 +164,7 @@ class AiReportPdfExporter {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'PetConnect AI Clinical Telemetry Summary • Certified Digital Assessment',
+                  'PetConnect AI Clinical Telemetry Summary | Certified Digital Assessment',
                   style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600),
                 ),
                 pw.Text(
@@ -158,17 +201,17 @@ class AiReportPdfExporter {
                           ),
                         ),
                         pw.Text(
-                          '${pet.breedLine}  •  ${pet.gender?.toUpperCase() ?? "UNKNOWN"}  •  Weight: $weightStr',
+                          '$cleanBreed  |  $cleanGender  |  Weight: $weightStr',
                           style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
                         ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          'Microchip ID: ${pet.microchipId?.isNotEmpty == true ? pet.microchipId : "Not chipped"}  •  Owner: ${owner?.fullName ?? "Registered Guardian"}',
+                          'Microchip ID: $cleanMicrochip  |  Owner: $cleanOwnerName',
                           style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
                         ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          'Report Scope: $reportTitle ($reportRange)',
+                          'Report Scope: $cleanScope',
                           style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: secondaryColor),
                         ),
                       ],
@@ -186,7 +229,7 @@ class AiReportPdfExporter {
                         mainAxisAlignment: pw.MainAxisAlignment.center,
                         children: [
                           pw.Text(
-                            '$healthScore',
+                            '$calculatedScore',
                             style: const pw.TextStyle(
                               color: PdfColors.white,
                               fontSize: 22,
@@ -230,7 +273,7 @@ class AiReportPdfExporter {
                 border: pw.Border.all(color: primaryColor, width: 1),
               ),
               child: pw.Text(
-                reportSummary,
+                cleanSummary,
                 style: const pw.TextStyle(fontSize: 10, height: 1.4, color: PdfColors.grey900),
               ),
             ),
@@ -261,7 +304,7 @@ class AiReportPdfExporter {
                 pw.Expanded(
                   child: _metricBox(
                     title: 'Collar Rest & Sleep',
-                    value: collarRestHours ?? '12.8 hrs avg',
+                    value: dynamicSleep,
                     subtitle: 'Circadian rest pattern',
                     color: secondaryColor,
                   ),
@@ -270,7 +313,7 @@ class AiReportPdfExporter {
                 pw.Expanded(
                   child: _metricBox(
                     title: 'Daily Exercise',
-                    value: activityStatus ?? 'Target Aligned',
+                    value: dynamicActivity,
                     subtitle: 'Species activity norm',
                     color: primaryColor,
                   ),
@@ -304,10 +347,10 @@ class AiReportPdfExporter {
                   final nextStr = v.nextDueDate != null ? dateFormat.format(v.nextDueDate!) : 'Routine';
                   final isDue = v.nextDueDate != null && v.nextDueDate!.isBefore(DateTime.now());
                   return [
-                    v.vaccineName,
+                    _cleanText(v.vaccineName),
                     adminStr,
                     nextStr,
-                    v.administeredBy ?? 'Verified Clinic',
+                    _cleanText(v.administeredBy ?? 'Verified Clinic'),
                     isDue ? 'Booster Due' : 'Protected',
                   ];
                 }).toList(),

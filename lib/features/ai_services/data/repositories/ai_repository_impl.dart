@@ -65,12 +65,14 @@ class AiRepositoryImpl implements AiRepository {
     required String conversationId,
     required String prompt,
     String? petId,
+    String? ragContext,
   }) async {
     try {
       final message = await _remote.invokeAiAssistant(
         conversationId: conversationId,
         prompt: prompt,
         petId: petId,
+        ragContext: ragContext,
       );
       return Right(message);
     } on AppException catch (e) {

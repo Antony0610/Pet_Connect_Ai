@@ -67,10 +67,16 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_photo_alternate_rounded),
-            tooltip: 'Create Post',
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Direct Messages',
             color: scheme.primary,
-            onPressed: () => context.push(RoutePaths.ownerCommunityCreatePost),
+            onPressed: () => context.push(RoutePaths.ownerCommunityMessages),
+          ),
+          IconButton(
+            icon: const Icon(Icons.people_alt_outlined),
+            tooltip: 'Followers & Activity',
+            color: scheme.primary,
+            onPressed: () => _openFollowActivitySheet(context),
           ),
           IconButton(
             icon: Icon(
@@ -80,15 +86,6 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
             ),
             tooltip: _isGridView ? 'Feed View' : 'Explore Grid View',
             onPressed: () => setState(() => _isGridView = !_isGridView),
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.settings_outlined,
-              size: AppIconSizes.md,
-              color: scheme.primary,
-            ),
-            tooltip: 'Community Settings',
-            onPressed: () => context.push(RoutePaths.ownerCommunitySettings),
           ),
           IconButton(
             icon: Icon(
@@ -104,7 +101,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final margin = _horizontalMargin(constraints.maxWidth);
-          final topPad = context.viewPadding.top + kToolbarHeight + AppSpacing.md;
+          final topPad = context.viewPadding.top + kToolbarHeight + AppSpacing.xl;
 
           return RefreshIndicator(
             onRefresh: () async =>
@@ -198,22 +195,10 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
   Widget _buildQuickNavGrid(BuildContext context) {
     final actions = [
       QuickActionItemSpec(
-        title: 'Discover',
-        icon: Icons.explore_rounded,
-        gradientColors: const [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-        onTap: () => context.push(RoutePaths.ownerCommunityDiscover),
-      ),
-      QuickActionItemSpec(
         title: 'Create Post',
         icon: Icons.add_photo_alternate_rounded,
         gradientColors: const [Color(0xFF10B981), Color(0xFF047857)],
         onTap: () => context.push(RoutePaths.ownerCommunityCreatePost),
-      ),
-      QuickActionItemSpec(
-        title: 'Local Radar',
-        icon: Icons.near_me_rounded,
-        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
-        onTap: () => context.push(RoutePaths.ownerCommunityLocal),
       ),
       QuickActionItemSpec(
         title: 'Lost & Found',
@@ -224,7 +209,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
         onTap: () => context.push(RoutePaths.ownerCommunityLostFound),
       ),
       QuickActionItemSpec(
-        title: 'Adopt a Pet',
+        title: 'Adopt Pet',
         icon: Icons.favorite_rounded,
         gradientColors: const [Color(0xFFEC4899), Color(0xFFBE185D)],
         onTap: () => context.push(RoutePaths.ownerCommunityAdoption),
@@ -239,10 +224,21 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
 
     return QuickActionsGridContainer(
       items: actions,
-      crossAxisCount: 3,
-      tabletCrossAxisCount: 6,
-      containerSize: 52,
-      iconSize: 26,
+      crossAxisCount: 4,
+      tabletCrossAxisCount: 4,
+      containerSize: 46,
+      iconSize: 22,
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 6,
+    );
+  }
+
+  void _openFollowActivitySheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const _FollowActivitySheet(),
     );
   }
 
@@ -686,40 +682,58 @@ class _PostCardState extends ConsumerState<_PostCard>
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: scheme.primaryContainer,
-                    backgroundImage: (_post.authorAvatarUrl != null &&
-                            _post.authorAvatarUrl!.isNotEmpty)
-                        ? NetworkImage(_post.authorAvatarUrl!)
-                        : null,
-                    child: (_post.authorAvatarUrl == null ||
-                            _post.authorAvatarUrl!.isEmpty)
-                        ? Text(
-                            (_post.authorName != null &&
-                                    _post.authorName!.isNotEmpty)
-                                ? _post.authorName![0].toUpperCase()
-                                : 'P',
-                            style: TextStyle(
-                              color: scheme.onPrimaryContainer,
-                              fontWeight: AppTypography.bold,
-                              fontSize: 14,
-                            ),
-                          )
-                        : null,
+                  GestureDetector(
+                    onTap: () => _showPublicUserProfile(
+                      context,
+                      _post.userId,
+                      _post.authorName ?? 'Community Member',
+                      _post.authorAvatarUrl,
+                      _post.location,
+                    ),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: scheme.primaryContainer,
+                      backgroundImage: (_post.authorAvatarUrl != null &&
+                              _post.authorAvatarUrl!.isNotEmpty)
+                          ? NetworkImage(_post.authorAvatarUrl!)
+                          : null,
+                      child: (_post.authorAvatarUrl == null ||
+                              _post.authorAvatarUrl!.isEmpty)
+                          ? Text(
+                              (_post.authorName != null &&
+                                      _post.authorName!.isNotEmpty)
+                                  ? _post.authorName![0].toUpperCase()
+                                  : 'P',
+                              style: TextStyle(
+                                color: scheme.onPrimaryContainer,
+                                fontWeight: AppTypography.bold,
+                                fontSize: 14,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                   AppSpacing.hGapSm,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _post.authorName ?? 'Community Member',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.textTheme.titleSmall?.copyWith(
-                            fontWeight: AppTypography.bold,
-                            color: scheme.onSurface,
+                        GestureDetector(
+                          onTap: () => _showPublicUserProfile(
+                            context,
+                            _post.userId,
+                            _post.authorName ?? 'Community Member',
+                            _post.authorAvatarUrl,
+                            _post.location,
+                          ),
+                          child: Text(
+                            _post.authorName ?? 'Community Member',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.textTheme.titleSmall?.copyWith(
+                              fontWeight: AppTypography.bold,
+                              color: scheme.onSurface,
+                            ),
                           ),
                         ),
                         Row(
@@ -1375,6 +1389,47 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
     await ref.read(communityRepositoryProvider).likeComment(comment.id);
   }
 
+  Future<void> _confirmDeleteComment(CommunityPostComment comment) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Comment?'),
+        content: const Text('Are you sure you want to delete this comment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final res = await ref.read(communityRepositoryProvider).deleteComment(comment.id);
+      res.fold(
+        (failure) => ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not delete comment: ${failure.message}')),
+        ),
+        (_) {
+          setState(() {
+            _comments.removeWhere((c) => c.id == comment.id);
+            for (final parent in _comments) {
+              parent.replies.removeWhere((r) => r.id == comment.id);
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✓ Comment deleted')),
+          );
+        },
+      );
+    }
+  }
+
   void _startReply(CommunityPostComment comment) {
     HapticFeedback.lightImpact();
     setState(() {
@@ -1432,37 +1487,55 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
             // Header Row: Author & Category
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: scheme.primaryContainer,
-                  backgroundImage: (_post.authorAvatarUrl != null &&
-                          _post.authorAvatarUrl!.isNotEmpty)
-                      ? NetworkImage(_post.authorAvatarUrl!)
-                      : null,
-                  child: (_post.authorAvatarUrl == null ||
-                          _post.authorAvatarUrl!.isEmpty)
-                      ? Text(
-                          (_post.authorName != null &&
-                                  _post.authorName!.isNotEmpty)
-                              ? _post.authorName![0].toUpperCase()
-                              : 'P',
-                          style: TextStyle(
-                            color: scheme.onPrimaryContainer,
-                            fontWeight: AppTypography.bold,
-                            fontSize: 15,
-                          ),
-                        )
-                      : null,
+                GestureDetector(
+                  onTap: () => _showPublicUserProfile(
+                    context,
+                    _post.userId,
+                    _post.authorName ?? 'Community Member',
+                    _post.authorAvatarUrl,
+                    _post.location,
+                  ),
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: scheme.primaryContainer,
+                    backgroundImage: (_post.authorAvatarUrl != null &&
+                            _post.authorAvatarUrl!.isNotEmpty)
+                        ? NetworkImage(_post.authorAvatarUrl!)
+                        : null,
+                    child: (_post.authorAvatarUrl == null ||
+                            _post.authorAvatarUrl!.isEmpty)
+                        ? Text(
+                            (_post.authorName != null &&
+                                    _post.authorName!.isNotEmpty)
+                                ? _post.authorName![0].toUpperCase()
+                                : 'P',
+                            style: TextStyle(
+                              color: scheme.onPrimaryContainer,
+                              fontWeight: AppTypography.bold,
+                              fontSize: 15,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 AppSpacing.hGapSm,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _post.authorName ?? 'Community Member',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15),
+                      GestureDetector(
+                        onTap: () => _showPublicUserProfile(
+                          context,
+                          _post.userId,
+                          _post.authorName ?? 'Community Member',
+                          _post.authorAvatarUrl,
+                          _post.location,
+                        ),
+                        child: Text(
+                          _post.authorName ?? 'Community Member',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
                       ),
                       Text(
                         '${_post.category} • ${_post.location ?? "Local Community"}',
@@ -1720,6 +1793,10 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
   }
 
   Widget _buildCommentTile(CommunityPostComment c, ColorScheme scheme, {bool isReply = false}) {
+    final currentUserId = ref.read(supabaseClientProvider).auth.currentUser?.id;
+    final isCommentAuthor = c.userId == currentUserId;
+    final isPostAuthor = widget.isAuthor;
+
     return Container(
       margin: EdgeInsets.only(
         left: isReply ? 28 : 0,
@@ -1740,39 +1817,57 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: isReply ? 10 : 12,
-                backgroundColor: scheme.primaryContainer,
-                backgroundImage: (c.authorAvatarUrl != null && c.authorAvatarUrl!.isNotEmpty)
-                    ? NetworkImage(c.authorAvatarUrl!)
-                    : null,
-                child: (c.authorAvatarUrl == null || c.authorAvatarUrl!.isEmpty)
-                    ? Text(
-                        c.authorName.isNotEmpty
-                            ? c.authorName[0].toUpperCase()
-                            : 'U',
-                        style: TextStyle(
-                          fontSize: isReply ? 9 : 11,
-                          fontWeight: FontWeight.bold,
-                          color: scheme.onPrimaryContainer,
-                        ),
-                      )
-                    : null,
+              GestureDetector(
+                onTap: () => _showPublicUserProfile(
+                  context,
+                  c.userId,
+                  c.authorName,
+                  c.authorAvatarUrl,
+                  null,
+                ),
+                child: CircleAvatar(
+                  radius: isReply ? 10 : 12,
+                  backgroundColor: scheme.primaryContainer,
+                  backgroundImage: (c.authorAvatarUrl != null && c.authorAvatarUrl!.isNotEmpty)
+                      ? NetworkImage(c.authorAvatarUrl!)
+                      : null,
+                  child: (c.authorAvatarUrl == null || c.authorAvatarUrl!.isEmpty)
+                      ? Text(
+                          c.authorName.isNotEmpty
+                              ? c.authorName[0].toUpperCase()
+                              : 'U',
+                          style: TextStyle(
+                            fontSize: isReply ? 9 : 11,
+                            fontWeight: FontWeight.bold,
+                            color: scheme.onPrimaryContainer,
+                          ),
+                        )
+                      : null,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Row(
                   children: [
                     Flexible(
-                      child: Text(
-                        c.authorName.isNotEmpty
-                            ? c.authorName
-                            : 'Pet Companion',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isReply ? 12 : 13,
+                      child: GestureDetector(
+                        onTap: () => _showPublicUserProfile(
+                          context,
+                          c.userId,
+                          c.authorName,
+                          c.authorAvatarUrl,
+                          null,
+                        ),
+                        child: Text(
+                          c.authorName.isNotEmpty
+                              ? c.authorName
+                              : 'Pet Companion',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isReply ? 12 : 13,
+                          ),
                         ),
                       ),
                     ),
@@ -1787,6 +1882,15 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
                   ],
                 ),
               ),
+              if (isCommentAuthor || isPostAuthor)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                  tooltip: 'Delete Comment',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _confirmDeleteComment(c),
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -1850,6 +1954,647 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// ── Public User Profile Bottom Sheet ──────────────────────────────────────────
+void _showPublicUserProfile(
+  BuildContext context,
+  String? userId,
+  String authorName,
+  String? avatarUrl,
+  String? location,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => _PublicUserProfileSheet(
+      userId: userId,
+      authorName: authorName,
+      avatarUrl: avatarUrl,
+      location: location,
+    ),
+  );
+}
+
+class _PublicUserProfileSheet extends ConsumerStatefulWidget {
+  const _PublicUserProfileSheet({
+    required this.userId,
+    required this.authorName,
+    this.avatarUrl,
+    this.location,
+  });
+
+  final String? userId;
+  final String authorName;
+  final String? avatarUrl;
+  final String? location;
+
+  @override
+  ConsumerState<_PublicUserProfileSheet> createState() => _PublicUserProfileSheetState();
+}
+
+class _PublicUserProfileSheetState extends ConsumerState<_PublicUserProfileSheet> {
+  bool _isFollowing = false;
+  bool _loading = true;
+  int _postCount = 0;
+  int _petCount = 0;
+  List<String> _petNames = [];
+  String? _realCity;
+  String? _realBio;
+  String? _realFullName;
+  String? _realAvatarUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRealUserData();
+  }
+
+  Future<void> _fetchRealUserData() async {
+    final client = ref.read(supabaseClientProvider);
+    final targetId = widget.userId;
+
+    if (targetId == null || targetId.isEmpty) {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+      return;
+    }
+
+    try {
+      // 1. Fetch user profile from Supabase
+      final profileRes = await client
+          .from('profiles')
+          .select('full_name, bio, city, avatar_url, created_at')
+          .eq('id', targetId)
+          .maybeSingle();
+
+      if (profileRes != null) {
+        _realFullName = profileRes['full_name'] as String?;
+        _realBio = profileRes['bio'] as String?;
+        _realCity = profileRes['city'] as String?;
+        _realAvatarUrl = profileRes['avatar_url'] as String?;
+      }
+
+      // 2. Query real post count
+      final postsRes = await client
+          .from('community_posts')
+          .select('id')
+          .eq('user_id', targetId);
+      _postCount = (postsRes as List).length;
+
+      // 3. Query real registered pets
+      final petsRes = await client
+          .from('pets')
+          .select('name, species, breed')
+          .eq('owner_id', targetId);
+      final petList = (petsRes as List).cast<Map<String, dynamic>>();
+      _petCount = petList.length;
+      _petNames = petList.map((p) => (p['name'] as String?) ?? 'Pet').toList();
+
+      // 4. Check real follow state from user preferences or Supabase
+      final currentUserId = client.auth.currentUser?.id;
+      if (currentUserId != null) {
+        final followCheck = await client
+            .from('user_follows')
+            .select('id')
+            .eq('follower_id', currentUserId)
+            .eq('following_id', targetId)
+            .maybeSingle()
+            .catchError((_) => null);
+        if (followCheck != null) {
+          _isFollowing = true;
+        }
+      }
+    } catch (_) {
+      // Fallback gracefully without breaking UI
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _toggleFollow() async {
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+    final targetId = widget.userId;
+
+    setState(() {
+      _isFollowing = !_isFollowing;
+    });
+
+    await HapticFeedback.mediumImpact();
+
+    if (currentUserId != null && targetId != null && targetId.isNotEmpty) {
+      try {
+        if (_isFollowing) {
+          await client.from('user_follows').insert({
+            'follower_id': currentUserId,
+            'following_id': targetId,
+          }).catchError((_) => null);
+        } else {
+          await client
+              .from('user_follows')
+              .delete()
+              .eq('follower_id', currentUserId)
+              .eq('following_id', targetId)
+              .catchError((_) => null);
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(
+            _isFollowing
+                ? '✓ Now following ${_realFullName ?? widget.authorName}!'
+                : 'Unfollowed ${_realFullName ?? widget.authorName}',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final displayName = _realFullName ?? widget.authorName;
+    final displayAvatar = _realAvatarUrl ?? widget.avatarUrl;
+    final displayLocation = _realCity ?? widget.location ?? 'Kerala, India';
+    final handle = '@${displayName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}';
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.78,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.outlineVariant.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          if (_loading)
+            LinearProgressIndicator(
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              color: scheme.primary,
+            ),
+
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              children: [
+                // Profile Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [scheme.primary, const Color(0xFF10B981)],
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 34,
+                        backgroundColor: scheme.primaryContainer,
+                        backgroundImage: (displayAvatar != null && displayAvatar.isNotEmpty)
+                            ? NetworkImage(displayAvatar)
+                            : null,
+                        child: (displayAvatar == null || displayAvatar.isEmpty)
+                            ? Text(
+                                displayName.isNotEmpty
+                                    ? displayName[0].toUpperCase()
+                                    : 'P',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: scheme.onPrimaryContainer,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(Icons.verified_rounded,
+                                  size: 18, color: scheme.primary),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            handle,
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.pets_rounded,
+                                    size: 12, color: scheme.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _petCount > 0
+                                      ? 'Parent of ${_petNames.take(2).join(', ')}'
+                                      : 'Verified Pet Parent',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 18),
+
+                // Real Stats: Posts, Pets, City Location
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: scheme.outlineVariant.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildProfileStat(
+                        'Posts',
+                        '$_postCount',
+                        Icons.dynamic_feed_rounded,
+                        scheme.primary,
+                      ),
+                      _buildProfileStat(
+                        'Pets',
+                        '$_petCount',
+                        Icons.pets_rounded,
+                        const Color(0xFFF59E0B),
+                      ),
+                      _buildProfileStat(
+                        'Location',
+                        displayLocation,
+                        Icons.location_on_rounded,
+                        const Color(0xFF10B981),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Real Actions: Follow & Message
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: _isFollowing
+                            ? FilledButton.styleFrom(
+                                backgroundColor: scheme.surfaceContainerHighest,
+                                foregroundColor: scheme.onSurface,
+                              )
+                            : null,
+                        onPressed: _toggleFollow,
+                        icon: Icon(
+                          _isFollowing
+                              ? Icons.check_circle_rounded
+                              : Icons.person_add_rounded,
+                          size: 18,
+                        ),
+                        label: Text(_isFollowing ? 'Following' : 'Follow'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          if (widget.userId != null && widget.userId!.isNotEmpty) {
+                            context.push('${RoutePaths.ownerCommunityMessages}?otherUserId=${widget.userId}');
+                          } else {
+                            context.push(RoutePaths.ownerCommunityMessages);
+                          }
+                        },
+                        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                        label: const Text('Message'),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Bio Section
+                const Text(
+                  'About Pet Parent',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _realBio ??
+                      'Active companion caregiver sharing moments, wellness insights, and connecting with pet parents in $displayLocation. 🐾',
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _buildProfileStat(String label, String value, IconData icon, Color color) {
+  return Column(
+    children: [
+      Icon(icon, size: 20, color: color),
+      const SizedBox(height: 4),
+      Text(
+        value,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+      ),
+      Text(
+        label,
+        style: const TextStyle(color: Colors.grey, fontSize: 11),
+      ),
+    ],
+  );
+}
+
+/// Follow Activity and Requests Modal Sheet
+class _FollowActivitySheet extends ConsumerStatefulWidget {
+  const _FollowActivitySheet();
+
+  @override
+  ConsumerState<_FollowActivitySheet> createState() => _FollowActivitySheetState();
+}
+
+class _FollowActivitySheetState extends ConsumerState<_FollowActivitySheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _loading = true;
+  List<Map<String, dynamic>> _followers = [];
+  List<Map<String, dynamic>> _following = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _fetchFollowData();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchFollowData() async {
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+
+    if (currentUserId == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+
+    try {
+      // 1. Fetch followers (people following current user)
+      final followersRes = await client
+          .from('user_follows')
+          .select('follower_id, created_at, profiles!user_follows_follower_id_fkey(id, full_name, avatar_url, city)')
+          .eq('following_id', currentUserId)
+          .catchError((_) => <dynamic>[]);
+
+      // 2. Fetch following (people current user follows)
+      final followingRes = await client
+          .from('user_follows')
+          .select('following_id, created_at, profiles!user_follows_following_id_fkey(id, full_name, avatar_url, city)')
+          .eq('follower_id', currentUserId)
+          .catchError((_) => <dynamic>[]);
+
+      if (mounted) {
+        setState(() {
+          _followers = (followersRes as List<dynamic>).cast<Map<String, dynamic>>();
+          _following = (followingRes as List<dynamic>).cast<Map<String, dynamic>>();
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          // Drag Handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.outlineVariant.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                Icon(Icons.people_alt_rounded, color: scheme.primary, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Followers & Community Activity',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          TabBar(
+            controller: _tabController,
+            labelColor: scheme.primary,
+            unselectedLabelColor: scheme.onSurfaceVariant,
+            indicatorColor: scheme.primary,
+            tabs: [
+              Tab(text: 'Followers (${_followers.length})'),
+              Tab(text: 'Following (${_following.length})'),
+            ],
+          ),
+
+          if (_loading)
+            LinearProgressIndicator(
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              color: scheme.primary,
+            ),
+
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildUserList(_followers, isFollowerTab: true),
+                _buildUserList(_following, isFollowerTab: false),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserList(List<Map<String, dynamic>> items, {required bool isFollowerTab}) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (items.isEmpty && !_loading) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person_search_rounded, size: 48, color: scheme.outline),
+              const SizedBox(height: 12),
+              Text(
+                isFollowerTab ? 'No followers yet' : 'You are not following anyone yet',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isFollowerTab
+                    ? 'Engage in the community feed to connect with fellow pet parents!'
+                    : 'Discover pet owners nearby and tap Follow on their posts.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (ctx, i) {
+        final item = items[i];
+        final profile = item['profiles'] as Map<String, dynamic>?;
+        final name = profile?['full_name'] as String? ?? 'Pet Parent';
+        final city = profile?['city'] as String? ?? 'Community Member';
+        final avatar = profile?['avatar_url'] as String?;
+        final targetId = (isFollowerTab ? item['follower_id'] : item['following_id']) as String?;
+
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: scheme.primaryContainer,
+            backgroundImage: (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
+            child: (avatar == null || avatar.isEmpty)
+                ? Text(name.isNotEmpty ? name[0].toUpperCase() : 'P')
+                : null,
+          ),
+          title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          subtitle: Text(city, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+          trailing: OutlinedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (targetId != null && targetId.isNotEmpty) {
+                context.push('${RoutePaths.ownerCommunityMessages}?otherUserId=$targetId');
+              } else {
+                context.push(RoutePaths.ownerCommunityMessages);
+              }
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+            child: const Text('Message', style: TextStyle(fontSize: 12)),
+          ),
+        );
+      },
     );
   }
 }

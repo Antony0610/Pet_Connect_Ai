@@ -177,22 +177,6 @@ class _QuickActions extends StatelessWidget {
         onTap: () => context.push(RoutePaths.ownerAiToxicity),
       ),
       QuickActionItemSpec(
-        icon: Icons.calculate_rounded,
-        title: 'Calorie\nPlanner',
-        gradientColors: const [Color(0xFF06B6D4), Color(0xFF0E7490)],
-        onTap: () => context.push(
-          '${RoutePaths.ownerAiChat}?prompt=${Uri.encodeComponent("Calculate daily caloric requirements (RER/MER) and feeding plan for my companion")}',
-        ),
-      ),
-      QuickActionItemSpec(
-        icon: Icons.psychology_rounded,
-        title: 'Behavior\nCoach',
-        gradientColors: const [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
-        onTap: () => context.push(
-          '${RoutePaths.ownerAiChat}?prompt=${Uri.encodeComponent("Provide evidence-based behavior modification and training guidance for my companion")}',
-        ),
-      ),
-      QuickActionItemSpec(
         icon: Icons.assessment_rounded,
         title: 'AI Health\nReports',
         gradientColors: const [Color(0xFFEC4899), Color(0xFFBE185D)],
@@ -213,7 +197,7 @@ class _QuickActions extends StatelessWidget {
               ),
             ),
             Text(
-              '${actions.length} Tools',
+              '4 Tools',
               style: context.textTheme.labelSmall?.copyWith(
                 color: context.colorScheme.onSurfaceVariant,
               ),
@@ -223,10 +207,12 @@ class _QuickActions extends StatelessWidget {
         AppSpacing.vGapSm,
         QuickActionsGridContainer(
           items: actions,
-          crossAxisCount: 3,
-          tabletCrossAxisCount: 6,
-          containerSize: 52,
-          iconSize: 26,
+          crossAxisCount: 4,
+          tabletCrossAxisCount: 4,
+          containerSize: 48,
+          iconSize: 24,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
         ),
       ],
     );
@@ -300,12 +286,13 @@ class _RecentActivity extends ConsumerWidget {
         .where((s) => !s.analysisSummary.contains('404'))
         .toList();
 
-    final List<_Activity> activities = [];
+    final List<({DateTime dt, _Activity activity})> rawList = [];
 
-    for (final c in convs.take(2)) {
+    for (final c in convs) {
       final timeStr = _formatActivityLocalTime(c.updatedAt);
-      activities.add(
-        _Activity(
+      rawList.add((
+        dt: c.updatedAt,
+        activity: _Activity(
           Icons.chat_bubble_outline_rounded,
           c.title,
           'AI Chat Consultation Session',
@@ -314,16 +301,17 @@ class _RecentActivity extends ConsumerWidget {
           conversationId: c.id,
           route: '${RoutePaths.ownerAiChat}?conversationId=${c.id}',
         ),
-      );
+      ));
     }
 
-    for (final s in scans.take(2)) {
+    for (final s in scans) {
       final timeStr = _formatActivityLocalTime(s.createdAt);
       final isCritical =
           s.urgencyLevel.toUpperCase() == 'CRITICAL' ||
           s.urgencyLevel.toUpperCase() == 'URGENT';
-      activities.add(
-        _Activity(
+      rawList.add((
+        dt: s.createdAt,
+        activity: _Activity(
           Icons.health_and_safety_rounded,
           'Symptom Scan: ${s.urgencyLevel}',
           s.analysisSummary.length > 55
@@ -333,34 +321,29 @@ class _RecentActivity extends ConsumerWidget {
           isCritical ? _Tint.secondary : _Tint.tertiary,
           route: RoutePaths.ownerAiDiagnostic,
         ),
-      );
+      ));
     }
+
+    rawList.sort((a, b) => b.dt.compareTo(a.dt));
+    final activities = rawList.take(4).map((e) => e.activity).toList();
 
     if (activities.isEmpty) {
       activities.addAll([
         _Activity(
-          Icons.medical_services_outlined,
-          'AI Clinical Baseline Active',
-          'Biometrics & nutrition metrics configured for $petName',
-          'Today',
+          Icons.auto_awesome_rounded,
+          'AI Assistant Ready',
+          'Ask anything about $petName\'s health or nutrition',
+          'Live',
           _Tint.primary,
-          route: RoutePaths.ownerAiInsights,
+          route: RoutePaths.ownerAiChat,
         ),
         const _Activity(
           Icons.restaurant_rounded,
           'Ingredient Toxicity Checker',
           'Search & verify safe household ingredients',
-          'Live',
+          'Active',
           _Tint.tertiary,
           route: RoutePaths.ownerAi,
-        ),
-        const _Activity(
-          Icons.healing_outlined,
-          'Multimodal Triage Engine',
-          'Symptom assessment and clinical differentials ready',
-          'Active',
-          _Tint.secondary,
-          route: RoutePaths.ownerAiDiagnostic,
         ),
       ]);
     }

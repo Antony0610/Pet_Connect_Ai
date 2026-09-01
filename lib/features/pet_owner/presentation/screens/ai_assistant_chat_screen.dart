@@ -6,13 +6,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 /// The author of a chat message.
@@ -41,9 +44,10 @@ class _ChatMessage {
 
 /// **AI Assistant Chat** — `/owner/ai/chat`.
 ///
-/// An interactive multimodal conversational thread with PetConnect AI.
-/// Supports text queries, multi-photo symptom attachment, hands-free voice dictation,
-/// conversation thread history drawer, mid-chat pet switching, and live streaming typewriter responses.
+/// An open-domain conversational thread with PetConnect AI powered by Google Gemini.
+/// Supports universal question answering (coding, calculations, general knowledge, trivia, writing)
+/// and specialized clinical veterinary diagnostics, multi-photo symptom inspection, voice dictation,
+/// and rich Markdown rendering with code blocks, bold headers, and copy actions.
 class AiAssistantChatScreen extends ConsumerStatefulWidget {
   const AiAssistantChatScreen({
     super.key,
@@ -68,32 +72,37 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   bool _isListening = false;
   bool _speechEnabled = false;
   final List<Uint8List> _pendingImages = [];
+  String? _lastUserPrompt;
 
   final List<_ChatMessage> _messages = [
     _ChatMessage(
       _Role.ai,
-      "Hi! I'm your PetConnect AI Veterinary Assistant. You can ask me anything — health triage, toxicology, nutrition math, behavior training, avian/exotic care, or attach photos for instant multimodal inspection.",
-      sources: const ['PetConnect AI Engine'],
+      '👋 Hello! I am PetConnect AI, your companion AI assistant.\n\n'
+      'Feel free to ask me **anything** — health symptoms, nutrition, behavior training, general knowledge, science, translations, and more. You can also attach photos for visual inspection!',
+      sources: const ['PetConnect AI'],
     ),
   ];
 
   static const List<Map<String, String>> _suggestionChips = [
-    {'icon': '🐾', 'label': 'Symptom Triage', 'prompt': 'Analyze skin rash, redness and itching causes'},
-    {'icon': '🥩', 'label': 'Food Safety', 'prompt': 'Can dogs safely eat peanut butter and apples?'},
-    {'icon': '⚖️', 'label': 'Calorie Math', 'prompt': 'Calculate daily calories for a 12 kg moderately active dog'},
-    {'icon': '🎾', 'label': 'Puppy Biting', 'prompt': 'How do I stop puppy play biting effectively?'},
-    {'icon': '🦜', 'label': 'Avian & Exotics', 'prompt': 'What are the emergency signs of Teflon toxicity in birds?'},
-    {'icon': '🚨', 'label': 'First Aid & CPR', 'prompt': 'Step-by-step CPR and choking first aid for companion pets'},
-    {'icon': '🏠', 'label': 'Potty Training', 'prompt': 'What is the most effective routine for housebreaking?'},
-    {'icon': '🔬', 'label': 'Science', 'prompt': 'Why do cats purr and how does it promote healing?'},
+    {'icon': '🐾', 'label': 'Symptom Triage', 'prompt': 'Analyze skin rash, redness and itching causes in dogs'},
+    {'icon': '🥩', 'label': 'Food Safety', 'prompt': 'Can dogs safely eat peanut butter, apples, and blueberries?'},
+    {'icon': '⚖️', 'label': 'Calorie Math', 'prompt': 'Calculate daily RER and MER calories for a 12 kg moderately active dog'},
+    {'icon': '🔬', 'label': 'Science', 'prompt': 'Explain how quantum computing works in simple terms'},
+    {'icon': '💻', 'label': 'Python Code', 'prompt': 'Write a Python function to find the longest palindromic substring'},
+    {'icon': '🦜', 'label': 'Avian Care', 'prompt': 'What are the emergency signs of Teflon/PTFE toxicity in pet birds?'},
+    {'icon': '🏠', 'label': 'Puppy Biting', 'prompt': 'How do I stop puppy play biting and teach bite inhibition effectively?'},
+    {'icon': '🌐', 'label': 'Kerala Cats', 'prompt': 'Recommend the best cat breeds for Kerala climate and apartment living'},
   ];
 
   String? _activeConversationId;
+  String _activeModelLabel = '⚡ Flash 3.1';
+  bool _showScrollToBottom = false;
 
   @override
   void initState() {
     super.initState();
     _initSpeech();
+    _scroll.addListener(_handleScrollListener);
     if (widget.initialConversationId != null && widget.initialConversationId!.isNotEmpty) {
       _activeConversationId = widget.initialConversationId;
       _loadConversationHistory(widget.initialConversationId!);
@@ -104,6 +113,14 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           _sendPrompt(widget.initialPrompt!.trim());
         }
       });
+    }
+  }
+
+  void _handleScrollListener() {
+    if (!_scroll.hasClients) return;
+    final isScrolledUp = (_scroll.position.maxScrollExtent - _scroll.offset) > 160;
+    if (isScrolledUp != _showScrollToBottom && mounted) {
+      setState(() => _showScrollToBottom = isScrolledUp);
     }
   }
 
@@ -139,7 +156,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               _ChatMessage(
                 m.senderRole == 'user' ? _Role.user : _Role.ai,
                 m.messageText,
-                sources: m.senderRole == 'user' ? const [] : const ['PetConnect AI Engine'],
+                sources: m.senderRole == 'user' ? const [] : const ['Gemini Omni-Intelligence'],
               ),
             );
           }
@@ -192,7 +209,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 80);
+      final picked = await picker.pickImage(source: source, imageQuality: 85);
       if (picked != null) {
         final bytes = await picked.readAsBytes();
         setState(() {
@@ -216,7 +233,6 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       return;
     }
 
-    // Check and request microphone permission at runtime
     var micStatus = await Permission.microphone.status;
     if (!micStatus.isGranted) {
       micStatus = await Permission.microphone.request();
@@ -285,9 +301,90 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     }
   }
 
+  String _buildAppRagContext() {
+    final buffer = StringBuffer();
+    try {
+      final authUser = ref.read(supabaseClientProvider).auth.currentUser;
+      final profile = ref.read(currentUserProfileProvider).valueOrNull;
+
+      final userName = profile?.fullName ??
+          authUser?.userMetadata?['full_name'] as String? ??
+          authUser?.email?.split('@').first ??
+          'Pet Parent';
+
+      final userCity = profile?.city ?? 'Meladoor, Kerala, India';
+      final lat = profile?.latitude ?? 10.2740;
+      final lng = profile?.longitude ?? 76.3216;
+      final now = DateTime.now().toLocal();
+
+      buffer.writeln('PET OWNER USER PROFILE & LIVE GEOGRAPHIC LOCATION:');
+      buffer.writeln('- Name: $userName');
+      buffer.writeln('- Email: ${authUser?.email ?? "Not specified"}');
+      buffer.writeln('- Home City / Region: $userCity');
+      buffer.writeln('- Exact GPS Coordinates: $lat° N, $lng° E');
+      buffer.writeln('- Current Date & Local Time: ${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}');
+      buffer.writeln('- INSTRUCTION FOR WEATHER & OUTDOOR QUERIES: When the user asks about the weather, climate, current temperature, rain forecast, or safe pet walking times, ALWAYS use this exact location ($userCity, Coordinates: $lat, $lng) to provide accurate real-time weather assessments, temperature, humidity, walking recommendations (avoiding hot pavement during peak hours), and rain/heat warnings.');
+    } catch (_) {}
+
+    try {
+      final allPets = ref.read(petsProvider).valueOrNull ?? [];
+      final selectedPet = ref.read(selectedPetProvider);
+
+      buffer.writeln('\nREGISTERED PETS IN OWNER HOUSEHOLD (${allPets.length}):');
+      if (allPets.isEmpty && selectedPet != null) {
+        buffer.writeln(
+          '- Active Selected Pet: ${selectedPet.name} (Species: ${selectedPet.species}, Breed: ${selectedPet.breed ?? "Not specified"}, Gender: ${selectedPet.gender}, Age/DOB: ${selectedPet.dateOfBirth ?? "Unknown"}, Weight: ${selectedPet.weightKg != null ? "${selectedPet.weightKg} kg" : "N/A"}, Health Status: ${selectedPet.healthStatus})',
+        );
+      } else if (allPets.isEmpty) {
+        buffer.writeln('- No pets registered in local profile yet.');
+      } else {
+        for (final p in allPets) {
+          final isSelected = selectedPet?.id == p.id;
+          final dobStr = p.dateOfBirth != null
+              ? '${p.dateOfBirth!.year}-${p.dateOfBirth!.month.toString().padLeft(2, "0")}-${p.dateOfBirth!.day.toString().padLeft(2, "0")}'
+              : 'Unknown';
+          buffer.writeln(
+            '- ${isSelected ? "[ACTIVE SELECTED COMPANION] " : ""}${p.name}: Species: ${p.species}, Breed: ${p.breed ?? "Unknown"}, Gender: ${p.gender}, DOB: $dobStr, Weight: ${p.weightKg ?? "N/A"} kg, Health Status: ${p.healthStatus}',
+          );
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final collars = ref.read(registeredCollarsProvider).valueOrNull ?? [];
+      if (collars.isNotEmpty) {
+        buffer.writeln('\nSMART COLLAR & IOT TELEMETRY:');
+        for (final c in collars) {
+          buffer.writeln(
+            '- Smart Collar Device: ${c.deviceId} (ID: ${c.id}), Battery: ${c.batteryPercentage}%, Protocol: ${c.connectivityType}, Lost Mode: ${c.isLostMode ? "Active" : "Normal"}, Pet ID: ${c.petId ?? "Assigned"}',
+          );
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final healthScans = ref.read(aiHealthScansProvider).valueOrNull ?? [];
+      if (healthScans.isNotEmpty) {
+        buffer.writeln('\nRECENT CLINICAL AI HEALTH SCANS & VET ASSESSMENTS:');
+        for (final s in healthScans.take(3)) {
+          final dateStr = s.createdAt.toIso8601String().split('T').first;
+          final cleanSummary = s.analysisSummary.replaceAll('\n', ' ').trim();
+          final summarySnippet = cleanSummary.length > 120
+              ? '${cleanSummary.substring(0, 120)}...'
+              : cleanSummary;
+          buffer.writeln(
+            '- Date: $dateStr | Urgency: ${s.urgencyLevel} | Scan Summary: $summarySnippet | Recommendations: ${s.recommendations.take(2).join("; ")}',
+          );
+        }
+      }
+    } catch (_) {}
+
+    return buffer.toString();
+  }
+
   Future<void> _streamAiResponse(
     String fullResponse, {
-    List<String> sources = const [],
+    List<String> sources = const ['Gemini Omni-Intelligence'],
     String? urgencyLevel,
     List<String> recommendations = const [],
   }) async {
@@ -306,15 +403,19 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
     final words = fullResponse.split(' ');
     final buffer = StringBuffer();
+    const batchSize = 3; // Multi-word batched streaming for instantaneous fluid rendering
 
-    for (int i = 0; i < words.length; i++) {
+    for (int i = 0; i < words.length; i += batchSize) {
       if (!mounted) return;
-      buffer.write('${words[i]} ');
+      final end = (i + batchSize < words.length) ? i + batchSize : words.length;
+      for (int j = i; j < end; j++) {
+        buffer.write('${words[j]} ');
+      }
       setState(() {
         aiMsg.text = buffer.toString();
       });
       _scrollToBottom();
-      await Future<void>.delayed(const Duration(milliseconds: 25));
+      await Future<void>.delayed(const Duration(milliseconds: 2));
     }
 
     if (mounted) {
@@ -330,6 +431,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     if (userText.isEmpty && !hasImages) return;
     if (_isSending) return;
 
+    _lastUserPrompt = userText;
     final attachedImages = List<Uint8List>.from(_pendingImages);
     _composer.clear();
     setState(() {
@@ -352,10 +454,14 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           imageBase64: imageBase64,
         );
 
+        if (mounted) {
+          setState(() => _isSending = false);
+        }
+
         await scanResult.fold(
           (failure) async {
             await _streamAiResponse(
-              'Visual scan completed: Observed pet photos. For clinical safety, monitor your companion closely and consult your veterinarian if signs worsen.',
+              '⚠️ Unable to analyze photo at this moment. Please check your internet connection and try again.',
               sources: const ['PetConnect Vision Engine'],
             );
           },
@@ -370,44 +476,66 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
         );
       } else {
         if (_activeConversationId == null) {
-          final convResult = await repo.createConversation(
-            petId: selectedPet?.id,
-            title: userText.length > 25 ? '${userText.substring(0, 25)}...' : userText,
-          );
-          convResult.fold((_) {}, (conv) {
-            _activeConversationId = conv.id;
-            ref.invalidate(aiConversationsProvider);
-          });
+          try {
+            final convResult = await repo.createConversation(
+              petId: selectedPet?.id,
+              title: userText.length > 25 ? '${userText.substring(0, 25)}...' : userText,
+            ).timeout(const Duration(seconds: 3));
+            convResult.fold((_) {}, (conv) {
+              _activeConversationId = conv.id;
+              ref.invalidate(aiConversationsProvider);
+            });
+          } catch (_) {}
         }
 
         final convId = _activeConversationId ??
             'session-${DateTime.now().millisecondsSinceEpoch}';
 
+        final ragContext = _buildAppRagContext();
+
         final result = await repo.sendChatMessage(
           conversationId: convId,
           prompt: userText,
           petId: selectedPet?.id,
-        );
+          ragContext: ragContext,
+        ).timeout(const Duration(seconds: 30));
+
+        if (mounted) {
+          setState(() => _isSending = false);
+        }
 
         await result.fold(
           (failure) async {
-            final pName = selectedPet?.name ?? 'your companion';
             await _streamAiResponse(
-              'Consultation note for $pName: Regarding "$userText", ensure $pName is well-hydrated, resting comfortably, and observed for any sudden changes.',
-              sources: const ['PetConnect Clinical Guidelines'],
+              '⚠️ Could not reach Gemini AI. Please check your network connection.',
+              sources: const ['PetConnect AI Engine'],
             );
           },
           (aiMsg) async {
+            if (aiMsg.metadata['model'] != null) {
+              final mName = (aiMsg.metadata['model'] as String).replaceAll('gemini-', '');
+              if (mounted) {
+                setState(() {
+                  _activeModelLabel = '⚡ $mName';
+                });
+              }
+            }
+            final reply = aiMsg.messageText.trim().isNotEmpty
+                ? aiMsg.messageText.trim()
+                : 'I am here to assist with all your questions and pet care needs! How can I help you today?';
             await _streamAiResponse(
-              aiMsg.messageText,
-              sources: const ['PetConnect AI Engine'],
+              reply,
+              sources: const ['Gemini Omni-Intelligence'],
             );
           },
         );
       }
     } catch (e) {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
       await _streamAiResponse(
-        'Clinical response generated. If symptoms persist or cause visible discomfort, please contact your local veterinary clinic.',
+        '⚠️ An error occurred while generating response: $e. Please try again.',
       );
     } finally {
       if (mounted) {
@@ -448,14 +576,14 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Chat History',
+                      'Conversations',
                       style: context.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: AppTypography.bold,
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.add_comment_outlined),
-                      tooltip: 'New Thread',
+                      tooltip: 'New Conversation',
                       onPressed: () {
                         Navigator.pop(context);
                         setState(() {
@@ -463,8 +591,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                           _messages.add(
                             _ChatMessage(
                               _Role.ai,
-                              'Started a new consultation thread! What can I help with today?',
-                              sources: const ['PetConnect AI Engine'],
+                              '👋 Started a fresh session! What would you like to ask or explore today?',
+                              sources: const ['Gemini Omni-Intelligence'],
                             ),
                           );
                           _activeConversationId = null;
@@ -478,25 +606,30 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               Expanded(
                 child: conversationsAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const Center(child: Text('No previous conversations')),
-                  data: (convs) {
-                    if (convs.isEmpty) {
-                      return const Center(child: Text('No past chat threads found.'));
+                  error: (_, __) => const Center(child: Text('No previous chats found')),
+                  data: (conversations) {
+                    if (conversations.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No previous conversations',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      );
                     }
-                    return ListView.builder(
-                      itemCount: convs.length,
+                    return ListView.separated(
+                      itemCount: conversations.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (ctx, i) {
-                        final c = convs[i];
+                        final c = conversations[i];
                         final isSelected = c.id == _activeConversationId;
                         return ListTile(
                           selected: isSelected,
-                          selectedTileColor: scheme.primaryContainer.withValues(alpha: 0.3),
                           leading: const Icon(Icons.chat_bubble_outline, size: 18),
                           title: Text(
                             c.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                           ),
                           onTap: () {
                             Navigator.pop(context);
@@ -516,9 +649,42 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       appBar: AppBar(
         title: Row(
           children: [
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.auto_awesome, color: scheme.primary, size: 18),
+            ),
+            const SizedBox(width: 8),
             Text(
               'PetConnect AI',
               style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF10B981)),
+                  const SizedBox(width: 2),
+                  Text(
+                    _activeModelLabel,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF10B981),
+                    ),
+                  ),
+                ],
+              ),
             ),
             AppSpacing.hGapSm,
             petsAsync.when(
@@ -552,7 +718,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_outlined),
-            tooltip: 'New Consultation',
+            tooltip: 'New Conversation',
             onPressed: () {
               HapticFeedback.lightImpact();
               setState(() {
@@ -560,8 +726,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                 _messages.add(
                   _ChatMessage(
                     _Role.ai,
-                    "New consultation started! How can I assist you with your companion's care or health today?",
-                    sources: const ['PetConnect AI Engine'],
+                    '👋 Started a fresh session! What would you like to ask or explore today?',
+                    sources: const ['Gemini Omni-Intelligence'],
                   ),
                 );
                 _activeConversationId = null;
@@ -576,23 +742,74 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           child: Column(
             children: [
               Expanded(
-                child: ListView.separated(
-                  controller: _scroll,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  itemCount: _messages.length,
-                  separatorBuilder: (_, __) => AppSpacing.vGapMd,
-                  itemBuilder: (ctx, i) {
-                    final m = _messages[i];
-                    return m.role == _Role.user
-                        ? _UserBubble(text: m.text, images: m.images)
-                        : _AiCard(
-                            text: m.text,
-                            sources: m.sources,
-                            urgencyLevel: m.urgencyLevel,
-                            recommendations: m.recommendations,
-                            isStreaming: m.isStreaming,
-                          );
-                  },
+                child: Stack(
+                  children: [
+                    ListView.separated(
+                      controller: _scroll,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: _messages.length,
+                      separatorBuilder: (_, __) => AppSpacing.vGapMd,
+                      itemBuilder: (ctx, i) {
+                        final m = _messages[i];
+                        return m.role == _Role.user
+                            ? _UserBubble(text: m.text, images: m.images)
+                            : _AiCard(
+                                text: m.text,
+                                sources: m.sources,
+                                urgencyLevel: m.urgencyLevel,
+                                recommendations: m.recommendations,
+                                isStreaming: m.isStreaming,
+                                onRegenerate: _lastUserPrompt != null && i == _messages.length - 1
+                                    ? () => _sendPrompt(_lastUserPrompt!)
+                                    : null,
+                              );
+                      },
+                    ),
+
+                    // ChatGPT-Style Floating Scroll-to-Bottom Down-Arrow Button
+                    if (_showScrollToBottom)
+                      Positioned(
+                        bottom: 14,
+                        right: 18,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              _scroll.animateTo(
+                                _scroll.position.maxScrollExtent,
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeOutCubic,
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(24),
+                            child: Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest.withValues(alpha: 0.92),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: scheme.outlineVariant.withValues(alpha: 0.6),
+                                  width: 1.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.22),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: scheme.primary,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
 
@@ -609,7 +826,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                       ),
                       AppSpacing.hGapSm,
                       Text(
-                        'AI is formulating veterinary assessment...',
+                        'Thinking...',
                         style: context.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
@@ -621,7 +838,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
               if (_messages.length <= 2)
                 SizedBox(
-                  height: 42,
+                  height: 44,
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     scrollDirection: Axis.horizontal,
@@ -630,8 +847,22 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                     itemBuilder: (ctx, i) {
                       final item = _suggestionChips[i];
                       return ActionChip(
-                        avatar: Text(item['icon']!),
-                        label: Text(item['label']!),
+                        avatar: Text(item['icon']!, style: const TextStyle(fontSize: 14)),
+                        label: Text(
+                          item['label']!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        backgroundColor: scheme.surfaceContainerHighest,
+                        side: BorderSide(
+                          color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         onPressed: () => _sendPrompt(item['prompt']!),
                       );
                     },
@@ -708,7 +939,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                   children: [
                     IconButton(
                       icon: const Icon(Icons.add_photo_alternate_outlined),
-                      tooltip: 'Attach Symptom Photos (Up to 3)',
+                      tooltip: 'Attach Photos for Multimodal Inspection',
                       onPressed: _pickImage,
                     ),
                     IconButton(
@@ -724,8 +955,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                         onSubmitted: _sendPrompt,
                         decoration: InputDecoration(
                           hintText: _pendingImages.isNotEmpty
-                              ? 'Add details to symptom photos...'
-                              : 'Ask about health, calories, training, exotics...',
+                              ? 'Add notes to symptom photos...'
+                              : 'Ask anything — health, symptoms, nutrition, behavior...',
                           border: const OutlineInputBorder(
                             borderRadius: AppRadius.brPill,
                             borderSide: BorderSide.none,
@@ -818,6 +1049,7 @@ class _AiCard extends StatelessWidget {
     this.urgencyLevel,
     this.recommendations = const [],
     this.isStreaming = false,
+    this.onRegenerate,
   });
 
   final String text;
@@ -825,15 +1057,11 @@ class _AiCard extends StatelessWidget {
   final String? urgencyLevel;
   final List<String> recommendations;
   final bool isStreaming;
+  final VoidCallback? onRegenerate;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-
-    final formattedText = text
-        .replaceAll('🐾 **PetConnect AI Assistance**:\n\n', '')
-        .replaceAll('**Visual Observations**:\n\n', '')
-        .trim();
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -884,29 +1112,327 @@ class _AiCard extends StatelessWidget {
                     ),
                     IconButton(
                       icon: const Icon(Icons.share_outlined, size: 16),
-                      tooltip: 'Share Advice',
+                      tooltip: 'Share',
                       onPressed: () {
                         ExternalActions.shareText(
-                          '🐾 PetConnect AI Advice:\n\n$text',
-                          subject: 'PetConnect AI Care Advice',
+                          text,
+                          subject: 'PetConnect AI Response',
                         );
                       },
                     ),
+                    if (onRegenerate != null)
+                      IconButton(
+                        icon: const Icon(Icons.replay_rounded, size: 16),
+                        tooltip: 'Regenerate Response',
+                        onPressed: onRegenerate,
+                      ),
                   ],
                 ],
               ),
               AppSpacing.vGapSm,
-              Text(
-                formattedText,
-                style: context.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurface,
-                  height: 1.45,
-                ),
-              ),
+              _RichMarkdownView(text: text),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Rich formatted Markdown parser and renderer supporting:
+/// Headers, bullet points, bold/italic terms, inline code pills, and multi-line code blocks with copy action.
+class _RichMarkdownView extends StatelessWidget {
+  const _RichMarkdownView({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final lines = text.split('\n');
+    final widgets = <Widget>[];
+
+    bool inCodeBlock = false;
+    final codeBuffer = StringBuffer();
+    String codeLanguage = '';
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+
+      // Code block start/end
+      if (line.trim().startsWith('```')) {
+        if (inCodeBlock) {
+          // Finish code block
+          final code = codeBuffer.toString().trimRight();
+          widgets.add(_buildCodeBlock(code, codeLanguage, context));
+          codeBuffer.clear();
+          inCodeBlock = false;
+          codeLanguage = '';
+        } else {
+          inCodeBlock = true;
+          codeLanguage = line.trim().substring(3).trim();
+        }
+        continue;
+      }
+
+      if (inCodeBlock) {
+        codeBuffer.writeln(line);
+        continue;
+      }
+
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) {
+        widgets.add(const SizedBox(height: 6));
+        continue;
+      }
+
+      // Headings (#, ##, ###, ####, #####)
+      if (RegExp(r'^#{1,6}\s+').hasMatch(trimmed)) {
+        final level = RegExp(r'^(#+)').firstMatch(trimmed)?.group(1)?.length ?? 1;
+        final title = trimmed.replaceFirst(RegExp(r'^#+\s*'), '');
+        final fontSize = level == 1
+            ? 17.0
+            : level == 2
+                ? 16.0
+                : level == 3
+                    ? 14.5
+                    : 13.5;
+        widgets.add(
+          Padding(
+            padding: EdgeInsets.only(
+              top: level <= 2 ? 10 : 6,
+              bottom: 4,
+            ),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.bold,
+                color: level <= 2 ? scheme.primary : scheme.onSurface,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+        );
+      } else if (trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+        final itemText = trimmed.substring(2);
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '• ',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: scheme.primary,
+                  ),
+                ),
+                Expanded(
+                  child: _buildFormattedSpans(itemText, context),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else if (RegExp(r'^\d+\.\s').hasMatch(trimmed)) {
+        final match = RegExp(r'^(\d+\.)\s*(.*)$').firstMatch(trimmed);
+        final numPrefix = match?.group(1) ?? '1.';
+        final itemText = match?.group(2) ?? trimmed;
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$numPrefix ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: scheme.primary,
+                  ),
+                ),
+                Expanded(
+                  child: _buildFormattedSpans(itemText, context),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: _buildFormattedSpans(trimmed, context),
+          ),
+        );
+      }
+    }
+
+    // Unclosed code block
+    if (inCodeBlock && codeBuffer.isNotEmpty) {
+      widgets.add(_buildCodeBlock(codeBuffer.toString().trimRight(), codeLanguage, context));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
+  Widget _buildCodeBlock(String code, String language, BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: const BoxDecoration(
+              color: Color(0xFF0F172A),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  language.isNotEmpty ? language.toUpperCase() : 'CODE',
+                  style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('✓ Code copied to clipboard')),
+                    );
+                  },
+                  child: const Row(
+                    children: [
+                      Icon(Icons.copy, size: 13, color: Color(0xFF94A3B8)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Copy',
+                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: SelectableText(
+              code,
+              style: const TextStyle(
+                color: Color(0xFFE2E8F0),
+                fontFamily: 'monospace',
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormattedSpans(String rawText, BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final spans = <InlineSpan>[];
+
+    // Regex for bold (**text**), inline code (`code`), and italics (*text*)
+    final pattern = RegExp(r'(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)');
+    int lastIndex = 0;
+
+    for (final match in pattern.allMatches(rawText)) {
+      if (match.start > lastIndex) {
+        spans.add(
+          TextSpan(
+            text: rawText.substring(lastIndex, match.start),
+            style: TextStyle(color: scheme.onSurface, fontSize: 14, height: 1.45),
+          ),
+        );
+      }
+
+      final matchedText = match.group(0)!;
+      if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+        final content = matchedText.substring(2, matchedText.length - 2);
+        spans.add(
+          TextSpan(
+            text: content,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: scheme.onSurface,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+        );
+      } else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
+        final content = matchedText.substring(1, matchedText.length - 1);
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                content,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: scheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        );
+      } else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
+        final content = matchedText.substring(1, matchedText.length - 1);
+        spans.add(
+          TextSpan(
+            text: content,
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              color: scheme.onSurface,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+        );
+      }
+      lastIndex = match.end;
+    }
+
+    if (lastIndex < rawText.length) {
+      spans.add(
+        TextSpan(
+          text: rawText.substring(lastIndex),
+          style: TextStyle(color: scheme.onSurface, fontSize: 14, height: 1.45),
+        ),
+      );
+    }
+
+    return SelectableText.rich(
+      TextSpan(children: spans),
     );
   }
 }

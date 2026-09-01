@@ -9,24 +9,14 @@ import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/providers/settings_providers.dart';
 import 'package:petconnect_ai/core/providers/theme_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
-/// The **App & Portal Settings** screen (`/owner/settings`).
-///
-/// Central management screen for the entire PetConnect AI Portal:
-/// - Live Theme Mode (Light / Dark / System)
-/// - 6-Color Accent Palette Customization
-/// - Language & Region (English & Malayalam)
-/// - Measurement Units (Weight, Temperature, Distance)
-/// - Notification Preferences (Health, Collar, Meds, Community)
-/// - Biometrics & Real Storage Cache Cleanup
-/// - Account Management (Sign Out & Delete Account)
+/// The **App & Portal Settings** screen (`/owner/settings`), designed in Telegram's
+/// iconic clean flat-list style with colored icon circles, grouped sections, and verified functionality.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -63,6 +53,158 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  void _showThemeDialog() {
+    final currentTheme = ref.read(themeModeProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Text(
+                  AppStrings.themeMode(context),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.blue.withValues(alpha: 0.15),
+                  child: const Icon(Icons.brightness_auto, color: Colors.blue),
+                ),
+                title: Text(AppStrings.system(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                trailing: currentTheme == ThemeMode.system
+                    ? Icon(Icons.check_circle_rounded, color: scheme.primary)
+                    : null,
+                onTap: () {
+                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.amber.withValues(alpha: 0.15),
+                  child: const Icon(Icons.light_mode, color: Colors.amber),
+                ),
+                title: Text(AppStrings.light(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                trailing: currentTheme == ThemeMode.light
+                    ? Icon(Icons.check_circle_rounded, color: scheme.primary)
+                    : null,
+                onTap: () {
+                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.indigo.withValues(alpha: 0.15),
+                  child: const Icon(Icons.dark_mode, color: Colors.indigo),
+                ),
+                title: Text(AppStrings.dark(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                trailing: currentTheme == ThemeMode.dark
+                    ? Icon(Icons.check_circle_rounded, color: scheme.primary)
+                    : null,
+                onTap: () {
+                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAccentPaletteDialog() {
+    final activePalette = ref.read(accentPaletteProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.accentPalette(context),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: AppAccentPalette.values.map((palette) {
+                  final isSelected = palette == activePalette;
+                  return InkWell(
+                    onTap: () {
+                      ref.read(accentPaletteProvider.notifier).setPalette(palette);
+                      Navigator.pop(ctx);
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: palette.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? scheme.onSurface : Colors.transparent,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: palette.primary.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: isSelected
+                              ? const Icon(Icons.check, color: Colors.white, size: 24)
+                              : null,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          palette.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showLanguageDialog() {
     final currentLocale = ref.read(localeProvider);
     final scheme = Theme.of(context).colorScheme;
@@ -83,19 +225,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Text(
                   'Select Language / ഭാഷ തിരഞ്ഞെടുക്കുക',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
               const Divider(),
               for (final lang in AppLanguage.values) ...[
                 ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: scheme.primaryContainer,
+                    backgroundColor: Colors.purple.withValues(alpha: 0.15),
                     child: Text(
                       lang == AppLanguage.english ? 'EN' : 'ML',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: scheme.primary,
+                        color: Colors.purple,
                         fontSize: 13,
                       ),
                     ),
@@ -330,6 +472,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final isMl = activeLocale.languageCode == 'ml';
 
+    final themeModeLabel = activeThemeMode == ThemeMode.system
+        ? AppStrings.system(context)
+        : (activeThemeMode == ThemeMode.light
+            ? AppStrings.light(context)
+            : AppStrings.dark(context));
+
     final appBar = OwnerGlassAppBar(
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
@@ -345,7 +493,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
 
-    final topPad = context.viewPadding.top + appBar.preferredSize.height;
     final bottomPad = context.viewPadding.bottom + AppSpacing.xxl;
 
     return Scaffold(
@@ -353,9 +500,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: appBar,
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
-          AppSpacing.marginMobile,
-          topPad + AppSpacing.md,
-          AppSpacing.marginMobile,
+          0,
+          AppSpacing.sm,
+          0,
           bottomPad,
         ),
         child: Center(
@@ -366,290 +513,122 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── 1. Appearance & Theme ────────────────────────────────
-                _buildSectionHeader(AppStrings.appearanceTheme(context), scheme),
-                AppSpacing.vGapSm,
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.palette_outlined, size: 20, color: scheme.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            AppStrings.themeMode(context),
-                            style: text.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SegmentedButton<ThemeMode>(
-                        segments: [
-                          ButtonSegment(
-                            value: ThemeMode.system,
-                            label: Text(AppStrings.system(context)),
-                            icon: const Icon(Icons.brightness_auto, size: 16),
-                          ),
-                          ButtonSegment(
-                            value: ThemeMode.light,
-                            label: Text(AppStrings.light(context)),
-                            icon: const Icon(Icons.light_mode, size: 16),
-                          ),
-                          ButtonSegment(
-                            value: ThemeMode.dark,
-                            label: Text(AppStrings.dark(context)),
-                            icon: const Icon(Icons.dark_mode, size: 16),
-                          ),
-                        ],
-                        selected: {activeThemeMode},
-                        onSelectionChanged: (val) {
-                          ref.read(appThemeModeProvider.notifier).setThemeMode(val.first);
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      Divider(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            AppStrings.accentPalette(context),
-                            style: text.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            activePalette.label,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: activePalette.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: AppAccentPalette.values.map((palette) {
-                          final isSelected = palette == activePalette;
-                          return InkWell(
-                            onTap: () {
-                              ref.read(accentPaletteProvider.notifier).setPalette(palette);
-                            },
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: palette.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSelected ? scheme.onSurface : Colors.transparent,
-                                  width: 2.5,
-                                ),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: palette.primary.withValues(alpha: 0.4),
-                                          blurRadius: 8,
-                                          spreadRadius: 2,
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: isSelected
-                                  ? const Icon(Icons.check, color: Colors.white, size: 20)
-                                  : null,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
+                // ── 1. Appearance & Theme (Telegram flat-list style) ──────
+                _buildTelegramSectionHeader(AppStrings.appearanceTheme(context), scheme),
+                _buildTelegramTile(
+                  icon: Icons.palette_rounded,
+                  iconBgColor: const Color(0xFF3B82F6),
+                  title: AppStrings.themeMode(context),
+                  subtitle: themeModeLabel,
+                  onTap: _showThemeDialog,
                 ),
-                AppSpacing.vGapLg,
+                _buildTelegramTile(
+                  icon: Icons.color_lens_rounded,
+                  iconBgColor: activePalette.primary,
+                  title: AppStrings.accentPalette(context),
+                  subtitle: activePalette.label,
+                  onTap: _showAccentPaletteDialog,
+                ),
+                _buildSectionDivider(scheme),
 
                 // ── 2. Language & Units ──────────────────────────────────
-                _buildSectionHeader(AppStrings.languageUnits(context), scheme),
-                AppSpacing.vGapSm,
-                AppCard(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer,
-                            borderRadius: AppRadius.brSm,
-                          ),
-                          child: Icon(Icons.language_rounded, color: scheme.primary, size: 20),
-                        ),
-                        title: Text(AppStrings.appLanguage(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(
-                          activeLocale.languageCode == 'ml'
-                              ? 'മലയാളം (Malayalam)'
-                              : 'English (US)',
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: _showLanguageDialog,
-                      ),
-                      Divider(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer,
-                            borderRadius: AppRadius.brSm,
-                          ),
-                          child: Icon(Icons.straighten_rounded, color: scheme.primary, size: 20),
-                        ),
-                        title: Text(AppStrings.measurementUnits(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(
-                          '${activeUnits.weight.name.toUpperCase()} • ${activeUnits.temperature == TemperatureUnit.celsius ? '°C' : '°F'} • ${activeUnits.distance.name.toUpperCase()}',
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: _showUnitsDialog,
-                      ),
-                    ],
-                  ),
+                _buildTelegramSectionHeader(AppStrings.languageUnits(context), scheme),
+                _buildTelegramTile(
+                  icon: Icons.language_rounded,
+                  iconBgColor: const Color(0xFF8B5CF6),
+                  title: AppStrings.appLanguage(context),
+                  subtitle: activeLocale.languageCode == 'ml' ? 'മലയാളം (Malayalam)' : 'English (US)',
+                  onTap: _showLanguageDialog,
                 ),
-                AppSpacing.vGapLg,
+                _buildTelegramTile(
+                  icon: Icons.straighten_rounded,
+                  iconBgColor: const Color(0xFF06B6D4),
+                  title: AppStrings.measurementUnits(context),
+                  subtitle: '${activeUnits.weight.name.toUpperCase()} • ${activeUnits.temperature == TemperatureUnit.celsius ? '°C' : '°F'} • ${activeUnits.distance.name.toUpperCase()}',
+                  onTap: _showUnitsDialog,
+                ),
+                _buildSectionDivider(scheme),
 
                 // ── 3. Notifications & Alerts ───────────────────────────
-                _buildSectionHeader(AppStrings.notificationsAlerts(context), scheme),
-                AppSpacing.vGapSm,
-                AppCard(
-                  child: Column(
-                    children: [
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(AppStrings.criticalHealthAlerts(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(AppStrings.criticalHealthAlertsSub(context)),
-                        value: notifs.healthAlerts,
-                        onChanged: (v) =>
-                            ref.read(appNotificationSettingsProvider.notifier).toggleHealth(v),
-                      ),
-                      Divider(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(AppStrings.collarGeofenceAlerts(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(AppStrings.collarGeofenceAlertsSub(context)),
-                        value: notifs.smartCollarAlerts,
-                        onChanged: (v) =>
-                            ref.read(appNotificationSettingsProvider.notifier).toggleCollar(v),
-                      ),
-                      Divider(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(AppStrings.medicationReminders(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(AppStrings.medicationRemindersSub(context)),
-                        value: notifs.medicationReminders,
-                        onChanged: (v) =>
-                            ref.read(appNotificationSettingsProvider.notifier).toggleMeds(v),
-                      ),
-                      Divider(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(AppStrings.communityActivity(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(AppStrings.communityActivitySub(context)),
-                        value: notifs.communityActivity,
-                        onChanged: (v) =>
-                            ref.read(appNotificationSettingsProvider.notifier).toggleCommunity(v),
-                      ),
-                    ],
-                  ),
+                _buildTelegramSectionHeader(AppStrings.notificationsAlerts(context), scheme),
+                _buildTelegramSwitchTile(
+                  icon: Icons.health_and_safety_rounded,
+                  iconBgColor: const Color(0xFF10B981),
+                  title: AppStrings.criticalHealthAlerts(context),
+                  subtitle: AppStrings.criticalHealthAlertsSub(context),
+                  value: notifs.healthAlerts,
+                  onChanged: (v) => ref.read(appNotificationSettingsProvider.notifier).toggleHealth(v),
                 ),
-                AppSpacing.vGapLg,
+                _buildTelegramSwitchTile(
+                  icon: Icons.podcasts_rounded,
+                  iconBgColor: const Color(0xFF0EA5E9),
+                  title: AppStrings.collarGeofenceAlerts(context),
+                  subtitle: AppStrings.collarGeofenceAlertsSub(context),
+                  value: notifs.smartCollarAlerts,
+                  onChanged: (v) => ref.read(appNotificationSettingsProvider.notifier).toggleCollar(v),
+                ),
+                _buildTelegramSwitchTile(
+                  icon: Icons.medication_rounded,
+                  iconBgColor: const Color(0xFFF59E0B),
+                  title: AppStrings.medicationReminders(context),
+                  subtitle: AppStrings.medicationRemindersSub(context),
+                  value: notifs.medicationReminders,
+                  onChanged: (v) => ref.read(appNotificationSettingsProvider.notifier).toggleMeds(v),
+                ),
+                _buildTelegramSwitchTile(
+                  icon: Icons.groups_rounded,
+                  iconBgColor: const Color(0xFFEC4899),
+                  title: AppStrings.communityActivity(context),
+                  subtitle: AppStrings.communityActivitySub(context),
+                  value: notifs.communityActivity,
+                  onChanged: (v) => ref.read(appNotificationSettingsProvider.notifier).toggleCommunity(v),
+                ),
+                _buildSectionDivider(scheme),
 
                 // ── 4. Privacy, Security & Cache ────────────────────────
-                _buildSectionHeader(AppStrings.securityStorage(context), scheme),
-                AppSpacing.vGapSm,
-                AppCard(
-                  child: Column(
-                    children: [
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        secondary: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer,
-                            borderRadius: AppRadius.brSm,
-                          ),
-                          child: Icon(Icons.fingerprint_rounded, color: scheme.primary, size: 20),
-                        ),
-                        title: Text(AppStrings.biometricsLock(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(AppStrings.biometricsLockSub(context)),
-                        value: _biometricsEnabled,
-                        onChanged: _toggleBiometrics,
-                      ),
-                      Divider(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer,
-                            borderRadius: AppRadius.brSm,
-                          ),
-                          child: Icon(Icons.cleaning_services_rounded, color: scheme.primary, size: 20),
-                        ),
-                        title: Text(AppStrings.clearCache(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(AppStrings.clearCacheSub(context)),
-                        trailing: OutlinedButton(
-                          onPressed: _clearCache,
-                          child: Text(AppStrings.clearBtn(context)),
-                        ),
-                      ),
-                    ],
-                  ),
+                _buildTelegramSectionHeader(AppStrings.securityStorage(context), scheme),
+                _buildTelegramSwitchTile(
+                  icon: Icons.fingerprint_rounded,
+                  iconBgColor: const Color(0xFF6366F1),
+                  title: AppStrings.biometricsLock(context),
+                  subtitle: AppStrings.biometricsLockSub(context),
+                  value: _biometricsEnabled,
+                  onChanged: _toggleBiometrics,
                 ),
-                AppSpacing.vGapLg,
+                _buildTelegramTile(
+                  icon: Icons.cleaning_services_rounded,
+                  iconBgColor: const Color(0xFF14B8A6),
+                  title: AppStrings.clearCache(context),
+                  subtitle: AppStrings.clearCacheSub(context),
+                  trailingWidget: FilledButton.tonal(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: _clearCache,
+                    child: Text(AppStrings.clearBtn(context), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                  onTap: _clearCache,
+                ),
+                _buildSectionDivider(scheme),
 
                 // ── 5. Account Management ───────────────────────────────
-                _buildSectionHeader(AppStrings.account(context), scheme),
-                AppSpacing.vGapSm,
-                AppCard(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.15),
-                            borderRadius: AppRadius.brSm,
-                          ),
-                          child: const Icon(Icons.logout_rounded, color: Colors.orange, size: 20),
-                        ),
-                        title: Text(AppStrings.signOut(context), style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(AppStrings.signOutSub(context)),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: _confirmSignOut,
-                      ),
-                      Divider(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: scheme.errorContainer,
-                            borderRadius: AppRadius.brSm,
-                          ),
-                          child: Icon(Icons.delete_forever_rounded, color: scheme.error, size: 20),
-                        ),
-                        title: Text(
-                          AppStrings.deleteAccount(context),
-                          style: TextStyle(fontWeight: FontWeight.w600, color: scheme.error),
-                        ),
-                        subtitle: Text(AppStrings.deleteAccountSub(context)),
-                        trailing: Icon(Icons.chevron_right_rounded, color: scheme.error),
-                        onTap: _confirmDeleteAccount,
-                      ),
-                    ],
-                  ),
+                _buildTelegramSectionHeader(AppStrings.account(context), scheme),
+                _buildTelegramTile(
+                  icon: Icons.logout_rounded,
+                  iconBgColor: const Color(0xFFF97316),
+                  title: AppStrings.signOut(context),
+                  subtitle: AppStrings.signOutSub(context),
+                  onTap: _confirmSignOut,
+                ),
+                _buildTelegramTile(
+                  icon: Icons.delete_forever_rounded,
+                  iconBgColor: const Color(0xFFEF4444),
+                  title: AppStrings.deleteAccount(context),
+                  subtitle: AppStrings.deleteAccountSub(context),
+                  isDestructive: true,
+                  onTap: _confirmDeleteAccount,
                 ),
                 AppSpacing.vGapXl,
               ],
@@ -660,17 +639,154 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, ColorScheme scheme) {
+  Widget _buildTelegramSectionHeader(String title, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
           color: scheme.primary,
-          letterSpacing: 0.5,
+          letterSpacing: 0.8,
         ),
+      ),
+    );
+  }
+
+  Widget _buildTelegramTile({
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Widget? trailingWidget,
+    bool isDestructive = false,
+  }) {
+    final scheme = context.colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDestructive ? const Color(0xFFEF4444) : scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailingWidget != null)
+                trailingWidget
+              else
+                Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant.withValues(alpha: 0.5), size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTelegramSwitchTile({
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final scheme = context.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            activeTrackColor: scheme.primary,
+            onChanged: (v) {
+              HapticFeedback.lightImpact();
+              onChanged(v);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionDivider(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Divider(
+        height: 1,
+        thickness: 0.8,
+        color: scheme.outlineVariant.withValues(alpha: 0.25),
       ),
     );
   }
