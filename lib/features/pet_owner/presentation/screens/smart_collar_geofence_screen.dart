@@ -12,6 +12,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/collar_widgets.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/widgets/smart_collar_real_map.dart';
@@ -347,6 +348,10 @@ class _SmartCollarGeofenceScreenState
     final pet = selectedPet ?? (allPets != null && allPets.isNotEmpty ? allPets.first : null);
     final petName = pet?.name ?? 'Companion';
 
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final defaultLat = profile?.latitude ?? 10.2312;
+    final defaultLng = profile?.longitude ?? 76.2829;
+
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: collarAppBar(
@@ -377,6 +382,8 @@ class _SmartCollarGeofenceScreenState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   CollarMapPreview(
+                    latitude: defaultLat,
+                    longitude: defaultLng,
                     locationLabel: _repositioningZoneId != null
                         ? 'Tap Map to Relocate Center'
                         : '${zones.where((z) => z.isActive).length} Safe Perimeters Active',

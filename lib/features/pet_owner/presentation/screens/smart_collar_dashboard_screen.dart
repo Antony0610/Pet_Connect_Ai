@@ -573,12 +573,12 @@ class _MiniMap extends ConsumerWidget {
     final collar = collarsAsync.valueOrNull?.firstOrNull;
     final profile = ref.watch(currentUserProfileProvider).valueOrNull;
 
-    final defaultLat = profile?.latitude ?? 10.2740;
-    final defaultLng = profile?.longitude ?? 76.3216;
+    final defaultLat = profile?.latitude ?? 10.0;
+    final defaultLng = profile?.longitude ?? 76.0;
 
-    String locationLabel = profile?.city != null
-        ? '${profile!.city} (Home Hub)'
-        : 'Meladoor, Kerala (Home Hub)';
+    String locationLabel = profile?.city != null && profile!.city!.isNotEmpty
+        ? '${profile.city} (Home Hub)'
+        : 'Home Hub';
 
     double lat = defaultLat;
     double lng = defaultLng;

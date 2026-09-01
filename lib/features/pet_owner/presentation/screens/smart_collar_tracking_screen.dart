@@ -40,8 +40,8 @@ class SmartCollarTrackingScreen extends ConsumerWidget {
     final collarsAsync = ref.watch(registeredCollarsProvider);
     final profile = ref.watch(currentUserProfileProvider).valueOrNull;
 
-    final defaultLat = profile?.latitude ?? 10.2740;
-    final defaultLng = profile?.longitude ?? 76.3216;
+    final defaultLat = profile?.latitude ?? 10.0;
+    final defaultLng = profile?.longitude ?? 76.0;
 
     final collars = collarsAsync.valueOrNull ?? [];
     final matchingCollars = collars.where((c) => c.petId == selectedPet?.id);

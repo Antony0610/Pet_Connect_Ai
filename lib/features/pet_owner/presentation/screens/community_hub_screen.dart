@@ -2427,21 +2427,67 @@ class _FollowActivitySheetState extends ConsumerState<_FollowActivitySheet>
       // 1. Fetch followers (people following current user)
       final followersRes = await client
           .from('user_follows')
-          .select('follower_id, created_at, profiles!user_follows_follower_id_fkey(id, full_name, avatar_url, city)')
-          .eq('following_id', currentUserId)
-          .catchError((_) => <dynamic>[]);
+          .select('id, follower_id, following_id, created_at')
+          .eq('following_id', currentUserId);
 
       // 2. Fetch following (people current user follows)
       final followingRes = await client
           .from('user_follows')
-          .select('following_id, created_at, profiles!user_follows_following_id_fkey(id, full_name, avatar_url, city)')
-          .eq('follower_id', currentUserId)
-          .catchError((_) => <dynamic>[]);
+          .select('id, follower_id, following_id, created_at')
+          .eq('follower_id', currentUserId);
+
+      final rawFollowers = (followersRes as List<dynamic>).cast<Map<String, dynamic>>();
+      final rawFollowing = (followingRes as List<dynamic>).cast<Map<String, dynamic>>();
+
+      final allUserIds = <String>{};
+      for (final f in rawFollowers) {
+        final id = f['follower_id'] as String?;
+        if (id != null) allUserIds.add(id);
+      }
+      for (final f in rawFollowing) {
+        final id = f['following_id'] as String?;
+        if (id != null) allUserIds.add(id);
+      }
+
+      final profilesMap = <String, Map<String, dynamic>>{};
+      if (allUserIds.isNotEmpty) {
+        final pRes = await client
+            .from('profiles')
+            .select('id, full_name, avatar_url, city, role')
+            .inFilter('id', allUserIds.toList());
+
+        for (final p in (pRes as List<dynamic>)) {
+          final pMap = p as Map<String, dynamic>;
+          profilesMap[pMap['id'] as String] = pMap;
+        }
+      }
+
+      final parsedFollowers = rawFollowers.map((f) {
+        return {
+          ...f,
+          'profiles': profilesMap[f['follower_id']] ?? {
+            'id': f['follower_id'],
+            'full_name': 'Community Member',
+            'city': 'Kerala',
+          },
+        };
+      }).toList();
+
+      final parsedFollowing = rawFollowing.map((f) {
+        return {
+          ...f,
+          'profiles': profilesMap[f['following_id']] ?? {
+            'id': f['following_id'],
+            'full_name': 'Community Member',
+            'city': 'Kerala',
+          },
+        };
+      }).toList();
 
       if (mounted) {
         setState(() {
-          _followers = (followersRes as List<dynamic>).cast<Map<String, dynamic>>();
-          _following = (followingRes as List<dynamic>).cast<Map<String, dynamic>>();
+          _followers = parsedFollowers;
+          _following = parsedFollowing;
           _loading = false;
         });
       }

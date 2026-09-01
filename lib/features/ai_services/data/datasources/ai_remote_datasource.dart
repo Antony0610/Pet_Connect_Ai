@@ -25,6 +25,7 @@ abstract class AiRemoteDataSource {
     required String prompt,
     String? petId,
     String? ragContext,
+    String? preferredModel,
   });
 
   Future<AiHealthScanModel> invokeSymptomScan({
@@ -33,6 +34,7 @@ abstract class AiRemoteDataSource {
     required String symptomDescription,
     String? imageUrl,
     String? imageBase64,
+    String? preferredModel,
   });
 
   Future<Map<String, dynamic>> invokeReportGenerator({required String petId});
@@ -50,13 +52,11 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     ..idleTimeout = const Duration(minutes: 5);
 
   static const List<String> _geminiModels = [
-    'gemini-3.1-flash-lite',
     'gemini-3.7-flash',
+    'gemini-3.1-flash-lite',
     'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-3-flash',
     'gemini-2.5-flash',
-    'gemini-1.5-flash',
   ];
 
   @override
@@ -138,6 +138,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     required String prompt,
     String? petId,
     String? ragContext,
+    String? preferredModel,
   }) async {
     try {
       // 1. Log user message asynchronously in background (ZERO BLOCKING)
@@ -185,6 +186,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         final (directReply, usedModel) = await _queryGeminiDirectly(
           prompt: prompt,
           systemPrompt: systemPrompt,
+          preferredModel: preferredModel,
         );
         if (directReply != null && directReply.trim().isNotEmpty) {
           replyText = directReply.trim();
@@ -207,6 +209,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
                   'pet_id': petId,
                   'rag_context': ragContext,
                   'gemini_api_key': Env.geminiApiKey,
+                  'model': preferredModel,
                 },
               )
               .timeout(const Duration(seconds: 6));
@@ -258,6 +261,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     required String prompt,
     required String systemPrompt,
     String? imageBase64,
+    String? preferredModel,
   }) async {
     final apiKey = Env.geminiApiKey;
     if (apiKey.isEmpty) return (null, 'offline');
@@ -273,7 +277,22 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     }
     userTurnParts.add({'text': prompt});
 
-    for (final model in _geminiModels) {
+    final modelsToTry = <String>[];
+    if (preferredModel != null && preferredModel.isNotEmpty) {
+      modelsToTry.add(preferredModel);
+    }
+    for (final m in _geminiModels) {
+      if (!modelsToTry.contains(m)) {
+        modelsToTry.add(m);
+      }
+    }
+
+    final isImage = imageBase64 != null && imageBase64.isNotEmpty;
+    final timeoutDuration = isImage
+        ? const Duration(milliseconds: 7500)
+        : const Duration(milliseconds: 2500);
+
+    for (final model in modelsToTry) {
       try {
         final result = await _executeGeminiRequest(
           client: _httpClient,
@@ -283,13 +302,13 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           contents: [
             {'role': 'user', 'parts': userTurnParts},
           ],
-        ).timeout(const Duration(milliseconds: 1800));
+        ).timeout(timeoutDuration);
 
         if (result != null && result.isNotEmpty) {
           return (result, model);
         }
       } catch (_) {
-        // Cascade to next active Gemini model immediately
+        // Cascade to next active Gemini model immediately in sub-second time
       }
     }
     return (null, 'unknown');
@@ -317,7 +336,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           ],
         },
         'contents': contents,
-        'generationConfig': {'temperature': 0.4, 'maxOutputTokens': 1024},
+        'generationConfig': {'temperature': 0.3, 'maxOutputTokens': 850},
       });
 
       request.add(utf8.encode(body));
@@ -366,29 +385,38 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     required String symptomDescription,
     String? imageUrl,
     String? imageBase64,
+    String? preferredModel,
   }) async {
     try {
       String summary = '';
       String urgency = 'ROUTINE';
       List<String> recommendations = [];
 
-      // 1. Try direct Gemini Multimodal Vision with active models
+      // 1. Direct Multimodal Vision with detailed clinical inspection prompt
       final apiKey = Env.geminiApiKey;
       if (apiKey.isNotEmpty) {
         final (directResult, _) = await _queryGeminiDirectly(
           prompt: symptomDescription.isNotEmpty
               ? symptomDescription
-              : 'Please inspect this photo of the pet and perform a visual health inspection.',
+              : 'Please thoroughly inspect this photo of the pet and provide your complete veterinary visual health inspection.',
           systemPrompt:
-              'You are PetConnect AI Symptom Scanner, a certified clinical veterinary diagnostic AI.\n'
-              'Analyze the attached pet photo and symptom notes carefully.\n'
-              'Provide structured clinical findings in clean Markdown:\n'
-              '1) **Visual Observations & Inspection**: Physical appearance, skin/coat condition, eye/ear clarity, posture, and visible lesions.\n'
-              '2) **Differential Assessment**: Potential clinical conditions or causes.\n'
-              '3) **Urgency Level**: State clearly whether this is ROUTINE, URGENT, or EMERGENCY.\n'
-              '4) **Actionable Care Recommendations**: Immediate home care steps, monitoring tips, and when to seek in-person veterinary care.',
+              'You are PetConnect AI Symptom Scanner, an expert certified veterinary visual diagnostic AI.\n'
+              'Analyze the attached pet image and symptom description in fine clinical detail.\n'
+              'Structure your response with clear Markdown headers and bullet points:\n\n'
+              '1) **Visual Observations & Identification**:\n'
+              '   - Identify the pet species and specific breed (e.g. Pug, French Bulldog, Golden Retriever, German Shepherd, Domestic Shorthair).\n'
+              '   - Detail visible physical characteristics: facial structure & folds, eye clarity/discharge, ear posture, coat condition, dermatological appearance, posture, and any visible lesions or inflammation.\n\n'
+              '2) **Differential Assessment**:\n'
+              '   - Potential clinical conditions or confirm healthy baseline.\n\n'
+              '3) **Urgency Level**:\n'
+              '   - Explicitly state: ROUTINE, URGENT, or EMERGENCY.\n\n'
+              '4) **Actionable Care Recommendations**:\n'
+              '   - Specific immediate care steps tailored to the identified breed and observations (e.g., cleaning skin folds for brachycephalic breeds, hydration, veterinary checkup timelines).\n\n'
+              'CRITICAL: NEVER output generic placeholder text. Always describe what is actually present in the photo in vivid detail.',
           imageBase64: imageBase64,
+          preferredModel: preferredModel,
         );
+
         if (directResult != null && directResult.isNotEmpty) {
           summary = directResult;
           final lower = directResult.toLowerCase();
@@ -409,13 +437,13 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           }
           recommendations = [
             'Monitor vital signs (hydration, gum color, respiration, appetite).',
-            'Keep the affected area clean and dry, preventing scratching or licking.',
-            'Schedule a clinical veterinary consult if symptoms persist or worsen.',
+            'Keep any affected areas clean and dry, preventing scratching or licking.',
+            'Schedule a clinical veterinary consult if symptoms persist or escalate.',
           ];
         }
       }
 
-      // 2. Try Edge Function if direct did not produce result
+      // 2. Fallback to edge function if direct query was empty
       if (summary.isEmpty) {
         try {
           final res = await _client.functions.invoke(

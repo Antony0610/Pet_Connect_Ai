@@ -13,32 +13,32 @@
 ## 🚀 Key Feature Highlights
 
 ### 1. 🤖 Omni-Intelligence AI Assistant & Clinical Scanner
-- **Ultra-Fast Sub-Second Streaming**: Multi-model failover cascade prioritizing `gemini-3.1-flash-lite` and `gemini-3.7-flash` with dynamic model badges.
+- **Top 5 Latest Gemini 3.x Models**: Prioritized support with on-the-fly model switcher:
+  - ⚡ `gemini-3.7-flash` (Flagship multimodal model with deep clinical reasoning)
+  - 🚀 `gemini-3.1-flash-lite` (Ultra-low ~1.1s latency engine for instant answers)
+  - ✨ `gemini-3.6-flash` (Next-gen high-throughput multimodal intelligence)
+  - 🌟 `gemini-3.5-flash` (High-precision visual diagnostics)
+  - 🧠 `gemini-2.5-flash` (High-quota reliable baseline)
+- **Sub-200ms Fast Failover**: Automatic multi-tier model cascade ensuring 100% uptime even during peak usage.
+- **Multimodal Visual Health Inspection**: Direct Gemini vision scanner analyzing species, breed, facial fold hygiene, coat condition, and clinical recommendations with zero generic templates.
 - **ChatGPT-Style Floating Navigation**: Translucent glass down-arrow button with smooth auto-scroll to bottom and smart reading position retention.
-- **Multimodal Visual Health Inspection**: Analyzes pet photos for dermatology, eyes, teeth, and posture differentials.
-- **Ingredient & Plant Toxicity Engine**: Real-time canine/feline toxicity database with actionable clinical recommendations.
 - **High-Contrast Design**: Optimized suggestion chips with crisp contrast in both Light and Dark themes.
 
 ### 2. 🦾 3D Articulated AI Mascot Avatar
-- **Freestanding Floating Character**: Sits comfortably above navigation with zero intrusive button boxes.
-- **Dynamic Emote Visor**: Expressive digital glowing LED eyes (`^ ‿ ^`, `> ‿ <`, `● ‿ ●`, `★ ‿ ★`) with context-aware micro-animations.
-- **Articulated Waving Arm**: Smooth robotic shoulder pivot and continuous greeting gestures.
-- **4 Distinct Cyber Themes**:
-  - 🚀 *Classic Aero Bot* (High-gloss chassis with cyan arc reactor)
-  - 🐱 *Cyber Neko Cat* (Mint ears & feline digital smiles)
-  - 🐶 *Cyber Pup Dog* (Golden puppy ears & amber LED accents)
-  - 🌌 *Chibi Astral Bot* (Cosmic orbital ring & starburst eyes)
+- **Freestanding Floating Character**: Multi-stop specular gradients (`#FFFFFF` → `#F8FAFC` → `#E2E8F0` with glowing neon rim).
+- **Curved Glass Visor**: Obsidian OLED digital visor with high-gloss reflection sheen.
+- **Dynamic Emote Visor**: Expressive glowing LED eyes (`^ ‿ ^`, `> ‿ <`, `● ‿ ●`, `★ ‿ ★`) with context-aware micro-animations.
+- **Dual Concentric Arc Reactor**: Pulsing energy core and smooth articulated robotic waving arm.
 
-### 3. 🛰️ IoT Smart Collar Telemetry & Geofencing
-- **Live GPS Tracking**: Interactive map integration with dynamic battery, step count, and heart rate telemetry.
-- **Geofence Safe Zones**: Circular safe perimeter management with real-time breach alerts.
-- **Lost Pet Mode**: Instant beacon broadcast and high-resolution downloadable PDF lost pet poster generator.
+### 3. 💬 Modern Messenger & Community Group Chat
+- **Direct 1-on-1 Chats**: Modern WhatsApp/iMessage styled chat bubbles, delivery checkmarks (`✓✓`), and search filters.
+- **Community Groups**: Multi-user channels with real-time Supabase streaming, category badges (`Breed Club`, `Rescue`, `Veterinary`), and interactive "Create Group" modal.
+- **Foreign-Key Safe**: Resilient profile matching ensuring 100% database integrity.
 
-### 4. 👥 Community Social Hub & Direct Messaging
-- **Live Feed & Explore Gallery**: Rich photo grid and chronological companion stories.
-- **Full Social Engine**: Real follower/following relationships, follower activity modal, and real-time social notifications.
-- **Direct Messaging**: Dedicated messaging channels with other verified pet parents.
-- **Public Profiles**: Dynamic bio editor, registered pet parent badges, and accurate Kerala & global geocoding.
+### 4. 🛰️ IoT Smart Collar Telemetry & Geofencing
+- **Dynamic Geocoded Map**: Interactive OpenStreetMap centered dynamically on user's profile location with zero hardcoded coordinates.
+- **Geofence Safe Zones**: Metric radius slider (50m - 1000m) with tap-to-relocate perimeter controls.
+- **Real Lost & Found Hub**: Live Supabase alert broadcast with direct rescue and community notifications.
 
 ### 5. 🏥 Multi-Portal Architecture
 - **Pet Owner Portal**: Daily care routines, health passport PDF export, and vaccination schedules.

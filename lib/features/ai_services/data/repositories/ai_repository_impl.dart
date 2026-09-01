@@ -66,6 +66,7 @@ class AiRepositoryImpl implements AiRepository {
     required String prompt,
     String? petId,
     String? ragContext,
+    String? preferredModel,
   }) async {
     try {
       final message = await _remote.invokeAiAssistant(
@@ -73,6 +74,7 @@ class AiRepositoryImpl implements AiRepository {
         prompt: prompt,
         petId: petId,
         ragContext: ragContext,
+        preferredModel: preferredModel,
       );
       return Right(message);
     } on AppException catch (e) {
@@ -88,6 +90,7 @@ class AiRepositoryImpl implements AiRepository {
     required String symptomDescription,
     String? imageUrl,
     String? imageBase64,
+    String? preferredModel,
   }) async {
     try {
       final scan = await _remote.invokeSymptomScan(
@@ -96,6 +99,7 @@ class AiRepositoryImpl implements AiRepository {
         symptomDescription: symptomDescription,
         imageUrl: imageUrl,
         imageBase64: imageBase64,
+        preferredModel: preferredModel,
       );
       return Right(scan);
     } on AppException catch (e) {

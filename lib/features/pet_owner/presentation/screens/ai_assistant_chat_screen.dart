@@ -63,6 +63,24 @@ class AiAssistantChatScreen extends ConsumerStatefulWidget {
       _AiAssistantChatScreenState();
 }
 
+class _AiModelOption {
+  final String key;
+  final String label;
+  final String subtitle;
+  final String tag;
+  final Color color;
+  final IconData icon;
+
+  const _AiModelOption({
+    required this.key,
+    required this.label,
+    required this.subtitle,
+    required this.tag,
+    required this.color,
+    required this.icon,
+  });
+}
+
 class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _composer = TextEditingController();
@@ -95,12 +113,57 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   ];
 
   String? _activeConversationId;
-  String _activeModelLabel = '⚡ Flash 3.1';
+  String _selectedModelKey = 'gemini-3.7-flash';
+  String _activeModelLabel = '⚡ Flash 3.7';
   bool _showScrollToBottom = false;
+
+  static const List<_AiModelOption> _topGeminiModels = [
+    _AiModelOption(
+      key: 'gemini-3.7-flash',
+      label: 'Gemini 3.7 Flash',
+      subtitle: 'Flagship multimodal model with deep clinical reasoning',
+      tag: 'Flagship',
+      color: Color(0xFF6366F1),
+      icon: Icons.auto_awesome_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-3.1-flash-lite',
+      label: 'Gemini 3.1 Flash-Lite',
+      subtitle: 'Sub-second ~1.1s latency for instant response & rapid triage',
+      tag: 'Ultra-Fast',
+      color: Color(0xFF10B981),
+      icon: Icons.bolt_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-3.6-flash',
+      label: 'Gemini 3.6 Flash',
+      subtitle: 'Next-gen high-throughput multimodal intelligence',
+      tag: 'Balanced',
+      color: Color(0xFF06B6D4),
+      icon: Icons.flare_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-3.5-flash',
+      label: 'Gemini 3.5 Flash',
+      subtitle: 'High-precision multimodal photo vision & diagnostics',
+      tag: 'Vision Pro',
+      color: Color(0xFFF59E0B),
+      icon: Icons.remove_red_eye_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-2.5-flash',
+      label: 'Gemini 2.5 Flash',
+      subtitle: 'High-quota baseline for uninterrupted care consultations',
+      tag: 'High-Quota',
+      color: Color(0xFF8B5CF6),
+      icon: Icons.psychology_rounded,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
+    _loadSavedModel();
     _initSpeech();
     _scroll.addListener(_handleScrollListener);
     if (widget.initialConversationId != null && widget.initialConversationId!.isNotEmpty) {
@@ -114,6 +177,209 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
         }
       });
     }
+  }
+
+  void _loadSavedModel() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final saved = prefs.getString('app_selected_gemini_model');
+    if (saved != null && saved.isNotEmpty) {
+      final match = _topGeminiModels.firstWhere(
+        (m) => m.key == saved,
+        orElse: () => _topGeminiModels.first,
+      );
+      setState(() {
+        _selectedModelKey = match.key;
+        _activeModelLabel = match.tag == 'Ultra-Fast'
+            ? '⚡ Flash 3.1'
+            : (match.key == 'gemini-3.7-flash' ? '⚡ Flash 3.7' : '⚡ ${match.label.replaceAll('Gemini ', '')}');
+      });
+    }
+  }
+
+  void _showModelSelectionModal(BuildContext context) {
+    HapticFeedback.lightImpact();
+    final scheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.72,
+            ),
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: scheme.outlineVariant.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.tune_rounded, color: scheme.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Select AI Intelligence Model',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            'Choose the optimal Gemini engine for your session',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _topGeminiModels.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (ctx, i) {
+                      final option = _topGeminiModels[i];
+                      final isSelected = _selectedModelKey == option.key;
+
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () async {
+                          await HapticFeedback.mediumImpact();
+                          setState(() {
+                            _selectedModelKey = option.key;
+                            _activeModelLabel = '⚡ ${option.label.replaceAll('Gemini ', '')}';
+                          });
+                          await ref.read(sharedPreferencesProvider).setString(
+                                'app_selected_gemini_model',
+                                option.key,
+                              );
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? option.color.withValues(alpha: 0.12)
+                                : scheme.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? option.color
+                                  : scheme.outlineVariant.withValues(alpha: 0.4),
+                              width: isSelected ? 2.0 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: option.color.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(option.icon, color: option.color, size: 20),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          option.label,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14.5,
+                                            color: isSelected ? option.color : scheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: option.color.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            option.tag,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: option.color,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      option.subtitle,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: scheme.onSurfaceVariant,
+                                        height: 1.25,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(Icons.check_circle_rounded, color: option.color, size: 22),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _handleScrollListener() {
@@ -452,6 +718,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           symptomDescription: userText,
           petId: selectedPet?.id,
           imageBase64: imageBase64,
+          preferredModel: _selectedModelKey,
         );
 
         if (mounted) {
@@ -498,6 +765,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           prompt: userText,
           petId: selectedPet?.id,
           ragContext: ragContext,
+          preferredModel: _selectedModelKey,
         ).timeout(const Duration(seconds: 30));
 
         if (mounted) {
@@ -663,27 +931,33 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF10B981)),
-                  const SizedBox(width: 2),
-                  Text(
-                    _activeModelLabel,
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF10B981),
+            InkWell(
+              onTap: () => _showModelSelectionModal(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF10B981)),
+                    const SizedBox(width: 2),
+                    Text(
+                      _activeModelLabel,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 2),
+                    const Icon(Icons.keyboard_arrow_down_rounded, size: 13, color: Color(0xFF10B981)),
+                  ],
+                ),
               ),
             ),
             AppSpacing.hGapSm,

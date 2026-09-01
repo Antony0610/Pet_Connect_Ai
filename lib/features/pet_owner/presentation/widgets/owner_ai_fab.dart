@@ -608,102 +608,124 @@ class _OwnerAiFabState extends State<OwnerAiFab>
                                   ),
                                 ],
 
-                                // 2. Main Robot Head with Specular 3D Gradient
+                                // 2. Main Robot Head with Specular 3D Gradient & Cybernetic Contours
                                 Positioned(
                                   top: 10,
                                   child: Container(
-                                    width: 58,
-                                    height: 46,
+                                    width: 60,
+                                    height: 48,
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                         colors: [
                                           const Color(0xFFFFFFFF),
-                                          const Color(0xFFF1F5F9),
+                                          const Color(0xFFF8FAFC),
                                           const Color(0xFFE2E8F0),
-                                          glowColor.withValues(alpha: 0.35),
+                                          glowColor.withValues(alpha: 0.4),
                                         ],
+                                        stops: const [0.0, 0.4, 0.8, 1.0],
                                       ),
-                                      borderRadius: BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(22),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: glowColor.withValues(alpha: _glowAnim.value * 0.5),
-                                          blurRadius: 18,
-                                          spreadRadius: 1,
+                                          color: glowColor.withValues(alpha: _glowAnim.value * 0.55),
+                                          blurRadius: 20,
+                                          spreadRadius: 2,
                                         ),
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.35),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
+                                          color: Colors.black.withValues(alpha: 0.4),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 5),
                                         ),
                                       ],
                                       border: Border.all(
-                                        color: glowColor.withValues(alpha: 0.8),
-                                        width: 1.5,
+                                        color: glowColor.withValues(alpha: 0.85),
+                                        width: 1.6,
                                       ),
                                     ),
                                     child: Center(
-                                      // Glowing Digital Visor Eyes
+                                      // Glowing Digital Visor with Curved Glass Reflection
                                       child: Container(
-                                        width: 44,
-                                        height: 25,
+                                        width: 46,
+                                        height: 26,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF0F172A),
+                                          color: const Color(0xFF0B1120),
                                           borderRadius: BorderRadius.circular(13),
                                           border: Border.all(
-                                            color: glowColor.withValues(alpha: 0.6),
-                                            width: 1.2,
+                                            color: glowColor.withValues(alpha: 0.7),
+                                            width: 1.4,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: glowColor.withValues(alpha: 0.35),
-                                              blurRadius: 8,
+                                              color: glowColor.withValues(alpha: 0.4),
+                                              blurRadius: 10,
                                             ),
                                           ],
                                         ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                        child: Stack(
                                           children: [
-                                            // Expressive Digital Left Eye
-                                            Text(
-                                              _selectedMascot == AiMascotStyle.cat
-                                                  ? '^'
-                                                  : (_selectedMascot == AiMascotStyle.dog
-                                                      ? '●'
-                                                      : (_selectedMascot == AiMascotStyle.astral ? '★' : '^')),
-                                              style: TextStyle(
-                                                color: glowColor,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w900,
-                                                shadows: [
-                                                  Shadow(color: glowColor, blurRadius: 8),
-                                                ],
+                                            // Curved Glass Visor Reflection Gloss
+                                            Positioned(
+                                              top: 2,
+                                              left: 6,
+                                              right: 6,
+                                              height: 7,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white.withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '‿',
-                                              style: TextStyle(
-                                                color: glowColor.withValues(alpha: 0.8),
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            // Expressive Digital Right Eye
-                                            Text(
-                                              _selectedMascot == AiMascotStyle.cat
-                                                  ? '^'
-                                                  : (_selectedMascot == AiMascotStyle.dog
-                                                      ? '●'
-                                                      : (_selectedMascot == AiMascotStyle.astral ? '★' : '^')),
-                                              style: TextStyle(
-                                                color: glowColor,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w900,
-                                                shadows: [
-                                                  Shadow(color: glowColor, blurRadius: 8),
+                                            Center(
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  // Expressive Digital Left Eye
+                                                  Text(
+                                                    _selectedMascot == AiMascotStyle.cat
+                                                        ? '>'
+                                                        : (_selectedMascot == AiMascotStyle.dog
+                                                            ? '●'
+                                                            : (_selectedMascot == AiMascotStyle.astral ? '★' : '^')),
+                                                    style: TextStyle(
+                                                      color: glowColor,
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w900,
+                                                      shadows: [
+                                                        Shadow(color: glowColor, blurRadius: 10),
+                                                        Shadow(color: Colors.white.withValues(alpha: 0.8), blurRadius: 4),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '‿',
+                                                    style: TextStyle(
+                                                      color: glowColor.withValues(alpha: 0.9),
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w900,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  // Expressive Digital Right Eye
+                                                  Text(
+                                                    _selectedMascot == AiMascotStyle.cat
+                                                        ? '<'
+                                                        : (_selectedMascot == AiMascotStyle.dog
+                                                            ? '●'
+                                                            : (_selectedMascot == AiMascotStyle.astral ? '★' : '^')),
+                                                    style: TextStyle(
+                                                      color: glowColor,
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w900,
+                                                      shadows: [
+                                                        Shadow(color: glowColor, blurRadius: 10),
+                                                        Shadow(color: Colors.white.withValues(alpha: 0.8), blurRadius: 4),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -714,12 +736,12 @@ class _OwnerAiFabState extends State<OwnerAiFab>
                                   ),
                                 ),
 
-                                // 3. Floating Mini Torso with Core Arc Reactor
+                                // 3. Floating Mini Torso with Concentric Arc Reactor
                                 Positioned(
-                                  top: 57,
+                                  top: 58,
                                   child: Container(
-                                    width: 36,
-                                    height: 22,
+                                    width: 38,
+                                    height: 24,
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         begin: Alignment.topCenter,
@@ -727,36 +749,47 @@ class _OwnerAiFabState extends State<OwnerAiFab>
                                         colors: [
                                           const Color(0xFFFFFFFF),
                                           const Color(0xFFCBD5E1),
-                                          glowColor.withValues(alpha: 0.3),
+                                          glowColor.withValues(alpha: 0.35),
                                         ],
                                       ),
-                                      borderRadius: BorderRadius.circular(11),
+                                      borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: glowColor.withValues(alpha: 0.6),
-                                        width: 1.2,
+                                        color: glowColor.withValues(alpha: 0.7),
+                                        width: 1.4,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.25),
-                                          blurRadius: 6,
+                                          color: Colors.black.withValues(alpha: 0.3),
+                                          blurRadius: 8,
                                           offset: const Offset(0, 3),
                                         ),
                                       ],
                                     ),
                                     child: Center(
                                       child: Container(
-                                        width: 10,
-                                        height: 10,
+                                        width: 12,
+                                        height: 12,
                                         decoration: BoxDecoration(
-                                          color: glowColor,
+                                          color: glowColor.withValues(alpha: 0.2),
                                           shape: BoxShape.circle,
+                                          border: Border.all(color: glowColor, width: 1.2),
                                           boxShadow: [
                                             BoxShadow(
                                               color: glowColor,
                                               blurRadius: 8,
-                                              spreadRadius: 1.5,
+                                              spreadRadius: 1,
                                             ),
                                           ],
+                                        ),
+                                        child: Center(
+                                          child: Container(
+                                            width: 5,
+                                            height: 5,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),

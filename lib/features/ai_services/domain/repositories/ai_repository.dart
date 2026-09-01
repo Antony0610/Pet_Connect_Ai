@@ -23,6 +23,7 @@ abstract class AiRepository {
     required String prompt,
     String? petId,
     String? ragContext,
+    String? preferredModel,
   });
 
   /// Invoke `ai-symptom-scan` Edge Function or Vision Model for visual/textual symptom scan.
@@ -31,6 +32,7 @@ abstract class AiRepository {
     required String symptomDescription,
     String? imageUrl,
     String? imageBase64,
+    String? preferredModel,
   });
 
   /// Invoke `ai-report-generator` Edge Function for pet health summary report.

@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
@@ -78,29 +80,29 @@ class _LostFoundCommunityScreenState
                   Row(
                     children: [
                       Expanded(
-                        child: AppButton.filled(
+                        child: ElevatedButton.icon(
                           onPressed: () => _showReportPetDialog(context, isFound: true),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add_location_alt_outlined, size: 18),
-                              SizedBox(width: 6),
-                              Text('Report Found Pet'),
-                            ],
+                          icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                          label: const Text('Report Found', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: scheme.primary,
+                            foregroundColor: scheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
                       ),
-                      AppSpacing.hGapSm,
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: AppButton.outlined(
+                        child: OutlinedButton.icon(
                           onPressed: () => _showReportPetDialog(context, isFound: false),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.campaign_outlined, size: 18),
-                              SizedBox(width: 6),
-                              Text('Report Lost Pet'),
-                            ],
+                          icon: const Icon(Icons.campaign_rounded, size: 18),
+                          label: const Text('Report Lost', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: scheme.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: BorderSide(color: scheme.primary, width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
                       ),
@@ -501,33 +503,63 @@ class _LostFoundCommunityScreenState
     final title = isFound ? 'Report Found Pet' : 'Report Lost Pet';
     final descController = TextEditingController();
     final locController = TextEditingController();
+    final contactController = TextEditingController();
+    final rewardController = TextEditingController();
 
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: locController,
-              decoration: const InputDecoration(
-                labelText: 'Location',
-                hintText: 'e.g. 5th Ave and Central Park',
-                border: OutlineInputBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: locController,
+                decoration: const InputDecoration(
+                  labelText: 'Last Seen / Sighting Location',
+                  hintText: 'e.g. Near Market Rd, Kochi',
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: descController,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Description & Breed',
-                hintText: 'e.g. Medium Golden Lab with black collar...',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Pet Breed & Description',
+                  hintText: 'e.g. Pug with fawn coat, black collar, very friendly...',
+                  prefixIcon: Icon(Icons.pets_outlined),
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: contactController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Contact Phone (Optional)',
+                  hintText: 'e.g. +91 98765 43210',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              if (!isFound) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: rewardController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reward Amount (Optional)',
+                    hintText: 'e.g. ₹5,000',
+                    prefixIcon: Icon(Icons.monetization_on_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -535,12 +567,53 @@ class _LostFoundCommunityScreenState
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
+              final loc = locController.text.trim();
+              final desc = descController.text.trim();
+              if (loc.isEmpty || desc.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter location and description')),
+                );
+                return;
+              }
+
               Navigator.pop(ctx);
-              HapticFeedback.lightImpact();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$title alert posted to local rescue network!')),
-              );
+              await HapticFeedback.mediumImpact();
+
+              try {
+                final client = ref.read(supabaseClientProvider);
+                final currentUserId = client.auth.currentUser?.id;
+                final pet = ref.read(selectedPetProvider);
+
+                await client.from('lost_pet_alerts').insert({
+                  'pet_id': pet?.id,
+                  'owner_id': currentUserId,
+                  'alert_status': 'ACTIVE',
+                  'last_seen_location': loc,
+                  'description': desc,
+                  'contact_phone': contactController.text.trim().isNotEmpty
+                      ? contactController.text.trim()
+                      : null,
+                  'reward_amount': rewardController.text.trim().isNotEmpty
+                      ? rewardController.text.trim()
+                      : null,
+                  'last_seen_time': DateTime.now().toIso8601String(),
+                });
+
+                ref.invalidate(activeLostPetAlertsProvider);
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('$title broadcasted successfully!')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to publish alert: $e')),
+                  );
+                }
+              }
             },
             child: const Text('Publish Alert'),
           ),
