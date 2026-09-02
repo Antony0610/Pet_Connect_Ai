@@ -10,7 +10,10 @@ import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/widgets/smart_collar_real_map.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_mission_status_notifier.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/volunteer_bottom_nav_bar.dart';
+import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
@@ -36,6 +39,9 @@ class ActiveRescueOperationsScreen extends ConsumerWidget {
           onPressed: () => context.go('/rescue'),
         ),
         actions: [
+          PortalNotificationBadgeButton(
+            onPressed: () => context.push(RoutePaths.rescueNotifications),
+          ),
           IconButton(
             icon: const Icon(Icons.navigation_outlined),
             tooltip: 'Turn-by-Turn GPS Navigation',
@@ -97,6 +103,7 @@ class ActiveRescueOperationsScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.operations),
     );
   }
 

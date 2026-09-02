@@ -9,8 +9,10 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/patient_queue_notifier.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
@@ -84,6 +86,9 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
           ],
         ),
         actions: [
+          PortalNotificationBadgeButton(
+            onPressed: () => context.push(RoutePaths.vetNotifications),
+          ),
           IconButton(
             icon: const Icon(Icons.person_add_alt_1_rounded),
             tooltip: 'Admit Patient to Queue',
@@ -181,6 +186,7 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Check-In Patient'),
       ),
+      bottomNavigationBar: const VetBottomNavBar(currentTab: VetTab.queue),
     );
   }
 
@@ -357,7 +363,7 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
                     icon: _getNextStageIcon(patient.status),
                     onPressed: () async {
                       await HapticFeedback.mediumImpact();
-                      ref
+                      await ref
                           .read(patientQueueStateProvider.notifier)
                           .advanceStatus(patient.id);
                       if (context.mounted) {

@@ -8,8 +8,10 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/volunteer_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/quick_action_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -77,20 +79,13 @@ class _MissionDashboardScreenState
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.groups_rounded),
-            tooltip: 'Rescue Community',
-            onPressed: () => context.push(RoutePaths.rescueCommunity),
+          PortalNotificationBadgeButton(
+            onPressed: () => context.push(RoutePaths.rescueNotifications),
           ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline_rounded),
             tooltip: 'Messages',
             onPressed: () => context.push(RoutePaths.rescueCommunityMessages),
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.push(RoutePaths.ownerNotifications),
-            tooltip: 'Alerts',
           ),
           IconButton(
             icon: const Icon(Icons.account_circle_outlined),
@@ -144,7 +139,7 @@ class _MissionDashboardScreenState
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context, theme, colorScheme),
+      bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.dashboard),
     );
   }
 
@@ -593,50 +588,6 @@ class _MissionDashboardScreenState
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomNav(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return NavigationBar(
-      selectedIndex: 0,
-      onDestinationSelected: (idx) {
-        if (idx == 0) context.go(RoutePaths.rescueHome);
-        if (idx == 1) context.push(RoutePaths.rescueOperations);
-        if (idx == 2) context.push(RoutePaths.rescueRequests);
-        if (idx == 3) context.push(RoutePaths.rescueEmergencyOps);
-        if (idx == 4) context.push(RoutePaths.rescueProfile);
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.map_outlined),
-          selectedIcon: Icon(Icons.map),
-          label: 'Operations',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.warning_amber_outlined),
-          selectedIcon: Icon(Icons.warning_amber_rounded),
-          label: 'Requests',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.emergency_outlined),
-          selectedIcon: Icon(Icons.emergency),
-          label: 'EOC',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.person_outline),
-          selectedIcon: Icon(Icons.person),
-          label: 'Profile',
         ),
       ],
     );

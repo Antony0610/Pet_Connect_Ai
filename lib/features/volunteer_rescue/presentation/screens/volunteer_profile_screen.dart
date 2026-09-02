@@ -9,7 +9,10 @@ import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/edit_volunteer_profile_dialog.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/volunteer_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
@@ -73,6 +76,7 @@ class VolunteerProfileScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.profile),
     );
   }
 
@@ -98,10 +102,34 @@ class VolunteerProfileScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(Icons.person, size: 36, color: colorScheme.primary),
+          Stack(
+            children: [
+              UserAvatar(
+                imageUrl: userProfile?.avatarUrl ?? '',
+                size: 68,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Material(
+                  color: colorScheme.primary,
+                  shape: const CircleBorder(),
+                  elevation: 2,
+                  child: InkWell(
+                    onTap: () => _openEditVolunteerProfileDialog(context, ref, userProfile),
+                    customBorder: const CircleBorder(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        size: 14,
+                        color: colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           AppSpacing.hGapMd,
           Expanded(
@@ -158,54 +186,8 @@ class VolunteerProfileScreen extends ConsumerWidget {
     WidgetRef ref,
     UserProfile? currentProfile,
   ) async {
-    final nameCtrl = TextEditingController(text: currentProfile?.fullName ?? '');
-
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Responder Profile'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Volunteer Full Name',
-                  hintText: 'e.g. Alex Morgan',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save Profile'),
-          ),
-        ],
-      ),
-    );
-
-    if (saved == true && nameCtrl.text.trim().isNotEmpty && currentProfile != null) {
-      final updated = currentProfile.copyWith(
-        fullName: nameCtrl.text.trim(),
-      );
-      await ref.read(upsertUserProfileProvider)(updated);
-      ref.invalidate(currentUserProfileProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Profile updated for ${nameCtrl.text.trim()}!'),
-          ),
-        );
-      }
-    }
+    if (currentProfile == null) return;
+    await EditVolunteerProfileDialog.show(context, profile: currentProfile);
   }
 
   Widget _buildMetricsGrid(ThemeData theme, ColorScheme colorScheme, int completedCount) {

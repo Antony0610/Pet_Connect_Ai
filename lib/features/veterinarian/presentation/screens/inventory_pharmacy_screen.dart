@@ -9,8 +9,10 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/pharmacy_inventory_notifier.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
@@ -90,6 +92,9 @@ class _InventoryPharmacyScreenState
           ],
         ),
         actions: [
+          PortalNotificationBadgeButton(
+            onPressed: () => context.push(RoutePaths.vetNotifications),
+          ),
           IconButton(
             icon: const Icon(Icons.add_box_rounded),
             tooltip: 'Add Medical Item',
@@ -174,6 +179,7 @@ class _InventoryPharmacyScreenState
         icon: const Icon(Icons.add),
         label: const Text('Add SKU'),
       ),
+      bottomNavigationBar: const VetBottomNavBar(currentTab: VetTab.dashboard),
     );
   }
 

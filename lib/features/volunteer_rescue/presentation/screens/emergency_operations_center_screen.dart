@@ -8,8 +8,10 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/rescue_shelter.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/volunteer_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 
 class EmergencyOperationsCenterScreen extends ConsumerStatefulWidget {
@@ -237,6 +239,9 @@ class _EmergencyOperationsCenterScreenState
           },
         ),
         actions: [
+          PortalNotificationBadgeButton(
+            onPressed: () => context.push(RoutePaths.rescueNotifications),
+          ),
           IconButton(
             icon: const Icon(Icons.add_home_work_outlined),
             tooltip: 'Register Shelter',
@@ -296,6 +301,7 @@ class _EmergencyOperationsCenterScreenState
           ),
         ),
       ),
+      bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.eoc),
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
@@ -12,17 +13,19 @@ import 'package:petconnect_ai/features/auth/presentation/providers/auth_provider
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/features/realtime/domain/entities/user_notification.dart';
 import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_bottom_nav_bar.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/volunteer_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 
-/// The Pet Owner **Notifications Center**.
-///
-/// A live Flutter rendering connected to Supabase Realtime & user_notifications
-/// table: the shared glass owner header, a "Mark all as read" action,
-/// a horizontal row of category filter chips, and a live reactive feed of
-/// notification cards (critical / AI / health / social) with unread markers.
+/// The role-aware **Notifications Center** supporting Pet Owner, Vet, and Volunteer portals.
 class NotificationsScreen extends ConsumerStatefulWidget {
-  const NotificationsScreen({super.key});
+  const NotificationsScreen({
+    this.portalRole = AppPortal.petOwner,
+    super.key,
+  });
+
+  final AppPortal portalRole;
 
   @override
   ConsumerState<NotificationsScreen> createState() =>
@@ -238,6 +241,66 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ],
     );
 
+    if (widget.portalRole == AppPortal.veterinarian) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Veterinary Notifications'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                context.go(RoutePaths.vetHome);
+              }
+            },
+          ),
+        ),
+        bottomNavigationBar: const VetBottomNavBar(currentTab: VetTab.dashboard),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.maxContentWidth,
+              ),
+              child: _buildNotificationsBody(context, scheme, text, notificationsAsync),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (widget.portalRole == AppPortal.volunteerRescue) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Rescue Incident Alerts'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                context.go(RoutePaths.rescueHome);
+              }
+            },
+          ),
+        ),
+        bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.dashboard),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppBreakpoints.maxContentWidth,
+              ),
+              child: _buildNotificationsBody(context, scheme, text, notificationsAsync),
+            ),
+          ),
+        ),
+      );
+    }
+
     final topPad = context.viewPadding.top + appBar.preferredSize.height;
     final bottomPad =
         context.viewPadding.bottom + AppSpacing.xxl * 2 + AppSpacing.md;
@@ -257,44 +320,61 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             constraints: const BoxConstraints(
               maxWidth: AppBreakpoints.maxContentWidth,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Header row ─────────────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Notifications',
-                        style: text.headlineMedium?.copyWith(
-                          color: scheme.onSurface,
-                          fontWeight: AppTypography.bold,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: _markAllRead,
-                      child: Text(
-                        'Mark all read',
-                        style: text.labelMedium?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: AppTypography.semiBold,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: _clearAll,
-                      child: Text(
-                        'Clear all',
-                        style: text.labelMedium?.copyWith(
-                          color: scheme.error,
-                          fontWeight: AppTypography.semiBold,
-                        ),
-                      ),
-                    ),
-                  ],
+            child: _buildNotificationsBody(context, scheme, text, notificationsAsync),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationsBody(
+    BuildContext context,
+    ColorScheme scheme,
+    TextTheme text,
+    AsyncValue<List<UserNotification>> notificationsAsync,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Header row ─────────────────────────────────────────
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.portalRole == AppPortal.veterinarian
+                    ? 'Clinical Alerts'
+                    : widget.portalRole == AppPortal.volunteerRescue
+                        ? 'Emergency Alerts'
+                        : 'Notifications',
+                style: text.headlineMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: AppTypography.bold,
                 ),
-                AppSpacing.vGapMd,
+              ),
+            ),
+            TextButton(
+              onPressed: _markAllRead,
+              child: Text(
+                'Mark all read',
+                style: text.labelMedium?.copyWith(
+                  color: scheme.primary,
+                  fontWeight: AppTypography.semiBold,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: _clearAll,
+              child: Text(
+                'Clear all',
+                style: text.labelMedium?.copyWith(
+                  color: scheme.error,
+                  fontWeight: AppTypography.semiBold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        AppSpacing.vGapMd,
 
                 // ── Category filter chips ──────────────────────────────
                 SizedBox(
@@ -398,6 +478,24 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 final postId = item.payload['post_id'] as String?;
                                 final commentId = item.payload['comment_id'] as String?;
 
+                                if (widget.portalRole == AppPortal.veterinarian) {
+                                  if (item.filter == _NotifFilter.health || t.contains('appointment') || t.contains('schedule')) {
+                                    await context.push(RoutePaths.vetAppointments);
+                                  } else {
+                                    await context.push(RoutePaths.vetQueue);
+                                  }
+                                  return;
+                                }
+
+                                if (widget.portalRole == AppPortal.volunteerRescue) {
+                                  if (t.contains('emergency') || t.contains('sos') || t.contains('p1')) {
+                                    await context.push(RoutePaths.rescueEmergencyOps);
+                                  } else {
+                                    await context.push(RoutePaths.rescueOperations);
+                                  }
+                                  return;
+                                }
+
                                 if (item.filter == _NotifFilter.social ||
                                     t.contains('comment') ||
                                     t.contains('like') ||
@@ -438,11 +536,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   },
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
+            );
   }
 }
 

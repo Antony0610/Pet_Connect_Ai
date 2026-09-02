@@ -577,6 +577,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               initialOtherUserId: state.uri.queryParameters['otherUserId'],
             ),
           ),
+          GoRoute(
+            path: 'notifications',
+            name: RouteNames.vetNotifications,
+            builder: (context, state) => const NotificationsScreen(
+              portalRole: AppPortal.veterinarian,
+            ),
+          ),
         ],
       ),
 
@@ -677,6 +684,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: RouteNames.rescueCommunityMessages,
             builder: (context, state) => CommunityMessagesScreen(
               initialOtherUserId: state.uri.queryParameters['otherUserId'],
+            ),
+          ),
+          GoRoute(
+            path: 'notifications',
+            name: RouteNames.rescueNotifications,
+            builder: (context, state) => const NotificationsScreen(
+              portalRole: AppPortal.volunteerRescue,
             ),
           ),
         ],

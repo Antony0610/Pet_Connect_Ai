@@ -9,7 +9,10 @@ import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/edit_vet_profile_dialog.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -56,7 +59,7 @@ class VetProfileScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Clinic Identity Banner ───────────────────────────
-                _buildProfileBanner(theme, colorScheme, ref),
+                _buildProfileBanner(context, theme, colorScheme, ref),
 
                 AppSpacing.vGapLg,
 
@@ -150,10 +153,11 @@ class VetProfileScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const VetBottomNavBar(currentTab: VetTab.profile),
     );
   }
 
-  Widget _buildProfileBanner(ThemeData theme, ColorScheme colorScheme, WidgetRef ref) {
+  Widget _buildProfileBanner(BuildContext context, ThemeData theme, ColorScheme colorScheme, WidgetRef ref) {
     final userProfile = ref.watch(currentUserProfileProvider).valueOrNull;
     final doctorName = (userProfile != null && userProfile.fullName.isNotEmpty)
         ? (userProfile.fullName.startsWith('Dr.') ? userProfile.fullName : 'Dr. ${userProfile.fullName}')
@@ -166,14 +170,34 @@ class VetProfileScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 36,
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(
-              Icons.local_hospital,
-              color: colorScheme.primary,
-              size: 40,
-            ),
+          Stack(
+            children: [
+              UserAvatar(
+                imageUrl: userProfile?.avatarUrl ?? '',
+                size: 76,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Material(
+                  color: colorScheme.primary,
+                  shape: const CircleBorder(),
+                  elevation: 2,
+                  child: InkWell(
+                    onTap: () => _openEditVetProfileDialog(context, ref, userProfile),
+                    customBorder: const CircleBorder(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        size: 14,
+                        color: colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           AppSpacing.hGapMd,
           Expanded(
@@ -227,7 +251,7 @@ class VetProfileScreen extends ConsumerWidget {
                 ),
                 AppSpacing.vGapSm,
                 OutlinedButton.icon(
-                  onPressed: () => _openEditVetProfileDialog(theme, ref, userProfile),
+                  onPressed: () => _openEditVetProfileDialog(context, ref, userProfile),
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text('Edit Practitioner Profile'),
                   style: OutlinedButton.styleFrom(
@@ -243,58 +267,14 @@ class VetProfileScreen extends ConsumerWidget {
   }
 
   void _openEditVetProfileDialog(
-    ThemeData theme,
+    BuildContext context,
     WidgetRef ref,
     UserProfile? currentProfile,
   ) async {
-    final nameCtrl = TextEditingController(text: currentProfile?.fullName ?? '');
-
-    final saved = await showDialog<bool>(
-      context: ref.context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Practitioner Profile'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Doctor Full Name',
-                  hintText: 'e.g. Dr. Sarah Jenkins',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save Profile'),
-          ),
-        ],
-      ),
-    );
-
-    if (saved == true && nameCtrl.text.trim().isNotEmpty && currentProfile != null) {
-      final updated = currentProfile.copyWith(
-        fullName: nameCtrl.text.trim(),
-      );
-      await ref.read(upsertUserProfileProvider)(updated);
-      ref.invalidate(currentUserProfileProvider);
-      if (ref.context.mounted) {
-        ScaffoldMessenger.of(ref.context).showSnackBar(
-          SnackBar(
-            content: Text('Profile updated for ${nameCtrl.text.trim()}!'),
-          ),
-        );
-      }
-    }
+    if (currentProfile == null) return;
+    final clinics = ref.read(vetClinicsProvider).valueOrNull ?? [];
+    final clinic = clinics.isNotEmpty ? clinics.first : null;
+    await EditVetProfileDialog.show(context, profile: currentProfile, initialClinic: clinic);
   }
 
   Widget _buildHoursLocationCard(ThemeData theme, ColorScheme colorScheme, WidgetRef ref) {

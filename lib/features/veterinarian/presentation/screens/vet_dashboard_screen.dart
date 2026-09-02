@@ -8,7 +8,9 @@ import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/patient_queue_notifier.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
+import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 class VetDashboardScreen extends ConsumerWidget {
@@ -65,10 +67,8 @@ class VetDashboardScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.groups_rounded),
-            tooltip: 'Vet Community',
-            onPressed: () => context.push(RoutePaths.vetCommunity),
+          PortalNotificationBadgeButton(
+            onPressed: () => context.push(RoutePaths.vetNotifications),
           ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline_rounded),
@@ -140,7 +140,7 @@ class VetDashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context, theme, colorScheme),
+      bottomNavigationBar: const VetBottomNavBar(currentTab: VetTab.dashboard),
     );
   }
 
@@ -719,54 +719,6 @@ class VetDashboardScreen extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomNav(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return NavigationBar(
-      selectedIndex: 0,
-      onDestinationSelected: (index) {
-        if (index == 1) {
-          context.push(RoutePaths.vetQueue);
-        } else if (index == 2) {
-          context.push(RoutePaths.vetAppointments);
-        } else if (index == 3) {
-          context.push(RoutePaths.vetPatients);
-        } else if (index == 4) {
-          context.push(RoutePaths.vetProfile);
-        }
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.groups_outlined),
-          selectedIcon: Icon(Icons.groups),
-          label: 'Queue',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.calendar_today_outlined),
-          selectedIcon: Icon(Icons.calendar_today),
-          label: 'Schedule',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.pets_outlined),
-          selectedIcon: Icon(Icons.pets),
-          label: 'Patients',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.person_outlined),
-          selectedIcon: Icon(Icons.person),
-          label: 'Profile',
         ),
       ],
     );
