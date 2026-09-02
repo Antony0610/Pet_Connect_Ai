@@ -2,78 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_mascot_companion.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AiMascotStyle {
-  classic, // 3D Aero Bot (Classic)
-  cat,     // 3D Cyber Neko (Cat Bot)
-  dog,     // 3D Cyber Pup (Dog Bot)
-  astral,  // 3D Astral Bot (Space Chibi)
-}
-
-extension AiMascotStyleExt on AiMascotStyle {
-  String get assetPath => switch (this) {
-        AiMascotStyle.classic => 'assets/images/ai_mascot_classic.jpg',
-        AiMascotStyle.cat => 'assets/images/ai_mascot_cat.jpg',
-        AiMascotStyle.dog => 'assets/images/ai_mascot_dog.jpg',
-        AiMascotStyle.astral => 'assets/images/ai_mascot_astral.jpg',
-      };
-
-  String get displayName => switch (this) {
-        AiMascotStyle.classic => 'Aero Bot (Classic)',
-        AiMascotStyle.cat => 'Cyber Neko (Cat Bot)',
-        AiMascotStyle.dog => 'Cyber Pup (Dog Bot)',
-        AiMascotStyle.astral => 'Astral Bot (Space Chibi)',
-      };
-
-  String get tagline => switch (this) {
-        AiMascotStyle.classic => 'Sleek 3D Aerodynamic AI Companion',
-        AiMascotStyle.cat => 'Adorable 3D Robotic Cat with Holographic Ears',
-        AiMascotStyle.dog => 'Playful 3D Cyber Puppy with Golden Shield',
-        AiMascotStyle.astral => 'Cosmic 3D Space Chibi with Celestial Halo',
-      };
-
-  Color get glowColor => switch (this) {
-        AiMascotStyle.classic => const Color(0xFF06B6D4), // Cyan
-        AiMascotStyle.cat => const Color(0xFFEC4899),     // Neon Pink
-        AiMascotStyle.dog => const Color(0xFFF59E0B),     // Amber Gold
-        AiMascotStyle.astral => const Color(0xFF8B5CF6),  // Cosmic Violet
-      };
-
-  List<String> get greetings => switch (this) {
-        AiMascotStyle.classic => [
-            'Hi! Aero AI here ⚡',
-            'Ready to assist your pet! 🤖',
-            'Symptom scan ready! 🩺',
-            'Ask me anything! 💡',
-          ],
-        AiMascotStyle.cat => [
-            'Nya~ Hi friend! 🐾',
-            'Waving paws to you! 🐱',
-            'Purr-fect day ahead! 💖',
-            'Meow! Need health tips? ✨',
-          ],
-        AiMascotStyle.dog => [
-            'Woof! Hi there! 🐶',
-            'Ready for an AI checkup! 🦴',
-            'Always happy to help! 🐾',
-            'Good dog vibes today! 🌟',
-          ],
-        AiMascotStyle.astral => [
-            'Greetings Explorer! ✨',
-            'Cosmic sensors active! 🔮',
-            'Scanning pet vitals! 🚀',
-            'Starry health alert! 🌌',
-          ],
-      };
-
-  IconData get emoteIcon => switch (this) {
-        AiMascotStyle.classic => Icons.waving_hand_rounded,
-        AiMascotStyle.cat => Icons.pets_rounded,
-        AiMascotStyle.dog => Icons.celebration_rounded,
-        AiMascotStyle.astral => Icons.auto_awesome_rounded,
-      };
-}
+export 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_mascot_companion.dart';
 
 /// A floating, animated 3D AI Mascot with live active hand-waving physics,
 /// dynamic digital emotes, ambient halo glow, and 4-character switcher.
@@ -119,6 +51,7 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _loadMascotPreference();
+    MascotChangeNotifier.instance.addListener(_handleMascotChange);
 
     // 1. Dual-Harmonic Floating Physics (Smooth hover bobbing loop)
     _floatController = AnimationController(
@@ -216,6 +149,15 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
     }
   }
 
+  void _handleMascotChange() {
+    if (!mounted) return;
+    setState(() {
+      _selectedMascot = MascotChangeNotifier.instance.currentStyle;
+      _currentGreeting = _selectedMascot.greetings.first;
+    });
+    _triggerEmoteWave();
+  }
+
   Future<void> _setMascot(AiMascotStyle style) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('selected_ai_mascot_style', style.index);
@@ -224,175 +166,22 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
         _selectedMascot = style;
         _currentGreeting = style.greetings.first;
       });
+      MascotChangeNotifier.instance.notifyStyleChanged(style);
       _triggerEmoteWave();
     }
   }
 
   void _openMascotSwitcher() {
-    HapticFeedback.mediumImpact();
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF0F172A),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 44,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Choose 3D AI Mascot Companion',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Select your animated companion with live emotes & wave physics',
-                              style: TextStyle(color: Colors.white60, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, color: Colors.white70),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    GridView.count(
-                      shrinkWrap: true,
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: 0.88,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: AiMascotStyle.values.map((style) {
-                        final isSelected = _selectedMascot == style;
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: () {
-                            _setMascot(style);
-                            setModalState(() {});
-                            Navigator.pop(ctx);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? style.glowColor.withValues(alpha: 0.18)
-                                  : const Color(0xFF1E293B),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? style.glowColor
-                                    : Colors.white.withValues(alpha: 0.1),
-                                width: isSelected ? 2.2 : 1.0,
-                              ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: style.glowColor.withValues(alpha: 0.35),
-                                        blurRadius: 14,
-                                        spreadRadius: 1,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 72,
-                                  height: 72,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: style.glowColor,
-                                      width: 2.0,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: style.glowColor.withValues(alpha: 0.45),
-                                        blurRadius: 12,
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      style.assetPath,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  style.displayName,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  style.tagline,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+    showAiMascotSwitcherModal(
+      context,
+      currentStyle: _selectedMascot,
+      onSelect: _setMascot,
     );
   }
 
   @override
   void dispose() {
+    MascotChangeNotifier.instance.removeListener(_handleMascotChange);
     _greetingTimer?.cancel();
     _floatController.dispose();
     _waveController.dispose();

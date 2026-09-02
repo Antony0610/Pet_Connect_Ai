@@ -10,6 +10,7 @@ import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_mascot_companion.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
@@ -184,25 +185,14 @@ class _AssistantHero extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // 3D Mascot Companion Avatar
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF06B6D4).withValues(alpha: 0.4),
-                  blurRadius: 14,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/ai_mascot_classic.jpg',
-                fit: BoxFit.cover,
-              ),
+          // 3D Mascot Companion Avatar with Live Floating, Waving & Emotes
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: AiMascotCompanion(
+              size: 82,
+              showSpeechBubble: true,
+              showSwitcherBadge: true,
+              onTap: () => context.goNamed(RouteNames.ownerAiChat),
             ),
           ),
         ],

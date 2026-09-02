@@ -15,6 +15,7 @@ import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_mascot_companion.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
@@ -1423,7 +1424,7 @@ class _AiCard extends StatelessWidget {
                     ),
                     child: ClipOval(
                       child: Image.asset(
-                        'assets/images/ai_mascot_classic.jpg',
+                        MascotChangeNotifier.instance.currentStyle.assetPath,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           color: scheme.primaryContainer,
