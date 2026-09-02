@@ -337,15 +337,47 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
         final remoteComment = CommunityPostComment.fromJson(data);
 
-        // Notify post creator
+        // Notify post creator & parent commenter
         try {
+          final authorName = authUser?.userMetadata?['full_name'] as String? ?? 'Community Member';
+
+          // 1. If this is a reply to another comment, notify the parent commenter
+          if (parentCommentId != null && parentCommentId.isNotEmpty) {
+            try {
+              final parentComment = await _supabase
+                  .from('community_post_comments')
+                  .select('user_id, content')
+                  .eq('id', parentCommentId)
+                  .maybeSingle();
+
+              if (parentComment != null) {
+                final parentOwnerId = parentComment['user_id'] as String?;
+                if (parentOwnerId != null && parentOwnerId.isNotEmpty && parentOwnerId != safeUserId) {
+                  await _supabase.from('user_notifications').insert({
+                    'user_id': parentOwnerId,
+                    'title': 'New Reply to your comment! 💬',
+                    'body': '$authorName replied: "$content"',
+                    'notification_type': 'comment_reply',
+                    'is_read': false,
+                    'payload': {
+                      'post_id': postId,
+                      'comment_id': remoteComment.id,
+                      'parent_comment_id': parentCommentId,
+                      'action_type': 'comment_reply',
+                    },
+                  });
+                }
+              }
+            } catch (_) {}
+          }
+
+          // 2. Notify post author
           final postData = await _supabase
               .from('community_posts')
               .select('user_id, title')
               .eq('id', postId)
               .maybeSingle();
 
-          final authorName = authUser?.userMetadata?['full_name'] as String? ?? 'Community Member';
           if (postData != null) {
             final postOwnerId = postData['user_id'] as String?;
             final postTitle = postData['title'] as String? ?? 'your post';
@@ -354,10 +386,14 @@ class CommunityRepositoryImpl implements CommunityRepository {
               await _supabase.from('user_notifications').insert({
                 'user_id': postOwnerId,
                 'title': 'New Comment on your post! 💬',
-                'body': '$authorName wrote: "$content"',
+                'body': '$authorName commented on "$postTitle": "$content"',
                 'notification_type': 'community_comment',
                 'is_read': false,
-                'payload': {'post_id': postId, 'comment': content},
+                'payload': {
+                  'post_id': postId,
+                  'comment_id': remoteComment.id,
+                  'action_type': 'post_comment',
+                },
               });
             }
 
@@ -392,7 +428,7 @@ class CommunityRepositoryImpl implements CommunityRepository {
       try {
         final current = await _supabase
             .from('community_post_comments')
-            .select('likes_count')
+            .select('user_id, post_id, content, likes_count')
             .eq('id', commentId)
             .single();
         final count = (current['likes_count'] as num?)?.toInt() ?? 0;
@@ -400,6 +436,28 @@ class CommunityRepositoryImpl implements CommunityRepository {
             .from('community_post_comments')
             .update({'likes_count': count + 1})
             .eq('id', commentId);
+
+        // Send notification to comment creator
+        final commentOwnerId = current['user_id'] as String?;
+        final postId = current['post_id'] as String?;
+        final commentSnippet = current['content'] as String? ?? 'your comment';
+        final authUser = _supabase.auth.currentUser;
+        final currentUserName = authUser?.userMetadata?['full_name'] as String? ?? 'Community Member';
+
+        if (commentOwnerId != null && authUser != null && commentOwnerId != authUser.id) {
+          await _supabase.from('user_notifications').insert({
+            'user_id': commentOwnerId,
+            'title': 'Someone liked your comment! ❤️',
+            'body': '$currentUserName loved your comment "$commentSnippet"',
+            'notification_type': 'comment_like',
+            'is_read': false,
+            'payload': {
+              'post_id': postId,
+              'comment_id': commentId,
+              'action_type': 'comment_like',
+            },
+          });
+        }
       } catch (_) {}
       return const Right(null);
     } catch (e) {

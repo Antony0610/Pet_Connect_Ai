@@ -66,6 +66,16 @@ class VetDashboardScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.groups_rounded),
+            tooltip: 'Vet Community',
+            onPressed: () => context.push(RoutePaths.vetCommunity),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Messages',
+            onPressed: () => context.push(RoutePaths.vetCommunityMessages),
+          ),
+          IconButton(
             icon: const Icon(Icons.account_circle_outlined),
             onPressed: () => context.push(RoutePaths.vetProfile),
             tooltip: 'Vet Profile',

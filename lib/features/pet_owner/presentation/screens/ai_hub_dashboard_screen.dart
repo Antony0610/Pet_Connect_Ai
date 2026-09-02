@@ -117,32 +117,92 @@ class _AssistantHero extends ConsumerWidget {
     final petName = activePet?.name ?? 'your companion';
 
     return AiGradientBorderCard(
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your AI Assistant is ready',
-            style: context.textTheme.headlineSmall?.copyWith(
-              color: scheme.primary,
-              fontWeight: AppTypography.semiBold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF06B6D4).withValues(alpha: 0.15),
+                        borderRadius: AppRadius.brPill,
+                        border: Border.all(
+                            color: const Color(0xFF06B6D4), width: 1),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 12, color: Color(0xFF06B6D4)),
+                          SizedBox(width: 4),
+                          Text(
+                            '3D Companion Active',
+                            style: TextStyle(
+                              color: Color(0xFF06B6D4),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpacing.vGapSm,
+                Text(
+                  'Your AI Assistant is ready',
+                  style: context.textTheme.headlineSmall?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: AppTypography.semiBold,
+                  ),
+                ),
+                AppSpacing.vGapXs,
+                Text(
+                  "I've analyzed $petName's latest health data. Everything looks "
+                  'fantastic today!',
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                AppSpacing.vGapMd,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: AppButton(
+                    label: 'Start Conversation',
+                    icon: Icons.smart_toy_rounded,
+                    borderRadius: AppRadius.brPill,
+                    onPressed: () => context.goNamed(RouteNames.ownerAiChat),
+                  ),
+                ),
+              ],
             ),
           ),
-          AppSpacing.vGapXs,
-          Text(
-            "I've analyzed $petName's latest health data. Everything looks "
-            'fantastic today!',
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
+          const SizedBox(width: 12),
+          // 3D Mascot Companion Avatar
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF06B6D4).withValues(alpha: 0.4),
+                  blurRadius: 14,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-          ),
-          AppSpacing.vGapMd,
-          Align(
-            alignment: Alignment.centerLeft,
-            child: AppButton(
-              label: 'Start Conversation',
-              icon: Icons.smart_toy_rounded,
-              borderRadius: AppRadius.brPill,
-              onPressed: () => context.goNamed(RouteNames.ownerAiChat),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/ai_mascot_classic.jpg',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ],

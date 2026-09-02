@@ -55,6 +55,7 @@ class _NotifData {
     required this.body,
     this.unread = false,
     this.footerBadge,
+    this.payload = const {},
   });
 
   final String id;
@@ -66,6 +67,7 @@ class _NotifData {
   final String body;
   bool unread;
   final String? footerBadge;
+  final Map<String, dynamic> payload;
 
   factory _NotifData.fromEntity(UserNotification entity) {
     final typeUpper = entity.notificationType.toUpperCase();
@@ -130,6 +132,7 @@ class _NotifData {
       body: entity.body,
       unread: !entity.isRead,
       footerBadge: footerBadge,
+      payload: entity.payload,
     );
   }
 }
@@ -392,13 +395,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 final item = visible[i];
                                 final t = item.title.toLowerCase();
                                 final b = item.body.toLowerCase();
+                                final postId = item.payload['post_id'] as String?;
+                                final commentId = item.payload['comment_id'] as String?;
+
                                 if (item.filter == _NotifFilter.social ||
                                     t.contains('comment') ||
                                     t.contains('like') ||
                                     b.contains('comment') ||
                                     b.contains('liked') ||
-                                    b.contains('loved')) {
-                                  await context.push(RoutePaths.ownerCommunity);
+                                    b.contains('loved') ||
+                                    postId != null) {
+                                  if (postId != null && postId.isNotEmpty) {
+                                    final queryParams = <String, String>{'postId': postId};
+                                    if (commentId != null && commentId.isNotEmpty) {
+                                      queryParams['commentId'] = commentId;
+                                    }
+                                    final uri = Uri(path: RoutePaths.ownerCommunity, queryParameters: queryParams);
+                                    await context.push(uri.toString());
+                                  } else {
+                                    await context.push(RoutePaths.ownerCommunity);
+                                  }
                                 } else if (item.filter == _NotifFilter.collar ||
                                     t.contains('collar') ||
                                     t.contains('battery') ||

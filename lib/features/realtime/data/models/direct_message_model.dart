@@ -17,7 +17,7 @@ class DirectMessageModel extends DirectMessage {
       receiverId: json['receiver_id'] as String,
       messageText: json['message_text'] as String,
       isRead: (json['is_read'] as bool?) ?? false,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 

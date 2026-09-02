@@ -37,6 +37,7 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
   bool _aiHealthTracking = true;
   String? _uploadedPhotoUrl;
   Pet? _currentPet;
+  DateTime? _selectedBirthday;
 
   Future<void> _pickAndUploadPhoto() async {
     final picker = ImagePicker();
@@ -109,15 +110,19 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
       );
 
   Future<void> _pickBirthday() async {
+    final initial = _selectedBirthday ?? DateTime(2021, 5, 12);
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(2019, 5, 12),
+      initialDate: initial.isAfter(DateTime.now()) ? DateTime.now() : initial,
       firstDate: DateTime(1995),
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      _birthdayController.text =
-          '${_month(picked.month)} ${picked.day}, ${picked.year}';
+      setState(() {
+        _selectedBirthday = picked;
+        _birthdayController.text =
+            '${_month(picked.month)} ${picked.day}, ${picked.year}';
+      });
     }
   }
 
@@ -162,6 +167,11 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
         _nameController.text = pet.name;
         _breedController.text = pet.breed ?? '';
         _weightController.text = pet.weightKg?.toString() ?? '';
+        _selectedBirthday = pet.dateOfBirth;
+        if (pet.dateOfBirth != null) {
+          _birthdayController.text =
+              '${_month(pet.dateOfBirth!.month)} ${pet.dateOfBirth!.day}, ${pet.dateOfBirth!.year}';
+        }
       }
     }
   }
@@ -192,6 +202,7 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
           : null,
       weightKg: double.tryParse(_weightController.text.trim()),
       imageUrl: _uploadedPhotoUrl ?? _currentPet!.imageUrl,
+      dateOfBirth: _selectedBirthday,
     );
 
     final result = await ref.read(updatePetUseCaseProvider)(updated);
@@ -200,7 +211,7 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
     setState(() => _isSaving = false);
 
     result.fold((failure) => context.showErrorSnack(failure.message), (_) {
-            ref.invalidate(petsProvider);
+      ref.invalidate(petsProvider);
       ref.invalidate(petDetailProvider(_currentPet!.id));
       GoRouter.of(context).pop();
     });
@@ -419,9 +430,13 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
                             readOnly: true,
                             onSuffixIconTap: _pickBirthday,
                           );
+                          final birthdayWidget = GestureDetector(
+                            onTap: _pickBirthday,
+                            child: AbsorbPointer(child: birthday),
+                          );
                           if (isNarrow) {
                             return Column(
-                              children: [weight, AppSpacing.vGapMd, birthday],
+                              children: [weight, AppSpacing.vGapMd, birthdayWidget],
                             );
                           }
                           return Row(
@@ -429,12 +444,7 @@ class _EditPetProfileScreenState extends ConsumerState<EditPetProfileScreen> {
                             children: [
                               Expanded(child: weight),
                               AppSpacing.hGapMd,
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: _pickBirthday,
-                                  child: AbsorbPointer(child: birthday),
-                                ),
-                              ),
+                              Expanded(child: birthdayWidget),
                             ],
                           );
                         },

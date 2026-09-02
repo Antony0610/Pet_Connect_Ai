@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -25,13 +26,22 @@ import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_scaf
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
-/// The Pet Owner **Community Hub** screen.
+/// The **Community Hub** screen for all portals (Pet Owner, Vet, Volunteer/Rescue).
 ///
 /// Features full-screen interactive photo viewing with pinch-zoom,
 /// double-tap heart animations, 3-column explore photo grid toggle, quick emoji reactions,
-/// and live community feed.
+/// live in-feed follow buttons, and role-adaptive community experience.
 class CommunityHubScreen extends ConsumerStatefulWidget {
-  const CommunityHubScreen({super.key});
+  const CommunityHubScreen({
+    super.key,
+    this.portalRole = AppPortal.petOwner,
+    this.initialPostId,
+    this.initialCommentId,
+  });
+
+  final AppPortal portalRole;
+  final String? initialPostId;
+  final String? initialCommentId;
 
   @override
   ConsumerState<CommunityHubScreen> createState() => _CommunityHubScreenState();
@@ -41,6 +51,34 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
   static const double _maxContentWidth = 1200;
 
   bool _isGridView = false;
+  bool _hasHandledInitialDeepLink = false;
+
+  void _checkInitialDeepLink(List<CommunityPost> posts) {
+    if (_hasHandledInitialDeepLink) return;
+    if (widget.initialPostId == null || widget.initialPostId!.isEmpty) return;
+
+    final matchingPost =
+        posts.where((p) => p.id == widget.initialPostId).firstOrNull;
+    if (matchingPost != null) {
+      _hasHandledInitialDeepLink = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final currentUserId =
+            ref.read(supabaseClientProvider).auth.currentUser?.id;
+        final isAuthor = matchingPost.userId == currentUserId;
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => _PostDetailSheet(
+            post: matchingPost,
+            isAuthor: isAuthor,
+            highlightCommentId: widget.initialCommentId,
+          ),
+        );
+      });
+    }
+  }
 
   EdgeInsets _horizontalMargin(double width) {
     if (width >= 1024) return const EdgeInsets.symmetric(horizontal: 40);
@@ -48,41 +86,193 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
     return const EdgeInsets.symmetric(horizontal: AppSpacing.md);
   }
 
+  String get _messagesRoute {
+    switch (widget.portalRole) {
+      case AppPortal.veterinarian:
+        return RoutePaths.vetCommunityMessages;
+      case AppPortal.volunteerRescue:
+        return RoutePaths.rescueCommunityMessages;
+      case AppPortal.petOwner:
+      default:
+        return RoutePaths.ownerCommunityMessages;
+    }
+  }
+
+  String get _portalTitle {
+    switch (widget.portalRole) {
+      case AppPortal.veterinarian:
+        return 'Vet Community & Clinical Hub';
+      case AppPortal.volunteerRescue:
+        return 'RescueOps Community Network';
+      case AppPortal.petOwner:
+      default:
+        return 'Community Hub';
+    }
+  }
+
+  Color _getPortalAccent(ColorScheme scheme) {
+    switch (widget.portalRole) {
+      case AppPortal.veterinarian:
+        return PortalPalette.accentFor(AppPortal.veterinarian);
+      case AppPortal.volunteerRescue:
+        return PortalPalette.accentFor(AppPortal.volunteerRescue);
+      case AppPortal.petOwner:
+      default:
+        return scheme.primary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final portalAccent = _getPortalAccent(scheme);
     final postsAsync = ref.watch(communityPostsProvider(null));
+    postsAsync.whenData((posts) => _checkInitialDeepLink(posts));
 
-    return OwnerScaffold(
-      currentTab: OwnerTab.community,
-      appBar: OwnerGlassAppBar(
-        brandIcon: Icons.groups_rounded,
-        title: Text(
-          'Community Hub',
-          style: context.textTheme.headlineSmall?.copyWith(
-            color: scheme.primary,
-            fontWeight: AppTypography.bold,
-            letterSpacing: -0.25,
+    final content = LayoutBuilder(
+      builder: (context, constraints) {
+        final margin = _horizontalMargin(constraints.maxWidth);
+        final topPad = widget.portalRole == AppPortal.petOwner
+            ? context.viewPadding.top + kToolbarHeight + AppSpacing.xl
+            : AppSpacing.md;
+
+        return RefreshIndicator(
+          onRefresh: () async =>
+              ref.refresh(communityPostsProvider(null).future),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: margin.copyWith(
+              top: topPad,
+              bottom: AppSpacing.xxl * 2,
+            ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Quick Nav Actions Bar (3x2 Balanced 3D Grid) ───
+                    _buildQuickNavGrid(context),
+                    AppSpacing.vGapLg,
+
+                    // ── Feed Header & View Switcher ───────────────────
+                    _buildFeedHeaderBar(context),
+                    AppSpacing.vGapSm,
+
+                    // ── Feed / Grid Posts ──────────────────────────────
+                    if (_isGridView)
+                      _buildPhotoGridView(context, postsAsync)
+                    else
+                      _buildLiveCommunityPosts(context, ref, postsAsync),
+                    AppSpacing.vGapLg,
+
+                    // ── Nearby Pet Owners ──────────────────────────────
+                    SectionHeader(
+                      title: widget.portalRole == AppPortal.veterinarian
+                          ? 'Nearby Patients & Pet Owners'
+                          : widget.portalRole == AppPortal.volunteerRescue
+                              ? 'Nearby Rescue Responders & Shelters'
+                              : 'Nearby Pet Companions',
+                      actionLabel: 'See Local',
+                      onAction: () =>
+                          context.push(RoutePaths.ownerCommunityLocal),
+                    ),
+                    AppSpacing.vGapSm,
+                    _buildNearbyOwnersList(context),
+                  ],
+                ),
+              ),
+            ),
           ),
+        );
+      },
+    );
+
+    if (widget.portalRole == AppPortal.petOwner) {
+      return OwnerScaffold(
+        currentTab: OwnerTab.community,
+        appBar: OwnerGlassAppBar(
+          brandIcon: Icons.groups_rounded,
+          title: Text(
+            _portalTitle,
+            style: context.textTheme.headlineSmall?.copyWith(
+              color: portalAccent,
+              fontWeight: AppTypography.bold,
+              letterSpacing: -0.25,
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              tooltip: 'Direct Messages',
+              color: portalAccent,
+              onPressed: () => context.push(_messagesRoute),
+            ),
+            IconButton(
+              icon: const Icon(Icons.people_alt_outlined),
+              tooltip: 'Followers & Activity',
+              color: portalAccent,
+              onPressed: () => _openFollowActivitySheet(context),
+            ),
+            IconButton(
+              icon: Icon(
+                _isGridView ? Icons.view_agenda_outlined : Icons.grid_view_rounded,
+                size: AppIconSizes.md,
+                color: portalAccent,
+              ),
+              tooltip: _isGridView ? 'Feed View' : 'Explore Grid View',
+              onPressed: () => setState(() => _isGridView = !_isGridView),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.refresh,
+                size: AppIconSizes.md,
+                color: scheme.onSurfaceVariant,
+              ),
+              tooltip: 'Refresh Feed',
+              onPressed: () => ref.invalidate(communityPostsProvider),
+            ),
+          ],
+        ),
+        body: content,
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Icon(Icons.groups_rounded, color: portalAccent, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              _portalTitle,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: scheme.onSurface,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline_rounded),
             tooltip: 'Direct Messages',
-            color: scheme.primary,
-            onPressed: () => context.push(RoutePaths.ownerCommunityMessages),
+            color: portalAccent,
+            onPressed: () => context.push(_messagesRoute),
           ),
           IconButton(
             icon: const Icon(Icons.people_alt_outlined),
             tooltip: 'Followers & Activity',
-            color: scheme.primary,
+            color: portalAccent,
             onPressed: () => _openFollowActivitySheet(context),
           ),
           IconButton(
             icon: Icon(
               _isGridView ? Icons.view_agenda_outlined : Icons.grid_view_rounded,
               size: AppIconSizes.md,
-              color: scheme.primary,
+              color: portalAccent,
             ),
             tooltip: _isGridView ? 'Feed View' : 'Explore Grid View',
             onPressed: () => setState(() => _isGridView = !_isGridView),
@@ -98,59 +288,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final margin = _horizontalMargin(constraints.maxWidth);
-          final topPad = context.viewPadding.top + kToolbarHeight + AppSpacing.xl;
-
-          return RefreshIndicator(
-            onRefresh: () async =>
-                ref.refresh(communityPostsProvider(null).future),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: margin.copyWith(
-                top: topPad,
-                bottom: AppSpacing.xxl * 2,
-              ),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Quick Nav Actions Bar (3x2 Balanced 3D Grid) ───
-                      _buildQuickNavGrid(context),
-                      AppSpacing.vGapLg,
-
-                      // ── Feed Header & View Switcher ───────────────────
-                      _buildFeedHeaderBar(context),
-                      AppSpacing.vGapSm,
-
-                      // ── Feed / Grid Posts ──────────────────────────────
-                      if (_isGridView)
-                        _buildPhotoGridView(context, postsAsync)
-                      else
-                        _buildLiveCommunityPosts(context, ref, postsAsync),
-                      AppSpacing.vGapLg,
-
-                      // ── Nearby Pet Owners ──────────────────────────────
-                      SectionHeader(
-                        title: 'Nearby Pet Companions',
-                        actionLabel: 'See Local',
-                        onAction: () =>
-                            context.push(RoutePaths.ownerCommunityLocal),
-                      ),
-                      AppSpacing.vGapSm,
-                      _buildNearbyOwnersList(context),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+      body: content,
     );
   }
 
@@ -787,6 +925,13 @@ class _PostCardState extends ConsumerState<_PostCard>
                       ),
                     ),
                   ),
+                  if (!isAuthor) ...[
+                    const SizedBox(width: 4),
+                    _FeedFollowButton(
+                      authorId: _post.userId,
+                      authorName: _post.authorName,
+                    ),
+                  ],
                   if (isAuthor) ...[
                     const SizedBox(width: 4),
                     PopupMenuButton<String>(
@@ -1283,10 +1428,15 @@ class _PostMediaImage extends StatelessWidget {
 }
 
 class _PostDetailSheet extends ConsumerStatefulWidget {
-  const _PostDetailSheet({required this.post, required this.isAuthor});
+  const _PostDetailSheet({
+    required this.post,
+    required this.isAuthor,
+    this.highlightCommentId,
+  });
 
   final CommunityPost post;
   final bool isAuthor;
+  final String? highlightCommentId;
 
   @override
   ConsumerState<_PostDetailSheet> createState() => _PostDetailSheetState();
@@ -1796,20 +1946,35 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
     final currentUserId = ref.read(supabaseClientProvider).auth.currentUser?.id;
     final isCommentAuthor = c.userId == currentUserId;
     final isPostAuthor = widget.isAuthor;
+    final isHighlighted = widget.highlightCommentId != null && widget.highlightCommentId == c.id;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
       margin: EdgeInsets.only(
         left: isReply ? 28 : 0,
         bottom: 8,
       ),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isReply
-            ? scheme.surfaceContainerHigh.withValues(alpha: 0.45)
-            : scheme.surfaceContainerLow,
+        color: isHighlighted
+            ? scheme.primaryContainer.withValues(alpha: 0.65)
+            : (isReply
+                ? scheme.surfaceContainerHigh.withValues(alpha: 0.45)
+                : scheme.surfaceContainerLow),
         borderRadius: BorderRadius.circular(14),
-        border: isReply
-            ? Border(left: BorderSide(color: scheme.primary.withValues(alpha: 0.5), width: 3))
+        border: isHighlighted
+            ? Border.all(color: Colors.amber, width: 2.2)
+            : (isReply
+                ? Border(left: BorderSide(color: scheme.primary.withValues(alpha: 0.5), width: 3))
+                : null),
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: Colors.amber.withValues(alpha: 0.45),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                )
+              ]
             : null,
       ),
       child: Column(
@@ -2006,6 +2171,7 @@ class _PublicUserProfileSheetState extends ConsumerState<_PublicUserProfileSheet
   String? _realBio;
   String? _realFullName;
   String? _realAvatarUrl;
+  String? _realRole;
 
   @override
   void initState() {
@@ -2028,7 +2194,7 @@ class _PublicUserProfileSheetState extends ConsumerState<_PublicUserProfileSheet
       // 1. Fetch user profile from Supabase
       final profileRes = await client
           .from('profiles')
-          .select('full_name, bio, city, avatar_url, created_at')
+          .select('full_name, bio, city, avatar_url, created_at, role')
           .eq('id', targetId)
           .maybeSingle();
 
@@ -2037,6 +2203,7 @@ class _PublicUserProfileSheetState extends ConsumerState<_PublicUserProfileSheet
         _realBio = profileRes['bio'] as String?;
         _realCity = profileRes['city'] as String?;
         _realAvatarUrl = profileRes['avatar_url'] as String?;
+        _realRole = profileRes['role'] as String?;
       }
 
       // 2. Query real post count
@@ -2243,13 +2410,24 @@ class _PublicUserProfileSheetState extends ConsumerState<_PublicUserProfileSheet
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.pets_rounded,
-                                    size: 12, color: scheme.primary),
+                                Icon(
+                                  _realRole == 'veterinarian'
+                                      ? Icons.medical_services_rounded
+                                      : _realRole == 'volunteer_rescue'
+                                          ? Icons.shield_rounded
+                                          : Icons.pets_rounded,
+                                  size: 12,
+                                  color: scheme.primary,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  _petCount > 0
-                                      ? 'Parent of ${_petNames.take(2).join(', ')}'
-                                      : 'Verified Pet Parent',
+                                  _realRole == 'veterinarian'
+                                      ? '🩺 Licensed Veterinarian'
+                                      : _realRole == 'volunteer_rescue'
+                                          ? '🚑 Rescue Responder'
+                                          : _petCount > 0
+                                              ? 'Parent of ${_petNames.take(2).join(', ')}'
+                                              : 'Verified Pet Parent',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -2351,8 +2529,9 @@ class _PublicUserProfileSheetState extends ConsumerState<_PublicUserProfileSheet
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _realBio ??
-                      'Active companion caregiver sharing moments, wellness insights, and connecting with pet parents in $displayLocation. 🐾',
+                  (_realBio != null && _realBio!.isNotEmpty)
+                      ? _realBio!
+                      : 'Dedicated pet parent in the PetConnect community. Passionate about animal wellness and rescue operations.',
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
                     fontSize: 13,
@@ -2496,6 +2675,82 @@ class _FollowActivitySheetState extends ConsumerState<_FollowActivitySheet>
     }
   }
 
+  Future<void> _unfollowUser(String? targetId, String name) async {
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+    if (currentUserId == null || targetId == null) return;
+
+    await HapticFeedback.mediumImpact();
+
+    setState(() {
+      _following.removeWhere((f) => f['following_id'] == targetId);
+    });
+
+    try {
+      await client
+          .from('user_follows')
+          .delete()
+          .eq('follower_id', currentUserId)
+          .eq('following_id', targetId);
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text('Unfollowed $name'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _followUser(String? targetId, String name) async {
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+    if (currentUserId == null || targetId == null) return;
+
+    await HapticFeedback.mediumImpact();
+
+    try {
+      await client.from('user_follows').insert({
+        'follower_id': currentUserId,
+        'following_id': targetId,
+      });
+
+      final followingRes = await client
+          .from('user_follows')
+          .select('id, follower_id, following_id, created_at')
+          .eq('follower_id', currentUserId);
+      final rawFollowing = (followingRes as List<dynamic>).cast<Map<String, dynamic>>();
+
+      final pRes = await client
+          .from('profiles')
+          .select('id, full_name, avatar_url, city, role')
+          .eq('id', targetId)
+          .maybeSingle();
+
+      if (mounted) {
+        setState(() {
+          _following = rawFollowing.map((f) {
+            return {
+              ...f,
+              'profiles': f['following_id'] == targetId ? pRes : null,
+            };
+          }).toList();
+        });
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text('✓ Now following $name!'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -2614,6 +2869,7 @@ class _FollowActivitySheetState extends ConsumerState<_FollowActivitySheet>
         final city = profile?['city'] as String? ?? 'Community Member';
         final avatar = profile?['avatar_url'] as String?;
         final targetId = (isFollowerTab ? item['follower_id'] : item['following_id']) as String?;
+        final isFollowingThisUser = _following.any((f) => f['following_id'] == targetId);
 
         return ListTile(
           leading: CircleAvatar(
@@ -2625,22 +2881,203 @@ class _FollowActivitySheetState extends ConsumerState<_FollowActivitySheet>
           ),
           title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           subtitle: Text(city, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-          trailing: OutlinedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              if (targetId != null && targetId.isNotEmpty) {
-                context.push('${RoutePaths.ownerCommunityMessages}?otherUserId=$targetId');
-              } else {
-                context.push(RoutePaths.ownerCommunityMessages);
-              }
-            },
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            ),
-            child: const Text('Message', style: TextStyle(fontSize: 12)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isFollowerTab) ...[
+                OutlinedButton(
+                  onPressed: () => _unfollowUser(targetId, name),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    side: BorderSide(color: scheme.outlineVariant),
+                  ),
+                  child: const Text('Unfollow', style: TextStyle(fontSize: 12)),
+                ),
+              ] else ...[
+                if (isFollowingThisUser)
+                  FilledButton.tonal(
+                    onPressed: () => _unfollowUser(targetId, name),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    ),
+                    child: const Text('Following', style: TextStyle(fontSize: 12)),
+                  )
+                else
+                  FilledButton(
+                    onPressed: () => _followUser(targetId, name),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    ),
+                    child: const Text('+ Follow', style: TextStyle(fontSize: 12)),
+                  ),
+              ],
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                tooltip: 'Direct Message',
+                onPressed: () {
+                  Navigator.pop(context);
+                  if (targetId != null && targetId.isNotEmpty) {
+                    context.push('${RoutePaths.ownerCommunityMessages}?otherUserId=$targetId');
+                  } else {
+                    context.push(RoutePaths.ownerCommunityMessages);
+                  }
+                },
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+/// In-Feed Live Follow Button for Community Post Headers
+class _FeedFollowButton extends ConsumerStatefulWidget {
+  const _FeedFollowButton({
+    required this.authorId,
+    required this.authorName,
+  });
+
+  final String? authorId;
+  final String? authorName;
+
+  @override
+  ConsumerState<_FeedFollowButton> createState() => _FeedFollowButtonState();
+}
+
+class _FeedFollowButtonState extends ConsumerState<_FeedFollowButton> {
+  bool _isFollowing = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFollowState();
+  }
+
+  Future<void> _checkFollowState() async {
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+    final targetId = widget.authorId;
+
+    if (currentUserId == null || targetId == null || targetId == currentUserId || targetId.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+
+    try {
+      final res = await client
+          .from('user_follows')
+          .select('id')
+          .eq('follower_id', currentUserId)
+          .eq('following_id', targetId)
+          .maybeSingle();
+      if (mounted) {
+        setState(() {
+          _isFollowing = res != null;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _toggleFollow() async {
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+    final targetId = widget.authorId;
+
+    if (currentUserId == null || targetId == null || targetId.isEmpty || targetId == currentUserId) return;
+
+    await HapticFeedback.mediumImpact();
+
+    setState(() {
+      _isFollowing = !_isFollowing;
+    });
+
+    try {
+      if (_isFollowing) {
+        await client.from('user_follows').insert({
+          'follower_id': currentUserId,
+          'following_id': targetId,
+        });
+      } else {
+        await client
+            .from('user_follows')
+            .delete()
+            .eq('follower_id', currentUserId)
+            .eq('following_id', targetId);
+      }
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(
+            _isFollowing
+                ? '✓ Following ${widget.authorName ?? 'user'}'
+                : 'Unfollowed ${widget.authorName ?? 'user'}',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final client = ref.watch(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+    final targetId = widget.authorId;
+
+    if (targetId == null || targetId.isEmpty || targetId == currentUserId || _loading) {
+      return const SizedBox.shrink();
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4.0),
+      child: InkWell(
+        onTap: _toggleFollow,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+          decoration: BoxDecoration(
+            color: _isFollowing
+                ? scheme.surfaceContainerHighest.withValues(alpha: 0.7)
+                : scheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _isFollowing
+                  ? scheme.outlineVariant.withValues(alpha: 0.4)
+                  : scheme.primary.withValues(alpha: 0.4),
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _isFollowing ? Icons.check : Icons.add_rounded,
+                size: 11,
+                color: _isFollowing ? scheme.onSurfaceVariant : scheme.primary,
+              ),
+              const SizedBox(width: 3),
+              Text(
+                _isFollowing ? 'Following' : 'Follow',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: _isFollowing ? scheme.onSurfaceVariant : scheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

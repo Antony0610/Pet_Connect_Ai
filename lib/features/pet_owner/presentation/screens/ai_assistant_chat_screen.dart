@@ -113,11 +113,19 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   ];
 
   String? _activeConversationId;
-  String _selectedModelKey = 'gemini-3.7-flash';
-  String _activeModelLabel = '⚡ Flash 3.7';
+  String _selectedModelKey = 'gemini-3.1-flash-lite';
+  String _activeModelLabel = '⚡ Flash-Lite 3.1';
   bool _showScrollToBottom = false;
 
   static const List<_AiModelOption> _topGeminiModels = [
+    _AiModelOption(
+      key: 'gemini-3.1-flash-lite',
+      label: 'Gemini 3.1 Flash-Lite',
+      subtitle: 'Sub-second ~1.5s latency for instant response & rapid triage',
+      tag: 'Ultra-Fast',
+      color: Color(0xFF10B981),
+      icon: Icons.bolt_rounded,
+    ),
     _AiModelOption(
       key: 'gemini-3.7-flash',
       label: 'Gemini 3.7 Flash',
@@ -127,36 +135,12 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       icon: Icons.auto_awesome_rounded,
     ),
     _AiModelOption(
-      key: 'gemini-3.1-flash-lite',
-      label: 'Gemini 3.1 Flash-Lite',
-      subtitle: 'Sub-second ~1.1s latency for instant response & rapid triage',
-      tag: 'Ultra-Fast',
-      color: Color(0xFF10B981),
-      icon: Icons.bolt_rounded,
-    ),
-    _AiModelOption(
       key: 'gemini-3.6-flash',
       label: 'Gemini 3.6 Flash',
       subtitle: 'Next-gen high-throughput multimodal intelligence',
       tag: 'Balanced',
       color: Color(0xFF06B6D4),
       icon: Icons.flare_rounded,
-    ),
-    _AiModelOption(
-      key: 'gemini-3.5-flash',
-      label: 'Gemini 3.5 Flash',
-      subtitle: 'High-precision multimodal photo vision & diagnostics',
-      tag: 'Vision Pro',
-      color: Color(0xFFF59E0B),
-      icon: Icons.remove_red_eye_rounded,
-    ),
-    _AiModelOption(
-      key: 'gemini-2.5-flash',
-      label: 'Gemini 2.5 Flash',
-      subtitle: 'High-quota baseline for uninterrupted care consultations',
-      tag: 'High-Quota',
-      color: Color(0xFF8B5CF6),
-      icon: Icons.psychology_rounded,
     ),
   ];
 
@@ -179,7 +163,26 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     }
   }
 
+  String _savedMascotAssetPath = 'assets/images/ai_mascot_classic.jpg';
+
+  void _loadSavedMascot() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final savedIndex = prefs.getInt('selected_ai_mascot_style') ?? 0;
+    const paths = [
+      'assets/images/ai_mascot_classic.jpg',
+      'assets/images/ai_mascot_cat.jpg',
+      'assets/images/ai_mascot_dog.jpg',
+      'assets/images/ai_mascot_astral.jpg',
+    ];
+    if (savedIndex >= 0 && savedIndex < paths.length) {
+      setState(() {
+        _savedMascotAssetPath = paths[savedIndex];
+      });
+    }
+  }
+
   void _loadSavedModel() {
+    _loadSavedMascot();
     final prefs = ref.read(sharedPreferencesProvider);
     final saved = prefs.getString('app_selected_gemini_model');
     if (saved != null && saved.isNotEmpty) {
@@ -475,7 +478,12 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 85);
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
       if (picked != null) {
         final bytes = await picked.readAsBytes();
         setState(() {
@@ -714,8 +722,12 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
       if (hasImages && attachedImages.isNotEmpty) {
         final imageBase64 = base64Encode(attachedImages.first);
+        final visualPrompt = userText == 'Photo symptom analysis' || userText.trim().isEmpty
+            ? 'Please thoroughly examine this pet photo. Identify the species and breed, inspect facial features, eyes, coat condition, and posture, and provide detailed veterinary visual observations and care recommendations.'
+            : userText;
+
         final scanResult = await repo.analyzeSymptoms(
-          symptomDescription: userText,
+          symptomDescription: visualPrompt,
           petId: selectedPet?.id,
           imageBase64: imageBase64,
           preferredModel: _selectedModelKey,
@@ -723,6 +735,26 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
         if (mounted) {
           setState(() => _isSending = false);
+        }
+
+        if (scanResult.isLeft()) {
+          // Automatic high-availability fallback
+          final fallbackResult = await repo.analyzeSymptoms(
+            symptomDescription: visualPrompt,
+            petId: selectedPet?.id,
+            imageBase64: imageBase64,
+            preferredModel: 'gemini-3.1-flash-lite',
+          );
+          if (fallbackResult.isRight()) {
+            final scan = fallbackResult.getOrElse(() => throw Exception());
+            await _streamAiResponse(
+              scan.analysisSummary,
+              sources: const ['Gemini 3.1 Multimodal Vision'],
+              urgencyLevel: scan.urgencyLevel,
+              recommendations: scan.recommendations.map((e) => e.toString()).toList(),
+            );
+            return;
+          }
         }
 
         await scanResult.fold(
@@ -917,13 +949,32 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+            Hero(
+              tag: 'ai-mascot-avatar-hero',
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: scheme.primary,
+                    width: 1.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.5),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    _savedMascotAssetPath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+                  ),
+                ),
               ),
-              child: Icon(Icons.auto_awesome, color: scheme.primary, size: 18),
             ),
             const SizedBox(width: 8),
             Text(
@@ -1359,12 +1410,27 @@ class _AiCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(4),
+                    width: 22,
+                    height: 22,
                     decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: scheme.primary.withValues(alpha: 0.3),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
-                    child: Icon(Icons.auto_awesome, size: 14, color: scheme.primary),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/ai_mascot_classic.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: scheme.primaryContainer,
+                          child: Icon(Icons.auto_awesome, size: 12, color: scheme.primary),
+                        ),
+                      ),
+                    ),
                   ),
                   AppSpacing.hGapXs,
                   Text(

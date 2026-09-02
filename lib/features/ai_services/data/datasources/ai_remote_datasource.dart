@@ -52,11 +52,9 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     ..idleTimeout = const Duration(minutes: 5);
 
   static const List<String> _geminiModels = [
-    'gemini-3.7-flash',
     'gemini-3.1-flash-lite',
+    'gemini-3.7-flash',
     'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-2.5-flash',
   ];
 
   @override
@@ -268,9 +266,15 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
     final userTurnParts = <Map<String, dynamic>>[];
     if (imageBase64 != null && imageBase64.isNotEmpty) {
+      String mimeType = 'image/jpeg';
+      if (imageBase64.startsWith('iVBORw0KGgo')) {
+        mimeType = 'image/png';
+      } else if (imageBase64.startsWith('UklGR')) {
+        mimeType = 'image/webp';
+      }
       userTurnParts.add({
         'inline_data': {
-          'mime_type': 'image/jpeg',
+          'mime_type': mimeType,
           'data': imageBase64,
         },
       });
@@ -289,8 +293,10 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
     final isImage = imageBase64 != null && imageBase64.isNotEmpty;
     final timeoutDuration = isImage
-        ? const Duration(milliseconds: 7500)
-        : const Duration(milliseconds: 2500);
+        ? const Duration(milliseconds: 15000)
+        : (preferredModel != null && preferredModel.isNotEmpty
+            ? const Duration(milliseconds: 10000)
+            : const Duration(milliseconds: 4500));
 
     for (final model in modelsToTry) {
       try {
@@ -308,7 +314,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           return (result, model);
         }
       } catch (_) {
-        // Cascade to next active Gemini model immediately in sub-second time
+        // Cascade to next active Gemini model
       }
     }
     return (null, 'unknown');
@@ -336,7 +342,11 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           ],
         },
         'contents': contents,
-        'generationConfig': {'temperature': 0.3, 'maxOutputTokens': 850},
+        'generationConfig': {
+          'temperature': 0.3,
+          'maxOutputTokens': 850,
+          if (model.contains('3.7')) 'thinkingConfig': {'thinkingBudget': 0},
+        },
       });
 
       request.add(utf8.encode(body));

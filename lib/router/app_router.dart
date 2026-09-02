@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_audit_logs_screen.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_community_moderation_screen.dart';
 import 'package:petconnect_ai/features/administrator/presentation/screens/admin_content_management_screen.dart';
@@ -387,7 +389,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'community',
             name: RouteNames.ownerCommunity,
-            builder: (context, state) => const CommunityHubScreen(),
+            builder: (context, state) => CommunityHubScreen(
+              initialPostId: state.uri.queryParameters['postId'],
+              initialCommentId: state.uri.queryParameters['commentId'],
+            ),
             routes: [
               GoRoute(
                 path: 'create-post',
@@ -427,7 +432,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'messages',
                 name: RouteNames.ownerCommunityMessages,
-                builder: (context, state) => const CommunityMessagesScreen(),
+                builder: (context, state) => CommunityMessagesScreen(
+                  initialOtherUserId: state.uri.queryParameters['otherUserId'] ??
+                      (state.extra is String ? state.extra as String : null),
+                ),
               ),
               GoRoute(
                 path: 'search',
@@ -555,6 +563,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: RouteNames.vetSettings,
             builder: (context, state) => const VetSettingsScreen(),
           ),
+          GoRoute(
+            path: 'community',
+            name: RouteNames.vetCommunity,
+            builder: (context, state) => const CommunityHubScreen(
+              portalRole: AppPortal.veterinarian,
+            ),
+          ),
+          GoRoute(
+            path: 'community/messages',
+            name: RouteNames.vetCommunityMessages,
+            builder: (context, state) => CommunityMessagesScreen(
+              initialOtherUserId: state.uri.queryParameters['otherUserId'],
+            ),
+          ),
         ],
       ),
 
@@ -642,6 +664,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'settings',
             name: RouteNames.rescueSettings,
             builder: (context, state) => const VolunteerSettingsScreen(),
+          ),
+          GoRoute(
+            path: 'community',
+            name: RouteNames.rescueCommunity,
+            builder: (context, state) => const CommunityHubScreen(
+              portalRole: AppPortal.volunteerRescue,
+            ),
+          ),
+          GoRoute(
+            path: 'community/messages',
+            name: RouteNames.rescueCommunityMessages,
+            builder: (context, state) => CommunityMessagesScreen(
+              initialOtherUserId: state.uri.queryParameters['otherUserId'],
+            ),
           ),
         ],
       ),

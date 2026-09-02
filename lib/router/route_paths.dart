@@ -93,6 +93,8 @@ abstract final class RoutePaths {
   static const String vetAnalytics = '/vet/analytics';
   static const String vetProfile = '/vet/profile';
   static const String vetSettings = '/vet/settings';
+  static const String vetCommunity = '/vet/community';
+  static const String vetCommunityMessages = '/vet/community/messages';
 
   // ── Volunteer & Rescue portal ──────────────────────────────────
   static const String rescueHome = '/rescue';
@@ -112,6 +114,8 @@ abstract final class RoutePaths {
   static const String rescueAssistance = '/rescue/assistance';
   static const String rescueSharing = '/rescue/sharing';
   static const String rescueSettings = '/rescue/settings';
+  static const String rescueCommunity = '/rescue/community';
+  static const String rescueCommunityMessages = '/rescue/community/messages';
 
   // ── Administrator portal ───────────────────────────────────────
   static const String adminHome = '/admin';
@@ -212,6 +216,8 @@ abstract final class RouteNames {
   static const String vetAnalytics = 'vetAnalytics';
   static const String vetProfile = 'vetProfile';
   static const String vetSettings = 'vetSettings';
+  static const String vetCommunity = 'vetCommunity';
+  static const String vetCommunityMessages = 'vetCommunityMessages';
 
   static const String rescueHome = 'rescueHome';
   static const String rescueOperations = 'rescueOperations';
@@ -228,6 +234,8 @@ abstract final class RouteNames {
   static const String rescueAssistance = 'rescueAssistance';
   static const String rescueSharing = 'rescueSharing';
   static const String rescueSettings = 'rescueSettings';
+  static const String rescueCommunity = 'rescueCommunity';
+  static const String rescueCommunityMessages = 'rescueCommunityMessages';
 
   static const String adminHome = 'adminHome';
   static const String adminUsers = 'adminUsers';

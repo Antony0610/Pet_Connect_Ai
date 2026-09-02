@@ -13,6 +13,11 @@ abstract class RealtimeRemoteDataSource {
 
   Future<DirectMessageModel> sendDirectMessage(DirectMessageModel model);
 
+  Future<void> markDirectMessagesAsRead(
+    String currentUserId,
+    String otherUserId,
+  );
+
   Stream<DirectMessageModel> subscribeToDirectMessages(
     String currentUserId,
     String otherUserId,
@@ -45,16 +50,19 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
       final response = await _client
           .from('direct_messages')
           .select()
-          .or(
-            'and(sender_id.eq.$currentUserId,receiver_id.eq.$otherUserId),and(sender_id.eq.$otherUserId,receiver_id.eq.$currentUserId)',
-          )
+          .or('sender_id.eq.$currentUserId,receiver_id.eq.$currentUserId')
           .order('created_at', ascending: true);
 
-      return (response as List)
+      final allMsgs = (response as List)
           .map(
             (json) => DirectMessageModel.fromJson(json as Map<String, dynamic>),
           )
           .toList();
+
+      return allMsgs.where((m) {
+        return (m.senderId == currentUserId && m.receiverId == otherUserId) ||
+            (m.senderId == otherUserId && m.receiverId == currentUserId);
+      }).toList();
     } on PostgrestException catch (e) {
       throw ServerException(
         e.message,
@@ -63,6 +71,21 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
     } catch (e) {
       throw ServerException('Failed to fetch direct messages: $e');
     }
+  }
+
+  @override
+  Future<void> markDirectMessagesAsRead(
+    String currentUserId,
+    String otherUserId,
+  ) async {
+    try {
+      await _client
+          .from('direct_messages')
+          .update({'is_read': true})
+          .eq('sender_id', otherUserId)
+          .eq('receiver_id', currentUserId)
+          .eq('is_read', false);
+    } catch (_) {}
   }
 
   @override

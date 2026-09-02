@@ -11,14 +11,36 @@ import 'package:petconnect_ai/features/realtime/domain/entities/direct_message.d
 import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Active conversation summary thread for the inbox view
+class _ConversationThread {
+  _ConversationThread({
+    required this.peerProfile,
+    required this.lastMessage,
+    required this.lastMessageTime,
+    required this.isLastMsgFromMe,
+    required this.isRead,
+    required this.unreadCount,
+  });
+
+  final Map<String, dynamic> peerProfile;
+  final String lastMessage;
+  final DateTime lastMessageTime;
+  final bool isLastMsgFromMe;
+  final bool isRead;
+  final int unreadCount;
+}
+
 /// **Modern Messenger & Community Group Chat Hub**
 ///
 /// Features:
-/// 1. **Direct Messages (1-on-1)**: Private chats with delivery ticks, search, filters, and real-time streaming.
-/// 2. **Community Groups**: Multi-user group chat channels with group creation, category badges, member counts, and live broadcast.
+/// 1. **Conversations Feed (Direct Chats)**: Shows ONLY accounts with active message history with snippets & read ticks.
+/// 2. **Start New Chat Directory Modal**: Discover and message non-admin pet parents, vets, and rescue responders.
+/// 3. **Delivery Ticks**: Single tick (sent) vs cyan double tick (read).
+/// 4. **Community Groups**: Multi-user group chat channels with real-time broadcasting.
 class CommunityMessagesScreen extends ConsumerStatefulWidget {
-  const CommunityMessagesScreen({super.key, this.otherUserId});
+  const CommunityMessagesScreen({super.key, this.initialOtherUserId, this.otherUserId});
 
+  final String? initialOtherUserId;
   final String? otherUserId;
 
   @override
@@ -52,9 +74,11 @@ class _CommunityMessagesScreenState
   Map<String, dynamic>? _activeContact;
   Map<String, dynamic>? _activeGroup;
 
+  List<_ConversationThread> _conversationThreads = [];
   List<Map<String, dynamic>> _communityProfiles = [];
   List<Map<String, dynamic>> _communityGroups = [];
   List<Map<String, dynamic>> _groupMessages = [];
+  bool _loadingConversations = true;
   bool _loadingProfiles = true;
   bool _loadingGroups = true;
   bool _loadingGroupMessages = false;
@@ -64,11 +88,29 @@ class _CommunityMessagesScreenState
   // Local messages merged with realtime stream
   final List<DirectMessage> _localMessages = [];
 
+  String? get _effectiveOtherUserId =>
+      widget.initialOtherUserId ?? widget.otherUserId;
+
   @override
   void initState() {
     super.initState();
+    if (_effectiveOtherUserId != null && _effectiveOtherUserId!.isNotEmpty) {
+      unawaited(_openDirectUserById(_effectiveOtherUserId!));
+    }
+    _loadConversations();
     _loadCommunityProfiles();
     _loadCommunityGroups();
+  }
+
+  @override
+  void didUpdateWidget(covariant CommunityMessagesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final target = _effectiveOtherUserId;
+    if (target != null &&
+        target.isNotEmpty &&
+        (target != oldWidget.initialOtherUserId && target != oldWidget.otherUserId)) {
+      unawaited(_openDirectUserById(target));
+    }
   }
 
   @override
@@ -82,6 +124,129 @@ class _CommunityMessagesScreenState
     super.dispose();
   }
 
+  /// Load active conversation threads where current user exchanged messages
+  Future<void> _loadConversations() async {
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+
+    if (currentUserId == null) {
+      if (mounted) setState(() => _loadingConversations = false);
+      return;
+    }
+
+    try {
+      final res = await client
+          .from('direct_messages')
+          .select('id, sender_id, receiver_id, message_text, is_read, created_at')
+          .or('sender_id.eq.$currentUserId,receiver_id.eq.$currentUserId')
+          .order('created_at', ascending: false);
+
+      final allMsgs = (res as List<dynamic>).cast<Map<String, dynamic>>();
+
+      // Group by peer
+      final peerMap = <String, List<Map<String, dynamic>>>{};
+      for (final msg in allMsgs) {
+        final sender = msg['sender_id'] as String;
+        final receiver = msg['receiver_id'] as String;
+        final peerId = sender == currentUserId ? receiver : sender;
+
+        peerMap.putIfAbsent(peerId, () => []).add(msg);
+      }
+
+      final peerIds = peerMap.keys.toList();
+      final profilesMap = <String, Map<String, dynamic>>{};
+
+      if (peerIds.isNotEmpty) {
+        final profRes = await client
+            .from('profiles')
+            .select('id, full_name, avatar_url, city, role, bio')
+            .inFilter('id', peerIds);
+
+        for (final p in (profRes as List<dynamic>)) {
+          final pMap = p as Map<String, dynamic>;
+          final role = (pMap['role'] as String? ?? '').toLowerCase();
+          // Exclude administrators
+          if (!role.contains('admin')) {
+            profilesMap[pMap['id'] as String] = pMap;
+          }
+        }
+      }
+
+      final threads = <_ConversationThread>[];
+      for (final entry in peerMap.entries) {
+        final peerId = entry.key;
+        final profile = profilesMap[peerId];
+        if (profile == null) continue; // Skip admin or non-existent profile
+
+        final msgs = entry.value;
+        final latest = msgs.first;
+        final isFromMe = latest['sender_id'] == currentUserId;
+        final unread = msgs
+            .where((m) => m['sender_id'] == peerId && (m['is_read'] == false || m['is_read'] == null))
+            .length;
+
+        threads.add(
+          _ConversationThread(
+            peerProfile: profile,
+            lastMessage: latest['message_text'] as String? ?? '',
+            lastMessageTime: DateTime.tryParse(latest['created_at'] as String? ?? '') ?? DateTime.now(),
+            isLastMsgFromMe: isFromMe,
+            isRead: (latest['is_read'] as bool?) ?? false,
+            unreadCount: unread,
+          ),
+        );
+      }
+
+      threads.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+
+      if (mounted) {
+        setState(() {
+          _conversationThreads = threads;
+          _loadingConversations = false;
+        });
+
+        // If navigated directly with a target user ID and no contact is active yet, open that chat immediately
+        if (_effectiveOtherUserId != null && _activeContact == null) {
+          unawaited(_openDirectUserById(_effectiveOtherUserId!));
+        }
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingConversations = false);
+    }
+  }
+
+  Future<void> _openDirectUserById(String targetId) async {
+    final client = ref.read(supabaseClientProvider);
+    try {
+      final pRes = await client
+          .from('profiles')
+          .select('id, full_name, avatar_url, city, role, bio')
+          .eq('id', targetId)
+          .maybeSingle();
+
+      final contact = pRes ?? {
+        'id': targetId,
+        'full_name': 'Community Member',
+        'city': 'Kerala',
+        'role': 'pet_owner',
+      };
+
+      if (mounted) {
+        await _selectContact(contact);
+      }
+    } catch (_) {
+      if (mounted) {
+        await _selectContact({
+          'id': targetId,
+          'full_name': 'Community Member',
+          'city': 'Kerala',
+          'role': 'pet_owner',
+        });
+      }
+    }
+  }
+
+  /// Load directory profiles (excluding administrators) for New Chat discovery
   Future<void> _loadCommunityProfiles() async {
     final client = ref.read(supabaseClientProvider);
     final currentUserId = client.auth.currentUser?.id;
@@ -91,7 +256,9 @@ class _CommunityMessagesScreenState
           .from('profiles')
           .select('id, full_name, avatar_url, city, role, bio')
           .neq('id', currentUserId ?? '')
-          .limit(30);
+          .neq('role', 'administrator')
+          .neq('role', 'admin')
+          .limit(40);
 
       final list = (res as List<dynamic>).cast<Map<String, dynamic>>();
 
@@ -100,19 +267,6 @@ class _CommunityMessagesScreenState
           _communityProfiles = list;
           _loadingProfiles = false;
         });
-
-        if (widget.otherUserId != null) {
-          final match = list.firstWhere(
-            (p) => p['id'] == widget.otherUserId,
-            orElse: () => {
-              'id': widget.otherUserId,
-              'full_name': 'Community Member',
-              'avatar_url': null,
-              'city': 'Kerala',
-            },
-          );
-          _selectContact(match);
-        }
       }
     } catch (_) {
       if (mounted) {
@@ -145,13 +299,29 @@ class _CommunityMessagesScreenState
     }
   }
 
-  void _selectContact(Map<String, dynamic> contact) {
-    HapticFeedback.lightImpact();
+  Future<void> _selectContact(Map<String, dynamic> contact) async {
+    await HapticFeedback.lightImpact();
+    final client = ref.read(supabaseClientProvider);
+    final currentUserId = client.auth.currentUser?.id;
+    final targetId = contact['id'] as String?;
+
     setState(() {
       _activeContact = contact;
       _activeGroup = null;
       _localMessages.clear();
     });
+
+    if (currentUserId != null && targetId != null) {
+      try {
+        await client
+            .from('direct_messages')
+            .update({'is_read': true})
+            .eq('sender_id', targetId)
+            .eq('receiver_id', currentUserId)
+            .eq('is_read', false);
+        ref.invalidate(directMessagesProvider(targetId));
+      } catch (_) {}
+    }
   }
 
   void _selectGroup(Map<String, dynamic> group) async {
@@ -270,18 +440,15 @@ class _CommunityMessagesScreenState
   }
 
   void _backToInbox() {
-    HapticFeedback.lightImpact();
+    unawaited(HapticFeedback.lightImpact());
     _groupRealtimeChannel?.unsubscribe();
-    if (widget.otherUserId != null && _activeContact != null) {
-      GoRouter.of(context).pop();
-    } else {
-      setState(() {
-        _activeContact = null;
-        _activeGroup = null;
-        _localMessages.clear();
-        _groupMessages.clear();
-      });
-    }
+    unawaited(_loadConversations()); // Refresh inbox list
+    setState(() {
+      _activeContact = null;
+      _activeGroup = null;
+      _localMessages.clear();
+      _groupMessages.clear();
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -308,6 +475,7 @@ class _CommunityMessagesScreenState
           }
         },
         (sentMessage) {
+          ref.invalidate(directMessagesProvider(targetUserId));
           setState(() {
             if (!_localMessages.any((m) => m.id == sentMessage.id)) {
               _localMessages.add(sentMessage);
@@ -348,13 +516,13 @@ class _CommunityMessagesScreenState
         'message_text': text,
       }).select().single();
 
-      final currentProfile = ref.read(currentUserProfileProvider).valueOrNull;
+      final myProf = ref.read(currentUserProfileProvider).valueOrNull;
       final enriched = {
         ...res,
         'sender': {
           'id': currentUserId,
-          'full_name': currentProfile?.fullName ?? 'You',
-          'avatar_url': currentProfile?.avatarUrl,
+          'full_name': myProf?.fullName ?? 'Me',
+          'avatar_url': myProf?.avatarUrl,
         },
       };
 
@@ -367,7 +535,7 @@ class _CommunityMessagesScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to post message: $e')),
+          SnackBar(content: Text('Failed to send group message: $e')),
         );
       }
     } finally {
@@ -380,7 +548,7 @@ class _CommunityMessagesScreenState
   void _openCreateGroupDialog() {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
-    final cityCtrl = TextEditingController(text: 'Kerala');
+    final cityCtrl = TextEditingController();
     String selectedCategory = _groupCategories.first;
 
     showModalBottomSheet<void>(
@@ -388,14 +556,15 @@ class _CommunityMessagesScreenState
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
+        builder: (context, setModalState) {
           final scheme = Theme.of(context).colorScheme;
+
           return Container(
             padding: EdgeInsets.only(
               left: 20,
               right: 20,
               top: 20,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             ),
             decoration: BoxDecoration(
               color: scheme.surface,
@@ -411,26 +580,23 @@ class _CommunityMessagesScreenState
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: scheme.outlineVariant.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(10),
+                        color: scheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: scheme.primary.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.group_add_rounded, color: scheme.primary, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
+                      Icon(Icons.group_add_rounded, color: scheme.primary, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
                         'Create Community Group',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.onSurface,
+                        ),
                       ),
                     ],
                   ),
@@ -439,9 +605,8 @@ class _CommunityMessagesScreenState
                     controller: nameCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Group Name',
-                      hintText: 'e.g. 🐶 Kochi Golden Retrievers Club',
-                      prefixIcon: Icon(Icons.groups_rounded),
-                      border: OutlineInputBorder(),
+                      hintText: 'e.g. Kochi Golden Retrievers Club',
+                      prefixIcon: Icon(Icons.title_rounded),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -449,60 +614,50 @@ class _CommunityMessagesScreenState
                     controller: descCtrl,
                     maxLines: 2,
                     decoration: const InputDecoration(
-                      labelText: 'Description & Rules',
-                      hintText: 'e.g. Playdates, grooming tips, and local pet meetups...',
-                      prefixIcon: Icon(Icons.description_outlined),
-                      border: OutlineInputBorder(),
+                      labelText: 'Description',
+                      hintText: 'What is this group about?',
+                      prefixIcon: Icon(Icons.notes_rounded),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: selectedCategory,
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: _groupCategories.map((c) {
-                            return DropdownMenuItem(value: c, child: Text(c));
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setSheetState(() => selectedCategory = val);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: cityCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Location / City',
-                            hintText: 'e.g. Kochi',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ],
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCategory,
+                    decoration: const InputDecoration(
+                      labelText: 'Category',
+                      prefixIcon: Icon(Icons.category_rounded),
+                    ),
+                    items: _groupCategories.map((c) {
+                      return DropdownMenuItem(value: c, child: Text(c));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setModalState(() => selectedCategory = val);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: cityCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'City / Region',
+                      hintText: 'e.g. Kochi, Thrissur, Bangalore',
+                      prefixIcon: Icon(Icons.location_on_rounded),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
+                    height: 48,
                     child: FilledButton.icon(
                       icon: const Icon(Icons.check_circle_rounded),
-                      label: const Text('Create & Launch Group', style: TextStyle(fontWeight: FontWeight.bold)),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
+                      label: const Text('Create & Launch Group'),
                       onPressed: () async {
                         final name = nameCtrl.text.trim();
                         final desc = descCtrl.text.trim();
                         final city = cityCtrl.text.trim();
 
                         if (name.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(ctx).showSnackBar(
                             const SnackBar(content: Text('Please enter a group name')),
                           );
                           return;
@@ -538,13 +693,13 @@ class _CommunityMessagesScreenState
                           await _loadCommunityGroups();
 
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(this.context).showSnackBar(
                             SnackBar(content: Text('Group "$name" created successfully!')),
                           );
                           _selectGroup(newGroup);
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(this.context).showSnackBar(
                             SnackBar(content: Text('Failed to create group: $e')),
                           );
                         }
@@ -553,6 +708,158 @@ class _CommunityMessagesScreenState
                   ),
                 ],
               ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Open New Chat Directory Dialog to discover and message any community member
+  void _openNewChatDirectoryDialog(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final scheme = Theme.of(context).colorScheme;
+          String modalSearch = '';
+
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              children: [
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: scheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_search_rounded, color: scheme.primary, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Start New Conversation',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search people by name or city...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      filled: true,
+                      fillColor: scheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    ),
+                    onChanged: (val) {
+                      setModalState(() => modalSearch = val.toLowerCase().trim());
+                    },
+                  ),
+                ),
+                const Divider(height: 12),
+                Expanded(
+                  child: _loadingProfiles
+                      ? const Center(child: CircularProgressIndicator())
+                      : _communityProfiles.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No community members available',
+                                style: TextStyle(color: scheme.onSurfaceVariant),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              itemCount: _communityProfiles.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (context, i) {
+                                final profile = _communityProfiles[i];
+                                final name = (profile['full_name'] as String?) ?? 'Community Member';
+                                final city = (profile['city'] as String?) ?? 'Kerala';
+                                final avatar = profile['avatar_url'] as String?;
+                                final role = (profile['role'] as String?) ?? 'pet_owner';
+
+                                if (modalSearch.isNotEmpty &&
+                                    !name.toLowerCase().contains(modalSearch) &&
+                                    !city.toLowerCase().contains(modalSearch)) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                String roleTag = '🐾 Pet Parent';
+                                if (role.contains('vet')) roleTag = '🩺 Veterinarian';
+                                if (role.contains('rescue') || role.contains('volunteer')) {
+                                  roleTag = '🚑 Rescue Responder';
+                                }
+
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  leading: CircleAvatar(
+                                    radius: 22,
+                                    backgroundColor: scheme.primaryContainer,
+                                    backgroundImage: (avatar != null && avatar.isNotEmpty)
+                                        ? NetworkImage(avatar)
+                                        : null,
+                                    child: (avatar == null || avatar.isEmpty)
+                                        ? Text(
+                                            name.isNotEmpty ? name[0].toUpperCase() : 'P',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: scheme.onPrimaryContainer,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  subtitle: Row(
+                                    children: [
+                                      Text(
+                                        roleTag,
+                                        style: TextStyle(fontSize: 11, color: scheme.primary, fontWeight: FontWeight.w600),
+                                      ),
+                                      Text(' • $city', style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                                    ],
+                                  ),
+                                  trailing: FilledButton.tonal(
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _selectContact(profile);
+                                    },
+                                    style: FilledButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    ),
+                                    child: const Text('Chat', style: TextStyle(fontSize: 12)),
+                                  ),
+                                );
+                              },
+                            ),
+                ),
+              ],
             ),
           );
         },
@@ -585,10 +892,22 @@ class _CommunityMessagesScreenState
   }
 
   String _formatTimestamp(DateTime dt) {
-    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    final minute = dt.minute.toString().padLeft(2, '0');
+    final localDt = dt.toLocal();
+    final hour = localDt.hour > 12 ? localDt.hour - 12 : (localDt.hour == 0 ? 12 : localDt.hour);
+    final period = localDt.hour >= 12 ? 'PM' : 'AM';
+    final minute = localDt.minute.toString().padLeft(2, '0');
     return '$hour:$minute $period';
+  }
+
+  String _formatRelativeTime(DateTime dt) {
+    final localDt = dt.toLocal();
+    final now = DateTime.now();
+    final diff = now.difference(localDt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return '${localDt.day}/${localDt.month}';
   }
 
   @override
@@ -596,30 +915,38 @@ class _CommunityMessagesScreenState
     final scheme = context.colorScheme;
     final currentUserId =
         ref.watch(supabaseClientProvider).auth.currentUser?.id ?? '';
+    final isInsideChat = _activeContact != null || _activeGroup != null;
 
-    if (_activeContact != null) {
-      return _buildOneOnOneChatScreen(context, scheme, currentUserId);
-    }
-
-    if (_activeGroup != null) {
-      return _buildGroupChatScreen(context, scheme, currentUserId);
-    }
-
-    return _buildInboxScreen(context, scheme);
+    return PopScope(
+      canPop: !isInsideChat,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isInsideChat) {
+          _backToInbox();
+        }
+      },
+      child: isInsideChat
+          ? (_activeContact != null
+              ? _buildOneOnOneChatScreen(context, scheme, currentUserId)
+              : _buildGroupChatScreen(context, scheme, currentUserId))
+          : _buildInboxScreen(context, scheme),
+    );
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // VIEW 1: MESSENGER INBOX (DIRECT MESSAGES + COMMUNITY GROUPS)
+  // VIEW 1: MESSENGER INBOX (DIRECT CONVERSATIONS FEED + COMMUNITY GROUPS)
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildInboxScreen(BuildContext context, ColorScheme scheme) {
-    final filteredProfiles = _communityProfiles.where((p) {
-      final name = (p['full_name'] as String? ?? '').toLowerCase();
-      final city = (p['city'] as String? ?? '').toLowerCase();
-      final role = (p['role'] as String? ?? '').toLowerCase();
+    final filteredThreads = _conversationThreads.where((t) {
+      final name = (t.peerProfile['full_name'] as String? ?? '').toLowerCase();
+      final city = (t.peerProfile['city'] as String? ?? '').toLowerCase();
+      final lastMsg = t.lastMessage.toLowerCase();
+      final role = (t.peerProfile['role'] as String? ?? '').toLowerCase();
 
       final matchesQuery = _searchQuery.isEmpty ||
           name.contains(_searchQuery) ||
-          city.contains(_searchQuery);
+          city.contains(_searchQuery) ||
+          lastMsg.contains(_searchQuery);
 
       if (!matchesQuery) return false;
 
@@ -658,30 +985,39 @@ class _CommunityMessagesScreenState
           ),
         ),
         actions: [
-          if (_selectedMessengerTab == 1)
+          if (_selectedMessengerTab == 0)
+            IconButton(
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              tooltip: 'New Chat',
+              onPressed: () => _openNewChatDirectoryDialog(context),
+            )
+          else
             IconButton(
               icon: const Icon(Icons.group_add_rounded),
               tooltip: 'New Group',
               onPressed: _openCreateGroupDialog,
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.person_search_rounded),
-              tooltip: 'Find Contacts',
-              onPressed: () {
-                _searchController.clear();
-                setState(() => _searchQuery = '');
-              },
             ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh',
+            onPressed: () {
+              _loadConversations();
+              _loadCommunityGroups();
+            },
+          ),
         ],
       ),
-      floatingActionButton: _selectedMessengerTab == 1
+      floatingActionButton: _selectedMessengerTab == 0
           ? FloatingActionButton.extended(
+              onPressed: () => _openNewChatDirectoryDialog(context),
+              icon: const Icon(Icons.chat_rounded),
+              label: const Text('Start New Chat', style: TextStyle(fontWeight: FontWeight.bold)),
+            )
+          : FloatingActionButton.extended(
               onPressed: _openCreateGroupDialog,
               icon: const Icon(Icons.group_add_rounded),
               label: const Text('New Group', style: TextStyle(fontWeight: FontWeight.bold)),
-            )
-          : null,
+            ),
       body: Column(
         children: [
           // Search Bar
@@ -691,7 +1027,7 @@ class _CommunityMessagesScreenState
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: _selectedMessengerTab == 0
-                    ? 'Search people & conversations...'
+                    ? 'Search conversations...'
                     : 'Search community groups & clubs...',
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -704,18 +1040,23 @@ class _CommunityMessagesScreenState
                       )
                     : null,
                 filled: true,
-                fillColor: scheme.surfaceContainerHigh.withValues(alpha: 0.5),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                fillColor: scheme.surfaceContainerHigh.withValues(alpha: 0.4),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
-              onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+              onChanged: (val) {
+                setState(() => _searchQuery = val.toLowerCase().trim());
+              },
             ),
           ),
 
-          // Primary Tab Switcher (Direct vs Groups)
+          // Dual-Tab Switcher: Direct Chats vs Community Groups
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Container(
@@ -750,13 +1091,13 @@ class _CommunityMessagesScreenState
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Direct Chats (${_communityProfiles.length})',
+                              'Direct Chats (${_conversationThreads.length})',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                                 color: _selectedMessengerTab == 0
-                                    ? scheme.onPrimary
-                                    : scheme.onSurfaceVariant,
+                                  ? scheme.onPrimary
+                                  : scheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -793,8 +1134,8 @@ class _CommunityMessagesScreenState
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                                 color: _selectedMessengerTab == 1
-                                    ? scheme.onPrimary
-                                    : scheme.onSurfaceVariant,
+                                  ? scheme.onPrimary
+                                  : scheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -841,7 +1182,7 @@ class _CommunityMessagesScreenState
           // Content List
           Expanded(
             child: _selectedMessengerTab == 0
-                ? _buildDirectChatsList(filteredProfiles, scheme)
+                ? _buildDirectChatsList(filteredThreads, scheme)
                 : _buildGroupsList(filteredGroups, scheme),
           ),
         ],
@@ -849,89 +1190,87 @@ class _CommunityMessagesScreenState
     );
   }
 
+  /// Build Active Direct Conversations List (Conversations Feed)
   Widget _buildDirectChatsList(
-    List<Map<String, dynamic>> filteredProfiles,
+    List<_ConversationThread> filteredThreads,
     ColorScheme scheme,
   ) {
-    if (_loadingProfiles) {
+    if (_loadingConversations) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (filteredProfiles.isEmpty) {
+    if (filteredThreads.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.chat_bubble_outline_rounded,
-                size: 56, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
-            const SizedBox(height: 12),
-            Text(
-              'No conversations found',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: scheme.onSurfaceVariant,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.mark_chat_unread_outlined,
+                  size: 56, color: scheme.primary.withValues(alpha: 0.6)),
+              const SizedBox(height: 12),
+              Text(
+                'No active conversations',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onSurface,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Try searching for another name or location',
-              style: TextStyle(
-                fontSize: 13,
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+              const SizedBox(height: 6),
+              Text(
+                'Connect with pet parents, veterinarians, and rescue responders in your community.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                icon: const Icon(Icons.person_search_rounded, size: 18),
+                label: const Text('Discover & Start Chat'),
+                onPressed: () => _openNewChatDirectoryDialog(context),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return ListView.separated(
-      itemCount: filteredProfiles.length,
+      itemCount: filteredThreads.length,
       separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
       itemBuilder: (ctx, i) {
-        final profile = filteredProfiles[i];
+        final thread = filteredThreads[i];
+        final profile = thread.peerProfile;
         final name = (profile['full_name'] as String?) ?? 'Community Member';
         final avatarUrl = profile['avatar_url'] as String?;
-        final city = (profile['city'] as String?) ?? 'Kerala';
-        final role = (profile['role'] as String?) ?? 'Pet Parent';
+        final role = (profile['role'] as String?) ?? 'pet_owner';
+
+        String roleTag = '🐾 Pet Parent';
+        if (role.contains('vet')) roleTag = '🩺 Vet';
+        if (role.contains('rescue') || role.contains('volunteer')) roleTag = '🚑 Rescue';
 
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           onTap: () => _selectContact(profile),
-          leading: Stack(
-            children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: scheme.primary.withValues(alpha: 0.15),
-                backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                    ? NetworkImage(avatarUrl)
-                    : null,
-                child: avatarUrl == null || avatarUrl.isEmpty
-                    ? Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                        style: TextStyle(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      )
-                    : null,
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 13,
-                  height: 13,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: scheme.surface, width: 2),
-                  ),
-                ),
-              ),
-            ],
+          leading: CircleAvatar(
+            radius: 26,
+            backgroundColor: scheme.primaryContainer,
+            backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                ? NetworkImage(avatarUrl)
+                : null,
+            child: avatarUrl == null || avatarUrl.isEmpty
+                ? Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                    style: TextStyle(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  )
+                : null,
           ),
           title: Row(
             children: [
@@ -940,57 +1279,74 @@ class _CommunityMessagesScreenState
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                    fontWeight: thread.unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                    fontSize: 15,
+                  ),
                 ),
               ),
-              const Text(
-                'Active',
+              Text(
+                _formatRelativeTime(thread.lastMessageTime),
                 style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF10B981),
-                  fontWeight: FontWeight.w600,
+                  color: thread.unreadCount > 0 ? scheme.primary : scheme.onSurfaceVariant,
+                  fontWeight: thread.unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ],
           ),
           subtitle: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(6),
+              if (thread.isLastMsgFromMe) ...[
+                Icon(
+                  thread.isRead ? Icons.done_all_rounded : Icons.done_rounded,
+                  size: 14,
+                  color: thread.isRead ? const Color(0xFF06B6D4) : scheme.onSurfaceVariant,
                 ),
+                const SizedBox(width: 4),
+              ],
+              Expanded(
                 child: Text(
-                  role,
+                  thread.lastMessage,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onPrimaryContainer,
+                    fontSize: 13,
+                    color: thread.unreadCount > 0 ? scheme.onSurface : scheme.onSurfaceVariant,
+                    fontWeight: thread.unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '📍 $city',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              if (thread.unreadCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${thread.unreadCount}',
+                    style: TextStyle(
+                      color: scheme.onPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  roleTag,
+                  style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
                 ),
-              ),
             ],
-          ),
-          trailing: Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
           ),
         );
       },
     );
   }
 
+  /// Build Community Groups List
   Widget _buildGroupsList(
     List<Map<String, dynamic>> filteredGroups,
     ColorScheme scheme,
@@ -1007,19 +1363,26 @@ class _CommunityMessagesScreenState
             Icon(Icons.groups_outlined,
                 size: 56, color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
-            const Text(
-              'No community groups yet',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              'No groups found',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Create a new group to connect pet parents together!',
-              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+              'Be the first to create a community pet group!',
+              style: TextStyle(
+                fontSize: 13,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Create First Group'),
+              icon: const Icon(Icons.group_add_rounded),
+              label: const Text('Create Community Group'),
               onPressed: _openCreateGroupDialog,
             ),
           ],
@@ -1032,31 +1395,18 @@ class _CommunityMessagesScreenState
       separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
       itemBuilder: (ctx, i) {
         final group = filteredGroups[i];
-        final name = (group['name'] as String?) ?? 'Community Group';
-        final category = (group['category'] as String?) ?? 'General';
+        final name = (group['name'] as String?) ?? 'Group';
+        final desc = (group['description'] as String?) ?? 'Active group';
+        final category = (group['category'] as String?) ?? 'Community';
         final city = (group['city'] as String?) ?? 'Kerala';
-        final description = (group['description'] as String?) ?? 'Public PetConnect group';
 
         return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           onTap: () => _selectGroup(group),
-          leading: Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  scheme.primary,
-                  scheme.tertiary,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Center(
-              child: Icon(Icons.groups_rounded, color: Colors.white, size: 28),
-            ),
+          leading: CircleAvatar(
+            radius: 26,
+            backgroundColor: scheme.secondaryContainer,
+            child: Icon(Icons.groups_rounded, color: scheme.onSecondaryContainer, size: 28),
           ),
           title: Row(
             children: [
@@ -1069,15 +1419,15 @@ class _CommunityMessagesScreenState
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  color: scheme.primaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   category,
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                     color: scheme.primary,
                   ),
@@ -1085,31 +1435,22 @@ class _CommunityMessagesScreenState
               ),
             ],
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          subtitle: Row(
             children: [
-              const SizedBox(height: 2),
-              Text(
-                description,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '📍 $city • Open Community Chat',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: scheme.primary.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  desc,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
                 ),
               ),
+              const SizedBox(width: 4),
+              Text(
+                '📍 $city',
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
+              ),
             ],
-          ),
-          trailing: Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
           ),
         );
       },
@@ -1117,77 +1458,52 @@ class _CommunityMessagesScreenState
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // VIEW 2: 1-ON-1 DIRECT CHAT SCREEN
+  // VIEW 2: 1-ON-1 DIRECT CHAT SCREEN (WITH DELIVERY TICKS & PERSISTENCE)
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildOneOnOneChatScreen(
     BuildContext context,
     ColorScheme scheme,
     String currentUserId,
   ) {
-    final otherUserId = _activeContact!['id'] as String;
-    final otherName = (_activeContact!['full_name'] as String?) ?? 'Community Contact';
-    final otherAvatar = _activeContact!['avatar_url'] as String?;
-    final otherCity = (_activeContact!['city'] as String?) ?? 'Kerala';
+    final otherUser = _activeContact!;
+    final otherUserId = otherUser['id'] as String;
+    final otherName = (otherUser['full_name'] as String?) ?? 'Community Member';
+    final otherAvatar = otherUser['avatar_url'] as String?;
+    final otherRole = (otherUser['role'] as String?) ?? 'pet_owner';
+    final otherCity = (otherUser['city'] as String?) ?? 'Kerala';
 
-    ref.listen<AsyncValue<DirectMessage>>(
-      liveDirectMessagesStreamProvider(otherUserId),
-      (previous, next) {
-        next.whenData((incoming) {
-          setState(() {
-            if (!_localMessages.any((m) => m.id == incoming.id)) {
-              _localMessages.add(incoming);
-            }
-          });
-          _scrollToBottom();
-        });
-      },
-    );
+    String roleBadge = '🐾 Pet Parent';
+    if (otherRole.contains('vet')) roleBadge = '🩺 Veterinarian';
+    if (otherRole.contains('rescue') || otherRole.contains('volunteer')) {
+      roleBadge = '🚑 Rescue Responder';
+    }
 
-    final initialMessagesAsync = ref.watch(directMessagesProvider(otherUserId));
+    final messagesAsync = ref.watch(directMessagesProvider(otherUserId));
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back to Messages',
+          tooltip: 'Back to Inbox',
           onPressed: _backToInbox,
         ),
         title: Row(
           children: [
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: scheme.primary.withValues(alpha: 0.15),
-                  backgroundImage: otherAvatar != null && otherAvatar.isNotEmpty
-                      ? NetworkImage(otherAvatar)
-                      : null,
-                  child: otherAvatar == null || otherAvatar.isEmpty
-                      ? Text(
-                          otherName.isNotEmpty ? otherName[0].toUpperCase() : 'U',
-                          style: TextStyle(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        )
-                      : null,
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: scheme.surface, width: 1.5),
-                    ),
-                  ),
-                ),
-              ],
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: scheme.primaryContainer,
+              backgroundImage: otherAvatar != null && otherAvatar.isNotEmpty
+                  ? NetworkImage(otherAvatar)
+                  : null,
+              child: otherAvatar == null || otherAvatar.isEmpty
+                  ? Text(
+                      otherName.isNotEmpty ? otherName[0].toUpperCase() : 'U',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onPrimaryContainer,
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1198,10 +1514,10 @@ class _CommunityMessagesScreenState
                     otherName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    '📍 $otherCity • Active now',
+                    '$roleBadge • $otherCity',
                     style: TextStyle(
                       fontSize: 11,
                       color: scheme.onSurfaceVariant,
@@ -1212,38 +1528,51 @@ class _CommunityMessagesScreenState
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh Chat',
+            onPressed: () => ref.invalidate(directMessagesProvider(otherUserId)),
+          ),
+        ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: initialMessagesAsync.when(
+            child: messagesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Error loading messages: $err', style: TextStyle(color: scheme.error)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 40, color: Colors.orange),
+                    const SizedBox(height: 8),
+                    Text('Failed to load messages: $err'),
+                    TextButton(
+                      onPressed: () => ref.invalidate(directMessagesProvider(otherUserId)),
+                      child: const Text('Retry'),
+                    ),
+                  ],
                 ),
               ),
-              data: (loaded) {
-                final displayMap = <String, DirectMessage>{};
-                for (final m in loaded) {
-                  displayMap[m.id] = m;
+              data: (streamedMessages) {
+                final displayMessages = List<DirectMessage>.from(streamedMessages);
+                for (final local in _localMessages) {
+                  if (!displayMessages.any((m) => m.id == local.id)) {
+                    displayMessages.add(local);
+                  }
                 }
-                for (final m in _localMessages) {
-                  displayMap[m.id] = m;
-                }
-                final displayMessages = displayMap.values.toList()
-                  ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                displayMessages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
                 if (displayMessages.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: scheme.primary.withValues(alpha: 0.1),
-                          child: Icon(Icons.waving_hand_rounded, size: 32, color: scheme.primary),
+                        Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 48,
+                          color: scheme.primary.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -1320,10 +1649,12 @@ class _CommunityMessagesScreenState
                                 ),
                                 if (isUser) ...[
                                   const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.done_all_rounded,
+                                  Icon(
+                                    msg.isRead ? Icons.done_all_rounded : Icons.done_rounded,
                                     size: 13,
-                                    color: Colors.white,
+                                    color: msg.isRead
+                                        ? const Color(0xFF67E8F9) // Cyan double tick for read
+                                        : Colors.white.withValues(alpha: 0.8), // Single white tick for sent
                                   ),
                                 ],
                               ],
@@ -1406,21 +1737,19 @@ class _CommunityMessagesScreenState
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // VIEW 3: COMMUNITY GROUP CHAT SCREEN
+  // VIEW 3: MULTI-USER COMMUNITY GROUP CHAT
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildGroupChatScreen(
     BuildContext context,
     ColorScheme scheme,
     String currentUserId,
   ) {
-    final groupName = (_activeGroup!['name'] as String?) ?? 'Community Group';
-    final category = (_activeGroup!['category'] as String?) ?? 'General';
-    final city = (_activeGroup!['city'] as String?) ?? 'Kerala';
-    final description = (_activeGroup!['description'] as String?) ?? '';
+    final group = _activeGroup!;
+    final groupName = (group['name'] as String?) ?? 'Group';
+    final category = (group['category'] as String?) ?? 'Community';
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Back to Groups',
@@ -1428,18 +1757,10 @@ class _CommunityMessagesScreenState
         ),
         title: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [scheme.primary, scheme.tertiary],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Icon(Icons.groups_rounded, color: Colors.white, size: 20),
-              ),
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: scheme.secondaryContainer,
+              child: Icon(Icons.groups_rounded, color: scheme.onSecondaryContainer, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1450,10 +1771,10 @@ class _CommunityMessagesScreenState
                     groupName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    '📍 $city • $category Group',
+                    '$category • Group Chat',
                     style: TextStyle(
                       fontSize: 11,
                       color: scheme.onSurfaceVariant,
@@ -1467,41 +1788,26 @@ class _CommunityMessagesScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline_rounded),
-            tooltip: 'Group Information',
+            tooltip: 'Group Info',
             onPressed: () {
-              showModalBottomSheet<void>(
+              showDialog<void>(
                 context: context,
-                builder: (ctx) => SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(groupName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text('Category: $category • 📍 $city', style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        const Text('Group Description & Guidelines:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(description.isNotEmpty ? description : 'Open community group for pet parents.', style: TextStyle(color: scheme.onSurfaceVariant)),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.share_rounded),
-                            label: const Text('Share Group Invite Link'),
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Group invite link copied to clipboard!')),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                builder: (ctx) => AlertDialog(
+                  title: Text(groupName),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Category: $category'),
+                      const SizedBox(height: 8),
+                      Text('Description: ${group['description'] ?? 'No description'}'),
+                      const SizedBox(height: 8),
+                      Text('City: ${group['city'] ?? 'Kerala'}'),
+                    ],
                   ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+                  ],
                 ),
               );
             },
@@ -1510,7 +1816,6 @@ class _CommunityMessagesScreenState
       ),
       body: Column(
         children: [
-          // Group Messages List
           Expanded(
             child: _loadingGroupMessages
                 ? const Center(child: CircularProgressIndicator())
@@ -1519,13 +1824,10 @@ class _CommunityMessagesScreenState
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: scheme.primary.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(Icons.forum_outlined, size: 36, color: scheme.primary),
+                            Icon(
+                              Icons.forum_outlined,
+                              size: 48,
+                              color: scheme.primary.withValues(alpha: 0.5),
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -1534,8 +1836,8 @@ class _CommunityMessagesScreenState
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Be the first to say hello and start the conversation!',
-                              style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                              'Say hello to start the discussion',
+                              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
                             ),
                           ],
                         ),
@@ -1546,14 +1848,16 @@ class _CommunityMessagesScreenState
                         itemCount: _groupMessages.length,
                         itemBuilder: (ctx, i) {
                           final msg = _groupMessages[i];
-                          final isUser = msg['sender_id'] == currentUserId;
-                          final sender = msg['sender'] as Map<String, dynamic>?;
-                          final senderName = (sender?['full_name'] as String?) ?? 'Member';
-                          final senderAvatar = sender?['avatar_url'] as String?;
-                          final createdAt = DateTime.tryParse(msg['created_at']?.toString() ?? '') ?? DateTime.now();
+                          final senderId = msg['sender_id'] as String?;
+                          final isUser = senderId == currentUserId;
+                          final senderProfile = msg['sender'] as Map<String, dynamic>?;
+                          final senderName = (senderProfile?['full_name'] as String?) ?? 'Member';
+                          final text = (msg['message_text'] as String?) ?? '';
+                          final dt = DateTime.tryParse(msg['created_at'] as String? ?? '') ??
+                              DateTime.now();
 
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.only(bottom: 8.0),
                             child: Row(
                               mainAxisAlignment:
                                   isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -1563,21 +1867,22 @@ class _CommunityMessagesScreenState
                                   CircleAvatar(
                                     radius: 14,
                                     backgroundColor: scheme.primaryContainer,
-                                    backgroundImage: senderAvatar != null && senderAvatar.isNotEmpty
-                                        ? NetworkImage(senderAvatar)
-                                        : null,
-                                    child: senderAvatar == null || senderAvatar.isEmpty
-                                        ? Text(senderName.isNotEmpty ? senderName[0].toUpperCase() : 'M',
-                                            style: TextStyle(fontSize: 10, color: scheme.primary, fontWeight: FontWeight.bold))
-                                        : null,
+                                    child: Text(
+                                      senderName.isNotEmpty ? senderName[0].toUpperCase() : 'M',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: scheme.onPrimaryContainer,
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                 ],
                                 Container(
                                   constraints: BoxConstraints(
                                     maxWidth: MediaQuery.of(context).size.width * 0.72,
                                   ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                                   decoration: BoxDecoration(
                                     gradient: isUser
                                         ? LinearGradient(
@@ -1589,40 +1894,42 @@ class _CommunityMessagesScreenState
                                         : null,
                                     color: isUser ? null : scheme.surfaceContainerHigh,
                                     borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(18),
-                                      topRight: const Radius.circular(18),
-                                      bottomLeft: Radius.circular(isUser ? 18 : 4),
-                                      bottomRight: Radius.circular(isUser ? 4 : 18),
+                                      topLeft: const Radius.circular(16),
+                                      topRight: const Radius.circular(16),
+                                      bottomLeft: Radius.circular(isUser ? 16 : 4),
+                                      bottomRight: Radius.circular(isUser ? 4 : 16),
                                     ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                    crossAxisAlignment: isUser
+                                        ? CrossAxisAlignment.end
+                                        : CrossAxisAlignment.start,
                                     children: [
-                                      if (!isUser) ...[
-                                        Text(
-                                          senderName,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: scheme.primary,
+                                      if (!isUser)
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 2.0),
+                                          child: Text(
+                                            senderName,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: scheme.primary,
+                                            ),
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
-                                      ],
                                       Text(
-                                        msg['message_text']?.toString() ?? '',
+                                        text,
                                         style: TextStyle(
                                           color: isUser ? Colors.white : scheme.onSurface,
-                                          fontSize: 14.5,
+                                          fontSize: 14,
                                           height: 1.3,
                                         ),
                                       ),
-                                      const SizedBox(height: 3),
+                                      const SizedBox(height: 2),
                                       Text(
-                                        _formatTimestamp(createdAt),
+                                        _formatTimestamp(dt),
                                         style: TextStyle(
-                                          fontSize: 10,
+                                          fontSize: 9.5,
                                           color: isUser
                                               ? Colors.white.withValues(alpha: 0.75)
                                               : scheme.onSurfaceVariant.withValues(alpha: 0.75),
@@ -1638,7 +1945,7 @@ class _CommunityMessagesScreenState
                       ),
           ),
 
-          // Group Input Composer
+          // Bottom Bar for Group Chat
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(

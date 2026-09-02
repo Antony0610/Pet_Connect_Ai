@@ -103,6 +103,21 @@ class _HomeDashboardScreenState
           ),
         ),
         data: (pets) {
+          final selectedPetId = ref.watch(selectedPetIdProvider);
+          if (selectedPetId != null && pets.isNotEmpty) {
+            final foundIndex = pets.indexWhere((p) => p.id == selectedPetId);
+            if (foundIndex != -1 && foundIndex != _selectedPetIndex) {
+              _selectedPetIndex = foundIndex;
+            }
+          } else if (pets.isNotEmpty && selectedPetId == null) {
+            // Initialize global selected pet ID with first pet
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && ref.read(selectedPetIdProvider) == null) {
+                ref.read(selectedPetIdProvider.notifier).state = pets.first.id;
+              }
+            });
+          }
+
           // Clamp so index stays valid after a pet is deleted.
           final safeIndex = pets.isEmpty
               ? 0
@@ -131,6 +146,13 @@ class _HomeDashboardScreenState
     );
   }
 
+  void _onSelectPet(List<Pet> pets, int index) {
+    setState(() => _selectedPetIndex = index);
+    if (index >= 0 && index < pets.length) {
+      ref.read(selectedPetIdProvider.notifier).state = pets[index].id;
+    }
+  }
+
   // ── Layouts ────────────────────────────────────────────────────────────────
 
   Widget _buildStacked(List<Pet> pets, int safeIndex) {
@@ -140,7 +162,7 @@ class _HomeDashboardScreenState
         _HeroPetCard(
           pets: pets,
           selectedIndex: safeIndex,
-          onSelect: (i) => setState(() => _selectedPetIndex = i),
+          onSelect: (i) => _onSelectPet(pets, i),
         ),
         AppSpacing.vGapLg,
         const _TodaySummary(),
@@ -162,8 +184,7 @@ class _HomeDashboardScreenState
               _HeroPetCard(
                 pets: pets,
                 selectedIndex: safeIndex,
-                onSelect: (i) =>
-                    setState(() => _selectedPetIndex = i),
+                onSelect: (i) => _onSelectPet(pets, i),
               ),
               AppSpacing.vGapLg,
               const _TodaySummary(),

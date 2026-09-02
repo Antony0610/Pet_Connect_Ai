@@ -78,6 +78,16 @@ class _MissionDashboardScreenState
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.groups_rounded),
+            tooltip: 'Rescue Community',
+            onPressed: () => context.push(RoutePaths.rescueCommunity),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: 'Messages',
+            onPressed: () => context.push(RoutePaths.rescueCommunityMessages),
+          ),
+          IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => context.push(RoutePaths.ownerNotifications),
             tooltip: 'Alerts',
