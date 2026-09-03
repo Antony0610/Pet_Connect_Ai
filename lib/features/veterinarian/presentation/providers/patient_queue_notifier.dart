@@ -164,58 +164,10 @@ class TriagePatientItem {
   }
 }
 
-const _defaultTestQueue = [
-  TriagePatientItem(
-    id: 'p1',
-    name: 'Buster',
-    breedAge: 'Golden Retriever • 3y',
-    species: 'Canine',
-    priority: TriagePriority.critical,
-    reason: 'Acute Hemorrhagic Enteritis • Emergency Triage Required',
-    waitTimeMinutes: 8,
-    ownerName: 'Sarah Jenkins',
-    ownerPhone: '+1 (555) 234-5678',
-    status: TriageStatus.waiting,
-    appointmentId: 'apt-001',
-    temperatureC: 39.4,
-    heartRateBpm: 142,
-  ),
-  TriagePatientItem(
-    id: 'p2',
-    name: 'Luna',
-    breedAge: 'Domestic Shorthair • 5y',
-    species: 'Feline',
-    priority: TriagePriority.urgent,
-    reason: 'Severe Respiratory Distress / Wheezing',
-    waitTimeMinutes: 19,
-    ownerName: 'Marcus Vance',
-    ownerPhone: '+1 (555) 876-5432',
-    status: TriageStatus.inTriage,
-    appointmentId: 'apt-002',
-    temperatureC: 38.8,
-    heartRateBpm: 180,
-  ),
-  TriagePatientItem(
-    id: 'p3',
-    name: 'Winston',
-    breedAge: 'French Bulldog • 2y',
-    species: 'Canine',
-    priority: TriagePriority.routine,
-    reason: 'Scheduled Post-Op Suture Removal',
-    waitTimeMinutes: 34,
-    ownerName: 'Elena Rostova',
-    ownerPhone: '+1 (555) 432-1098',
-    status: TriageStatus.waiting,
-    appointmentId: 'apt-003',
-    temperatureC: 38.2,
-    heartRateBpm: 105,
-  ),
-];
-
 /// State notifier managing live patient triage workflows, state transitions,
 /// and live Supabase synchronization with zero hardcoded dummy data in production.
 class PatientQueueNotifier extends StateNotifier<List<TriagePatientItem>> {
-  PatientQueueNotifier([this._client]) : super(_defaultTestQueue) {
+  PatientQueueNotifier([this._client]) : super(const []) {
     if (_client != null) {
       loadLiveQueue();
     }
@@ -264,9 +216,7 @@ class PatientQueueNotifier extends StateNotifier<List<TriagePatientItem>> {
         );
       }).toList();
 
-      if (list.isNotEmpty) {
-        state = list;
-      }
+      state = list;
     } catch (_) {
       // If error or empty, keep state clean without mock data
     }
@@ -324,6 +274,7 @@ class PatientQueueNotifier extends StateNotifier<List<TriagePatientItem>> {
     required String reason,
     required String ownerName,
     required String ownerPhone,
+    String? petId,
     double? temperatureC,
     int? heartRateBpm,
   }) async {
@@ -334,6 +285,16 @@ class PatientQueueNotifier extends StateNotifier<List<TriagePatientItem>> {
     if (client != null) {
       try {
         final user = client.auth.currentUser;
+        String targetPetId = petId ?? '';
+        if (targetPetId.isEmpty) {
+          final pList = await client.from('pets').select('id').limit(1);
+          if ((pList as List).isNotEmpty) {
+            targetPetId = pList.first['id'] as String;
+          }
+        }
+        final cList = await client.from('vet_clinics').select('id').limit(1);
+        final clinicId = (cList as List).isNotEmpty ? cList.first['id'] as String : null;
+
         final insertRes = await client.from('appointments').insert({
           'reason': '$name ($species - $breedAge): $reason',
           'status': 'waiting',
@@ -341,6 +302,8 @@ class PatientQueueNotifier extends StateNotifier<List<TriagePatientItem>> {
           'appointment_date': now.toIso8601String(),
           'duration_minutes': 30,
           'notes': 'Admitted via Patient Triage Queue. Owner: $ownerName ($ownerPhone)',
+          if (targetPetId.isNotEmpty) 'pet_id': targetPetId,
+          if (clinicId != null) 'clinic_id': clinicId,
           if (user != null) 'veterinarian_id': user.id,
         }).select().single();
 

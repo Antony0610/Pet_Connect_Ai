@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/staff_member.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/features/administrator/presentation/widgets/admin_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
@@ -25,41 +26,66 @@ class _AdminStaffManagementScreenState
   final TextEditingController _searchController = TextEditingController();
   String _selectedRole = 'All';
 
-  final List<StaffMember> _fallbackStaff = [
-    StaffMember(
-      id: 'st_1',
-      name: 'Dr. Emily Chen',
-      title: 'Doctor of Veterinary Medicine (DVM)',
-      department: 'General Practice & Surgery',
-      shift: 'Today\'s Shift: 08:00 - 16:00',
-      status: 'Available',
-      phone: '+91 98450 11223',
-      email: 'chen.emily@petconnect.ai',
-      createdAt: DateTime.now(),
-    ),
-    StaffMember(
-      id: 'st_2',
-      name: 'Dr. Marcus Vance',
-      title: 'Veterinary Surgeon (DVM, DACVS)',
-      department: 'Emergency Surgery & Orthopedics',
-      shift: 'Today\'s Shift: On Call',
-      status: 'On Call',
-      phone: '+91 98450 22334',
-      email: 'vance.marcus@petconnect.ai',
-      createdAt: DateTime.now(),
-    ),
-    StaffMember(
-      id: 'st_3',
-      name: 'Sarah Jenkins',
-      title: 'Senior Dispatch Officer',
-      department: 'Emergency Operations Center',
-      shift: 'Today\'s Shift: 16:00 - 00:00',
-      status: 'Off Shift',
-      phone: '+91 98450 33445',
-      email: 'jenkins.sarah@petconnect.ai',
-      createdAt: DateTime.now(),
-    ),
-  ];
+  List<StaffMember> _staffList = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLiveStaff();
+  }
+
+  Future<void> _loadLiveStaff() async {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final res = await client
+          .from('profiles')
+          .select('id, full_name, role, city, phone_number, created_at')
+          .inFilter('role', ['veterinarian', 'volunteer_rescue', 'administrator'])
+          .order('created_at', ascending: false);
+
+      final list = (res as List).cast<Map<String, dynamic>>().map((row) {
+        final role = row['role'] as String? ?? 'staff';
+        final roleTitle = switch (role) {
+          'veterinarian' => 'Doctor of Veterinary Medicine (DVM)',
+          'volunteer_rescue' => 'Rescue Specialist & Field Ops',
+          'administrator' => 'System Administrator & EOC Lead',
+          _ => 'Clinical Staff',
+        };
+        final dept = switch (role) {
+          'veterinarian' => 'Veterinary Clinical Practice',
+          'volunteer_rescue' => 'Emergency Rescue Network',
+          'administrator' => 'Operations & Security Command',
+          _ => 'General Practice',
+        };
+
+        return StaffMember(
+          id: row['id'] as String? ?? 'st',
+          name: (row['full_name'] as String?)?.isNotEmpty == true
+              ? (role == 'veterinarian' && !(row['full_name'] as String).startsWith('Dr.')
+                  ? 'Dr. ${row['full_name']}'
+                  : row['full_name'] as String)
+              : 'Staff Member',
+          title: roleTitle,
+          department: dept,
+          shift: 'Shift: Active Duty',
+          status: 'Available',
+          phone: row['phone_number'] as String? ?? '+91 98450 12345',
+          email: '${(row['full_name'] as String? ?? "staff").toLowerCase().replaceAll(" ", ".")}@petconnect.ai',
+          createdAt: DateTime.tryParse(row['created_at']?.toString() ?? '') ?? DateTime.now(),
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _staffList = list;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -136,11 +162,18 @@ class _AdminStaffManagementScreenState
                     prefixIcon: Icon(Icons.toggle_on),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'Available', child: Text('Available')),
+                    DropdownMenuItem(
+                      value: 'Available',
+                      child: Text('Available'),
+                    ),
                     DropdownMenuItem(value: 'On Call', child: Text('On Call')),
-                    DropdownMenuItem(value: 'Off Shift', child: Text('Off Shift')),
+                    DropdownMenuItem(
+                      value: 'Off Shift',
+                      child: Text('Off Shift'),
+                    ),
                   ],
-                  onChanged: (val) => setDlgState(() => status = val ?? 'Available'),
+                  onChanged: (val) =>
+                      setDlgState(() => status = val ?? 'Available'),
                 ),
               ],
             ),
@@ -177,7 +210,11 @@ class _AdminStaffManagementScreenState
         (failure) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to save staff member: ${failure.message}')),
+              SnackBar(
+                content: Text(
+                  'Failed to save staff member: ${failure.message}',
+                ),
+              ),
             );
           }
         },
@@ -185,7 +222,11 @@ class _AdminStaffManagementScreenState
           ref.invalidate(adminStaffMembersProvider);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Staff member ${nameCtrl.text.trim()} onboarded!')),
+              SnackBar(
+                content: Text(
+                  'Staff member ${nameCtrl.text.trim()} onboarded!',
+                ),
+              ),
             );
           }
         },
@@ -214,11 +255,18 @@ class _AdminStaffManagementScreenState
                 initialValue: currentStatus,
                 decoration: const InputDecoration(labelText: 'Status'),
                 items: const [
-                  DropdownMenuItem(value: 'Available', child: Text('Available')),
+                  DropdownMenuItem(
+                    value: 'Available',
+                    child: Text('Available'),
+                  ),
                   DropdownMenuItem(value: 'On Call', child: Text('On Call')),
-                  DropdownMenuItem(value: 'Off Shift', child: Text('Off Shift')),
+                  DropdownMenuItem(
+                    value: 'Off Shift',
+                    child: Text('Off Shift'),
+                  ),
                 ],
-                onChanged: (val) => setDlgState(() => currentStatus = val ?? 'Available'),
+                onChanged: (val) =>
+                    setDlgState(() => currentStatus = val ?? 'Available'),
               ),
             ],
           ),
@@ -257,23 +305,29 @@ class _AdminStaffManagementScreenState
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final staffAsync = ref.watch(adminStaffMembersProvider);
-    final staffList = (staffAsync.valueOrNull != null && staffAsync.valueOrNull!.isNotEmpty)
-        ? staffAsync.valueOrNull!
-        : _fallbackStaff;
+    final List<StaffMember> staffList =
+        (staffAsync.valueOrNull != null && staffAsync.valueOrNull!.isNotEmpty)
+            ? staffAsync.valueOrNull!
+            : _staffList;
 
     final query = _searchController.text.toLowerCase();
 
-    final filtered = staffList.where((member) {
-      final matchesQuery = query.isEmpty ||
+    final List<StaffMember> filtered = staffList.where((StaffMember member) {
+      final matchesQuery =
+          query.isEmpty ||
           member.name.toLowerCase().contains(query) ||
           member.title.toLowerCase().contains(query) ||
           member.department.toLowerCase().contains(query);
 
-      final matchesRole = _selectedRole == 'All' ||
+      final matchesRole =
+          _selectedRole == 'All' ||
           (_selectedRole == 'DVM Vets' && member.title.contains('DVM')) ||
           (_selectedRole == 'Surgeons' && member.title.contains('Surgeon')) ||
-          (_selectedRole == 'Dispatch Leads' && member.title.contains('Dispatch')) ||
-          (_selectedRole == 'Support' && !member.title.contains('DVM') && !member.title.contains('Surgeon'));
+          (_selectedRole == 'Dispatch Leads' &&
+              member.title.contains('Dispatch')) ||
+          (_selectedRole == 'Support' &&
+              !member.title.contains('DVM') &&
+              !member.title.contains('Surgeon'));
 
       return matchesQuery && matchesRole;
     }).toList();
@@ -309,7 +363,8 @@ class _AdminStaffManagementScreenState
                 // ── Search & Role Filters ────────────────────────────
                 AppTextField(
                   controller: _searchController,
-                  hintText: 'Search staff by name, credential, or department...',
+                  hintText:
+                      'Search staff by name, credential, or department...',
                   prefixIcon: const Icon(Icons.search),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -339,7 +394,7 @@ class _AdminStaffManagementScreenState
                 ),
                 AppSpacing.vGapSm,
 
-                if (filtered.isEmpty && staffAsync.isLoading)
+                if (filtered.isEmpty && (staffAsync.isLoading || _isLoading))
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32.0),
@@ -352,11 +407,17 @@ class _AdminStaffManagementScreenState
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.people_outline, size: 48, color: colorScheme.primary),
+                          Icon(
+                            Icons.people_outline,
+                            size: 48,
+                            color: colorScheme.primary,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             'No staff members found matching query.',
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -364,7 +425,8 @@ class _AdminStaffManagementScreenState
                   )
                 else
                   ...filtered.map(
-                    (member) => _buildStaffCard(context, theme, colorScheme, member),
+                    (StaffMember member) =>
+                        _buildStaffCard(context, theme, colorScheme, member),
                   ),
 
                 AppSpacing.vGapXl,
@@ -373,6 +435,7 @@ class _AdminStaffManagementScreenState
           ),
         ),
       ),
+      bottomNavigationBar: const AdminBottomNavBar(currentTab: AdminTab.staff),
     );
   }
 
@@ -408,82 +471,155 @@ class _AdminStaffManagementScreenState
     ColorScheme colorScheme,
     StaffMember member,
   ) {
-    final statusColor = member.status == 'Available'
-        ? AppColors.success
-        : (member.status == 'On Call' ? AppColors.warning : AppColors.info);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final (statusColor, statusBg) = switch (member.status) {
+      'Available' => (
+        const Color(0xFF059669),
+        const Color(0xFF059669).withValues(alpha: 0.12),
+      ),
+      'On Call' => (
+        const Color(0xFFD97706),
+        const Color(0xFFD97706).withValues(alpha: 0.12),
+      ),
+      _ => (
+        const Color(0xFF64748B),
+        const Color(0xFF64748B).withValues(alpha: 0.12),
+      ),
+    };
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: colorScheme.primaryContainer,
-              child: Icon(Icons.badge_outlined, color: colorScheme.primary),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            AppSpacing.hGapSm,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    member.name,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
-                    ),
-                  ),
-                  Text(
-                    '${member.title} • ${member.department}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  Text(
-                    member.shift,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                AppChip(
-                  label: member.status,
-                  backgroundColor: statusColor.withValues(alpha: 0.15),
-                  textColor: statusColor,
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                AppSpacing.vGapXs,
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: const Icon(
+                  Icons.badge_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (member.phone != null && member.phone!.isNotEmpty) ...[
-                      IconButton(
-                        icon: const Icon(Icons.phone, size: 16),
-                        tooltip: 'Call Staff',
-                        onPressed: () => ExternalActions.callPhoneNumber(member.phone!),
+                    Text(
+                      member.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
                       ),
-                    ],
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.edit_calendar_outlined, size: 14),
-                      label: const Text('Manage Shift'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${member.title} • ${member.department}',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 12,
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                      ),
-                      onPressed: () => _manageShift(member),
+                        const SizedBox(width: 4),
+                        Text(
+                          member.shift,
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      member.status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (member.phone != null && member.phone!.isNotEmpty) ...[
+                        IconButton.filledTonal(
+                          icon: const Icon(Icons.phone_rounded, size: 16),
+                          tooltip: 'Call Staff',
+                          style: IconButton.styleFrom(
+                            padding: const EdgeInsets.all(6),
+                            minimumSize: const Size(32, 32),
+                          ),
+                          onPressed: () =>
+                              ExternalActions.callPhoneNumber(member.phone!),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      FilledButton.tonalIcon(
+                        icon: const Icon(Icons.edit_calendar_rounded, size: 14),
+                        label: const Text(
+                          'Shift',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          minimumSize: const Size(0, 32),
+                        ),
+                        onPressed: () => _manageShift(member),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

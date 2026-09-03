@@ -92,6 +92,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   bool _speechEnabled = false;
   final List<Uint8List> _pendingImages = [];
   String? _lastUserPrompt;
+  String _dictationLocale = 'ml_IN'; // Default to Malayalam, toggleable to 'en_IN'
 
   final List<_ChatMessage> _messages = [
     _ChatMessage(
@@ -164,26 +165,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     }
   }
 
-  String _savedMascotAssetPath = 'assets/images/ai_mascot_classic.jpg';
-
-  void _loadSavedMascot() {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final savedIndex = prefs.getInt('selected_ai_mascot_style') ?? 0;
-    const paths = [
-      'assets/images/ai_mascot_classic.jpg',
-      'assets/images/ai_mascot_cat.jpg',
-      'assets/images/ai_mascot_dog.jpg',
-      'assets/images/ai_mascot_astral.jpg',
-    ];
-    if (savedIndex >= 0 && savedIndex < paths.length) {
-      setState(() {
-        _savedMascotAssetPath = paths[savedIndex];
-      });
-    }
-  }
-
   void _loadSavedModel() {
-    _loadSavedMascot();
     final prefs = ref.read(sharedPreferencesProvider);
     final saved = prefs.getString('app_selected_gemini_model');
     if (saved != null && saved.isNotEmpty) {
@@ -555,6 +537,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           listenMode: stt.ListenMode.dictation,
           cancelOnError: true,
           partialResults: true,
+          localeId: _dictationLocale,
         ),
         onResult: (result) {
           if (mounted) {
@@ -950,31 +933,13 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       appBar: AppBar(
         title: Row(
           children: [
-            Hero(
+            const Hero(
               tag: 'ai-mascot-avatar-hero',
-              child: Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: scheme.primary,
-                    width: 1.8,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.5),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    _savedMascotAssetPath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
-                  ),
-                ),
+              child: AiMascotCompanion(
+                size: 34,
+                isAppBarMode: true,
+                showSpeechBubble: false,
+                showSwitcherBadge: false,
               ),
             ),
             const SizedBox(width: 8),
@@ -1246,9 +1211,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                     children: [
                       const Icon(Icons.mic, color: Colors.red, size: 18),
                       AppSpacing.hGapSm,
-                      const Text(
-                        'Listening for voice input... (Speak your inquiry)',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      Text(
+                        _dictationLocale.startsWith('ml')
+                            ? 'കേൾക്കുന്നു... (മലയാളത്തിൽ സംസാരിക്കുക)'
+                            : 'Listening for voice input... (Speak in English)',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                       AppSpacing.hGapSm,
                       GestureDetector(
@@ -1271,8 +1238,42 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                     IconButton(
                       icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
                       color: _isListening ? Colors.red : null,
-                      tooltip: 'Voice Input',
+                      tooltip: _dictationLocale.startsWith('ml') ? 'ശബ്ദ ഇൻപുട്ട് (മലയാളം)' : 'Voice Input (English)',
                       onPressed: _toggleDictation,
+                    ),
+                    InkWell(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _dictationLocale = _dictationLocale.startsWith('ml') ? 'en_IN' : 'ml_IN';
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_dictationLocale.startsWith('ml')
+                                ? '✓ Voice dictation switched to Malayalam (മലയാളം)'
+                                : '✓ Voice dictation switched to English'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+                        ),
+                        child: Text(
+                          _dictationLocale.startsWith('ml') ? 'മലയാളം' : 'EN',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ),
                     ),
                     Expanded(
                       child: TextField(

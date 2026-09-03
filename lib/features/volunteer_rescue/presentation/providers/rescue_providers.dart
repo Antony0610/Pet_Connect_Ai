@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/data/datasources/rescue_remote_datasource.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/data/models/lost_pet_sighting_model.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/data/repositories/rescue_repository_impl.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_sighting.dart';
@@ -50,6 +51,20 @@ final sightingsProvider = FutureProvider.family<List<LostPetSighting>, String>((
     (failure) => throw Exception(failure.message),
     (sightings) => sightings,
   );
+});
+
+final allCommunitySightingsProvider = FutureProvider<List<LostPetSighting>>((ref) async {
+  try {
+    final client = ref.watch(supabaseClientProvider);
+    final response = await client
+        .from('lost_pet_sightings')
+        .select('*')
+        .order('sighting_time', ascending: false)
+        .limit(30);
+    return (response as List).map((json) => LostPetSightingModel.fromJson(json as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return [];
+  }
 });
 
 final rescueSheltersProvider = FutureProvider<List<RescueShelter>>((

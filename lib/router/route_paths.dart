@@ -86,6 +86,8 @@ abstract final class RoutePaths {
   static const String vetPatients = '/vet/patients';
   static const String vetPatientDetail = '/vet/patients/:patientId';
   static const String vetConsultation = '/vet/consultation/:appointmentId';
+  static String vetConsultationPath(String appointmentId) =>
+      '/vet/consultation/$appointmentId';
   static const String vetPrescription = '/vet/prescription/create';
   static const String vetTreatmentPlan = '/vet/treatment-plan';
   static const String vetClinicManagement = '/vet/clinic';

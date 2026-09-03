@@ -205,10 +205,10 @@ class _MissionCompletedScreenState extends State<MissionCompletedScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.format_quote, color: colorScheme.primary, size: 24),
+              Icon(Icons.assignment_turned_in_outlined, color: colorScheme.primary, size: 22),
               AppSpacing.hGapSm,
               Text(
-                'Owner Testimonial & Debrief Note',
+                'Incident Resolution & Debrief Log',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: AppTypography.bold,
                 ),
@@ -216,23 +216,48 @@ class _MissionCompletedScreenState extends State<MissionCompletedScreen> {
             ],
           ),
           AppSpacing.vGapSm,
-          Text(
-            '"I can\'t thank the rescue team enough. Luna got spooked by construction noise and bolted. You all mobilized so quickly and found her before it got dark. True heroes!"',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontStyle: FontStyle.italic,
-              color: colorScheme.onSurface,
+          TextField(
+            controller: _notesController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Record field debrief notes, animal physiological condition, or guardian handover details...',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.all(12),
             ),
           ),
           AppSpacing.vGapSm,
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              '- Sarah & Luna',
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: AppTypography.bold,
-                color: colorScheme.primary,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                avatar: const Icon(Icons.check, size: 14),
+                label: const Text('Reunited with Guardian'),
+                onPressed: () {
+                  setState(() {
+                    _notesController.text = 'Pet successfully identified and safely reunited with verified guardian in stable condition.';
+                  });
+                },
               ),
-            ),
+              ActionChip(
+                avatar: const Icon(Icons.local_hospital, size: 14),
+                label: const Text('Transferred to Vet'),
+                onPressed: () {
+                  setState(() {
+                    _notesController.text = 'Delivered to nearest accredited veterinary clinic for medical examination and stabilization.';
+                  });
+                },
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.home_work, size: 14),
+                label: const Text('Sheltered at EOC'),
+                onPressed: () {
+                  setState(() {
+                    _notesController.text = 'Transferred to emergency overflow shelter facility. Microchip scan and intake logged.';
+                  });
+                },
+              ),
+            ],
           ),
         ],
       ),

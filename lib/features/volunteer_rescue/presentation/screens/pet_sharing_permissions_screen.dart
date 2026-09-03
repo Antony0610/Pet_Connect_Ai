@@ -1,56 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Pet Sharing & Permissions Screen (Stitch ID: `9b1125312fa04a72bef88c32413a1be7`,
-/// Dark Reference: `b4f6638e3a6149e2b0f73dd207a092b6`).
-///
-/// Access control and foster collaboration screen. Manages co-owner permissions,
-/// temporary caretaker/foster access, vet record sharing, and invitation roles.
-class PetSharingPermissionsScreen extends StatefulWidget {
+/// Pet Sharing & Permissions Screen.
+class PetSharingPermissionsScreen extends ConsumerStatefulWidget {
   const PetSharingPermissionsScreen({super.key});
 
   @override
-  State<PetSharingPermissionsScreen> createState() =>
+  ConsumerState<PetSharingPermissionsScreen> createState() =>
       _PetSharingPermissionsScreenState();
 }
 
 class _PetSharingPermissionsScreenState
-    extends State<PetSharingPermissionsScreen> {
-  final List<Map<String, dynamic>> _collaborators = [
-    {
-      'name': 'Sarah Jenkins',
-      'email': 'sarah.j@example.com',
-      'role': 'Primary Owner',
-      'access': 'Full Access',
-      'color': AppColors.success,
-    },
-    {
-      'name': 'Michael Jenkins',
-      'email': 'mike.j@example.com',
-      'role': 'Family Co-owner',
-      'access': 'Full Access',
-      'color': AppColors.info,
-    },
-    {
-      'name': 'Alex Rivera (Rescue Lead)',
-      'email': 'alex.r@rescueops.org',
-      'role': 'Temporary Foster',
-      'access': 'Emergency Only',
-      'color': AppColors.warning,
-    },
-  ];
+    extends ConsumerState<PetSharingPermissionsScreen> {
+  List<Map<String, dynamic>> _collaborators = [];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final primaryName = (profile != null && profile.fullName.isNotEmpty) ? profile.fullName : 'Account Owner';
+    final primaryEmail = profile?.email ?? 'verified.guardian@petconnect.ai';
+
+    if (_collaborators.isEmpty) {
+      _collaborators = [
+        {
+          'name': primaryName,
+          'email': primaryEmail,
+          'role': 'Primary Owner',
+          'access': 'Full Access',
+          'color': AppColors.success,
+        },
+      ];
+    }
 
     return Scaffold(
       appBar: AppBar(

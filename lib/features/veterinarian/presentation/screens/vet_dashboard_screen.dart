@@ -378,10 +378,14 @@ class VetDashboardScreen extends ConsumerWidget {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: isDesktop ? 1.05 : 0.85,
+                childAspectRatio: 1.0,
               ),
               itemBuilder: (context, index) {
-                return QuickActionButton.fromSpec(actions[index]);
+                return QuickActionButton.fromSpec(
+                  actions[index],
+                  containerSize: 44,
+                  iconSize: 22,
+                );
               },
             );
           },
@@ -580,7 +584,7 @@ class VetDashboardScreen extends ConsumerWidget {
                   ),
                 ),
                 FilledButton.tonal(
-                  onPressed: () => context.push(RoutePaths.vetAppointments),
+                  onPressed: () => context.push(RoutePaths.vetAppointmentSchedule),
                   child: const Text('Book'),
                 ),
               ],
@@ -591,15 +595,27 @@ class VetDashboardScreen extends ConsumerWidget {
             (apt) => Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: InkWell(
-                onTap: () => context.push('${RoutePaths.vetConsultation}?appointmentId=${apt.id}'),
-                borderRadius: BorderRadius.circular(12),
-                child: AppCard(
-                  padding: const EdgeInsets.all(12),
+                onTap: () => context.push(RoutePaths.vetConsultationPath(apt.id)),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+                    ),
+                  ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        backgroundColor: colorScheme.secondaryContainer,
-                        child: Icon(Icons.pets, color: colorScheme.onSecondaryContainer),
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.pets_rounded, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_mission_status_notifier.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
-/// Volunteer Assistance Screen (Stitch ID: `576f66e8cefa44b1ae41b77cfd1bb38a`).
+/// Volunteer Assistance Screen.
 ///
 /// Emergency field support and assistance protocols. Displays real-time recovery status,
-/// active responder ETA, dispatch contact actions, and field protocols timeline.
-class VolunteerAssistanceScreen extends StatelessWidget {
+/// active responder ETA, dispatch contact actions, and field safety protocols.
+class VolunteerAssistanceScreen extends ConsumerWidget {
   const VolunteerAssistanceScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final mission = ref.watch(activeRescueMissionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,7 +41,7 @@ class VolunteerAssistanceScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Active Recovery Response Card ────────────────────
-                _buildActiveRecoveryCard(context, theme, colorScheme),
+                _buildActiveRecoveryCard(context, theme, colorScheme, mission),
 
                 AppSpacing.vGapLg,
 
@@ -47,7 +51,7 @@ class VolunteerAssistanceScreen extends StatelessWidget {
                 AppSpacing.vGapLg,
 
                 // ── Field Recovery Timeline Stepper ──────────────────
-                _buildRecoveryTimelineSection(theme, colorScheme),
+                _buildRecoveryTimelineSection(theme, colorScheme, mission),
 
                 AppSpacing.vGapLg,
 
@@ -67,48 +71,87 @@ class VolunteerAssistanceScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    ActiveRescueMission mission,
   ) {
+    if (mission.isStandby) {
+      return AppCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.shield_outlined, color: AppColors.success),
+            ),
+            AppSpacing.hGapSm,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Field Incident Standby',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: AppTypography.bold,
+                    ),
+                  ),
+                  Text(
+                    'No active emergency dispatches in your sector. Hotline and mutual aid frequencies monitored.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const AppChip(
+              label: 'STANDBY',
+              backgroundColor: AppColors.success,
+              textColor: AppColors.white,
+            ),
+          ],
+        ),
+      );
+    }
+
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.directions_walk, color: colorScheme.primary),
+          ),
+          AppSpacing.hGapSm,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Active Incident: ${mission.petName}',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: AppTypography.bold,
+                  ),
                 ),
-                child: Icon(Icons.directions_walk, color: colorScheme.primary),
-              ),
-              AppSpacing.hGapSm,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Active Recovery: Sarah is Responding',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                    Text(
-                      '300 m away • Approaching from West • 2 mins ETA',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                Text(
+                  '${mission.lastSeenLocation} • Status: ${mission.stage.label}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const AppChip(
-                label: 'EN ROUTE',
-                backgroundColor: AppColors.success,
-                textColor: AppColors.white,
-              ),
-            ],
+              ],
+            ),
+          ),
+          AppChip(
+            label: mission.stage.label.toUpperCase(),
+            backgroundColor: AppColors.success,
+            textColor: AppColors.white,
           ),
         ],
       ),
@@ -126,13 +169,7 @@ class VolunteerAssistanceScreen extends StatelessWidget {
           child: AppButton(
             text: 'Call Dispatch Hotline',
             icon: Icons.call,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Calling EOC Emergency Hotline...'),
-                ),
-              );
-            },
+            onPressed: () => ExternalActions.callPhone('+919876543210'),
             backgroundColor: colorScheme.primary,
             textColor: colorScheme.onPrimary,
           ),
@@ -142,7 +179,7 @@ class VolunteerAssistanceScreen extends StatelessWidget {
           child: OutlinedButton.icon(
             icon: const Icon(Icons.chat_outlined, size: 18),
             label: const Text('Message Team Lead'),
-            onPressed: () => context.push(RoutePaths.ownerCommunityMessages),
+            onPressed: () => context.push(RoutePaths.rescueCommunityMessages),
           ),
         ),
       ],
@@ -152,12 +189,13 @@ class VolunteerAssistanceScreen extends StatelessWidget {
   Widget _buildRecoveryTimelineSection(
     ThemeData theme,
     ColorScheme colorScheme,
+    ActiveRescueMission mission,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Incident Recovery Timeline',
+          'Incident Recovery Protocols',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: AppTypography.bold,
           ),
@@ -170,28 +208,33 @@ class VolunteerAssistanceScreen extends StatelessWidget {
               _buildTimelineStep(
                 theme,
                 colorScheme,
-                time: '12:42 PM',
-                title: 'Civilian Sighting Verified',
-                desc: 'Visual confirmed near Pine Ridge trailhead.',
+                title: '1. Incident Triaged & Dispatched',
+                subtitle: 'Automated GPS mesh and sighting logs verified',
                 isDone: true,
               ),
-              const Divider(height: 16),
+              const Divider(height: 24),
               _buildTimelineStep(
                 theme,
                 colorScheme,
-                time: '12:43 PM',
-                title: 'Sarah Accepted Rescue Request',
-                desc: 'Responder assigned and en route with equipment.',
-                isDone: true,
+                title: '2. Responder Deployment',
+                subtitle: 'Field units mobilize to perimeter coordinates',
+                isDone: !mission.isStandby,
               ),
-              const Divider(height: 16),
+              const Divider(height: 24),
               _buildTimelineStep(
                 theme,
                 colorScheme,
-                time: '12:48 PM (ETA)',
-                title: 'Arrival & Containment',
-                desc: 'Approaching last known BLE beacon location.',
-                isDone: false,
+                title: '3. Animal Securing & Telemetry Verification',
+                subtitle: 'Smart Collar beacon scanning and humane containment',
+                isDone: mission.stage.index >= 3,
+              ),
+              const Divider(height: 24),
+              _buildTimelineStep(
+                theme,
+                colorScheme,
+                title: '4. Clinic Handover & Resolution',
+                subtitle: 'Veterinary intake and guardian reunification report',
+                isDone: mission.stage.index >= 4,
               ),
             ],
           ),
@@ -203,13 +246,11 @@ class VolunteerAssistanceScreen extends StatelessWidget {
   Widget _buildTimelineStep(
     ThemeData theme,
     ColorScheme colorScheme, {
-    required String time,
     required String title,
-    required String desc,
+    required String subtitle,
     required bool isDone,
   }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
           isDone ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -223,12 +264,12 @@ class VolunteerAssistanceScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: AppTypography.bold,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: isDone ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
               Text(
-                desc,
+                subtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -236,46 +277,47 @@ class VolunteerAssistanceScreen extends StatelessWidget {
             ],
           ),
         ),
-        Text(
-          time,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontSize: 10,
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildFieldSafetySection(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildFieldSafetySection(
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Field Safety & Escalation Rules',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: AppTypography.bold,
+          ),
+        ),
+        AppSpacing.vGapSm,
+        AppCard(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.shield, color: colorScheme.error, size: 22),
-              AppSpacing.hGapSm,
               Text(
-                'Emergency Safety Guidelines',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: AppTypography.bold,
-                ),
+                '• Never enter hazardous waterways or high-voltage transit corridors alone.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '• For aggressive, injured, or trapped wildlife, request municipal animal control backup via EOC hotline.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '• Keep your volunteer locator ping active while on scene for dispatcher safety monitoring.',
+                style: theme.textTheme.bodySmall,
               ),
             ],
           ),
-          AppSpacing.vGapSm,
-          Text(
-            '1. Maintain safe distance from startled animals.\n'
-            '2. Always broadcast live GPS telemetry during active search.\n'
-            '3. Contact EOC immediately if severe weather or hazard occurs.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurface,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

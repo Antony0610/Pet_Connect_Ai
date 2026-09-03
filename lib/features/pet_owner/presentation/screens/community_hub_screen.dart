@@ -821,7 +821,7 @@ class _PostCardState extends ConsumerState<_PostCard>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    onTap: () => _showPublicUserProfile(
+                    onTap: () => showPublicUserProfile(
                       context,
                       _post.userId,
                       _post.authorName ?? 'Community Member',
@@ -857,7 +857,7 @@ class _PostCardState extends ConsumerState<_PostCard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         GestureDetector(
-                          onTap: () => _showPublicUserProfile(
+                          onTap: () => showPublicUserProfile(
                             context,
                             _post.userId,
                             _post.authorName ?? 'Community Member',
@@ -1638,7 +1638,7 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
             Row(
               children: [
                 GestureDetector(
-                  onTap: () => _showPublicUserProfile(
+                  onTap: () => showPublicUserProfile(
                     context,
                     _post.userId,
                     _post.authorName ?? 'Community Member',
@@ -1674,7 +1674,7 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () => _showPublicUserProfile(
+                        onTap: () => showPublicUserProfile(
                           context,
                           _post.userId,
                           _post.authorName ?? 'Community Member',
@@ -1983,7 +1983,7 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
           Row(
             children: [
               GestureDetector(
-                onTap: () => _showPublicUserProfile(
+                onTap: () => showPublicUserProfile(
                   context,
                   c.userId,
                   c.authorName,
@@ -2016,7 +2016,7 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
                   children: [
                     Flexible(
                       child: GestureDetector(
-                        onTap: () => _showPublicUserProfile(
+                        onTap: () => showPublicUserProfile(
                           context,
                           c.userId,
                           c.authorName,
@@ -2124,13 +2124,13 @@ class _PostDetailSheetState extends ConsumerState<_PostDetailSheet> {
 }
 
 /// ── Public User Profile Bottom Sheet ──────────────────────────────────────────
-void _showPublicUserProfile(
+void showPublicUserProfile(
   BuildContext context,
   String? userId,
-  String authorName,
+  String authorName, [
   String? avatarUrl,
   String? location,
-) {
+]) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -2262,6 +2262,17 @@ class _PublicUserProfileSheetState extends ConsumerState<_PublicUserProfileSheet
           await client.from('user_follows').insert({
             'follower_id': currentUserId,
             'following_id': targetId,
+          }).catchError((_) => null);
+
+          final myProfile = ref.read(currentUserProfileProvider).valueOrNull;
+          final myName = myProfile?.fullName ?? 'A community member';
+          await client.from('user_notifications').insert({
+            'user_id': targetId,
+            'title': 'New Follower 🐾',
+            'body': '$myName started following your pet profile.',
+            'notification_type': 'social',
+            'is_read': false,
+            'created_at': DateTime.now().toIso8601String(),
           }).catchError((_) => null);
         } else {
           await client

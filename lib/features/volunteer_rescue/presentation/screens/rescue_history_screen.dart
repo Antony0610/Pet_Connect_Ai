@@ -23,39 +23,6 @@ class _RescueHistoryScreenState extends ConsumerState<RescueHistoryScreen> {
   String _selectedStatus = 'All';
   String _searchQuery = '';
 
-  final List<Map<String, dynamic>> _fallbackHistory = [
-    {
-      'date': 'Oct 24 • 14:30',
-      'title': 'Luna - Siberian Husky',
-      'location': 'Pine Ridge Trail, Sector 4',
-      'duration': '42 mins',
-      'distance': '1.2 km',
-      'status': 'Success',
-      'statusColor': AppColors.success,
-      'notes': 'Reunited with owner safely. No acute clinical injuries detected.',
-    },
-    {
-      'date': 'Oct 18 • 09:15',
-      'title': 'Stray Golden Retriever',
-      'location': 'Route 42, near old barn',
-      'duration': '1h 15m',
-      'distance': '3.4 km',
-      'status': 'Resolved',
-      'statusColor': AppColors.info,
-      'notes': 'Transferred to Oakridge Animal Shelter for health screening & foster.',
-    },
-    {
-      'date': 'Oct 10 • 18:40',
-      'title': 'Trapped Feline in Drainage',
-      'location': 'Main St & 8th Ave Culvert',
-      'duration': '2h 05m',
-      'distance': '0.5 km',
-      'status': 'Escalated',
-      'statusColor': AppColors.warning,
-      'notes': 'Municipal animal control dispatched with specialized hydraulic hoist.',
-    },
-  ];
-
   void _exportHistoryReport(List<Map<String, dynamic>> items) {
     final buffer = StringBuffer();
     buffer.writeln('====================================================');
@@ -106,10 +73,6 @@ class _RescueHistoryScreenState extends ConsumerState<RescueHistoryScreen> {
         'statusColor': isDone ? AppColors.success : (m.status == 'in_progress' ? AppColors.warning : AppColors.info),
         'notes': m.notes ?? 'Rescue mission processed by responder unit.',
       });
-    }
-
-    if (combinedItems.isEmpty) {
-      combinedItems.addAll(_fallbackHistory);
     }
 
     final filtered = combinedItems.where((item) {

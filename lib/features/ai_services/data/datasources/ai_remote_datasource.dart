@@ -273,8 +273,8 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         mimeType = 'image/webp';
       }
       userTurnParts.add({
-        'inline_data': {
-          'mime_type': mimeType,
+        'inlineData': {
+          'mimeType': mimeType,
           'data': imageBase64,
         },
       });

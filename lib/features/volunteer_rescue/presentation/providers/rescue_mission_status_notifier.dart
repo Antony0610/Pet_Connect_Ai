@@ -120,6 +120,7 @@ class ActiveRescueMission {
     required this.isBeaconActive,
     required this.responders,
     required this.createdAt,
+    this.isStandby = false,
   });
 
   final String id;
@@ -136,6 +137,27 @@ class ActiveRescueMission {
   final bool isBeaconActive;
   final List<RescueResponder> responders;
   final DateTime createdAt;
+  final bool isStandby;
+
+  static ActiveRescueMission standby() {
+    return ActiveRescueMission(
+      id: 'standby',
+      petName: 'Sector Standby',
+      species: 'Perimeter Monitored',
+      breed: 'Automated Sighting Radar',
+      lastSeenLocation: 'Local Response Zone',
+      latitude: 12.9716,
+      longitude: 77.5946,
+      stage: RescueStage.dispatched,
+      sightingHeadline: 'Operational Standby • Frequency Clear',
+      sightingDetail: 'No active animal rescue dispatches currently assigned in your sector.',
+      beaconDistanceMeters: 0,
+      isBeaconActive: false,
+      responders: const [],
+      createdAt: DateTime.now(),
+      isStandby: true,
+    );
+  }
 
   ActiveRescueMission copyWith({
     String? petName,
@@ -150,6 +172,7 @@ class ActiveRescueMission {
     int? beaconDistanceMeters,
     bool? isBeaconActive,
     List<RescueResponder>? responders,
+    bool? isStandby,
   }) {
     return ActiveRescueMission(
       id: id,
@@ -166,6 +189,7 @@ class ActiveRescueMission {
       isBeaconActive: isBeaconActive ?? this.isBeaconActive,
       responders: responders ?? this.responders,
       createdAt: createdAt,
+      isStandby: isStandby ?? this.isStandby,
     );
   }
 }
@@ -173,49 +197,13 @@ class ActiveRescueMission {
 /// State notifier managing live rescue mission progress, beacon telemetry,
 /// and live Supabase synchronization with zero hardcoded dummy data in production.
 class RescueMissionStatusNotifier extends StateNotifier<ActiveRescueMission> {
-  RescueMissionStatusNotifier([this._client]) : super(_createFallback()) {
+  RescueMissionStatusNotifier([this._client]) : super(ActiveRescueMission.standby()) {
     if (_client != null) {
       loadLiveMission();
     }
   }
 
   final SupabaseClient? _client;
-
-  static ActiveRescueMission _createFallback() {
-    return ActiveRescueMission(
-      id: 'mission-8841',
-      petName: 'Luna',
-      species: 'Feline',
-      breed: 'Calico Shorthair',
-      lastSeenLocation: 'Cubbon Park South Trail',
-      latitude: 12.9716,
-      longitude: 77.5946,
-      stage: RescueStage.enRoute,
-      sightingHeadline: 'Civilian sighting at South Bamboo Grove',
-      sightingDetail: 'Resident reported seeing a cat matching Luna’s collar beacon 12 minutes ago.',
-      beaconDistanceMeters: 250,
-      isBeaconActive: true,
-      responders: const [
-        RescueResponder(
-          name: 'Sarah Jenkins',
-          role: 'Lead Field Responder',
-          distanceMeters: 250,
-          status: 'On Scene',
-          isLead: true,
-          phone: '+1 (555) 234-5678',
-        ),
-        RescueResponder(
-          name: 'Marcus Vance',
-          role: 'Drone Scout Operator',
-          distanceMeters: 450,
-          status: 'En Route',
-          isLead: false,
-          phone: '+1 (555) 876-5432',
-        ),
-      ],
-      createdAt: DateTime.now(),
-    );
-  }
 
   /// Loads the latest active rescue mission from Supabase rescue_missions table.
   Future<void> loadLiveMission() async {
@@ -236,7 +224,7 @@ class RescueMissionStatusNotifier extends StateNotifier<ActiveRescueMission> {
 
         state = ActiveRescueMission(
           id: response['id'] as String,
-          petName: alert?['description']?.toString().split('.').first ?? 'Missing Animal',
+          petName: alert?['description']?.toString().split('.').first ?? 'Missing Companion',
           species: 'Companion Pet',
           breed: 'Rescue Alert #${(response['id'] as String).substring(0, 4)}',
           lastSeenLocation: alert?['last_seen_location'] as String? ?? 'Sector Dispatch Zone',
@@ -258,7 +246,10 @@ class RescueMissionStatusNotifier extends StateNotifier<ActiveRescueMission> {
             ),
           ],
           createdAt: DateTime.tryParse(response['started_at'] as String? ?? '') ?? DateTime.now(),
+          isStandby: false,
         );
+      } else {
+        state = ActiveRescueMission.standby();
       }
     } catch (_) {
       // Keep state clean on error

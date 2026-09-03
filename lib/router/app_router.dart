@@ -524,9 +524,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'consultation/:appointmentId',
             name: RouteNames.vetConsultation,
-            builder: (context, state) => ConsultationWorkspaceScreen(
-              appointmentId: state.pathParameters['appointmentId'] ?? 'c1',
-            ),
+            builder: (context, state) {
+              final pathId = state.pathParameters['appointmentId'];
+              final queryId = state.uri.queryParameters['appointmentId'];
+              final id = (pathId != null && pathId != ':appointmentId' && pathId.isNotEmpty)
+                  ? pathId
+                  : (queryId ?? 'c1');
+              return ConsultationWorkspaceScreen(
+                appointmentId: id,
+              );
+            },
           ),
           GoRoute(
             path: 'prescription/create',
@@ -536,7 +543,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'treatment-plan',
             name: RouteNames.vetTreatmentPlan,
-            builder: (context, state) => const VetTreatmentPlanScreen(),
+            builder: (context, state) => VetTreatmentPlanScreen(
+              patientId: (state.extra as String?) ?? state.uri.queryParameters['patientId'],
+            ),
           ),
           GoRoute(
             path: 'clinic',

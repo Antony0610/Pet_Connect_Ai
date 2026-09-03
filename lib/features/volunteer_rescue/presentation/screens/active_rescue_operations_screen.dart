@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
@@ -15,6 +16,7 @@ import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
+import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
 /// **Active Rescue Operations Screen** — `/rescue/active`.
@@ -30,6 +32,117 @@ class ActiveRescueOperationsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final mission = ref.watch(activeRescueMissionProvider);
+
+    if (mission.isStandby) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Incident Response Standby'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/rescue'),
+          ),
+          actions: [
+            PortalNotificationBadgeButton(
+              onPressed: () => context.push(RoutePaths.rescueNotifications),
+            ),
+          ],
+        ),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.success.withValues(alpha: 0.15),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.3), width: 2),
+                    ),
+                    child: const Icon(Icons.radar_rounded, size: 44, color: AppColors.success),
+                  ),
+                  AppSpacing.vGapLg,
+                  Text(
+                    'Perimeter Standby Active',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: AppTypography.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  AppSpacing.vGapSm,
+                  Text(
+                    'No active emergency rescue missions currently dispatched in your response sector. Automated AI telemetry listener is actively scanning collar beacons and citizen sighting alerts.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  AppSpacing.vGapLg,
+                  AppCard(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.cell_tower, color: AppColors.success, size: 20),
+                            AppSpacing.hGapSm,
+                            Text(
+                              'Radio & Telemetry Channel',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: AppTypography.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            const AppChip(
+                              label: 'LIVE MONITOR',
+                              backgroundColor: AppColors.success,
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                        AppSpacing.vGapSm,
+                        Text(
+                          'Frequency: 433.92 MHz • BLE RSSI Ingestion Active • Sector GPS Mesh Synced',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AppSpacing.vGapLg,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Refresh Alerts'),
+                          onPressed: () => ref.read(activeRescueMissionProvider.notifier).loadLiveMission(),
+                        ),
+                      ),
+                      AppSpacing.hGapSm,
+                      Expanded(
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.report_problem_outlined),
+                          label: const Text('Community Reports'),
+                          onPressed: () => context.push('/rescue/community-reports'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.operations),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/features/administrator/presentation/widgets/admin_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum ServiceHealthStatus { operational, degraded, unavailable }
@@ -218,7 +215,11 @@ class _AdminPlatformHealthScreenState
                       AppSpacing.vGapLg,
 
                       // ── Live Database Volume Assessment ─────────────────
-                      _buildDatabaseVolumeSection(theme, colorScheme, dbCountsAsync.valueOrNull ?? {}),
+                      _buildDatabaseVolumeSection(
+                        theme,
+                        colorScheme,
+                        dbCountsAsync.valueOrNull ?? {},
+                      ),
 
                       AppSpacing.vGapLg,
 
@@ -232,13 +233,21 @@ class _AdminPlatformHealthScreenState
                               fontWeight: AppTypography.bold,
                             ),
                           ),
-                          if (_lastChecked != null)
-                            Text(
-                              'Checked ${_lastChecked!.toUtc().hour.toString().padLeft(2, '0')}:${_lastChecked!.toUtc().minute.toString().padLeft(2, '0')}:${_lastChecked!.toUtc().second.toString().padLeft(2, '0')} UTC',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                          if (_lastChecked != null) ...[
+                            Builder(
+                              builder: (context) {
+                                final ist = _lastChecked!.toUtc().add(const Duration(hours: 5, minutes: 30));
+                                final timeStr =
+                                    '${ist.hour.toString().padLeft(2, '0')}:${ist.minute.toString().padLeft(2, '0')}:${ist.second.toString().padLeft(2, '0')} IST';
+                                return Text(
+                                  'Checked $timeStr',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                );
+                              },
                             ),
+                          ],
                         ],
                       ),
                       AppSpacing.vGapSm,
@@ -253,10 +262,13 @@ class _AdminPlatformHealthScreenState
                 ),
               ),
             ),
+      bottomNavigationBar: const AdminBottomNavBar(currentTab: AdminTab.health),
     );
   }
 
   Widget _buildSystemHealthBanner(ThemeData theme, ColorScheme colorScheme) {
+    final isDark = theme.brightness == Brightness.dark;
+
     final allOperational = _services.every(
       (s) => s.status == ServiceHealthStatus.operational,
     );
@@ -264,62 +276,75 @@ class _AdminPlatformHealthScreenState
       (s) => s.status == ServiceHealthStatus.unavailable,
     );
 
-    final (color, title, subtitle) = hasUnavailable
+    final (color, title, subtitle, icon) = hasUnavailable
         ? (
-            AppColors.lightError,
+            const Color(0xFFE11D48),
             'Platform Disruption Detected',
-            'One or more critical services are currently unreachable. Check network connectivity.',
+            'One or more critical services are currently unreachable. Check Supabase cluster status.',
+            Icons.warning_amber_rounded,
           )
         : (!allOperational
-            ? (
-                AppColors.warning,
-                'Degraded Performance Detected',
-                'One or more services responded with elevated latency.',
-              )
-            : (
-                AppColors.success,
-                'All Monitored Services Operational',
-                'Live latency probes to Supabase PostgreSQL, Auth, and Edge endpoints nominal.',
-              ));
+              ? (
+                  const Color(0xFFD97706),
+                  'Degraded Performance Detected',
+                  'One or more services responded with elevated latency.',
+                  Icons.speed_rounded,
+                )
+              : (
+                  const Color(0xFF059669),
+                  'All Systems Fully Operational',
+                  'Live latency probes to PostgreSQL, Auth, Storage, and Edge clusters nominal.',
+                  Icons.check_circle_rounded,
+                ));
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: isDark ? 0.2 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.35 : 0.2),
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: color,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.check_circle_outline,
-              color: Colors.white,
-              size: 26,
-            ),
+            child: Icon(icon, color: Colors.white, size: 26),
           ),
-          AppSpacing.hGapMd,
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTypography.bold,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                     color: color,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -335,40 +360,107 @@ class _AdminPlatformHealthScreenState
     ColorScheme colorScheme,
     Map<String, int> counts,
   ) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Live Database Volume Assessment',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: AppTypography.bold,
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.storage_rounded,
+                  color: Colors.white,
+                  size: 18,
                 ),
               ),
-              AppChip(
-                label: 'POSTGRES LIVE',
-                backgroundColor: AppColors.success.withValues(alpha: 0.15),
-                textColor: AppColors.success,
+              const SizedBox(width: 10),
+              const Text(
+                'Supabase PostgreSQL Live Table Registry',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
             ],
           ),
-          AppSpacing.vGapSm,
+          AppSpacing.vGapMd,
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              _buildCountBadge(theme, colorScheme, 'Users (profiles)', counts['profiles'] ?? 0),
-              _buildCountBadge(theme, colorScheme, 'Registered Pets', counts['pets'] ?? 0),
-              _buildCountBadge(theme, colorScheme, 'Appointments', counts['appointments'] ?? 0),
-              _buildCountBadge(theme, colorScheme, 'Clinical Notes', counts['consultations'] ?? 0),
-              _buildCountBadge(theme, colorScheme, 'Rescue Missions', counts['rescue_missions'] ?? 0),
-              _buildCountBadge(theme, colorScheme, 'Lost Pet Alerts', counts['lost_pet_alerts'] ?? 0),
-              _buildCountBadge(theme, colorScheme, 'Shelters', counts['rescue_shelters'] ?? 0),
-              _buildCountBadge(theme, colorScheme, 'Security Audit Logs', counts['audit_logs'] ?? 0),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Users (profiles)',
+                counts['profiles'] ?? 0,
+                const Color(0xFF7C3AED),
+              ),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Registered Pets',
+                counts['pets'] ?? 0,
+                const Color(0xFF059669),
+              ),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Appointments',
+                counts['appointments'] ?? 0,
+                const Color(0xFF2563EB),
+              ),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Clinical Notes',
+                counts['consultations'] ?? 0,
+                const Color(0xFF0284C7),
+              ),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Rescue Missions',
+                counts['rescue_missions'] ?? 0,
+                const Color(0xFFEA580C),
+              ),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Lost Pet Alerts',
+                counts['lost_pet_alerts'] ?? 0,
+                const Color(0xFFDC2626),
+              ),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Shelters',
+                counts['rescue_shelters'] ?? 0,
+                const Color(0xFF8B5CF6),
+              ),
+              _buildCountBadge(
+                theme,
+                colorScheme,
+                'Security Logs',
+                counts['audit_logs'] ?? 0,
+                const Color(0xFF64748B),
+              ),
             ],
           ),
         ],
@@ -381,32 +473,42 @@ class _AdminPlatformHealthScreenState
     ColorScheme colorScheme,
     String label,
     int count,
+    Color accentColor,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      width: 140,
-      padding: const EdgeInsets.all(10),
+      width: 145,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: accentColor.withValues(alpha: isDark ? 0.3 : 0.15),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '$count',
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: colorScheme.primary,
+              fontSize: 20,
+              color: accentColor,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: theme.textTheme.labelSmall?.copyWith(
+            style: TextStyle(
               color: colorScheme.onSurfaceVariant,
-              fontSize: 10,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -418,52 +520,129 @@ class _AdminPlatformHealthScreenState
     ColorScheme colorScheme,
     ServiceHealthItem svc,
   ) {
-    final (badgeText, badgeColor) = switch (svc.status) {
-      ServiceHealthStatus.operational => ('OPERATIONAL', AppColors.success),
-      ServiceHealthStatus.degraded => ('DEGRADED', AppColors.warning),
-      ServiceHealthStatus.unavailable => ('OFFLINE', AppColors.lightError),
+    final isDark = theme.brightness == Brightness.dark;
+
+    final (badgeText, badgeColor, badgeBg) = switch (svc.status) {
+      ServiceHealthStatus.operational => (
+        'OPERATIONAL',
+        const Color(0xFF059669),
+        const Color(0xFF059669).withValues(alpha: 0.12),
+      ),
+      ServiceHealthStatus.degraded => (
+        'DEGRADED',
+        const Color(0xFFD97706),
+        const Color(0xFFD97706).withValues(alpha: 0.12),
+      ),
+      ServiceHealthStatus.unavailable => (
+        'OFFLINE',
+        const Color(0xFFE11D48),
+        const Color(0xFFE11D48).withValues(alpha: 0.12),
+      ),
     };
 
     final latencyText = svc.latencyMs != null
-        ? '${svc.latencyMs}ms round-trip'
-        : (svc.errorMessage ?? 'Latency probe n/a');
+        ? '${svc.latencyMs}ms'
+        : (svc.errorMessage ?? 'Offline');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: colorScheme.primaryContainer,
-              child: Icon(svc.icon, color: colorScheme.primary),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            AppSpacing.hGapSm,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(svc.icon, color: badgeColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      svc.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      svc.description,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    svc.name,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        letterSpacing: 0.4,
+                      ),
                     ),
                   ),
-                  Text(
-                    '${svc.description} • $latencyText',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: badgeColor,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        latencyText,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            AppChip(
-              label: badgeText,
-              backgroundColor: badgeColor.withValues(alpha: 0.15),
-              textColor: badgeColor,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

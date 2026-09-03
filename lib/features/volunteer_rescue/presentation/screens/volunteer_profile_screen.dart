@@ -13,7 +13,6 @@ import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/edi
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/widgets/volunteer_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/avatar/user_avatar.dart';
-import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
 /// Volunteer Profile Screen (Stitch ID: `0e2764c02d7e47a882bcff2157b0b1a9`).
@@ -27,11 +26,23 @@ class VolunteerProfileScreen extends ConsumerWidget {
 
     final missionsAsync = ref.watch(rescueMissionsProvider(null));
     final missions = missionsAsync.valueOrNull ?? [];
-    final completedCount = missions.where((m) => m.status == 'completed' || m.status == 'resolved').length;
+    final completedCount = missions
+        .where((m) => m.status == 'completed' || m.status == 'resolved')
+        .length;
+
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final createdAt = profile?.createdAt ?? DateTime.now();
+    final tenureDays = DateTime.now().difference(createdAt).inDays;
+    final tenureString = tenureDays < 30
+        ? '$tenureDays Days'
+        : (tenureDays < 365
+              ? '${(tenureDays / 30).floor()} Months'
+              : '${(tenureDays / 365).toStringAsFixed(1)} Years');
+    final onDuty = ref.watch(volunteerDutyStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Responder Profile'),
+        title: const Text('Volunteer Profile'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(RoutePaths.rescueHome),
@@ -58,7 +69,13 @@ class VolunteerProfileScreen extends ConsumerWidget {
                 AppSpacing.vGapLg,
 
                 // ── Service Impact Metrics ───────────────────────────
-                _buildMetricsGrid(theme, colorScheme, completedCount),
+                _buildMetricsGrid(
+                  theme,
+                  colorScheme,
+                  completedCount,
+                  tenureString,
+                  onDuty,
+                ),
 
                 AppSpacing.vGapLg,
 
@@ -76,7 +93,9 @@ class VolunteerProfileScreen extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.profile),
+      bottomNavigationBar: const VolunteerBottomNavBar(
+        currentTab: VolunteerTab.profile,
+      ),
     );
   }
 
@@ -90,24 +109,35 @@ class VolunteerProfileScreen extends ConsumerWidget {
     final displayName = (userProfile != null && userProfile.fullName.isNotEmpty)
         ? userProfile.fullName
         : (userProfile != null && userProfile.email.isNotEmpty
-            ? userProfile.email.split('@').first
-            : 'Rescue Volunteer');
+              ? userProfile.email.split('@').first
+              : 'Rescue Volunteer');
     final volId = userProfile != null && userProfile.id.length >= 6
         ? userProfile.id.substring(0, 6).toUpperCase()
         : 'VOL-01';
 
     final isOnDuty = ref.watch(volunteerDutyStatusProvider);
 
-    return AppCard(
+    return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Stack(
             children: [
-              UserAvatar(
-                imageUrl: userProfile?.avatarUrl ?? '',
-                size: 68,
-              ),
+              UserAvatar(imageUrl: userProfile?.avatarUrl ?? '', size: 68),
               Positioned(
                 bottom: 0,
                 right: 0,
@@ -116,7 +146,11 @@ class VolunteerProfileScreen extends ConsumerWidget {
                   shape: const CircleBorder(),
                   elevation: 2,
                   child: InkWell(
-                    onTap: () => _openEditVolunteerProfileDialog(context, ref, userProfile),
+                    onTap: () => _openEditVolunteerProfileDialog(
+                      context,
+                      ref,
+                      userProfile,
+                    ),
                     customBorder: const CircleBorder(),
                     child: Padding(
                       padding: const EdgeInsets.all(4.0),
@@ -160,17 +194,30 @@ class VolunteerProfileScreen extends ConsumerWidget {
                 ),
                 AppSpacing.vGapXs,
                 AppChip(
-                  label: isOnDuty ? 'ON DUTY • ACTIVE DISPATCH' : 'STANDBY • OFF DUTY',
-                  backgroundColor: isOnDuty ? AppColors.success : colorScheme.surfaceContainerHighest,
-                  textColor: isOnDuty ? AppColors.white : colorScheme.onSurfaceVariant,
+                  label: isOnDuty
+                      ? 'ON DUTY • ACTIVE DISPATCH'
+                      : 'STANDBY • OFF DUTY',
+                  backgroundColor: isOnDuty
+                      ? AppColors.success
+                      : colorScheme.surfaceContainerHighest,
+                  textColor: isOnDuty
+                      ? Colors.white
+                      : colorScheme.onSurfaceVariant,
                 ),
                 AppSpacing.vGapSm,
                 OutlinedButton.icon(
-                  onPressed: () => _openEditVolunteerProfileDialog(context, ref, userProfile),
+                  onPressed: () => _openEditVolunteerProfileDialog(
+                    context,
+                    ref,
+                    userProfile,
+                  ),
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text('Edit Responder Profile'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                   ),
                 ),
               ],
@@ -190,14 +237,20 @@ class VolunteerProfileScreen extends ConsumerWidget {
     await EditVolunteerProfileDialog.show(context, profile: currentProfile);
   }
 
-  Widget _buildMetricsGrid(ThemeData theme, ColorScheme colorScheme, int completedCount) {
+  Widget _buildMetricsGrid(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    int completedCount,
+    String tenureString,
+    bool onDuty,
+  ) {
     return Row(
       children: [
         Expanded(
           child: _buildMetricCard(
             theme,
             colorScheme,
-            value: completedCount > 0 ? '$completedCount' : '128',
+            value: '$completedCount',
             label: 'Rescues',
             icon: Icons.shield_outlined,
           ),
@@ -207,8 +260,8 @@ class VolunteerProfileScreen extends ConsumerWidget {
           child: _buildMetricCard(
             theme,
             colorScheme,
-            value: '450h',
-            label: 'Volunteered',
+            value: tenureString,
+            label: 'Service Tenure',
             icon: Icons.schedule_outlined,
           ),
         ),
@@ -217,9 +270,9 @@ class VolunteerProfileScreen extends ConsumerWidget {
           child: _buildMetricCard(
             theme,
             colorScheme,
-            value: '12m',
-            label: 'Avg Response',
-            icon: Icons.timer_outlined,
+            value: onDuty ? 'On-Duty' : 'Standby',
+            label: 'Field Status',
+            icon: onDuty ? Icons.radar : Icons.radio_button_unchecked,
           ),
         ),
       ],
@@ -233,8 +286,22 @@ class VolunteerProfileScreen extends ConsumerWidget {
     required String label,
     required IconData icon,
   }) {
-    return AppCard(
+    return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           Icon(icon, color: colorScheme.primary, size: 22),
@@ -344,7 +411,10 @@ class VolunteerProfileScreen extends ConsumerWidget {
         AppSpacing.vGapLg,
         OutlinedButton.icon(
           icon: Icon(Icons.logout, color: colorScheme.error),
-          label: Text('Sign Out of Rescue Portal', style: TextStyle(color: colorScheme.error)),
+          label: Text(
+            'Sign Out of Rescue Portal',
+            style: TextStyle(color: colorScheme.error),
+          ),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
             side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
@@ -357,10 +427,16 @@ class VolunteerProfileScreen extends ConsumerWidget {
                 title: const Text('Sign Out'),
                 content: const Text('Sign out of Volunteer & Rescue Portal?'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, true),
-                    child: Text('Sign Out', style: TextStyle(color: colorScheme.error)),
+                    child: Text(
+                      'Sign Out',
+                      style: TextStyle(color: colorScheme.error),
+                    ),
                   ),
                 ],
               ),
@@ -385,37 +461,62 @@ class VolunteerProfileScreen extends ConsumerWidget {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return AppCard(
+    return InkWell(
       onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(icon, color: colorScheme.primary, size: 20),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.35),
           ),
-          AppSpacing.hGapSm,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(icon, color: colorScheme.primary, size: 20),
+            ),
+            AppSpacing.hGapSm,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: AppTypography.bold,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
       ),
     );
   }

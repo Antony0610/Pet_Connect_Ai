@@ -40,11 +40,11 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
   int _emoteCycleIndex = 0;
 
   static const List<String> _digitalEmotes = [
-    '( ^ _ ^ )',
-    '( ^ _ ~ )',
-    '( ♥ _ ♥ )',
-    '( ★ _ ★ )',
-    '( * _ * )',
+    '^ ‿ ^',
+    '^ ‿ ~',
+    '♥ ‿ ♥',
+    '★ ‿ ★',
+    '● ‿ ●',
   ];
 
   @override
@@ -53,44 +53,44 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
     _loadMascotPreference();
     MascotChangeNotifier.instance.addListener(_handleMascotChange);
 
-    // 1. Dual-Harmonic Floating Physics (Smooth hover bobbing loop)
+    // 1. Dual-Harmonic Floating Physics (Smooth slower hover bobbing loop)
     _floatController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2600),
+      duration: const Duration(milliseconds: 3800),
     )..repeat(reverse: true);
 
-    _floatAnim = Tween<double>(begin: 0.0, end: -10.0).animate(
+    _floatAnim = Tween<double>(begin: 0.0, end: -9.0).animate(
       CurvedAnimation(parent: _floatController, curve: Curves.easeInOutSine),
     );
 
     _glowAnim = Tween<double>(begin: 0.45, end: 0.95).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOutCubic),
+      CurvedAnimation(parent: _floatController, curve: Curves.easeInOutSine),
     );
 
-    // 2. Active Articulated Robotic Arm Waving Animation (Continuous Gentle Wave + Tap Wave)
+    // 2. Active Articulated Robotic Arm Waving Animation (Gentle, organic wave)
     _waveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 2200),
     )..repeat(reverse: true);
 
     _waveRotation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: -0.15, end: 0.45), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: 0.45, end: -0.25), weight: 35),
-      TweenSequenceItem(tween: Tween(begin: -0.25, end: -0.15), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: -0.12, end: 0.42), weight: 45),
+      TweenSequenceItem(tween: Tween(begin: 0.42, end: -0.20), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: -0.20, end: -0.12), weight: 20),
     ]).animate(CurvedAnimation(parent: _waveController, curve: Curves.easeInOutSine));
 
     _waveScale = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.08), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.08, end: 1.0), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.04), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.04, end: 1.0), weight: 50),
     ]).animate(CurvedAnimation(parent: _waveController, curve: Curves.easeInOut));
 
-    // 3. Pulse Aura Controller
+    // 3. Pulse Aura Controller (3000ms)
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 3000),
     )..repeat(reverse: true);
 
-    _pulseScale = Tween<double>(begin: 0.96, end: 1.05).animate(
+    _pulseScale = Tween<double>(begin: 0.96, end: 1.04).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
@@ -324,7 +324,7 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
                         ),
                       ),
 
-                      // ── 3. 3D Mascot Character Render Chassis (Hero Flight to AI Chat) ────
+                      // ── 3. Freestanding 3D Mascot Character (Hero Flight to AI Chat) ────
                       Hero(
                         tag: 'ai-mascot-avatar-hero',
                         flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
@@ -334,184 +334,15 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
                             child: fromHeroContext.widget,
                           );
                         },
-                        child: Transform.rotate(
-                          angle: _waveRotation.value * 0.25,
-                          child: Transform.scale(
-                            scale: _pressed ? 0.90 : _waveScale.value,
-                            child: Container(
-                              width: 70,
-                              height: 70,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  Colors.white,
-                                  glowColor.withValues(alpha: 0.2),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: glowColor,
-                                width: 2.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: glowColor.withValues(alpha: 0.6),
-                                  blurRadius: 16,
-                                  spreadRadius: 2,
-                                ),
-                                const BoxShadow(
-                                  color: Colors.black45,
-                                  blurRadius: 10,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                // High-Definition 3D Mascot Character Model Image
-                                Positioned.fill(
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      _selectedMascot.assetPath,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-
-                                // Curved Gloss Visor Specular Reflection
-                                Positioned(
-                                  top: 3,
-                                  left: 10,
-                                  right: 10,
-                                  height: 14,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          Colors.white.withValues(alpha: 0.45),
-                                          Colors.transparent,
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                ),
-
-                                // Digital Visor Emote Overlay at Bottom
-                                Positioned(
-                                  bottom: 4,
-                                  left: 0,
-                                  right: 0,
-                                  child: Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(alpha: 0.75),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: glowColor.withValues(alpha: 0.6),
-                                          width: 0.8,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        currentEmote,
-                                        style: TextStyle(
-                                          color: glowColor,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                          shadows: [
-                                            Shadow(
-                                              color: glowColor,
-                                              blurRadius: 6,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                      // ── 4. ARTICULATED ANIMATED WAVING HAND & ARM (Active Real-Time Wave Arc) ──
-                      Positioned(
-                        top: 2,
-                        right: -10,
-                        child: Transform.rotate(
-                          angle: _waveRotation.value * 2.6,
-                          alignment: Alignment.bottomLeft,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Waving Hand / Cyber Paw / Emote Glove
-                              Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.white,
-                                      glowColor.withValues(alpha: 0.3),
-                                    ],
-                                  ),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: glowColor, width: 2.2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: glowColor.withValues(alpha: 0.95),
-                                      blurRadius: 12,
-                                      spreadRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  _selectedMascot.emoteIcon,
-                                  size: 16,
-                                  color: glowColor,
-                                ),
-                              ),
-                              // Arm Link
-                              Container(
-                                width: 5,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(3),
-                                  border: Border.all(
-                                    color: glowColor.withValues(alpha: 0.8),
-                                    width: 1.2,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // ── 5. Live Online Beacon ────────────────────────────────
-                      Positioned(
-                        bottom: 0,
-                        right: 2,
-                        child: Container(
-                          width: 13,
-                          height: 13,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.9),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ],
+                        child: Transform.scale(
+                          scale: _pressed ? 0.90 : _waveScale.value,
+                          child: FreestandingBotCharacter(
+                            size: 76,
+                            style: _selectedMascot,
+                            glowColor: glowColor,
+                            waveRotation: _waveRotation.value * 2.8,
+                            glowValue: _glowAnim.value,
+                            emote: currentEmote,
                           ),
                         ),
                       ),

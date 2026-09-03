@@ -8,7 +8,6 @@ import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/rescue_mission.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
@@ -23,7 +22,8 @@ class NearbyRescueRequestsScreen extends ConsumerStatefulWidget {
 class _NearbyRescueRequestsScreenState
     extends ConsumerState<NearbyRescueRequestsScreen> {
   String _selectedFilter = 'All';
-  final double _deviceLat = 12.9716; // User coordinate baseline (Bengaluru Central)
+  final double _deviceLat =
+      12.9716; // User coordinate baseline (Bengaluru Central)
   final double _deviceLng = 77.5946;
 
   void _openCreateAlertDialog() async {
@@ -73,7 +73,8 @@ class _NearbyRescueRequestsScreenState
                 maxLines: 2,
                 decoration: const InputDecoration(
                   labelText: 'Distinct Features & Circumstances',
-                  hintText: 'e.g. Red collar with brass tag, frightened by fireworks.',
+                  hintText:
+                      'e.g. Red collar with brass tag, frightened by fireworks.',
                   prefixIcon: Icon(Icons.description),
                 ),
               ),
@@ -113,7 +114,8 @@ class _NearbyRescueRequestsScreenState
         latitude: _deviceLat + (0.005 * (now.millisecond % 5)),
         longitude: _deviceLng + (0.005 * (now.millisecond % 4)),
         lastSeenTime: now,
-        description: '${petNameCtrl.text.trim()} (${breedCtrl.text.trim()}): ${descCtrl.text.trim()}',
+        description:
+            '${petNameCtrl.text.trim()} (${breedCtrl.text.trim()}): ${descCtrl.text.trim()}',
         contactPhone: phoneCtrl.text.trim(),
         rewardAmount: '500',
         createdAt: now,
@@ -126,7 +128,9 @@ class _NearbyRescueRequestsScreenState
         (failure) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to broadcast alert: ${failure.message}')),
+              SnackBar(
+                content: Text('Failed to broadcast alert: ${failure.message}'),
+              ),
             );
           }
         },
@@ -134,7 +138,11 @@ class _NearbyRescueRequestsScreenState
           ref.invalidate(activeLostPetAlertsProvider);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Emergency alert broadcast for ${petNameCtrl.text.trim()}!')),
+              SnackBar(
+                content: Text(
+                  'Emergency alert broadcast for ${petNameCtrl.text.trim()}!',
+                ),
+              ),
             );
           }
         },
@@ -156,7 +164,8 @@ class _NearbyRescueRequestsScreenState
       priority: 'HIGH',
       status: 'in_progress',
       searchRadiusMeters: 2500,
-      notes: 'Dispatched to ${alert.lastSeenLocation}. Initial responder on route.',
+      notes:
+          'Dispatched to ${alert.lastSeenLocation}. Initial responder on route.',
       startedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -168,7 +177,9 @@ class _NearbyRescueRequestsScreenState
       (failure) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to accept mission: ${failure.message}')),
+            SnackBar(
+              content: Text('Failed to accept mission: ${failure.message}'),
+            ),
           );
         }
       },
@@ -202,7 +213,12 @@ class _NearbyRescueRequestsScreenState
         return desc.contains('urgent');
       }
       if (_selectedFilter == 'Within 2km') {
-        final dist = calculateDistanceKm(_deviceLat, _deviceLng, alert.latitude, alert.longitude);
+        final dist = calculateDistanceKm(
+          _deviceLat,
+          _deviceLng,
+          alert.latitude,
+          alert.longitude,
+        );
         return dist <= 2.0;
       }
       return true;
@@ -282,16 +298,24 @@ class _NearbyRescueRequestsScreenState
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.check_circle_outline, size: 48, color: colorScheme.primary),
+                          Icon(
+                            Icons.check_circle_outline,
+                            size: 48,
+                            color: colorScheme.primary,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             'No active rescue alerts in this sector.',
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'All reported animals are currently safe or dispatched.',
-                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -299,7 +323,8 @@ class _NearbyRescueRequestsScreenState
                   )
                 else
                   ...filteredAlerts.map(
-                    (alert) => _buildAlertCard(context, theme, colorScheme, alert),
+                    (alert) =>
+                        _buildAlertCard(context, theme, colorScheme, alert),
                   ),
 
                 AppSpacing.vGapXl,
@@ -343,24 +368,52 @@ class _NearbyRescueRequestsScreenState
     ColorScheme colorScheme,
     LostPetAlert alert,
   ) {
-    final distKm = calculateDistanceKm(_deviceLat, _deviceLng, alert.latitude, alert.longitude);
+    final distKm = calculateDistanceKm(
+      _deviceLat,
+      _deviceLng,
+      alert.latitude,
+      alert.longitude,
+    );
     final title = (alert.description != null && alert.description!.isNotEmpty)
         ? alert.description!.split(':').first
         : 'Lost Pet Alert';
+    final isCritical = alert.alertStatus == 'ACTIVE';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: AppCard(
+      child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: colorScheme.primaryContainer,
-                  child: Icon(Icons.pets, color: colorScheme.primary),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isCritical ? colorScheme.error : colorScheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.pets_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
                 AppSpacing.hGapSm,
                 Expanded(
@@ -376,15 +429,19 @@ class _NearbyRescueRequestsScreenState
                       Row(
                         children: [
                           Icon(
-                            Icons.location_on,
+                            Icons.location_on_rounded,
                             size: 14,
                             color: colorScheme.primary,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            '${distKm.toStringAsFixed(1)} km away • ${alert.lastSeenLocation}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                          Expanded(
+                            child: Text(
+                              '${distKm.toStringAsFixed(1)} km away • ${alert.lastSeenLocation}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -392,14 +449,26 @@ class _NearbyRescueRequestsScreenState
                     ],
                   ),
                 ),
-                AppChip(
-                  label: alert.alertStatus,
-                  backgroundColor: alert.alertStatus == 'ACTIVE'
-                      ? colorScheme.error.withValues(alpha: 0.15)
-                      : colorScheme.primary.withValues(alpha: 0.15),
-                  textColor: alert.alertStatus == 'ACTIVE'
-                      ? colorScheme.error
-                      : colorScheme.primary,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        (isCritical ? colorScheme.error : colorScheme.primary)
+                            .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    alert.alertStatus,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: isCritical
+                          ? colorScheme.error
+                          : colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -410,7 +479,8 @@ class _NearbyRescueRequestsScreenState
                 color: colorScheme.onSurface,
               ),
             ),
-            if (alert.contactPhone != null && alert.contactPhone!.isNotEmpty) ...[
+            if (alert.contactPhone != null &&
+                alert.contactPhone!.isNotEmpty) ...[
               AppSpacing.vGapSm,
               Text(
                 'Contact: ${alert.contactPhone}',
@@ -424,23 +494,50 @@ class _NearbyRescueRequestsScreenState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (alert.rewardAmount != null && alert.rewardAmount!.isNotEmpty)
-                  AppChip(
-                    label: 'Reward: \$${alert.rewardAmount}',
-                    backgroundColor: AppColors.success.withValues(alpha: 0.15),
-                    textColor: AppColors.success,
+                if (alert.rewardAmount != null &&
+                    alert.rewardAmount!.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Reward: ₹${alert.rewardAmount}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   )
                 else
-                  AppChip(
-                    label: 'GPS Tagged',
-                    backgroundColor: colorScheme.surfaceContainerHighest,
-                    textColor: colorScheme.onSurfaceVariant,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'GPS Tagged',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                AppButton(
-                  text: 'Accept Mission',
-                  icon: Icons.check_circle_outline,
+                FilledButton.icon(
+                  icon: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 16,
+                  ),
+                  label: const Text('Accept Mission'),
                   onPressed: () => _acceptMission(alert),
-                  height: 36,
                 ),
               ],
             ),

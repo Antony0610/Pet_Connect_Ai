@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_alert.dart';
@@ -14,7 +13,6 @@ import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/portal_notification_badge_button.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/quick_action_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
 class MissionDashboardScreen extends ConsumerStatefulWidget {
   const MissionDashboardScreen({super.key});
@@ -39,7 +37,14 @@ class _MissionDashboardScreenState
 
     final missionsAsync = ref.watch(rescueMissionsProvider(null));
     final missions = missionsAsync.valueOrNull ?? [];
-    final activeMissions = missions.where((m) => m.status == 'in_progress' || m.status == 'active' || m.status == 'pending').toList();
+    final activeMissions = missions
+        .where(
+          (m) =>
+              m.status == 'in_progress' ||
+              m.status == 'active' ||
+              m.status == 'pending',
+        )
+        .toList();
 
     final sheltersAsync = ref.watch(rescueSheltersProvider);
     final shelters = sheltersAsync.valueOrNull ?? [];
@@ -103,12 +108,22 @@ class _MissionDashboardScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Status Banner & Duty Toggle ─────────────────────
-                _buildDutyStatusCard(theme, colorScheme, rescueAccent, isOnDuty),
+                _buildDutyStatusCard(
+                  theme,
+                  colorScheme,
+                  rescueAccent,
+                  isOnDuty,
+                ),
 
                 AppSpacing.vGapLg,
 
                 // ── Priority Urgent Rescue Alert Banner ───────────────
-                _buildUrgentAlertBanner(context, theme, colorScheme, latestAlert),
+                _buildUrgentAlertBanner(
+                  context,
+                  theme,
+                  colorScheme,
+                  latestAlert,
+                ),
 
                 AppSpacing.vGapLg,
 
@@ -139,7 +154,9 @@ class _MissionDashboardScreenState
           ),
         ),
       ),
-      bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.dashboard),
+      bottomNavigationBar: const VolunteerBottomNavBar(
+        currentTab: VolunteerTab.dashboard,
+      ),
     );
   }
 
@@ -214,18 +231,79 @@ class _MissionDashboardScreenState
     ColorScheme colorScheme,
     LostPetAlert? latestAlert,
   ) {
-    final title = latestAlert != null
-        ? 'Urgent Alert: ${(latestAlert.description != null && latestAlert.description!.isNotEmpty) ? latestAlert.description! : "Lost Pet Signal"}'
-        : 'Urgent Rescue: Archie (Golden Retriever)';
-    final location = latestAlert != null
-        ? latestAlert.lastSeenLocation
-        : 'Reported wandering near 5th & Main St. Collar visible.';
+    if (latestAlert == null) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.success,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.verified_user_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Perimeter Status: All Sectors Clear',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'No active high-priority emergency distress signals in your sector.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: 'Refresh Telemetry',
+              onPressed: () => ref.invalidate(activeLostPetAlertsProvider),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final title =
+        (latestAlert.description != null && latestAlert.description!.isNotEmpty)
+        ? latestAlert.description!
+        : 'Emergency Signal #${latestAlert.id.substring(0, latestAlert.id.length > 6 ? 6 : latestAlert.id.length)}';
+    final location = latestAlert.lastSeenLocation;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: colorScheme.errorContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colorScheme.error.withValues(alpha: 0.4)),
       ),
       child: Column(
@@ -233,18 +311,40 @@ class _MissionDashboardScreenState
         children: [
           Row(
             children: [
-              AppChip(
-                label: 'CRITICAL PRIORITY',
-                backgroundColor: colorScheme.error,
-                textColor: colorScheme.onError,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.error,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'CRITICAL PRIORITY',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onError,
+                  ),
+                ),
               ),
               const Spacer(),
-              Text(
-                '0.4 km away',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: AppTypography.bold,
-                  color: colorScheme.error,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.sensors_rounded,
+                    size: 16,
+                    color: colorScheme.error,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Live Beacon Signal',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: AppTypography.bold,
+                      color: colorScheme.error,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -268,7 +368,7 @@ class _MissionDashboardScreenState
             children: [
               AppButton(
                 text: 'Respond Now',
-                icon: Icons.directions_run,
+                icon: Icons.directions_run_rounded,
                 onPressed: () => context.push(RoutePaths.rescueRequests),
                 backgroundColor: colorScheme.error,
                 textColor: colorScheme.onError,
@@ -276,7 +376,7 @@ class _MissionDashboardScreenState
               ),
               AppSpacing.hGapSm,
               OutlinedButton.icon(
-                icon: const Icon(Icons.map_outlined, size: 18),
+                icon: const Icon(Icons.map_rounded, size: 18),
                 label: const Text('Telemetry HUD'),
                 onPressed: () => context.push(RoutePaths.rescueOperations),
               ),
@@ -303,8 +403,10 @@ class _MissionDashboardScreenState
             theme,
             colorScheme,
             title: 'Active Operations',
-            value: activeMissionsCount > 0 ? '$activeMissionsCount Live' : '3 Live',
-            icon: Icons.sensors,
+            value: activeMissionsCount > 0
+                ? '$activeMissionsCount Live'
+                : 'Standby',
+            icon: Icons.sensors_rounded,
             color: rescueAccent,
             onTap: () => context.push(RoutePaths.rescueOperations),
           ),
@@ -315,7 +417,9 @@ class _MissionDashboardScreenState
             theme,
             colorScheme,
             title: 'Nearby Requests',
-            value: nearbyRequestsCount > 0 ? '$nearbyRequestsCount Urgent' : '12 Urgent',
+            value: nearbyRequestsCount > 0
+                ? '$nearbyRequestsCount Urgent'
+                : '0 Active',
             icon: Icons.warning_amber_rounded,
             color: AppColors.warning,
             onTap: () => context.push(RoutePaths.rescueRequests),
@@ -327,8 +431,8 @@ class _MissionDashboardScreenState
             theme,
             colorScheme,
             title: 'EOC Shelters',
-            value: sheltersCount > 0 ? '$sheltersCount Active' : 'Level 2',
-            icon: Icons.emergency,
+            value: sheltersCount > 0 ? '$sheltersCount Active' : 'Ready',
+            icon: Icons.emergency_rounded,
             color: colorScheme.error,
             onTap: () => context.push(RoutePaths.rescueEmergencyOps),
           ),
@@ -346,37 +450,62 @@ class _MissionDashboardScreenState
     required Color color,
     required VoidCallback onTap,
   }) {
-    return AppCard(
+    return InkWell(
       onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: 22),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 12,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 20),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+            AppSpacing.vGapSm,
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: AppTypography.bold,
+              ),
+            ),
+            Text(
+              title,
+              style: theme.textTheme.labelSmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          Text(
-            value,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: AppTypography.bold,
             ),
-          ),
-          Text(
-            title,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -448,10 +577,14 @@ class _MissionDashboardScreenState
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: isDesktop ? 1.05 : 0.85,
+                childAspectRatio: 1.0,
               ),
               itemBuilder: (context, index) {
-                return QuickActionButton.fromSpec(actions[index]);
+                return QuickActionButton.fromSpec(
+                  actions[index],
+                  containerSize: 44,
+                  iconSize: 22,
+                );
               },
             );
           },
@@ -480,56 +613,98 @@ class _MissionDashboardScreenState
             ),
             TextButton(
               onPressed: () => context.push(RoutePaths.rescueRequests),
-              child: Text('View All (${alerts.isNotEmpty ? alerts.length : 12})'),
+              child: Text('View All (${alerts.length})'),
             ),
           ],
         ),
         AppSpacing.vGapSm,
-        AppCard(
+        Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           child: alerts.isNotEmpty
               ? Column(
                   children: alerts.take(3).map((alert) {
+                    final isResolved =
+                        alert.alertStatus.toLowerCase() == 'resolved';
+                    final statusColor = isResolved
+                        ? AppColors.success
+                        : colorScheme.error;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
                       child: _buildIncidentItem(
                         theme,
                         colorScheme,
-                        title: (alert.description != null && alert.description!.isNotEmpty)
+                        title:
+                            (alert.description != null &&
+                                alert.description!.isNotEmpty)
                             ? alert.description!
                             : 'Lost Pet Signal #${alert.id.substring(0, alert.id.length > 6 ? 6 : alert.id.length)}',
                         location: '${alert.lastSeenLocation} • Live GPS',
-                        time: 'Active',
+                        time: 'Active Alert',
                         status: alert.alertStatus,
-                        statusColor: alert.alertStatus == 'ACTIVE'
-                            ? colorScheme.error
-                            : AppColors.warning,
+                        statusColor: statusColor,
                       ),
                     );
                   }).toList(),
                 )
-              : Column(
-                  children: [
-                    _buildIncidentItem(
-                      theme,
-                      colorScheme,
-                      title: 'Luna - Siberian Husky (Spotted)',
-                      location: 'Pine Ridge Trail • 200m away',
-                      time: '3 mins ago',
-                      status: 'Sighting Verified',
-                      statusColor: AppColors.success,
+              : Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 26,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No Active Incidents in Sector',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'All distress alerts are resolved or pending dispatch. Check surrounding zones for requests.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.radar_rounded, size: 16),
+                          label: const Text('View All Requests'),
+                          onPressed: () =>
+                              context.push(RoutePaths.rescueRequests),
+                        ),
+                      ],
                     ),
-                    const Divider(height: 20),
-                    _buildIncidentItem(
-                      theme,
-                      colorScheme,
-                      title: 'Mittens - Tuxedo Cat',
-                      location: 'Market St & 8th • 1.8km away',
-                      time: '18 mins ago',
-                      status: 'Dispatch Pending',
-                      statusColor: AppColors.warning,
-                    ),
-                  ],
+                  ),
                 ),
         ),
       ],
@@ -547,9 +722,14 @@ class _MissionDashboardScreenState
   }) {
     return Row(
       children: [
-        CircleAvatar(
-          backgroundColor: colorScheme.surfaceContainerHigh,
-          child: Icon(Icons.pets, color: colorScheme.primary, size: 20),
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.pets_rounded, color: Colors.white, size: 20),
         ),
         AppSpacing.hGapSm,
         Expanded(
@@ -574,10 +754,19 @@ class _MissionDashboardScreenState
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            AppChip(
-              label: status,
-              backgroundColor: statusColor.withValues(alpha: 0.15),
-              textColor: statusColor,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                status,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: statusColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             AppSpacing.vGapXs,
             Text(

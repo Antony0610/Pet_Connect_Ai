@@ -2,17 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_user_entry.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/features/administrator/presentation/widgets/admin_bottom_nav_bar.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
-import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/inputs/app_text_field.dart';
 
@@ -119,13 +117,19 @@ class _AdminUserManagementScreenState
             icon: const Icon(Icons.download_outlined),
             onPressed: () {
               final users = usersAsync.valueOrNull ?? [];
-              final csvBuffer = StringBuffer('ID,Full Name,Email,Role,Created At\n');
+              final csvBuffer = StringBuffer(
+                'ID,Full Name,Email,Role,Created At\n',
+              );
               for (final u in users) {
-                csvBuffer.writeln('"${u.id}","${u.fullName}","${u.email ?? ''}","${u.role}","${u.createdAt.toIso8601String()}"');
+                csvBuffer.writeln(
+                  '"${u.id}","${u.fullName}","${u.email ?? ''}","${u.role}","${u.createdAt.toIso8601String()}"',
+                );
               }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Exported ${users.length} accounts to user_directory.csv'),
+                  content: Text(
+                    'Exported ${users.length} accounts to user_directory.csv',
+                  ),
                   action: SnackBarAction(label: 'OK', onPressed: () {}),
                 ),
               );
@@ -155,7 +159,9 @@ class _AdminUserManagementScreenState
         data: (users) =>
             _buildUserDirectoryBody(theme, colorScheme, adminAccent, users),
       ),
-      bottomNavigationBar: _buildBottomNav(context, theme, colorScheme),
+      bottomNavigationBar: const AdminBottomNavBar(
+        currentTab: AdminTab.directory,
+      ),
     );
   }
 
@@ -176,7 +182,9 @@ class _AdminUserManagementScreenState
     // Compute live stats from actual data
     final totalUsers = allUsers.length;
     final activeVets = allUsers.where((u) => u.role == 'veterinarian').length;
-    final rescuers = allUsers.where((u) => u.role == 'volunteer_rescue' || u.role == 'volunteer').length;
+    final rescuers = allUsers
+        .where((u) => u.role == 'volunteer_rescue' || u.role == 'volunteer')
+        .length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -272,8 +280,8 @@ class _AdminUserManagementScreenState
             colorScheme,
             value: totalUsers.toString(),
             label: 'Total Users',
-            icon: Icons.group_outlined,
-            color: adminAccent,
+            icon: Icons.people_alt_rounded,
+            color: const Color(0xFF7C3AED),
           ),
         ),
         AppSpacing.hGapSm,
@@ -283,8 +291,8 @@ class _AdminUserManagementScreenState
             colorScheme,
             value: activeVets.toString(),
             label: 'Active Vets',
-            icon: Icons.local_hospital_outlined,
-            color: colorScheme.primary,
+            icon: Icons.medical_services_rounded,
+            color: const Color(0xFF2563EB),
           ),
         ),
         AppSpacing.hGapSm,
@@ -294,8 +302,8 @@ class _AdminUserManagementScreenState
             colorScheme,
             value: rescuers.toString(),
             label: 'Rescuers',
-            icon: Icons.shield_outlined,
-            color: AppColors.success,
+            icon: Icons.health_and_safety_rounded,
+            color: const Color(0xFFEA580C),
           ),
         ),
       ],
@@ -310,24 +318,51 @@ class _AdminUserManagementScreenState
     required IconData icon,
     required Color color,
   }) {
-    return AppCard(
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.25 : 0.15),
+          width: 1,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 22),
-          AppSpacing.vGapXs,
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          AppSpacing.vGapSm,
           Text(
             value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: AppTypography.bold,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
             ),
           ),
           Text(
             label,
             style: theme.textTheme.labelSmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
-              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
             ),
           ),
         ],
@@ -336,15 +371,57 @@ class _AdminUserManagementScreenState
   }
 
   Widget _buildQuickModulesRow(ThemeData theme, ColorScheme colorScheme) {
+    final isDark = theme.brightness == Brightness.dark;
+
     final modules = [
-      {'label': 'Staff & Ops', 'icon': Icons.badge_outlined, 'path': RoutePaths.adminStaff},
-      {'label': 'CMS Articles', 'icon': Icons.article_outlined, 'path': RoutePaths.adminContent},
-      {'label': 'Platform Analytics', 'icon': Icons.insights_outlined, 'path': RoutePaths.adminReports},
-      {'label': 'Security Posture', 'icon': Icons.security_outlined, 'path': RoutePaths.adminSecurity},
-      {'label': 'System Health', 'icon': Icons.monitor_heart_outlined, 'path': RoutePaths.adminHealth},
-      {'label': 'Global Settings', 'icon': Icons.tune_outlined, 'path': RoutePaths.adminSettings},
-      {'label': 'Moderation Queue', 'icon': Icons.gavel_outlined, 'path': RoutePaths.adminModeration},
-      {'label': 'Audit Logs', 'icon': Icons.receipt_long_outlined, 'path': RoutePaths.adminAuditLogs},
+      {
+        'label': 'Staff & Ops',
+        'icon': Icons.badge_outlined,
+        'color': const Color(0xFF2563EB),
+        'path': RoutePaths.adminStaff,
+      },
+      {
+        'label': 'CMS Articles',
+        'icon': Icons.article_outlined,
+        'color': const Color(0xFF059669),
+        'path': RoutePaths.adminContent,
+      },
+      {
+        'label': 'Analytics',
+        'icon': Icons.insights_outlined,
+        'color': const Color(0xFF7C3AED),
+        'path': RoutePaths.adminReports,
+      },
+      {
+        'label': 'Security Posture',
+        'icon': Icons.security_outlined,
+        'color': const Color(0xFFDC2626),
+        'path': RoutePaths.adminSecurity,
+      },
+      {
+        'label': 'System Health',
+        'icon': Icons.dns_outlined,
+        'color': const Color(0xFF0284C7),
+        'path': RoutePaths.adminHealth,
+      },
+      {
+        'label': 'Global Settings',
+        'icon': Icons.tune_outlined,
+        'color': const Color(0xFFEA580C),
+        'path': RoutePaths.adminSettings,
+      },
+      {
+        'label': 'Moderation',
+        'icon': Icons.gavel_outlined,
+        'color': const Color(0xFF8B5CF6),
+        'path': RoutePaths.adminModeration,
+      },
+      {
+        'label': 'Audit Logs',
+        'icon': Icons.receipt_long_outlined,
+        'color': const Color(0xFF64748B),
+        'path': RoutePaths.adminAuditLogs,
+      },
     ];
 
     return SingleChildScrollView(
@@ -352,15 +429,61 @@ class _AdminUserManagementScreenState
       child: Row(
         children: modules.map((m) {
           final icon = m['icon'] as IconData;
+          final color = m['color'] as Color;
           final label = m['label'] as String;
           final path = m['path'] as String;
 
           return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ActionChip(
-              avatar: Icon(icon, size: 16, color: colorScheme.primary),
-              label: Text(label, style: const TextStyle(fontSize: 12)),
-              onPressed: () => context.push(path),
+            padding: const EdgeInsets.only(right: 10.0),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => context.push(path),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (isDark ? Colors.white : Colors.black).withValues(
+                      alpha: 0.08,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.04,
+                      ),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         }).toList(),
@@ -400,113 +523,206 @@ class _AdminUserManagementScreenState
     ColorScheme colorScheme,
     AdminUserEntry user,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
     final joined =
         '${_monthName(user.createdAt.month)} ${user.createdAt.day.toString().padLeft(2, '0')}, ${user.createdAt.year}';
 
+    final (roleBadgeColor, roleLabel, roleIcon) = switch (user.role) {
+      'administrator' => (
+        const Color(0xFF7C3AED),
+        'ADMIN',
+        Icons.shield_rounded,
+      ),
+      'veterinarian' => (
+        const Color(0xFF2563EB),
+        'VET DVM',
+        Icons.medical_services_rounded,
+      ),
+      'volunteer_rescue' || 'volunteer' => (
+        const Color(0xFFEA580C),
+        'RESCUER',
+        Icons.health_and_safety_rounded,
+      ),
+      _ => (const Color(0xFF059669), 'PET OWNER', Icons.pets_rounded),
+    };
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          onTap: () => _showEditRoleDialog(context, user),
-          child: AppCard(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: colorScheme.primaryContainer,
-                  backgroundImage: user.avatarUrl != null
-                      ? NetworkImage(user.avatarUrl!)
-                      : null,
-                  child: user.avatarUrl == null
-                      ? Icon(Icons.person, color: colorScheme.primary)
-                      : null,
-                ),
-                AppSpacing.hGapSm,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => _showEditRoleDialog(context, user),
+            child: Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: roleBadgeColor.withValues(alpha: 0.15),
+                    backgroundImage: user.avatarUrl != null
+                        ? NetworkImage(user.avatarUrl!)
+                        : null,
+                    child: user.avatarUrl == null
+                        ? Text(
+                            user.fullName.isNotEmpty
+                                ? user.fullName[0].toUpperCase()
+                                : 'U',
+                            style: TextStyle(
+                              color: roleBadgeColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                user.fullName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: roleBadgeColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    roleIcon,
+                                    size: 10,
+                                    color: roleBadgeColor,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    roleLabel,
+                                    style: TextStyle(
+                                      color: roleBadgeColor,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 10,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${user.email ?? 'No email'} • Joined $joined',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            user.fullName,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: AppTypography.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: user.isSuspended
+                              ? const Color(0xFFE11D48).withValues(alpha: 0.12)
+                              : const Color(0xFF10B981).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          user.isSuspended ? 'Suspended' : 'Active',
+                          style: TextStyle(
+                            color: user.isSuspended
+                                ? const Color(0xFFE11D48)
+                                : const Color(0xFF10B981),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_horiz, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onSelected: (action) {
+                          if (action == 'Edit Role') {
+                            _showEditRoleDialog(context, user);
+                          } else if (action == 'Suspend Account') {
+                            _toggleSuspendUser(context, user);
+                          } else if (action == 'Reset Password') {
+                            _resetUserPassword(context, user);
+                          } else if (action == 'Delete Account') {
+                            _showDeleteUserDialog(context, user);
+                          }
+                        },
+                        itemBuilder: (ctx) => [
+                          const PopupMenuItem(
+                            value: 'Edit Role',
+                            child: Text('Edit Role'),
+                          ),
+                          PopupMenuItem(
+                            value: 'Suspend Account',
+                            child: Text(
+                              user.isSuspended
+                                  ? 'Reactivate Account'
+                                  : 'Suspend Account',
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '• ${_displayRole(user.role)}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                          const PopupMenuItem(
+                            value: 'Reset Password',
+                            child: Text('Reset Password'),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem(
+                            value: 'Delete Account',
+                            child: Text(
+                              'Delete Account',
+                              style: TextStyle(color: colorScheme.error),
                             ),
                           ),
                         ],
                       ),
-                      Text(
-                        '${user.email ?? 'No email'} • Joined $joined',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 11,
-                        ),
-                      ),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    AppChip(
-                      label: user.isSuspended ? 'Suspended' : 'Active',
-                      backgroundColor: user.isSuspended
-                          ? colorScheme.error.withValues(alpha: 0.15)
-                          : colorScheme.primary.withValues(alpha: 0.15),
-                      textColor: user.isSuspended
-                          ? colorScheme.error
-                          : colorScheme.primary,
-                    ),
-                    AppSpacing.vGapXs,
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, size: 18),
-                      onSelected: (action) {
-                        if (action == 'Edit Role') {
-                          _showEditRoleDialog(context, user);
-                        } else if (action == 'Suspend Account') {
-                          _toggleSuspendUser(context, user);
-                        } else if (action == 'Reset Password') {
-                          _resetUserPassword(context, user);
-                        } else if (action == 'Delete Account') {
-                          _showDeleteUserDialog(context, user);
-                        }
-                      },
-                      itemBuilder: (ctx) => [
-                        const PopupMenuItem(
-                          value: 'Edit Role',
-                          child: Text('Edit Role'),
-                        ),
-                        PopupMenuItem(
-                          value: 'Suspend Account',
-                          child: Text(user.isSuspended ? 'Reactivate Account' : 'Suspend Account'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'Reset Password',
-                          child: Text('Reset Password'),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem(
-                          value: 'Delete Account',
-                          child: Text(
-                            'Delete Account',
-                            style: TextStyle(color: colorScheme.error),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -545,15 +761,30 @@ class _AdminUserManagementScreenState
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                initialValue: (selectedRole == 'volunteer') ? 'volunteer_rescue' : selectedRole,
+                initialValue: (selectedRole == 'volunteer')
+                    ? 'volunteer_rescue'
+                    : selectedRole,
                 decoration: const InputDecoration(labelText: 'Portal Role'),
                 items: const [
-                  DropdownMenuItem(value: 'pet_owner', child: Text('Pet Owner')),
-                  DropdownMenuItem(value: 'veterinarian', child: Text('Veterinarian')),
-                  DropdownMenuItem(value: 'volunteer_rescue', child: Text('Volunteer / Rescue')),
-                  DropdownMenuItem(value: 'administrator', child: Text('Administrator')),
+                  DropdownMenuItem(
+                    value: 'pet_owner',
+                    child: Text('Pet Owner'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'veterinarian',
+                    child: Text('Veterinarian'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'volunteer_rescue',
+                    child: Text('Volunteer / Rescue'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'administrator',
+                    child: Text('Administrator'),
+                  ),
                 ],
-                onChanged: (v) => setModalState(() => selectedRole = v ?? selectedRole),
+                onChanged: (v) =>
+                    setModalState(() => selectedRole = v ?? selectedRole),
               ),
             ],
           ),
@@ -571,12 +802,18 @@ class _AdminUserManagementScreenState
                     .updateUserRole(user.id, selectedRole);
                 res.fold(
                   (f) => scaffold.showSnackBar(
-                    SnackBar(content: Text('Failed to update role: ${f.message}')),
+                    SnackBar(
+                      content: Text('Failed to update role: ${f.message}'),
+                    ),
                   ),
                   (_) {
                     ref.invalidate(adminUserDirectoryProvider);
                     scaffold.showSnackBar(
-                      SnackBar(content: Text('Role updated to ${_displayRole(selectedRole)} for ${user.fullName}')),
+                      SnackBar(
+                        content: Text(
+                          'Role updated to ${_displayRole(selectedRole)} for ${user.fullName}',
+                        ),
+                      ),
                     );
                   },
                 );
@@ -599,7 +836,9 @@ class _AdminUserManagementScreenState
         .suspendUser(user.id, targetSuspended);
     res.fold(
       (f) => scaffold.showSnackBar(
-        SnackBar(content: Text('Failed to update account status: ${f.message}')),
+        SnackBar(
+          content: Text('Failed to update account status: ${f.message}'),
+        ),
       ),
       (_) {
         ref.invalidate(adminUserDirectoryProvider);
@@ -636,7 +875,9 @@ class _AdminUserManagementScreenState
       ),
       (_) {
         scaffold.showSnackBar(
-          SnackBar(content: Text('Password reset instructions sent to ${user.email}')),
+          SnackBar(
+            content: Text('Password reset instructions sent to ${user.email}'),
+          ),
         );
       },
     );
@@ -677,12 +918,18 @@ class _AdminUserManagementScreenState
                   .deleteUser(user.id);
               res.fold(
                 (f) => scaffold.showSnackBar(
-                  SnackBar(content: Text('Failed to delete account: ${f.message}')),
+                  SnackBar(
+                    content: Text('Failed to delete account: ${f.message}'),
+                  ),
                 ),
                 (_) {
                   ref.invalidate(adminUserDirectoryProvider);
                   scaffold.showSnackBar(
-                    SnackBar(content: Text('Account for ${user.fullName} has been permanently deleted.')),
+                    SnackBar(
+                      content: Text(
+                        'Account for ${user.fullName} has been permanently deleted.',
+                      ),
+                    ),
                   );
                 },
               );
@@ -738,15 +985,30 @@ class _AdminUserManagementScreenState
                 ),
                 AppSpacing.vGapSm,
                 DropdownButtonFormField<String>(
-                  initialValue: (selectedRole == 'volunteer') ? 'volunteer_rescue' : selectedRole,
+                  initialValue: (selectedRole == 'volunteer')
+                      ? 'volunteer_rescue'
+                      : selectedRole,
                   decoration: const InputDecoration(labelText: 'Portal Role'),
                   items: const [
-                    DropdownMenuItem(value: 'pet_owner', child: Text('Pet Owner')),
-                    DropdownMenuItem(value: 'veterinarian', child: Text('Veterinarian')),
-                    DropdownMenuItem(value: 'volunteer_rescue', child: Text('Volunteer / Rescuer')),
-                    DropdownMenuItem(value: 'administrator', child: Text('Administrator')),
+                    DropdownMenuItem(
+                      value: 'pet_owner',
+                      child: Text('Pet Owner'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'veterinarian',
+                      child: Text('Veterinarian'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'volunteer_rescue',
+                      child: Text('Volunteer / Rescuer'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'administrator',
+                      child: Text('Administrator'),
+                    ),
                   ],
-                  onChanged: (v) => setModalState(() => selectedRole = v ?? selectedRole),
+                  onChanged: (v) =>
+                      setModalState(() => selectedRole = v ?? selectedRole),
                 ),
               ],
             ),
@@ -764,12 +1026,16 @@ class _AdminUserManagementScreenState
                 final password = passwordController.text.trim();
                 if (email.isEmpty || name.isEmpty) {
                   scaffold.showSnackBar(
-                    const SnackBar(content: Text('Please enter name and email')),
+                    const SnackBar(
+                      content: Text('Please enter name and email'),
+                    ),
                   );
                   return;
                 }
                 Navigator.pop(ctx);
-                final res = await ref.read(adminRepositoryProvider).createUserAccount(
+                final res = await ref
+                    .read(adminRepositoryProvider)
+                    .createUserAccount(
                       email: email,
                       fullName: name,
                       role: selectedRole,
@@ -777,12 +1043,18 @@ class _AdminUserManagementScreenState
                     );
                 res.fold(
                   (f) => scaffold.showSnackBar(
-                    SnackBar(content: Text('Account creation error: ${f.message}')),
+                    SnackBar(
+                      content: Text('Account creation error: ${f.message}'),
+                    ),
                   ),
                   (_) {
                     ref.invalidate(adminUserDirectoryProvider);
                     scaffold.showSnackBar(
-                      SnackBar(content: Text('Account provisioned for $email as ${_displayRole(selectedRole)}!')),
+                      SnackBar(
+                        content: Text(
+                          'Account provisioned for $email as ${_displayRole(selectedRole)}!',
+                        ),
+                      ),
                     );
                   },
                 );
@@ -822,50 +1094,6 @@ class _AdminUserManagementScreenState
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBottomNav(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-  ) {
-    return NavigationBar(
-      selectedIndex: 0,
-      onDestinationSelected: (idx) {
-        if (idx == 0) context.go('/admin');
-        if (idx == 1) context.push('/admin/moderation');
-        if (idx == 2) context.push('/admin/security');
-        if (idx == 3) context.push('/admin/health');
-        if (idx == 4) context.push('/admin/audit-logs');
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.group_outlined),
-          selectedIcon: Icon(Icons.group),
-          label: 'Users',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.gavel_outlined),
-          selectedIcon: Icon(Icons.gavel),
-          label: 'Moderation',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.security_outlined),
-          selectedIcon: Icon(Icons.security),
-          label: 'Security',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.monitor_heart_outlined),
-          selectedIcon: Icon(Icons.monitor_heart),
-          label: 'Health',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long_outlined),
-          selectedIcon: Icon(Icons.receipt_long),
-          label: 'Audit',
-        ),
-      ],
     );
   }
 }

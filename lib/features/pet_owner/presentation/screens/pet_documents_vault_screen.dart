@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -262,10 +263,64 @@ class _PetDocumentsVaultScreenState
                 );
               },
             ),
+            IconButton(
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                color: scheme.error.withValues(alpha: 0.8),
+              ),
+              tooltip: 'Delete Document',
+              onPressed: () => _confirmDeleteDocument(context, doc),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteDocument(BuildContext context, PetDocument doc) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: Text(
+          'Are you sure you want to delete "${doc.documentName}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        final client = ref.read(supabaseClientProvider);
+        await client.from('pet_documents').delete().eq('id', doc.id);
+        ref.invalidate(petDocumentsProvider(doc.petId));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✓ "${doc.documentName}" deleted successfully.'),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete document: $e')),
+          );
+        }
+      }
+    }
   }
 
   void _showUploadDocumentSheet(BuildContext context, String petName, String petId) {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/audit_log_entry.dart';
@@ -73,12 +72,22 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
                   AppSpacing.vGapLg,
 
                   // ── System Hardening Controls ────────────────────────
-                  _buildHardeningControlsSection(context, theme, colorScheme, posture),
+                  _buildHardeningControlsSection(
+                    context,
+                    theme,
+                    colorScheme,
+                    posture,
+                  ),
 
                   AppSpacing.vGapLg,
 
                   // ── Recent Threat & Audit Ticker ─────────────────────
-                  _buildThreatTickerSection(context, theme, colorScheme, auditLogsAsync),
+                  _buildThreatTickerSection(
+                    context,
+                    theme,
+                    colorScheme,
+                    auditLogsAsync,
+                  ),
 
                   AppSpacing.vGapXl,
                 ],
@@ -95,67 +104,83 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
     ColorScheme colorScheme,
     SecurityPostureSummary posture,
   ) {
-    final (color, title, subtitle) = switch (posture.postureRating) {
+    final isDark = theme.brightness == Brightness.dark;
+
+    final (color, title, subtitle, icon) = switch (posture.postureRating) {
       'CRITICAL' => (
-        AppColors.lightError,
+        const Color(0xFFE11D48),
         'Security Posture: CRITICAL ATTENTION REQUIRED',
         '${posture.criticalEvents24h} critical security events detected in the last 24 hours.',
+        Icons.gpp_bad_rounded,
       ),
       'ELEVATED_RISK' => (
-        AppColors.warning,
+        const Color(0xFFD97706),
         'Security Posture: Elevated Warning Level',
         '${posture.warningEvents24h} warning events detected in the last 24 hours. Review audit trail.',
+        Icons.gpp_maybe_rounded,
       ),
       'MONITORING' => (
-        AppColors.info,
+        const Color(0xFF2563EB),
         'Security Posture: Active Monitoring',
         '${posture.warningEvents24h} warning events recorded. All core controls operational.',
+        Icons.shield_outlined,
       ),
       _ => (
-        AppColors.success,
+        const Color(0xFF059669),
         'Overall Security Posture: Optimal',
         'All 31 database tables protected by RLS. 0 critical threat vectors detected in the last 24h.',
+        Icons.verified_user_rounded,
       ),
     };
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: isDark ? 0.2 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.35 : 0.2),
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: color,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.shield_outlined,
-              color: Colors.white,
-              size: 26,
-            ),
+            child: Icon(icon, color: Colors.white, size: 26),
           ),
-          AppSpacing.hGapMd,
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTypography.bold,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                     color: color,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -178,10 +203,10 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
             theme,
             colorScheme,
             value: '${posture.totalAuditEvents24h}',
-            label: 'Audit Events (24h)',
-            sublabel: '${posture.totalAuditEventsAllTime} total',
-            icon: Icons.receipt_long_outlined,
-            color: colorScheme.primary,
+            label: 'Audit Events',
+            sublabel: '${posture.totalAuditEventsAllTime} total all-time',
+            icon: Icons.receipt_long_rounded,
+            color: const Color(0xFF2563EB),
           ),
         ),
         AppSpacing.hGapSm,
@@ -189,15 +214,15 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
           child: _buildMetricTile(
             theme,
             colorScheme,
-            value: '${posture.criticalEvents24h} / ${posture.warningEvents24h}',
+            value: '${posture.criticalEvents24h}/${posture.warningEvents24h}',
             label: 'Critical / Warning',
             sublabel: '${posture.infoEvents24h} info events',
-            icon: Icons.gpp_maybe_outlined,
+            icon: Icons.gpp_maybe_rounded,
             color: posture.criticalEvents24h > 0
-                ? AppColors.lightError
+                ? const Color(0xFFE11D48)
                 : (posture.warningEvents24h > 0
-                    ? AppColors.warning
-                    : AppColors.success),
+                      ? const Color(0xFFD97706)
+                      : const Color(0xFF059669)),
           ),
         ),
         AppSpacing.hGapSm,
@@ -206,10 +231,10 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
             theme,
             colorScheme,
             value: '${posture.rlsTablesProtected}/${posture.totalPublicTables}',
-            label: 'RLS Tables Protected',
+            label: 'RLS Tables Guarded',
             sublabel: '100% database coverage',
-            icon: Icons.lock_outlined,
-            color: AppColors.success,
+            icon: Icons.lock_rounded,
+            color: const Color(0xFF7C3AED),
           ),
         ),
       ],
@@ -225,33 +250,65 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
     required IconData icon,
     required Color color,
   }) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.25 : 0.15),
+        ),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 22),
-          AppSpacing.vGapXs,
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 10),
           Text(
             value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: AppTypography.bold,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+              letterSpacing: -0.5,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall?.copyWith(
+            style: TextStyle(
               color: colorScheme.onSurfaceVariant,
               fontSize: 11,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
             sublabel,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               fontSize: 10,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -264,58 +321,77 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
     ColorScheme colorScheme,
     SecurityPostureSummary posture,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Active Database Hardening Controls',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: AppTypography.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         AppSpacing.vGapSm,
-        AppCard(
-          padding: const EdgeInsets.all(AppSpacing.md),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           child: Column(
             children: [
               _buildHardeningRow(
                 theme,
                 colorScheme,
+                icon: Icons.lock_clock_rounded,
+                iconBg: const Color(0xFF059669),
                 title: 'Audit Log Immutability Guard',
                 subtitle:
                     'PostgreSQL trigger fn_audit_logs_enforce_security blocks UPDATE and DELETE on audit trail.',
                 status: posture.auditLogImmutability,
-                statusColor: AppColors.success,
+                statusColor: const Color(0xFF059669),
               ),
-              const Divider(height: 20),
+              const Divider(height: 24),
               _buildHardeningRow(
                 theme,
                 colorScheme,
+                icon: Icons.admin_panel_settings_rounded,
+                iconBg: const Color(0xFF7C3AED),
                 title: 'Role Escalation Guard',
                 subtitle:
                     'PostgreSQL trigger prevent_profile_role_escalation blocks unauthorized privilege changes.',
                 status: posture.roleEscalationGuard,
-                statusColor: AppColors.success,
+                statusColor: const Color(0xFF059669),
               ),
-              const Divider(height: 20),
+              const Divider(height: 24),
               _buildHardeningRow(
                 theme,
                 colorScheme,
+                icon: Icons.fingerprint_rounded,
+                iconBg: const Color(0xFF2563EB),
                 title: 'Pet Owner Anti-Spoofing Guard',
                 subtitle:
                     'PostgreSQL trigger prevent_pet_owner_spoofing prevents creating records with forged owner_id.',
                 status: posture.petOwnerSpoofingGuard,
-                statusColor: AppColors.success,
+                statusColor: const Color(0xFF059669),
               ),
-              const Divider(height: 20),
+              const Divider(height: 24),
               _buildHardeningRow(
                 theme,
                 colorScheme,
+                icon: Icons.phonelink_lock_rounded,
+                iconBg: const Color(0xFFEA580C),
                 title: 'Multi-Factor Authentication (MFA)',
                 subtitle:
                     'Configured via Supabase Auth TOTP / SMS protocols for administrative portals.',
                 status: 'MANAGED',
-                statusColor: AppColors.info,
+                statusColor: const Color(0xFF2563EB),
               ),
             ],
           ),
@@ -327,6 +403,8 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
   Widget _buildHardeningRow(
     ThemeData theme,
     ColorScheme colorScheme, {
+    required IconData icon,
+    required Color iconBg,
     required String title,
     required String subtitle,
     required String status,
@@ -334,31 +412,53 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
   }) {
     return Row(
       children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: AppTypography.bold,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
+                style: TextStyle(
                   color: colorScheme.onSurfaceVariant,
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        AppChip(
-          label: status,
-          backgroundColor: statusColor.withValues(alpha: 0.15),
-          textColor: statusColor,
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            status,
+            style: TextStyle(
+              color: statusColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
         ),
       ],
     );
@@ -437,9 +537,10 @@ class AdminSecurityCenterScreen extends ConsumerWidget {
       _ => AppColors.info,
     };
 
+    final ist = log.createdAt.toUtc().add(const Duration(hours: 5, minutes: 30));
     final timeStr =
-        '${log.createdAt.toUtc().hour.toString().padLeft(2, '0')}:'
-        '${log.createdAt.toUtc().minute.toString().padLeft(2, '0')} UTC';
+        '${ist.hour.toString().padLeft(2, '0')}:'
+        '${ist.minute.toString().padLeft(2, '0')} IST';
 
     return Row(
       children: [

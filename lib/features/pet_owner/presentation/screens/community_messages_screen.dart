@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/screens/community_hub_screen.dart';
 import 'package:petconnect_ai/features/realtime/domain/entities/direct_message.dart';
 import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -482,6 +483,19 @@ class _CommunityMessagesScreenState
             }
           });
           _scrollToBottom();
+
+          // Write notification into user_notifications for recipient
+          final myProf = ref.read(currentUserProfileProvider).valueOrNull;
+          final myName = myProf?.fullName ?? 'A pet parent';
+          final client = ref.read(supabaseClientProvider);
+          client.from('user_notifications').insert({
+            'user_id': targetUserId,
+            'title': 'New Message from $myName 💬',
+            'body': text,
+            'notification_type': 'social',
+            'is_read': false,
+            'created_at': DateTime.now().toIso8601String(),
+          }).catchError((_) => null);
         },
       );
     } catch (e) {
@@ -1487,46 +1501,58 @@ class _CommunityMessagesScreenState
           tooltip: 'Back to Inbox',
           onPressed: _backToInbox,
         ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: scheme.primaryContainer,
-              backgroundImage: otherAvatar != null && otherAvatar.isNotEmpty
-                  ? NetworkImage(otherAvatar)
-                  : null,
-              child: otherAvatar == null || otherAvatar.isEmpty
-                  ? Text(
-                      otherName.isNotEmpty ? otherName[0].toUpperCase() : 'U',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: scheme.onPrimaryContainer,
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    otherName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '$roleBadge • $otherCity',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+        title: InkWell(
+          onTap: () {
+            showPublicUserProfile(
+              context,
+              otherUserId,
+              otherName,
+              otherAvatar,
+              otherCity,
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: scheme.primaryContainer,
+                backgroundImage: otherAvatar != null && otherAvatar.isNotEmpty
+                    ? NetworkImage(otherAvatar)
+                    : null,
+                child: otherAvatar == null || otherAvatar.isEmpty
+                    ? Text(
+                        otherName.isNotEmpty ? otherName[0].toUpperCase() : 'U',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      )
+                    : null,
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      otherName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '$roleBadge • $otherCity',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -1864,16 +1890,33 @@ class _CommunityMessagesScreenState
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 if (!isUser) ...[
-                                  CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: scheme.primaryContainer,
-                                    child: Text(
-                                      senderName.isNotEmpty ? senderName[0].toUpperCase() : 'M',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: scheme.onPrimaryContainer,
-                                      ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      showPublicUserProfile(
+                                        context,
+                                        senderId,
+                                        senderName,
+                                        senderProfile?['avatar_url'] as String?,
+                                      );
+                                    },
+                                    child: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: scheme.primaryContainer,
+                                      backgroundImage: (senderProfile?['avatar_url'] != null &&
+                                              (senderProfile!['avatar_url'] as String).isNotEmpty)
+                                          ? NetworkImage(senderProfile['avatar_url'] as String)
+                                          : null,
+                                      child: (senderProfile?['avatar_url'] == null ||
+                                              (senderProfile!['avatar_url'] as String).isEmpty)
+                                          ? Text(
+                                              senderName.isNotEmpty ? senderName[0].toUpperCase() : 'M',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: scheme.onPrimaryContainer,
+                                              ),
+                                            )
+                                          : null,
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -1906,14 +1949,24 @@ class _CommunityMessagesScreenState
                                         : CrossAxisAlignment.start,
                                     children: [
                                       if (!isUser)
-                                        Padding(
-                                          padding: const EdgeInsets.only(bottom: 2.0),
-                                          child: Text(
-                                            senderName,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: scheme.primary,
+                                        GestureDetector(
+                                          onTap: () {
+                                            showPublicUserProfile(
+                                              context,
+                                              senderId,
+                                              senderName,
+                                              senderProfile?['avatar_url'] as String?,
+                                            );
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(bottom: 2.0),
+                                            child: Text(
+                                              senderName,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: scheme.primary,
+                                              ),
                                             ),
                                           ),
                                         ),

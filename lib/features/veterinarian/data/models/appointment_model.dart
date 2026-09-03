@@ -18,18 +18,18 @@ class AppointmentModel extends Appointment {
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     return AppointmentModel(
-      id: json['id'] as String,
-      petId: json['pet_id'] as String,
-      clinicId: json['clinic_id'] as String,
-      veterinarianId: json['veterinarian_id'] as String,
-      appointmentDate: DateTime.parse(json['appointment_date'] as String),
+      id: (json['id'] as String?) ?? '',
+      petId: (json['pet_id'] as String?) ?? '',
+      clinicId: (json['clinic_id'] as String?) ?? '',
+      veterinarianId: (json['veterinarian_id'] as String?) ?? '',
+      appointmentDate: DateTime.tryParse(json['appointment_date']?.toString() ?? '') ?? DateTime.now(),
       durationMinutes: (json['duration_minutes'] as num?)?.toInt() ?? 30,
-      reason: json['reason'] as String,
+      reason: (json['reason'] as String?) ?? 'Clinical Consultation',
       status: (json['status'] as String?) ?? 'Scheduled',
       priority: (json['priority'] as String?) ?? 'ROUTINE',
       notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 

@@ -74,8 +74,12 @@ class QuickActionButton extends StatelessWidget {
     final primaryColor = gradientColors.first;
     final secondaryColor = gradientColors.length > 1 ? gradientColors[1] : gradientColors.first;
 
+    final isCompact = containerSize <= 48;
     final content = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+      padding: EdgeInsets.symmetric(
+        vertical: isCompact ? 8 : 14,
+        horizontal: isCompact ? 4 : 6,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -100,13 +104,13 @@ class QuickActionButton extends StatelessWidget {
                     ],
                     stops: const [0.0, 0.40, 1.0],
                   ),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(isCompact ? 14 : 18),
                   boxShadow: [
                     // Soft colorful drop shadow for 3D depth
                     BoxShadow(
                       color: primaryColor.withValues(alpha: 0.42),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
+                      blurRadius: isCompact ? 8 : 12,
+                      offset: Offset(0, isCompact ? 3 : 5),
                       spreadRadius: -1,
                     ),
                     // Darker ambient contact shadow underneath
@@ -122,12 +126,12 @@ class QuickActionButton extends StatelessWidget {
                     // Subtle top highlight reflection for glossy 3D effect
                     Positioned(
                       top: 1.5,
-                      left: 4,
-                      right: 4,
+                      left: 3,
+                      right: 3,
                       height: containerSize * 0.44,
                       child: Container(
                         decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(isCompact ? 12 : 16)),
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
@@ -150,7 +154,7 @@ class QuickActionButton extends StatelessWidget {
                   top: -4,
                   right: -6,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                     decoration: BoxDecoration(
                       color: isDanger ? scheme.error : const Color(0xFFEF4444),
                       borderRadius: BorderRadius.circular(8),
@@ -165,9 +169,9 @@ class QuickActionButton extends StatelessWidget {
                     ),
                     child: Text(
                       badgeText!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 9,
+                        fontSize: isCompact ? 8 : 9,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.2,
                       ),
@@ -176,9 +180,9 @@ class QuickActionButton extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isCompact ? 6 : 12),
           SizedBox(
-            height: 34,
+            height: isCompact ? 28 : 34,
             child: Text(
               title,
               textAlign: TextAlign.center,
@@ -186,9 +190,9 @@ class QuickActionButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: context.textTheme.labelSmall?.copyWith(
                 fontWeight: AppTypography.bold,
-                fontSize: 12.5,
+                fontSize: isCompact ? 10.5 : 12.5,
                 letterSpacing: -0.2,
-                height: 1.18,
+                height: 1.15,
               ),
             ),
           ),

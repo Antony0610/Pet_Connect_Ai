@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/treatment_plan.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -136,7 +138,14 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final targetPetId = widget.patientId ?? 'p1';
+    final selectedPet = ref.watch(selectedPetProvider);
+    final pets = ref.watch(petsProvider).valueOrNull ?? [];
+    final fallbackId = selectedPet?.id ?? (pets.isNotEmpty ? pets.first.id : 'ca970bed-278a-45c3-99cd-1133bf0c23cc');
+    final targetPetId = (widget.patientId != null &&
+            widget.patientId!.isNotEmpty &&
+            widget.patientId != 'p1')
+        ? widget.patientId!
+        : fallbackId;
     final plansAsync = ref.watch(treatmentPlansProvider(targetPetId));
     final existingPlans = plansAsync.valueOrNull ?? [];
 
@@ -243,7 +252,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
               const SizedBox(height: 20),
 
               // Home Care Owner Instructions Card
-              _buildHomeCareCard(context, theme, colorScheme),
+              _buildHomeCareCard(context, theme, colorScheme, targetPetId),
               const SizedBox(height: 16),
 
               // AI Prognosis & Recovery Tracking
@@ -377,6 +386,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    String targetPetId,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(16),
@@ -613,6 +623,32 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                 final tempDir = await getTemporaryDirectory();
                 final file = File('${tempDir.path}/Home_Care_Treatment_Protocol.pdf');
                 await file.writeAsBytes(bytes, flush: true);
+
+                // Persist treatment plan PDF to pet_documents & health_records
+                final client = ref.read(supabaseClientProvider);
+                final user = client.auth.currentUser;
+                await client.from('pet_documents').insert({
+                  'pet_id': targetPetId,
+                  'document_name': 'Treatment Protocol - $_diagnosis.pdf',
+                  'document_type': 'Treatment Plan',
+                  'file_path': file.path,
+                  'file_size': bytes.length,
+                  'mime_type': 'application/pdf',
+                  if (user != null) 'uploaded_by': user.id,
+                  'created_at': DateTime.now().toIso8601String(),
+                }).catchError((_) => null);
+
+                await client.from('health_records').insert({
+                  'pet_id': targetPetId,
+                  'record_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                  'category': 'Treatment Plan',
+                  'title': 'Treatment Protocol: $_diagnosis',
+                  'notes': _notes,
+                  'diagnosis': _diagnosis,
+                  'treatment': 'Step-by-step clinical protocol (Recovery progress: $_progress%)',
+                  'veterinarian_name': 'Dr. Prithiviraj',
+                  'created_at': DateTime.now().toIso8601String(),
+                }).catchError((_) => null);
 
                 // ignore: deprecated_member_use
                 await Share.shareXFiles(

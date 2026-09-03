@@ -53,17 +53,23 @@ class _VolunteerSettingsScreenState
 
   Future<void> _toggleBiometrics(bool val) async {
     setState(() => _biometricsEnabled = val);
-    await ref.read(sharedPreferencesProvider).setBool('app_biometrics_lock', val);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool('app_biometrics_lock', val);
     if (mounted) {
       context.showSnackbar(
-        val ? 'Biometric / PIN app lock enabled' : 'Biometric / PIN app lock disabled',
+        val
+            ? 'Biometric / PIN app lock enabled'
+            : 'Biometric / PIN app lock disabled',
       );
     }
   }
 
   Future<void> _toggleSosSiren(bool val) async {
     setState(() => _sosSirenEnabled = val);
-    await ref.read(sharedPreferencesProvider).setBool('rescue_sos_siren_sound', val);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool('rescue_sos_siren_sound', val);
     if (mounted) {
       context.showSnackbar(
         val ? 'High-priority SOS siren alert enabled' : 'SOS audio siren muted',
@@ -73,17 +79,23 @@ class _VolunteerSettingsScreenState
 
   Future<void> _toggleBeaconSharing(bool val) async {
     setState(() => _beaconSharing = val);
-    await ref.read(sharedPreferencesProvider).setBool('rescue_beacon_sharing', val);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool('rescue_beacon_sharing', val);
     if (mounted) {
       context.showSnackbar(
-        val ? 'Live responder GPS beacon broadcasting' : 'Responder location beacon paused',
+        val
+            ? 'Live responder GPS beacon broadcasting'
+            : 'Responder location beacon paused',
       );
     }
   }
 
   Future<void> _updateRadius(double val) async {
     setState(() => _searchRadiusKm = val);
-    await ref.read(sharedPreferencesProvider).setDouble('rescue_search_radius_km', val);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setDouble('rescue_search_radius_km', val);
   }
 
   void _showThemeDialog() {
@@ -103,10 +115,16 @@ class _VolunteerSettingsScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Text(
                   AppStrings.themeMode(context),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const Divider(),
@@ -115,12 +133,17 @@ class _VolunteerSettingsScreenState
                   backgroundColor: Colors.blue.withValues(alpha: 0.15),
                   child: const Icon(Icons.brightness_auto, color: Colors.blue),
                 ),
-                title: Text(AppStrings.system(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  AppStrings.system(context),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 trailing: currentTheme == ThemeMode.system
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.system);
                   Navigator.pop(ctx);
                 },
               ),
@@ -129,12 +152,17 @@ class _VolunteerSettingsScreenState
                   backgroundColor: Colors.amber.withValues(alpha: 0.15),
                   child: const Icon(Icons.light_mode, color: Colors.amber),
                 ),
-                title: Text(AppStrings.light(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  AppStrings.light(context),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 trailing: currentTheme == ThemeMode.light
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.light);
                   Navigator.pop(ctx);
                 },
               ),
@@ -143,15 +171,111 @@ class _VolunteerSettingsScreenState
                   backgroundColor: Colors.indigo.withValues(alpha: 0.15),
                   child: const Icon(Icons.dark_mode, color: Colors.indigo),
                 ),
-                title: Text(AppStrings.dark(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  AppStrings.dark(context),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 trailing: currentTheme == ThemeMode.dark
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.dark);
                   Navigator.pop(ctx);
                 },
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAccentPaletteDialog() {
+    final activePalette = ref.read(accentPaletteProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Incident Responder Accent Palette',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: AppAccentPalette.values.map((palette) {
+                  final isSelected = palette == activePalette;
+                  return InkWell(
+                    onTap: () {
+                      ref
+                          .read(accentPaletteProvider.notifier)
+                          .setPalette(palette);
+                      Navigator.pop(ctx);
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: palette.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? scheme.onSurface
+                                  : Colors.transparent,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: palette.primary.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: isSelected
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 24,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          palette.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -186,30 +310,52 @@ class _VolunteerSettingsScreenState
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Colors.teal.withValues(alpha: 0.15),
-                  child: const Text('EN', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                  child: const Text(
+                    'EN',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
+                  ),
                 ),
-                title: const Text('English (US / IN)', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text(
+                  'English (US / IN)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: const Text('Default language'),
                 trailing: currentLocale.languageCode == 'en'
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(localeProvider.notifier).setLanguage(AppLanguage.english);
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLanguage(AppLanguage.english);
                   Navigator.pop(ctx);
                 },
               ),
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Colors.deepOrange.withValues(alpha: 0.15),
-                  child: const Text('മല', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                  child: const Text(
+                    'മല',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
                 ),
-                title: const Text('മലയാളം (Malayalam)', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text(
+                  'മലയാളം (Malayalam)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: const Text('കേരള പ്രാദേശിക ഭാഷ'),
                 trailing: currentLocale.languageCode == 'ml'
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(localeProvider.notifier).setLanguage(AppLanguage.malayalam);
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLanguage(AppLanguage.malayalam);
                   Navigator.pop(ctx);
                 },
               ),
@@ -241,7 +387,9 @@ class _VolunteerSettingsScreenState
 
       final mb = (deletedBytes / (1024 * 1024)).toStringAsFixed(2);
       if (mounted) {
-        context.showSnackbar('Cache cleared: $deletedCount files freed ($mb MB)');
+        context.showSnackbar(
+          'Cache cleared: $deletedCount files freed ($mb MB)',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -298,7 +446,8 @@ class _VolunteerSettingsScreenState
               controller: descCtrl,
               maxLines: 4,
               decoration: const InputDecoration(
-                hintText: 'e.g. GPS collar ping timeout, evidence photo upload failure...',
+                hintText:
+                    'e.g. GPS collar ping timeout, evidence photo upload failure...',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -312,7 +461,9 @@ class _VolunteerSettingsScreenState
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.showSnackbar('Report logged with Dispatch Command Engineering!');
+              context.showSnackbar(
+                'Report logged with Dispatch Command Engineering!',
+              );
             },
             child: const Text('Submit Report'),
           ),
@@ -326,7 +477,9 @@ class _VolunteerSettingsScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out of the Volunteer Rescue Portal?'),
+        content: const Text(
+          'Are you sure you want to sign out of the Volunteer Rescue Portal?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -396,19 +549,31 @@ class _VolunteerSettingsScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final responderName = profile != null && profile.fullName.isNotEmpty
+        ? profile.fullName
+        : 'Field Incident Responder';
+    final email = profile?.email ?? 'volunteer.rescue@petconnect.ai';
+
     final themeMode = ref.watch(themeModeProvider);
+    final activePalette = ref.watch(accentPaletteProvider);
     final locale = ref.watch(localeProvider);
 
     final themeLabel = themeMode == ThemeMode.system
         ? 'System Default'
         : (themeMode == ThemeMode.dark ? 'Dark Mode' : 'Light Mode');
 
-    final languageLabel = locale.languageCode == 'ml' ? 'മലയാളം (Malayalam)' : 'English (US / IN)';
+    final languageLabel = locale.languageCode == 'ml'
+        ? 'മലയാളം (Malayalam)'
+        : 'English (US / IN)';
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text('Volunteer & Field Settings'),
         leading: IconButton(
@@ -416,7 +581,9 @@ class _VolunteerSettingsScreenState
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      bottomNavigationBar: const VolunteerBottomNavBar(currentTab: VolunteerTab.profile),
+      bottomNavigationBar: const VolunteerBottomNavBar(
+        currentTab: VolunteerTab.profile,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Center(
@@ -425,6 +592,18 @@ class _VolunteerSettingsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Responder Identity Banner ─────────────────────────
+                _buildResponderHeader(
+                  context,
+                  theme,
+                  colorScheme,
+                  isDark,
+                  responderName: responderName,
+                  email: email,
+                  avatarUrl: profile?.avatarUrl,
+                ),
+                AppSpacing.vGapLg,
+
                 // ── SECTION 1: Field Operations ──────────────────────
                 const _SectionHeader(title: 'Field Operations & Dispatch'),
                 _GroupCard(
@@ -437,13 +616,17 @@ class _VolunteerSettingsScreenState
                           Row(
                             children: [
                               Container(
-                                width: 36,
-                                height: 36,
+                                width: 38,
+                                height: 38,
                                 decoration: BoxDecoration(
                                   color: Colors.amber.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(11),
                                 ),
-                                child: const Icon(Icons.radar_rounded, color: Colors.amber, size: 20),
+                                child: const Icon(
+                                  Icons.radar_rounded,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -452,11 +635,17 @@ class _VolunteerSettingsScreenState
                                   children: [
                                     const Text(
                                       'Incident Response Radius',
-                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
                                     ),
                                     Text(
                                       'Alert me for rescues within ${_searchRadiusKm.toStringAsFixed(0)} km',
-                                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -502,6 +691,14 @@ class _VolunteerSettingsScreenState
                     ),
                     const Divider(height: 1, indent: 56),
                     _SettingsTile(
+                      icon: Icons.color_lens_rounded,
+                      iconColor: activePalette.primary,
+                      title: 'Accent Palette',
+                      subtitle: activePalette.label,
+                      onTap: _showAccentPaletteDialog,
+                    ),
+                    const Divider(height: 1, indent: 56),
+                    _SettingsTile(
                       icon: Icons.translate_rounded,
                       iconColor: Colors.orange,
                       title: 'Language',
@@ -522,7 +719,8 @@ class _VolunteerSettingsScreenState
                       icon: Icons.warning_amber_rounded,
                       iconColor: Colors.red,
                       title: 'Emergency SOS Siren',
-                      subtitle: 'Play loud audio siren on P1 Critical rescue dispatch',
+                      subtitle:
+                          'Play loud audio siren on P1 Critical rescue dispatch',
                       value: _sosSirenEnabled,
                       onChanged: _toggleSosSiren,
                     ),
@@ -597,6 +795,123 @@ class _VolunteerSettingsScreenState
       ),
     );
   }
+
+  Widget _buildResponderHeader(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDark, {
+    required String responderName,
+    required String email,
+    String? avatarUrl,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.06),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                responderName.isNotEmpty ? responderName[0].toUpperCase() : 'R',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        responderName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.shield_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Verified Field Rescue Responder',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFD97706),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  email,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => context.push(RoutePaths.rescueProfile),
+            child: const Text(
+              'Profile',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Telegram-Style Reusable Widgets ──────────────────────────────────
@@ -614,7 +929,7 @@ class _SectionHeader extends StatelessWidget {
         title.toUpperCase(),
         style: TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
           color: color ?? Theme.of(context).colorScheme.primary,
         ),
@@ -634,17 +949,22 @@ class _GroupCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Column(children: children),
       ),
     );
@@ -672,13 +992,13 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Container(
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
+          color: iconColor,
+          borderRadius: BorderRadius.circular(11),
         ),
-        child: Icon(icon, color: iconColor, size: 20),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
       title: Text(
         title,
@@ -691,7 +1011,11 @@ class _SettingsTile extends StatelessWidget {
       subtitle: subtitle != null
           ? Text(subtitle!, style: const TextStyle(fontSize: 13))
           : null,
-      trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        size: 20,
+        color: Colors.grey,
+      ),
       onTap: onTap,
     );
   }
@@ -718,13 +1042,13 @@ class _SettingsSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return SwitchListTile(
       secondary: Container(
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
+          color: iconColor,
+          borderRadius: BorderRadius.circular(11),
         ),
-        child: Icon(icon, color: iconColor, size: 20),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
       title: Text(
         title,
@@ -732,7 +1056,7 @@ class _SettingsSwitchTile extends StatelessWidget {
       ),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
       value: value,
-      activeThumbColor: Colors.amber.shade700,
+      activeThumbColor: Theme.of(context).colorScheme.primary,
       onChanged: onChanged,
     );
   }

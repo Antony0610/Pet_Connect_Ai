@@ -94,7 +94,7 @@ class ClinicManagementScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // Recent Clinic Activity Log
-              _buildRecentActivityLog(context, theme, colorScheme),
+              _buildRecentActivityLog(context, theme, colorScheme, totalPatients, lowStockCount, totalConsultations),
               const SizedBox(height: 20),
 
               // Quick Practice Actions & Links Grid
@@ -261,6 +261,9 @@ class ClinicManagementScreen extends ConsumerWidget {
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    int totalPatients,
+    int lowStockCount,
+    int totalConsultations,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,9 +291,9 @@ class ClinicManagementScreen extends ConsumerWidget {
               _buildActivityItem(
                 theme,
                 colorScheme,
-                icon: Icons.science_outlined,
-                title: 'Clinical Diagnostic Panel Online',
-                subtitle: 'Automated telemetry ingestion active',
+                icon: Icons.pets,
+                title: '$totalPatients Patient Records Active',
+                subtitle: 'Diagnostic histories and vaccination passports synchronized',
                 time: 'Realtime',
               ),
               const Divider(height: 16),
@@ -298,8 +301,17 @@ class ClinicManagementScreen extends ConsumerWidget {
                 theme,
                 colorScheme,
                 icon: Icons.medication_outlined,
-                title: 'Pharmacy Formulary Synchronized',
-                subtitle: 'Batch numbers and expiration trackers up to date',
+                title: lowStockCount > 0 ? '$lowStockCount Pharmacy Items Require Restock' : 'Pharmacy Inventory Up to Date',
+                subtitle: 'Automated batch number and stock monitoring active',
+                time: 'Live',
+              ),
+              const Divider(height: 16),
+              _buildActivityItem(
+                theme,
+                colorScheme,
+                icon: Icons.assignment_turned_in_outlined,
+                title: '$totalConsultations Consultations Logged',
+                subtitle: 'Digital treatment protocols and telemetry completed',
                 time: 'Synced',
               ),
             ],

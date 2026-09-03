@@ -45,34 +45,45 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
     setState(() {
       _biometricsEnabled = prefs.getBool('app_biometrics_lock') ?? false;
       _emergencyAudioAlert = prefs.getBool('vet_emergency_audio_alert') ?? true;
-      _acceptEmergencyCases = prefs.getBool('vet_accept_emergency_cases') ?? true;
+      _acceptEmergencyCases =
+          prefs.getBool('vet_accept_emergency_cases') ?? true;
       _autoPrescriptionSync = prefs.getBool('vet_auto_rx_sync') ?? true;
     });
   }
 
   Future<void> _toggleBiometrics(bool val) async {
     setState(() => _biometricsEnabled = val);
-    await ref.read(sharedPreferencesProvider).setBool('app_biometrics_lock', val);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool('app_biometrics_lock', val);
     if (mounted) {
       context.showSnackbar(
-        val ? 'Biometric / PIN app lock enabled' : 'Biometric / PIN app lock disabled',
+        val
+            ? 'Biometric / PIN app lock enabled'
+            : 'Biometric / PIN app lock disabled',
       );
     }
   }
 
   Future<void> _toggleEmergencyAudio(bool val) async {
     setState(() => _emergencyAudioAlert = val);
-    await ref.read(sharedPreferencesProvider).setBool('vet_emergency_audio_alert', val);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool('vet_emergency_audio_alert', val);
     if (mounted) {
       context.showSnackbar(
-        val ? 'Emergency triage audio sirens enabled' : 'Emergency audio siren muted',
+        val
+            ? 'Emergency triage audio sirens enabled'
+            : 'Emergency audio siren muted',
       );
     }
   }
 
   Future<void> _toggleEmergencyIntake(bool val) async {
     setState(() => _acceptEmergencyCases = val);
-    await ref.read(sharedPreferencesProvider).setBool('vet_accept_emergency_cases', val);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool('vet_accept_emergency_cases', val);
     if (mounted) {
       context.showSnackbar(
         val ? 'Emergency intake marked active' : 'Emergency intake paused',
@@ -97,10 +108,16 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Text(
                   AppStrings.themeMode(context),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const Divider(),
@@ -109,12 +126,17 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                   backgroundColor: Colors.blue.withValues(alpha: 0.15),
                   child: const Icon(Icons.brightness_auto, color: Colors.blue),
                 ),
-                title: Text(AppStrings.system(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  AppStrings.system(context),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 trailing: currentTheme == ThemeMode.system
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.system);
                   Navigator.pop(ctx);
                 },
               ),
@@ -123,12 +145,17 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                   backgroundColor: Colors.amber.withValues(alpha: 0.15),
                   child: const Icon(Icons.light_mode, color: Colors.amber),
                 ),
-                title: Text(AppStrings.light(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  AppStrings.light(context),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 trailing: currentTheme == ThemeMode.light
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.light);
                   Navigator.pop(ctx);
                 },
               ),
@@ -137,15 +164,111 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                   backgroundColor: Colors.indigo.withValues(alpha: 0.15),
                   child: const Icon(Icons.dark_mode, color: Colors.indigo),
                 ),
-                title: Text(AppStrings.dark(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  AppStrings.dark(context),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 trailing: currentTheme == ThemeMode.dark
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.dark);
                   Navigator.pop(ctx);
                 },
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAccentPaletteDialog() {
+    final activePalette = ref.read(accentPaletteProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Clinical Accent Palette',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: AppAccentPalette.values.map((palette) {
+                  final isSelected = palette == activePalette;
+                  return InkWell(
+                    onTap: () {
+                      ref
+                          .read(accentPaletteProvider.notifier)
+                          .setPalette(palette);
+                      Navigator.pop(ctx);
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: palette.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? scheme.onSurface
+                                  : Colors.transparent,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: palette.primary.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: isSelected
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 24,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          palette.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -180,30 +303,52 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Colors.teal.withValues(alpha: 0.15),
-                  child: const Text('EN', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                  child: const Text(
+                    'EN',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
+                  ),
                 ),
-                title: const Text('English (US / IN)', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text(
+                  'English (US / IN)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: const Text('Default language'),
                 trailing: currentLocale.languageCode == 'en'
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(localeProvider.notifier).setLanguage(AppLanguage.english);
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLanguage(AppLanguage.english);
                   Navigator.pop(ctx);
                 },
               ),
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Colors.deepOrange.withValues(alpha: 0.15),
-                  child: const Text('മല', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                  child: const Text(
+                    'മല',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
                 ),
-                title: const Text('മലയാളം (Malayalam)', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text(
+                  'മലയാളം (Malayalam)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: const Text('കേരള പ്രാദേശിക ഭാഷ'),
                 trailing: currentLocale.languageCode == 'ml'
                     ? Icon(Icons.check_circle_rounded, color: scheme.primary)
                     : null,
                 onTap: () {
-                  ref.read(localeProvider.notifier).setLanguage(AppLanguage.malayalam);
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLanguage(AppLanguage.malayalam);
                   Navigator.pop(ctx);
                 },
               ),
@@ -235,7 +380,9 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
 
       final mb = (deletedBytes / (1024 * 1024)).toStringAsFixed(2);
       if (mounted) {
-        context.showSnackbar('Cache cleared: $deletedCount files freed ($mb MB)');
+        context.showSnackbar(
+          'Cache cleared: $deletedCount files freed ($mb MB)',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -279,7 +426,9 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
   void _showPracticeHoursDialog() async {
     final clinics = ref.read(vetClinicsProvider).valueOrNull ?? [];
     final clinic = clinics.isNotEmpty ? clinics.first : null;
-    final nameCtrl = TextEditingController(text: clinic?.name ?? 'Oakwood Veterinary Centre');
+    final nameCtrl = TextEditingController(
+      text: clinic?.name ?? 'Oakwood Veterinary Centre',
+    );
     final feeCtrl = TextEditingController(text: '600');
 
     final saved = await showDialog<bool>(
@@ -310,7 +459,9 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
               const ListTile(
                 leading: Icon(Icons.schedule),
                 title: Text('Operating Schedule'),
-                subtitle: Text('Mon - Fri: 8:00 AM - 7:00 PM\nSat: 9:00 AM - 2:00 PM\nSun: Emergency On-Call'),
+                subtitle: Text(
+                  'Mon - Fri: 8:00 AM - 7:00 PM\nSat: 9:00 AM - 2:00 PM\nSun: Emergency On-Call',
+                ),
                 contentPadding: EdgeInsets.zero,
               ),
             ],
@@ -350,7 +501,8 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
               controller: descCtrl,
               maxLines: 4,
               decoration: const InputDecoration(
-                hintText: 'e.g. Triage queue refresh latency, prescription PDF preview issue...',
+                hintText:
+                    'e.g. Triage queue refresh latency, prescription PDF preview issue...',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -364,7 +516,9 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.showSnackbar('Ticket submitted to PetConnect Clinical Engineering!');
+              context.showSnackbar(
+                'Ticket submitted to PetConnect Clinical Engineering!',
+              );
             },
             child: const Text('Submit Report'),
           ),
@@ -378,7 +532,9 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out of the Veterinarian Portal?'),
+        content: const Text(
+          'Are you sure you want to sign out of the Veterinarian Portal?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -448,19 +604,35 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final clinics = ref.watch(vetClinicsProvider).valueOrNull ?? [];
+    final clinicName = clinics.isNotEmpty
+        ? clinics.first.name
+        : 'PetConnect Veterinary Practice';
+    final doctorName = profile != null && profile.fullName.isNotEmpty
+        ? profile.fullName
+        : 'Dr. Practitioner (DVM)';
+    final email = profile?.email ?? 'practitioner@petconnect.ai';
+
     final themeMode = ref.watch(themeModeProvider);
+    final activePalette = ref.watch(accentPaletteProvider);
     final locale = ref.watch(localeProvider);
 
     final themeLabel = themeMode == ThemeMode.system
         ? 'System Default'
         : (themeMode == ThemeMode.dark ? 'Dark Mode' : 'Light Mode');
 
-    final languageLabel = locale.languageCode == 'ml' ? 'മലയാളം (Malayalam)' : 'English (US / IN)';
+    final languageLabel = locale.languageCode == 'ml'
+        ? 'മലയാളം (Malayalam)'
+        : 'English (US / IN)';
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text('Practice & Vet Settings'),
         leading: IconButton(
@@ -477,6 +649,19 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Practitioner Identity Banner ──────────────────────
+                _buildPractitionerHeader(
+                  context,
+                  theme,
+                  colorScheme,
+                  isDark,
+                  doctorName: doctorName,
+                  clinicName: clinicName,
+                  email: email,
+                  avatarUrl: profile?.avatarUrl,
+                ),
+                AppSpacing.vGapLg,
+
                 // ── SECTION 1: Practice Configuration ────────────────
                 const _SectionHeader(title: 'Practice Configuration'),
                 _GroupCard(
@@ -502,11 +687,14 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                       icon: Icons.auto_mode_rounded,
                       iconColor: Colors.purple,
                       title: 'Auto-Sync Prescriptions',
-                      subtitle: 'Synchronize Rx records with pharmacy inventory',
+                      subtitle:
+                          'Synchronize Rx records with pharmacy inventory',
                       value: _autoPrescriptionSync,
                       onChanged: (val) {
                         setState(() => _autoPrescriptionSync = val);
-                        ref.read(sharedPreferencesProvider).setBool('vet_auto_rx_sync', val);
+                        ref
+                            .read(sharedPreferencesProvider)
+                            .setBool('vet_auto_rx_sync', val);
                       },
                     ),
                   ],
@@ -523,6 +711,14 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                       title: 'Appearance',
                       subtitle: themeLabel,
                       onTap: _showThemeDialog,
+                    ),
+                    const Divider(height: 1, indent: 56),
+                    _SettingsTile(
+                      icon: Icons.color_lens_rounded,
+                      iconColor: activePalette.primary,
+                      title: 'Accent Palette',
+                      subtitle: activePalette.label,
+                      onTap: _showAccentPaletteDialog,
                     ),
                     const Divider(height: 1, indent: 56),
                     _SettingsTile(
@@ -621,6 +817,127 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
       ),
     );
   }
+
+  Widget _buildPractitionerHeader(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDark, {
+    required String doctorName,
+    required String clinicName,
+    required String email,
+    String? avatarUrl,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.06),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  colorScheme.primary,
+                  colorScheme.primary.withValues(alpha: 0.75),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(
+              child: Text(
+                doctorName.isNotEmpty ? doctorName[0].toUpperCase() : 'V',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        doctorName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.verified_rounded,
+                      color: Color(0xFF3B82F6),
+                      size: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  clinicName,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.primary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  email,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => context.push(RoutePaths.vetProfile),
+            child: const Text(
+              'Profile',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Telegram-Style Reusable Widgets ──────────────────────────────────
@@ -638,7 +955,7 @@ class _SectionHeader extends StatelessWidget {
         title.toUpperCase(),
         style: TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
           color: color ?? Theme.of(context).colorScheme.primary,
         ),
@@ -658,17 +975,22 @@ class _GroupCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Column(children: children),
       ),
     );
@@ -696,13 +1018,13 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Container(
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
+          color: iconColor,
+          borderRadius: BorderRadius.circular(11),
         ),
-        child: Icon(icon, color: iconColor, size: 20),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
       title: Text(
         title,
@@ -715,7 +1037,11 @@ class _SettingsTile extends StatelessWidget {
       subtitle: subtitle != null
           ? Text(subtitle!, style: const TextStyle(fontSize: 13))
           : null,
-      trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        size: 20,
+        color: Colors.grey,
+      ),
       onTap: onTap,
     );
   }
@@ -742,13 +1068,13 @@ class _SettingsSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return SwitchListTile(
       secondary: Container(
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
+          color: iconColor,
+          borderRadius: BorderRadius.circular(11),
         ),
-        child: Icon(icon, color: iconColor, size: 20),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
       title: Text(
         title,

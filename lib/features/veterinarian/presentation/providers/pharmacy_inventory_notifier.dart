@@ -122,23 +122,23 @@ class PharmacyInventoryNotifier
     try {
       final response = await client
           .from('pharmacy_inventory')
-          .select()
-          .order('name', ascending: true);
+          .select();
 
       final list = (response as List).cast<Map<String, dynamic>>().map((row) {
-        final expStr = row['expiration_date'] as String?;
+        final expStr = (row['expiration_date'] ?? row['expiry_date']) as String?;
         final expDate = expStr != null ? DateTime.tryParse(expStr) ?? DateTime.now().add(const Duration(days: 180)) : DateTime.now().add(const Duration(days: 180));
+        final medName = (row['item_name'] ?? row['name'] ?? row['medication_name']) as String? ?? 'Medication';
 
         return PharmacyInventoryEntry(
           id: row['id'] as String? ?? 'inv',
-          name: row['name'] as String? ?? 'Medication',
+          name: medName,
           category: row['category'] as String? ?? 'General Pharmacy',
-          sku: row['sku'] as String? ?? 'SKU-000',
-          stockQuantity: (row['stock_quantity'] as num?)?.toInt() ?? 0,
+          sku: (row['sku'] ?? row['item_code']) as String? ?? 'SKU-000',
+          stockQuantity: ((row['stock_quantity'] ?? row['quantity']) as num?)?.toInt() ?? 0,
           unit: row['unit'] as String? ?? 'units',
-          minThreshold: (row['min_threshold'] as num?)?.toInt() ?? 5,
+          minThreshold: ((row['min_threshold'] ?? row['reorder_level']) as num?)?.toInt() ?? 5,
           isCritical: row['is_critical'] as bool? ?? false,
-          batchNumber: row['batch_number'] as String? ?? 'BATCH-01',
+          batchNumber: (row['batch_number'] ?? row['lot_number']) as String? ?? 'BATCH-01',
           expirationDate: expDate,
         );
       }).toList();

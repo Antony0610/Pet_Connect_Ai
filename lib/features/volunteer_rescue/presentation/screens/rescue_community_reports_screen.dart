@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/domain/entities/lost_pet_sighting.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
@@ -24,35 +25,10 @@ class _RescueCommunityReportsScreenState
     extends ConsumerState<RescueCommunityReportsScreen> {
   int _selectedTab = 0;
 
-  final List<Map<String, dynamic>> _reports = [
-    {
-      'id': 's1',
-      'reporter': 'Civic Reporter • Mark T.',
-      'time': '5 mins ago',
-      'pet': 'Luna (Siberian Husky)',
-      'location': 'Spotted running near Cubbon Park East Gate',
-      'verified': true,
-      'aiMatchScore': 96,
-      'notes':
-          'Matching silver coat and blue collar. Headed east toward riverbed.',
-    },
-    {
-      'id': 's2',
-      'reporter': 'Civic Reporter • Elena R.',
-      'time': '25 mins ago',
-      'pet': 'Archie (Golden Retriever)',
-      'location': 'Near MG Road & Brigade Road Junction',
-      'verified': false,
-      'aiMatchScore': 78,
-      'notes':
-          'Wearing collar, sitting near outdoor tables. Skittish when approached.',
-    },
-  ];
-
   void _openFileSightingDialog() async {
-    final petCtrl = TextEditingController(text: 'Bella (Golden Retriever)');
-    final locCtrl = TextEditingController(text: 'Koramangala 80ft Road');
-    final notesCtrl = TextEditingController(text: 'Spotted near pharmacy with red harness.');
+    final petCtrl = TextEditingController();
+    final locCtrl = TextEditingController();
+    final notesCtrl = TextEditingController();
 
     final submitted = await showDialog<bool>(
       context: context,
@@ -65,7 +41,8 @@ class _RescueCommunityReportsScreenState
               TextField(
                 controller: petCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Pet Name or Description',
+                  labelText: 'Pet Name or Species Description',
+                  hintText: 'e.g. Golden Retriever or Calico Cat',
                   prefixIcon: Icon(Icons.pets),
                 ),
               ),
@@ -74,6 +51,7 @@ class _RescueCommunityReportsScreenState
                 controller: locCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Exact Sighting Location',
+                  hintText: 'e.g. Near Cubbon Park East Gate',
                   prefixIcon: Icon(Icons.location_on),
                 ),
               ),
@@ -83,6 +61,7 @@ class _RescueCommunityReportsScreenState
                 maxLines: 2,
                 decoration: const InputDecoration(
                   labelText: 'Behavior, Direction & Visual Clues',
+                  hintText: 'e.g. Heading south toward water, wearing blue collar',
                   prefixIcon: Icon(Icons.note_alt_outlined),
                 ),
               ),
@@ -95,23 +74,30 @@ class _RescueCommunityReportsScreenState
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Submit Intel'),
+            onPressed: () {
+              if (locCtrl.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            child: const Text('Submit Report'),
           ),
         ],
       ),
     );
 
-    if (submitted == true && petCtrl.text.trim().isNotEmpty) {
+    if (submitted == true && locCtrl.text.trim().isNotEmpty) {
+      final alerts = ref.read(activeLostPetAlertsProvider).valueOrNull ?? [];
+      final alertId = alerts.isNotEmpty ? alerts.first.id : 'general-alert';
+      final currentUser = ref.read(currentUserProfileProvider).valueOrNull;
+      final reporterId = currentUser?.id ?? 'volunteer-reporter';
+
       final newSighting = LostPetSighting(
         id: '',
-        alertId: '',
-        reporterId: '',
+        alertId: alertId,
+        reporterId: reporterId,
         sightingLocation: locCtrl.text.trim(),
-        latitude: 12.9716,
-        longitude: 77.5946,
         sightingTime: DateTime.now(),
-        notes: notesCtrl.text.trim(),
+        notes: '${petCtrl.text.trim().isNotEmpty ? "[${petCtrl.text.trim()}] " : ""}${notesCtrl.text.trim()}',
         status: 'VERIFIED',
         createdAt: DateTime.now(),
       );
@@ -126,22 +112,11 @@ class _RescueCommunityReportsScreenState
             );
           }
         },
-        (saved) {
-          setState(() {
-            _reports.insert(0, {
-              'id': saved.id,
-              'reporter': 'Civic Intel (Verified)',
-              'time': 'Just now',
-              'pet': petCtrl.text.trim(),
-              'location': locCtrl.text.trim(),
-              'verified': true,
-              'aiMatchScore': 94,
-              'notes': notesCtrl.text.trim(),
-            });
-          });
+        (_) {
+          ref.invalidate(allCommunitySightingsProvider);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Community sighting report filed to database!')),
+              const SnackBar(content: Text('Community sighting report saved to database!')),
             );
           }
         },
@@ -153,6 +128,8 @@ class _RescueCommunityReportsScreenState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final sightingsAsync = ref.watch(allCommunitySightingsProvider);
+    final sightings = sightingsAsync.valueOrNull ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -168,6 +145,11 @@ class _RescueCommunityReportsScreenState
           },
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Reports',
+            onPressed: () => ref.invalidate(allCommunitySightingsProvider),
+          ),
           IconButton(
             icon: const Icon(Icons.add_location_alt_outlined),
             tooltip: 'Report Sighting',
@@ -195,14 +177,14 @@ class _RescueCommunityReportsScreenState
                       theme,
                       colorScheme,
                       index: 0,
-                      label: 'Reported Sightings (${_reports.length})',
+                      label: 'Reported Sightings (${sightings.length})',
                     ),
                     AppSpacing.hGapSm,
                     _buildTabChoice(
                       theme,
                       colorScheme,
                       index: 1,
-                      label: 'Past Rescues',
+                      label: 'Past Rescues Archive',
                     ),
                   ],
                 ),
@@ -210,11 +192,49 @@ class _RescueCommunityReportsScreenState
                 AppSpacing.vGapMd,
 
                 // ── Sighting Cards Feed ─────────────────────────────
-                if (_selectedTab == 0)
-                  ..._reports.map(
-                    (rpt) => _buildSightingCard(context, theme, colorScheme, rpt),
-                  )
-                else
+                if (_selectedTab == 0) ...[
+                  if (sightingsAsync.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (sightings.isEmpty)
+                    AppCard(
+                      padding: const EdgeInsets.all(32),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.radar, size: 48, color: colorScheme.primary),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No Active Community Sightings',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Citizens haven\'t flagged unverified lost pet sightings recently in this sector. Tap "+" to file new field intel.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              icon: const Icon(Icons.add_location_alt_outlined),
+                              label: const Text('File Sighting Intel'),
+                              onPressed: _openFileSightingDialog,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...sightings.map(
+                      (sighting) => _buildSightingCard(context, theme, colorScheme, sighting),
+                    ),
+                ] else
                   AppCard(
                     padding: const EdgeInsets.all(24),
                     child: Center(
@@ -268,7 +288,7 @@ class _RescueCommunityReportsScreenState
                 Row(
                   children: [
                     Text(
-                      'Rescue Lead Responder',
+                      'Live Incident Sighting Feed',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: AppTypography.bold,
                       ),
@@ -278,7 +298,7 @@ class _RescueCommunityReportsScreenState
                   ],
                 ),
                 Text(
-                  'Tier 3 Field Commander • Live Telemetry & GPS Ingestion Active',
+                  'Community crowd-sourced telemetry and sightings synchronized in real-time.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -314,9 +334,10 @@ class _RescueCommunityReportsScreenState
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
-    Map<String, dynamic> rpt,
+    LostPetSighting sighting,
   ) {
-    final isVerified = rpt['verified'] as bool;
+    final isVerified = sighting.status.toUpperCase() == 'VERIFIED';
+    final timeStr = DateFormat('MMM d, h:mm a').format(sighting.sightingTime);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -337,13 +358,13 @@ class _RescueCommunityReportsScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        rpt['reporter'] as String,
+                        'Reported: $timeStr',
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                       Text(
-                        rpt['pet'] as String,
+                        'Field Sighting #${sighting.id.length >= 6 ? sighting.id.substring(0, 6).toUpperCase() : sighting.id}',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: AppTypography.bold,
                         ),
@@ -367,7 +388,7 @@ class _RescueCommunityReportsScreenState
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    rpt['location'] as String,
+                    sighting.sightingLocation,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -375,57 +396,37 @@ class _RescueCommunityReportsScreenState
                 ),
               ],
             ),
-            AppSpacing.vGapXs,
-            Text(
-              rpt['notes'] as String,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            AppSpacing.vGapSm,
-            if (rpt['aiMatchScore'] != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_awesome, size: 14, color: Colors.blue.shade700),
-                    const SizedBox(width: 4),
-                    Text(
-                      'AI Lost Pet Sighting Match: ${rpt['aiMatchScore']}% Confidence',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
-                    ),
-                  ],
+            if (sighting.notes != null && sighting.notes!.isNotEmpty) ...[
+              AppSpacing.vGapXs,
+              Text(
+                sighting.notes!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
+            ],
             AppSpacing.vGapMd,
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton.icon(
                   icon: const Icon(Icons.share, size: 16),
-                  label: const Text('Share Alert'),
+                  label: const Text('Share Intel'),
                   onPressed: () {
                     ExternalActions.shareText(
-                      '🚨 CIVILIAN SIGHTING REPORT: ${rpt['pet']}\n'
-                      'Location: ${rpt['location']}\n'
-                      'Notes: ${rpt['notes']}\n'
-                      'Reporter: ${rpt['reporter']}\n'
-                      'Reported via PetConnect AI Volunteer Network',
-                      subject: '🚨 Pet Sighting Alert: ${rpt['pet']}',
+                      '🚨 Sighting Reported\n'
+                      'Location: ${sighting.sightingLocation}\n'
+                      'Notes: ${sighting.notes ?? "No additional notes"}\n'
+                      'Time: $timeStr',
+                      subject: 'Lost Pet Sighting Intel',
                     );
                   },
                 ),
                 AppSpacing.hGapSm,
-                AppButton(
-                  text: 'Dispatch Unit',
-                  icon: Icons.directions_run,
+                FilledButton.icon(
+                  icon: const Icon(Icons.map, size: 16),
+                  label: const Text('Dispatch / Search'),
                   onPressed: () => context.push(RoutePaths.rescueOperations),
-                  height: 36,
                 ),
               ],
             ),

@@ -9,8 +9,6 @@ import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_report_summary.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 import 'package:petconnect_ai/shared/widgets/states/error_view.dart';
 
 /// **Administrator Platform Reports** — `/admin/reports` (Phase 11).
@@ -46,7 +44,9 @@ class _AdminPlatformReportsScreenState
     buffer.writeln('Completed Consultations: ${summary.completedAppointments}');
     buffer.writeln('AI Triage Conversations: ${summary.totalAiConversations}');
     buffer.writeln('AI Health Scans: ${summary.totalAiScans}');
-    buffer.writeln('Rescue Missions Dispatched: ${summary.totalRescueMissions}');
+    buffer.writeln(
+      'Rescue Missions Dispatched: ${summary.totalRescueMissions}',
+    );
     buffer.writeln('Missing Pet Alerts: ${summary.totalLostPetAlerts}');
     buffer.writeln('Refreshed At: ${summary.refreshedAt.toIso8601String()}');
     buffer.writeln('====================================================');
@@ -167,8 +167,7 @@ class _ReportsBody extends StatelessWidget {
                 colorScheme,
                 icon: Icons.group_outlined,
                 title: 'User Growth & Retention',
-                desc:
-                    'Active pet owners, vets, rescuers, and administrators',
+                desc: 'Active pet owners, vets, rescuers, and administrators',
                 stats: _formatCount(summary.totalUsers),
                 trend: '${summary.totalPetOwners} pet owners',
                 color: AppColors.info,
@@ -179,8 +178,7 @@ class _ReportsBody extends StatelessWidget {
                 colorScheme,
                 icon: Icons.psychology_outlined,
                 title: 'AI Diagnostic Performance',
-                desc:
-                    'AI chat sessions and multimodal health scan volume',
+                desc: 'AI chat sessions and multimodal health scan volume',
                 stats: _formatCount(summary.totalAiScans),
                 trend: '${_formatCount(summary.totalAiConversations)} chats',
                 color: AppColors.success,
@@ -191,11 +189,9 @@ class _ReportsBody extends StatelessWidget {
                 colorScheme,
                 icon: Icons.local_hospital_outlined,
                 title: 'Veterinary Consultation Volume',
-                desc:
-                    'Completed appointments out of total scheduled',
+                desc: 'Completed appointments out of total scheduled',
                 stats: '${summary.completedAppointments} completed',
-                trend:
-                    '${summary.totalAppointments} total',
+                trend: '${summary.totalAppointments} total',
                 color: AppColors.warning,
               ),
               _buildReportTile(
@@ -204,8 +200,7 @@ class _ReportsBody extends StatelessWidget {
                 colorScheme,
                 icon: Icons.shield_outlined,
                 title: 'Emergency Dispatch & Rescue',
-                desc:
-                    'Rescue missions dispatched and active lost-pet alerts',
+                desc: 'Rescue missions dispatched and active lost-pet alerts',
                 stats: '${summary.totalRescueMissions} missions',
                 trend: '${summary.totalLostPetAlerts} alerts',
                 color: AppColors.lightError,
@@ -220,35 +215,78 @@ class _ReportsBody extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(
+              0xFF7C3AED,
+            ).withValues(alpha: isDark ? 0.25 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF7C3AED).withValues(alpha: isDark ? 0.3 : 0.15),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Ecosystem Performance Summary',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: AppTypography.bold,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.analytics_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Ecosystem Performance Summary',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
               ),
-              AppChip(
-                label:
-                    'Refreshed ${_formatDate(summary.refreshedAt)}',
-                backgroundColor:
-                    AppColors.success.withValues(alpha: 0.12),
-                textColor: AppColors.success,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Refreshed ${_formatDate(summary.refreshedAt)}',
+                  style: const TextStyle(
+                    color: Color(0xFF059669),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             'Platform-wide aggregate metrics as of ${_formatMonth(summary.reportMonth)}.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
           ),
         ],
       ),
@@ -265,7 +303,7 @@ class _ReportsBody extends StatelessWidget {
             value: _formatCount(summary.totalUsers),
             label: 'Total Users',
             trend: '${summary.totalPetOwners} owners',
-            trendColor: AppColors.success,
+            trendColor: const Color(0xFF7C3AED),
           ),
         ),
         AppSpacing.hGapSm,
@@ -276,7 +314,7 @@ class _ReportsBody extends StatelessWidget {
             value: _formatCount(summary.totalVeterinarians),
             label: 'Veterinarians',
             trend: '${summary.totalRescuers} rescuers',
-            trendColor: AppColors.info,
+            trendColor: const Color(0xFF2563EB),
           ),
         ),
         AppSpacing.hGapSm,
@@ -301,10 +339,10 @@ class _ReportsBody extends StatelessWidget {
           child: _KpiCard(
             theme: theme,
             colorScheme: colorScheme,
-            value: _formatCount(summary.totalAiScans),
-            label: 'AI Scans',
-            trend: '${_formatCount(summary.totalAiConversations)} chats',
-            trendColor: AppColors.success,
+            value: _formatCount(summary.totalAppointments),
+            label: 'Appointments',
+            trend: '${summary.completedAppointments} completed',
+            trendColor: const Color(0xFF0284C7),
           ),
         ),
         AppSpacing.hGapSm,
@@ -312,10 +350,10 @@ class _ReportsBody extends StatelessWidget {
           child: _KpiCard(
             theme: theme,
             colorScheme: colorScheme,
-            value: _formatCount(summary.totalAppointments),
-            label: 'Vet Consults',
-            trend: '${summary.completedAppointments} done',
-            trendColor: AppColors.info,
+            value: _formatCount(summary.totalAiScans),
+            label: 'AI Scans',
+            trend: '${summary.totalAiConversations} triage',
+            trendColor: const Color(0xFF059669),
           ),
         ),
         AppSpacing.hGapSm,
@@ -326,7 +364,7 @@ class _ReportsBody extends StatelessWidget {
             value: _formatCount(summary.totalRescueMissions),
             label: 'Rescues',
             trend: '${summary.totalLostPetAlerts} alerts',
-            trendColor: AppColors.warning,
+            trendColor: const Color(0xFFEA580C),
           ),
         ),
       ],
@@ -344,55 +382,91 @@ class _ReportsBody extends StatelessWidget {
     required String trend,
     required Color color,
   }) {
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withValues(alpha: 0.15),
-              child: Icon(icon, color: color),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            AppSpacing.hGapSm,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      desc,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
+                    stats,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
-                  Text(
-                    desc,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 3),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      trend,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  stats,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                Text(
-                  trend,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -414,8 +488,18 @@ class _ReportsBody extends StatelessWidget {
 
   static String _formatMonth(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[dt.month - 1]} ${dt.year}';
   }
@@ -442,29 +526,60 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: trendColor.withValues(alpha: isDark ? 0.25 : 0.15),
+        ),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: AppTypography.bold,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: trendColor,
+              letterSpacing: -0.5,
             ),
           ),
-          AppSpacing.vGapXs,
+          const SizedBox(height: 2),
           Text(
             label,
-            style: theme.textTheme.labelSmall?.copyWith(
+            style: TextStyle(
               color: colorScheme.onSurfaceVariant,
-              fontSize: 10,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          AppSpacing.vGapXs,
-          AppChip(
-            label: trend,
-            backgroundColor: trendColor.withValues(alpha: 0.15),
-            textColor: trendColor,
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: trendColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              trend,
+              style: TextStyle(
+                color: trendColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+              ),
+            ),
           ),
         ],
       ),

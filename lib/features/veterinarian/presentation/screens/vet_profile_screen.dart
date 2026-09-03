@@ -6,6 +6,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
@@ -80,15 +81,7 @@ class VetProfileScreen extends ConsumerWidget {
                       child: AppButton(
                         text: 'Book Consultation',
                         icon: Icons.calendar_month,
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Opening Consultation Scheduler...',
-                              ),
-                            ),
-                          );
-                        },
+                        onPressed: () => context.push(RoutePaths.vetAppointmentSchedule),
                         backgroundColor: colorScheme.primary,
                         textColor: colorScheme.onPrimary,
                         height: 48,
@@ -102,12 +95,18 @@ class VetProfileScreen extends ConsumerWidget {
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(48),
                         ),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Calling Clinic Line...'),
-                            ),
-                          );
+                        onPressed: () async {
+                          final clinics = ref.read(vetClinicsProvider).valueOrNull ?? [];
+                          final clinic = clinics.isNotEmpty ? clinics.first : null;
+                          final profile = ref.read(currentUserProfileProvider).valueOrNull;
+                          final phone = clinic?.phone ?? profile?.phone;
+                          if (phone != null && phone.isNotEmpty) {
+                            await ExternalActions.callPhone(phone);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please add a phone number in Edit Practice Profile.')),
+                            );
+                          }
                         },
                       ),
                     ),
@@ -230,20 +229,12 @@ class VetProfileScreen extends ConsumerWidget {
                 AppSpacing.vGapXs,
                 Row(
                   children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      '5.0 (Active Practicing)',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                     Icon(Icons.verified, color: colorScheme.primary, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      'Verified Medical Board',
+                      'VCI Accredited & Active License',
                       style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: AppTypography.bold,
                         color: colorScheme.primary,
                       ),
                     ),
@@ -281,8 +272,17 @@ class VetProfileScreen extends ConsumerWidget {
     final clinicsAsync = ref.watch(vetClinicsProvider);
     final clinics = clinicsAsync.valueOrNull ?? [];
     final clinic = clinics.isNotEmpty ? clinics.first : null;
-    final address = clinic?.address ?? '123 Wellness Way, Suite 400 • Medical Sector 4';
-    final phone = clinic?.phone ?? '+91 98450 12345';
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final address = (clinic?.address != null && clinic!.address!.isNotEmpty)
+        ? clinic.address!
+        : (profile?.city != null && profile!.city!.isNotEmpty
+            ? '${profile.city} Clinical Facility'
+            : 'Primary Clinical Practice Facility');
+    final phone = (clinic?.phone != null && clinic!.phone!.isNotEmpty)
+        ? clinic.phone!
+        : (profile?.phone != null && profile!.phone!.isNotEmpty
+            ? profile.phone!
+            : 'On-Call Line Active');
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),

@@ -151,13 +151,15 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
                           ),
                           AppSpacing.vGapSm,
                           Text(
-                            'Queue is clear',
+                            allPatients.isEmpty ? 'Triage Queue Clear' : 'No matching patients',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            'No patients match the selected filter criteria.',
+                            allPatients.isEmpty
+                                ? 'All triage sectors clear. New arrivals and booked appointments will appear here.'
+                                : 'No patients match the selected filter criteria.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -384,7 +386,7 @@ class _PatientQueueScreenState extends ConsumerState<PatientQueueScreen> {
                   icon: Icons.medical_services_outlined,
                   onPressed: () {
                     context.push(
-                      '${RoutePaths.vetConsultation}?appointmentId=${patient.appointmentId}',
+                      RoutePaths.vetConsultationPath(patient.appointmentId),
                     );
                   },
                 ),

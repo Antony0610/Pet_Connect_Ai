@@ -129,4 +129,23 @@ class ExternalActions {
     } catch (_) {}
     return false;
   }
+
+  /// Native share files with optional text and subject.
+  static Future<void> shareFiles(
+    List<String> filePaths, {
+    String? text,
+    String? subject,
+  }) async {
+    try {
+      // ignore: deprecated_member_use
+      await Share.shareXFiles(
+        filePaths.map((p) => XFile(p)).toList(),
+        text: text,
+        subject: subject,
+      );
+    } catch (_) {}
+  }
+
+  /// Alias for callPhoneNumber.
+  static Future<bool> callPhone(String phoneNumber) => callPhoneNumber(phoneNumber);
 }

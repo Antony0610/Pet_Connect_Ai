@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/features/administrator/presentation/widgets/admin_bottom_nav_bar.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
@@ -18,7 +17,7 @@ import 'package:petconnect_ai/shared/widgets/states/error_view.dart';
 
 /// Administrator Platform Settings Screen
 ///
-/// Complete platform-wide configuration and policy governance hub.
+/// Sleek Telegram flat-list styled platform configuration and policy governance hub.
 /// Synchronized in real-time with the Supabase `platform_settings` table.
 class AdminPlatformSettingsScreen extends ConsumerStatefulWidget {
   const AdminPlatformSettingsScreen({super.key});
@@ -34,7 +33,8 @@ class _AdminPlatformSettingsScreenState
 
   // ── Core Operations State ────────────────────────────────────────────────
   bool? _isMaintenanceMode;
-  String _maintenanceMessage = 'System under scheduled maintenance. Only authorized staff may log in.';
+  String _maintenanceMessage =
+      'System under scheduled maintenance. Only authorized staff may log in.';
   bool? _isAutoBackups;
   int _backupRetentionDays = 30;
   bool? _isDebugTelemetry;
@@ -68,7 +68,8 @@ class _AdminPlatformSettingsScreenState
       switch (setting.settingKey) {
         case 'maintenance_mode':
           _isMaintenanceMode = (val['enabled'] as bool?) ?? false;
-          _maintenanceMessage = (val['message'] as String?) ?? _maintenanceMessage;
+          _maintenanceMessage =
+              (val['message'] as String?) ?? _maintenanceMessage;
           break;
         case 'auto_backups':
           _isAutoBackups = (val['enabled'] as bool?) ?? true;
@@ -92,17 +93,21 @@ class _AdminPlatformSettingsScreenState
         case 'security_auth_policy':
           _enforce2faForStaff = (val['enforce_2fa_staff'] as bool?) ?? true;
           _maxFailedLogins = (val['max_failed_logins'] as num?)?.toInt() ?? 5;
-          _sessionTimeoutMinutes = (val['session_timeout_minutes'] as num?)?.toInt() ?? 60;
+          _sessionTimeoutMinutes =
+              (val['session_timeout_minutes'] as num?)?.toInt() ?? 60;
           _allowGuestBrowse = (val['allow_guest_browse'] as bool?) ?? true;
           break;
         case 'communication_dispatch':
           _emergencySmsDispatch = (val['emergency_sms'] as bool?) ?? true;
-          _emailNotificationsEnabled = (val['email_notifications'] as bool?) ?? true;
+          _emailNotificationsEnabled =
+              (val['email_notifications'] as bool?) ?? true;
           _pushNotificationsEnabled = (val['push_broadcast'] as bool?) ?? true;
           break;
         case 'veterinary_telemed_policy':
-          _telemedicineBufferMinutes = (val['buffer_minutes'] as num?)?.toInt() ?? 10;
-          _requirePrescriptionLicense = (val['require_license_check'] as bool?) ?? true;
+          _telemedicineBufferMinutes =
+              (val['buffer_minutes'] as num?)?.toInt() ?? 10;
+          _requirePrescriptionLicense =
+              (val['require_license_check'] as bool?) ?? true;
           break;
       }
     }
@@ -114,29 +119,31 @@ class _AdminPlatformSettingsScreenState
 
   void _openAddCustomKeyDialog() async {
     final keyCtrl = TextEditingController();
-    final valCtrl = TextEditingController(text: '{"enabled": true, "note": "Dynamic parameter"}');
+    final valCtrl = TextEditingController(
+      text: '{"enabled": true, "note": "Dynamic parameter"}',
+    );
 
     final added = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Custom Platform Setting Key'),
+        title: const Text('Add Platform Setting Key'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: keyCtrl,
               decoration: const InputDecoration(
-                labelText: 'Setting Key Identifier',
-                hintText: 'e.g. stripe_webhook_secret_key',
+                labelText: 'Setting Key (e.g. max_search_radius)',
+                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: valCtrl,
-              maxLines: 3,
+              maxLines: 4,
               decoration: const InputDecoration(
-                labelText: 'JSON Value Payload',
-                hintText: '{"mode": "production", "rate": 2.5}',
+                labelText: 'JSON Value',
+                border: OutlineInputBorder(),
               ),
             ),
           ],
@@ -148,7 +155,7 @@ class _AdminPlatformSettingsScreenState
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save Key'),
+            child: const Text('Create in Supabase'),
           ),
         ],
       ),
@@ -163,14 +170,15 @@ class _AdminPlatformSettingsScreenState
       }
 
       final repo = ref.read(adminRepositoryProvider);
-      await repo.updatePlatformSettingByKey(
-        keyCtrl.text.trim(),
-        jsonValue,
-      );
+      await repo.updatePlatformSettingByKey(keyCtrl.text.trim(), jsonValue);
       ref.invalidate(adminPlatformSettingsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Setting "${keyCtrl.text.trim()}" created in Supabase!')),
+          SnackBar(
+            content: Text(
+              'Setting "${keyCtrl.text.trim()}" created in Supabase!',
+            ),
+          ),
         );
       }
     }
@@ -247,8 +255,14 @@ class _AdminPlatformSettingsScreenState
           'This will ensure all standard platform setting keys (maintenance, backups, AI policies, security, dispatch) exist in Supabase with standard production defaults.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Seed Defaults')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Seed Defaults'),
+          ),
         ],
       ),
     );
@@ -259,7 +273,8 @@ class _AdminPlatformSettingsScreenState
 
       await repo.updatePlatformSettingByKey('maintenance_mode', {
         'enabled': false,
-        'message': 'System under scheduled maintenance. Only authorized staff may log in.',
+        'message':
+            'System under scheduled maintenance. Only authorized staff may log in.',
       });
       await repo.updatePlatformSettingByKey('auto_backups', {
         'enabled': true,
@@ -301,7 +316,9 @@ class _AdminPlatformSettingsScreenState
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('All recommended platform default keys seeded successfully!'),
+            content: Text(
+              'All recommended platform default keys seeded successfully!',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -315,66 +332,58 @@ class _AdminPlatformSettingsScreenState
     final scaffold = ScaffoldMessenger.of(context);
 
     try {
-      final res1 = await repo.updatePlatformSettingByKey('maintenance_mode', {
+      await repo.updatePlatformSettingByKey('maintenance_mode', {
         'enabled': _isMaintenanceMode ?? false,
         'message': _maintenanceMessage,
         'updated_at': DateTime.now().toIso8601String(),
       });
-      final res2 = await repo.updatePlatformSettingByKey('auto_backups', {
+      await repo.updatePlatformSettingByKey('auto_backups', {
         'enabled': _isAutoBackups ?? true,
         'frequency': 'daily',
         'retention_days': _backupRetentionDays,
       });
-      final res3 = await repo.updatePlatformSettingByKey('debug_telemetry', {
+      await repo.updatePlatformSettingByKey('debug_telemetry', {
         'enabled': _isDebugTelemetry ?? false,
         'log_level': _telemetryLogLevel,
       });
-      final res4 = await repo.updatePlatformSettingByKey('emergency_broadcast_radius', {
+      await repo.updatePlatformSettingByKey('emergency_broadcast_radius', {
         'radius_km': _broadcastRadiusKm,
       });
-      final res5 = await repo.updatePlatformSettingByKey('ai_match_threshold', {
+      await repo.updatePlatformSettingByKey('ai_match_threshold', {
         'threshold_percent': _aiMatchThreshold,
       });
-      final res6 = await repo.updatePlatformSettingByKey('ai_triage_policy', {
+      await repo.updatePlatformSettingByKey('ai_triage_policy', {
         'auto_escalate': _aiTriageAutoEscalate,
       });
-      final res7 = await repo.updatePlatformSettingByKey('security_auth_policy', {
+      await repo.updatePlatformSettingByKey('security_auth_policy', {
         'enforce_2fa_staff': _enforce2faForStaff,
         'max_failed_logins': _maxFailedLogins,
         'session_timeout_minutes': _sessionTimeoutMinutes,
         'allow_guest_browse': _allowGuestBrowse,
       });
-      final res8 = await repo.updatePlatformSettingByKey('communication_dispatch', {
+      await repo.updatePlatformSettingByKey('communication_dispatch', {
         'emergency_sms': _emergencySmsDispatch,
         'email_notifications': _emailNotificationsEnabled,
         'push_broadcast': _pushNotificationsEnabled,
       });
-      final res9 = await repo.updatePlatformSettingByKey('veterinary_telemed_policy', {
+      await repo.updatePlatformSettingByKey('veterinary_telemed_policy', {
         'buffer_minutes': _telemedicineBufferMinutes,
         'require_license_check': _requirePrescriptionLicense,
       });
 
-      if (res1.isLeft() || res2.isLeft() || res3.isLeft() || res4.isLeft() || res5.isLeft() ||
-          res6.isLeft() || res7.isLeft() || res8.isLeft() || res9.isLeft()) {
-        scaffold.showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update one or more settings in Supabase.'),
-            backgroundColor: AppColors.lightError,
+      ref.invalidate(adminPlatformSettingsProvider);
+      scaffold.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Global platform settings updated & synchronized to Supabase!',
           ),
-        );
-      } else {
-        scaffold.showSnackBar(
-          const SnackBar(
-            content: Text('All platform configurations saved successfully to Supabase!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        ref.invalidate(adminPlatformSettingsProvider);
-      }
+          backgroundColor: AppColors.success,
+        ),
+      );
     } catch (e) {
       scaffold.showSnackBar(
         SnackBar(
-          content: Text('Error saving platform settings: $e'),
+          content: Text('Error saving settings: $e'),
           backgroundColor: AppColors.lightError,
         ),
       );
@@ -391,7 +400,7 @@ class _AdminPlatformSettingsScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Platform Settings & Policy Governance'),
+        title: const Text('Platform Governance & Settings'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(RoutePaths.adminHome),
@@ -431,82 +440,134 @@ class _AdminPlatformSettingsScreenState
           _initLocalState(settings);
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1000),
+                constraints: const BoxConstraints(maxWidth: 900),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Active Database Keys Counter ────────────────────
-                    _buildSettingsOverviewBanner(theme, colorScheme, settings.length),
+                    _buildSettingsOverviewBanner(
+                      theme,
+                      colorScheme,
+                      settings.length,
+                    ),
 
-                    AppSpacing.vGapLg,
+                    AppSpacing.vGapMd,
 
-                    // ── System Operations & Maintenance ──────────────────
-                    _buildMaintenanceCard(theme, colorScheme),
+                    // ── Core Operations & Maintenance ──────────────────
+                    _buildSectionHeader(
+                      'CORE PLATFORM & OPERATIONS',
+                      colorScheme,
+                    ),
+                    _buildOperationsGroup(context, colorScheme),
 
-                    AppSpacing.vGapLg,
+                    AppSpacing.vGapMd,
 
-                    // ── Emergency & AI Policy Sliders ───────────────────
-                    _buildPolicySlidersCard(theme, colorScheme),
+                    // ── Emergency & AI Policies ────────────────────────
+                    _buildSectionHeader(
+                      'EMERGENCY DISPATCH & AI POLICIES',
+                      colorScheme,
+                    ),
+                    _buildAiPoliciesGroup(context, colorScheme),
 
-                    AppSpacing.vGapLg,
+                    AppSpacing.vGapMd,
 
-                    // ── Security & Authentication Governance (NEW) ───────
-                    _buildSecurityGovernanceCard(theme, colorScheme),
+                    // ── Security & Access Control ──────────────────────
+                    _buildSectionHeader(
+                      'SECURITY & ACCESS CONTROL',
+                      colorScheme,
+                    ),
+                    _buildSecurityGroup(context, colorScheme),
 
-                    AppSpacing.vGapLg,
+                    AppSpacing.vGapMd,
 
-                    // ── Communication & Dispatch Gateways (NEW) ──────────
-                    _buildCommunicationGatewaysCard(theme, colorScheme),
+                    // ── Communication & Relays ────────────────────────
+                    _buildSectionHeader(
+                      'DISPATCH COMMUNICATION RELAYS',
+                      colorScheme,
+                    ),
+                    _buildCommunicationGroup(context, colorScheme),
 
-                    AppSpacing.vGapLg,
+                    AppSpacing.vGapMd,
 
-                    // ── Veterinary & Telemedicine Policies (NEW) ─────────
-                    _buildVeterinaryPolicyCard(theme, colorScheme),
+                    // ── Veterinary Governance ──────────────────────────
+                    _buildSectionHeader(
+                      'VETERINARY & TELEMEDICINE GOVERNANCE',
+                      colorScheme,
+                    ),
+                    _buildVeterinaryGroup(context, colorScheme),
 
-                    AppSpacing.vGapLg,
+                    AppSpacing.vGapMd,
 
                     // ── Dynamic Key Catalog & Custom Inspector ──────────
-                    _buildDynamicKeyCatalog(theme, colorScheme, settings),
+                    _buildSectionHeader(
+                      'DATABASE SCHEMA INSPECTOR (${settings.length} KEYS)',
+                      colorScheme,
+                    ),
+                    _buildDynamicKeyCatalogGroup(
+                      context,
+                      colorScheme,
+                      settings,
+                    ),
 
-                    AppSpacing.vGapXl,
+                    AppSpacing.vGapLg,
 
                     // ── Save Global Settings Button ─────────────────────
                     AppButton(
-                      text: _isSaving ? 'Saving Configurations to Database...' : 'Save Global Configurations',
+                      text: _isSaving
+                          ? 'Synchronizing to Supabase...'
+                          : 'Save Global Configurations',
                       icon: Icons.save,
                       isLoading: _isSaving,
                       isFullWidth: true,
                       onPressed: _isSaving ? null : _saveSettings,
                       backgroundColor: colorScheme.primary,
                       textColor: colorScheme.onPrimary,
-                      height: 48,
+                      height: 50,
                     ),
 
                     AppSpacing.vGapMd,
 
-                    // ── Sign Out of Admin Portal ────────────────────────
+                    // ── Sign Out Button ────────────────────────────────
                     OutlinedButton.icon(
                       icon: Icon(Icons.logout, color: colorScheme.error),
-                      label: Text('Sign Out of Administrator Portal', style: TextStyle(color: colorScheme.error)),
+                      label: Text(
+                        'Sign Out of Administrator Portal',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
-                        side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
-                        shape: const RoundedRectangleBorder(borderRadius: AppRadius.brCard),
+                        side: BorderSide(
+                          color: colorScheme.error.withValues(alpha: 0.4),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () async {
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('Sign Out'),
-                            content: const Text('Sign out of Administrator Portal?'),
+                            content: const Text(
+                              'Sign out of Administrator Portal?',
+                            ),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancel'),
+                              ),
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, true),
-                                child: Text('Sign Out', style: TextStyle(color: colorScheme.error)),
+                                child: Text(
+                                  'Sign Out',
+                                  style: TextStyle(color: colorScheme.error),
+                                ),
                               ),
                             ],
                           ),
@@ -526,388 +587,589 @@ class _AdminPlatformSettingsScreenState
           );
         },
       ),
+      bottomNavigationBar: const AdminBottomNavBar(
+        currentTab: AdminTab.settings,
+      ),
     );
   }
 
-  Widget _buildSettingsOverviewBanner(ThemeData theme, ColorScheme colorScheme, int keysCount) {
+  Widget _buildSectionHeader(String title, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8, top: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsOverviewBanner(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    int keysCount,
+  ) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       color: colorScheme.primaryContainer.withValues(alpha: 0.35),
       child: Row(
         children: [
-          Icon(Icons.tune, color: colorScheme.primary, size: 28),
-          AppSpacing.hGapSm,
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.admin_panel_settings,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          AppSpacing.hGapMd,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Live Supabase Platform Schema',
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   '$keysCount platform keys actively synchronized with backend PostgreSQL database.',
-                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
           ),
-          AppChip(
+          const AppChip(
             label: 'SYNCED',
-            backgroundColor: AppColors.success.withValues(alpha: 0.15),
-            textColor: AppColors.success,
+            backgroundColor: AppColors.success,
+            textColor: AppColors.white,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMaintenanceCard(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.system_update_outlined, color: colorScheme.primary, size: 22),
-              AppSpacing.hGapSm,
-              Text(
-                'System Info & Live Database Controls',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: AppTypography.bold),
+  Widget _buildOperationsGroup(BuildContext context, ColorScheme colorScheme) {
+    return _GroupCard(
+      children: [
+        _SettingsSwitchTile(
+          icon: Icons.construction,
+          iconColor: const Color(0xFFE11D48),
+          title: 'Maintenance Mode',
+          subtitle:
+              'Restrict citizen and practitioner access during migrations',
+          value: _isMaintenanceMode ?? false,
+          onChanged: (val) => setState(() => _isMaintenanceMode = val),
+        ),
+        if (_isMaintenanceMode == true)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: TextField(
+              controller: TextEditingController(text: _maintenanceMessage),
+              decoration: const InputDecoration(
+                labelText: 'Citizen Maintenance Banner Message',
+                border: OutlineInputBorder(),
+                isDense: true,
               ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          SwitchListTile(
-            title: const Text('Maintenance Mode'),
-            subtitle: const Text('Restrict portal access to emergency maintenance mode'),
-            value: _isMaintenanceMode ?? false,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _isMaintenanceMode = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-          if (_isMaintenanceMode == true) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: TextField(
-                controller: TextEditingController(text: _maintenanceMessage),
-                decoration: const InputDecoration(
-                  labelText: 'Maintenance Banner Message',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (v) => _maintenanceMessage = v,
-              ),
+              onChanged: (v) => _maintenanceMessage = v,
             ),
-          ],
-          SwitchListTile(
-            title: const Text('Automated Database Backups'),
-            subtitle: Text('Daily PostgreSQL snapshot schedule • $_backupRetentionDays days retention'),
-            value: _isAutoBackups ?? true,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _isAutoBackups = val),
-            contentPadding: EdgeInsets.zero,
           ),
-          SwitchListTile(
-            title: const Text('Verbose Telemetry Logging'),
-            subtitle: Text('API gateway logging level: $_telemetryLogLevel'),
-            value: _isDebugTelemetry ?? false,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) {
-              setState(() {
-                _isDebugTelemetry = val;
-                _telemetryLogLevel = val ? 'DEBUG' : 'INFO';
-              });
-            },
-            contentPadding: EdgeInsets.zero,
-          ),
-        ],
-      ),
+        const Divider(height: 1, indent: 64),
+        _SettingsSwitchTile(
+          icon: Icons.backup_outlined,
+          iconColor: const Color(0xFF2563EB),
+          title: 'Automated Database Backups',
+          subtitle:
+              'Daily snapshot schedule • $_backupRetentionDays days retention',
+          value: _isAutoBackups ?? true,
+          onChanged: (val) => setState(() => _isAutoBackups = val),
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsSwitchTile(
+          icon: Icons.developer_mode,
+          iconColor: const Color(0xFF8B5CF6),
+          title: 'Verbose Telemetry Logging',
+          subtitle: 'Gateway diagnostics level: $_telemetryLogLevel',
+          value: _isDebugTelemetry ?? false,
+          onChanged: (val) {
+            setState(() {
+              _isDebugTelemetry = val;
+              _telemetryLogLevel = val ? 'DEBUG' : 'INFO';
+            });
+          },
+        ),
+      ],
     );
   }
 
-  Widget _buildPolicySlidersCard(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildAiPoliciesGroup(BuildContext context, ColorScheme colorScheme) {
+    return _GroupCard(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.psychology_outlined, color: colorScheme.primary, size: 22),
-              AppSpacing.hGapSm,
-              Text(
-                'Operational & AI Policy Thresholds',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          AppSpacing.vGapMd,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Emergency Broadcast Radius Limit'),
-              Text('${_broadcastRadiusKm.toStringAsFixed(0)} km', style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          Slider(
-            value: _broadcastRadiusKm,
-            min: 5.0,
-            max: 100.0,
-            divisions: 19,
-            label: '${_broadcastRadiusKm.toStringAsFixed(0)} km',
-            onChanged: (val) => setState(() => _broadcastRadiusKm = val),
-          ),
-          AppSpacing.vGapSm,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('AI Sighting Match Confidence Threshold'),
-              Text('${_aiMatchThreshold.toStringAsFixed(0)} %', style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          Slider(
-            value: _aiMatchThreshold,
-            min: 50.0,
-            max: 95.0,
-            divisions: 9,
-            label: '${_aiMatchThreshold.toStringAsFixed(0)} %',
-            onChanged: (val) => setState(() => _aiMatchThreshold = val),
-          ),
-          SwitchListTile(
-            title: const Text('AI Health Triage Auto-Escalation'),
-            subtitle: const Text('Automatically flag critical symptoms directly into clinical vet emergency queue'),
-            value: _aiTriageAutoEscalate,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _aiTriageAutoEscalate = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSecurityGovernanceCard(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.shield_outlined, color: colorScheme.primary, size: 22),
-              AppSpacing.hGapSm,
-              Text(
-                'Security & Authentication Governance',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          SwitchListTile(
-            title: const Text('Mandatory 2FA for Staff Accounts'),
-            subtitle: const Text('Enforce two-factor verification on Veterinarian & Administrator logins'),
-            value: _enforce2faForStaff,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _enforce2faForStaff = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-          SwitchListTile(
-            title: const Text('Public Guest Map Browsing'),
-            subtitle: const Text('Allow unauthenticated users to view lost pet broadcasts'),
-            value: _allowGuestBrowse,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _allowGuestBrowse = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-          AppSpacing.vGapSm,
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  initialValue: _maxFailedLogins,
-                  decoration: const InputDecoration(labelText: 'Lockout after failed attempts'),
-                  items: const [
-                    DropdownMenuItem(value: 3, child: Text('3 attempts')),
-                    DropdownMenuItem(value: 5, child: Text('5 attempts (Default)')),
-                    DropdownMenuItem(value: 10, child: Text('10 attempts')),
-                  ],
-                  onChanged: (v) => setState(() => _maxFailedLogins = v ?? 5),
-                ),
-              ),
-              AppSpacing.hGapSm,
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  initialValue: _sessionTimeoutMinutes,
-                  decoration: const InputDecoration(labelText: 'Session idle timeout'),
-                  items: const [
-                    DropdownMenuItem(value: 15, child: Text('15 minutes')),
-                    DropdownMenuItem(value: 30, child: Text('30 minutes')),
-                    DropdownMenuItem(value: 60, child: Text('60 minutes (Default)')),
-                    DropdownMenuItem(value: 120, child: Text('120 minutes')),
-                  ],
-                  onChanged: (v) => setState(() => _sessionTimeoutMinutes = v ?? 60),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCommunicationGatewaysCard(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.campaign_outlined, color: colorScheme.primary, size: 22),
-              AppSpacing.hGapSm,
-              Text(
-                'Communication & Dispatch Gateways',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          SwitchListTile(
-            title: const Text('Emergency SMS Dispatch Alerts'),
-            subtitle: const Text('Send direct SMS alerts to on-duty volunteer rescuers'),
-            value: _emergencySmsDispatch,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _emergencySmsDispatch = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-          SwitchListTile(
-            title: const Text('Transactional Email System'),
-            subtitle: const Text('Deliver email receipts, health records, and prescription summaries'),
-            value: _emailNotificationsEnabled,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _emailNotificationsEnabled = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-          SwitchListTile(
-            title: const Text('Firebase Cloud Messaging (FCM) Push'),
-            subtitle: const Text('Live push notifications to iOS and Android active devices'),
-            value: _pushNotificationsEnabled,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _pushNotificationsEnabled = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVeterinaryPolicyCard(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.medical_services_outlined, color: colorScheme.primary, size: 22),
-              AppSpacing.hGapSm,
-              Text(
-                'Veterinary Telemedicine & Prescription Policy',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          SwitchListTile(
-            title: const Text('Require Medical License Validation'),
-            subtitle: const Text('Block e-prescriptions until veterinarian medical license is verified by admin'),
-            value: _requirePrescriptionLicense,
-            activeTrackColor: colorScheme.primary,
-            onChanged: (val) => setState(() => _requirePrescriptionLicense = val),
-            contentPadding: EdgeInsets.zero,
-          ),
-          AppSpacing.vGapSm,
-          DropdownButtonFormField<int>(
-            initialValue: _telemedicineBufferMinutes,
-            decoration: const InputDecoration(labelText: 'Consultation Transition Buffer'),
-            items: const [
-              DropdownMenuItem(value: 5, child: Text('5 minutes transition buffer')),
-              DropdownMenuItem(value: 10, child: Text('10 minutes (Recommended)')),
-              DropdownMenuItem(value: 15, child: Text('15 minutes transition buffer')),
-            ],
-            onChanged: (v) => setState(() => _telemedicineBufferMinutes = v ?? 10),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDynamicKeyCatalog(ThemeData theme, ColorScheme colorScheme, List<PlatformSetting> settings) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'All Configured Database Setting Keys (${settings.length})',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline, size: 20),
-                tooltip: 'Add Key',
-                onPressed: _openAddCustomKeyDialog,
-              ),
-            ],
-          ),
-          AppSpacing.vGapSm,
-          if (settings.isEmpty)
-            const Text('No custom platform keys found in database.')
-          else
-            ...settings.map((s) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: InkWell(
-                    onTap: () => _editKeyDialog(s),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.key, size: 16, color: colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  s.settingKey,
-                                  style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12),
-                                ),
-                                Text(
-                                  s.settingValue.toString(),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.edit_outlined, size: 16, color: colorScheme.onSurfaceVariant),
-                        ],
-                      ),
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D9488),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.radar,
+                      color: Colors.white,
+                      size: 20,
                     ),
                   ),
-                )),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Emergency Broadcast Radius',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          'Maximum alert fanout: ${_broadcastRadiusKm.toStringAsFixed(0)} km',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Slider(
+                value: _broadcastRadiusKm,
+                min: 5.0,
+                max: 100.0,
+                divisions: 19,
+                label: '${_broadcastRadiusKm.toStringAsFixed(0)} km',
+                onChanged: (val) => setState(() => _broadcastRadiusKm = val),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, indent: 64),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'AI Visual Sighting Match Threshold',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          'Confidence gate: ${_aiMatchThreshold.toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Slider(
+                value: _aiMatchThreshold,
+                min: 50.0,
+                max: 95.0,
+                divisions: 9,
+                label: '${_aiMatchThreshold.toStringAsFixed(0)}%',
+                onChanged: (val) => setState(() => _aiMatchThreshold = val),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsSwitchTile(
+          icon: Icons.emergency_share,
+          iconColor: const Color(0xFFDC2626),
+          title: 'AI Triage Auto-Escalation',
+          subtitle:
+              'Dispatch high-confidence sightings to rescue units immediately',
+          value: _aiTriageAutoEscalate,
+          onChanged: (val) => setState(() => _aiTriageAutoEscalate = val),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecurityGroup(BuildContext context, ColorScheme colorScheme) {
+    return _GroupCard(
+      children: [
+        _SettingsSwitchTile(
+          icon: Icons.shield,
+          iconColor: const Color(0xFF16A34A),
+          title: 'Mandatory 2FA for Staff Accounts',
+          subtitle:
+              'Enforce two-factor verification on Veterinarian & Admin logins',
+          value: _enforce2faForStaff,
+          onChanged: (val) => setState(() => _enforce2faForStaff = val),
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsSwitchTile(
+          icon: Icons.travel_explore,
+          iconColor: const Color(0xFF0284C7),
+          title: 'Public Guest Map Browsing',
+          subtitle: 'Allow unauthenticated users to view lost pet broadcasts',
+          value: _allowGuestBrowse,
+          onChanged: (val) => setState(() => _allowGuestBrowse = val),
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsTile(
+          icon: Icons.lock_clock,
+          iconColor: const Color(0xFF7C3AED),
+          title: 'Max Failed Login Lockout',
+          subtitle:
+              'Lockout account after $_maxFailedLogins consecutive failures',
+          onTap: () async {
+            final val = await showDialog<int>(
+              context: context,
+              builder: (ctx) => SimpleDialog(
+                title: const Text('Failed Login Attempts'),
+                children: [3, 5, 10]
+                    .map(
+                      (v) => SimpleDialogOption(
+                        onPressed: () => Navigator.pop(ctx, v),
+                        child: Text('$v attempts ${v == 5 ? '(Default)' : ''}'),
+                      ),
+                    )
+                    .toList(),
+              ),
+            );
+            if (val != null) setState(() => _maxFailedLogins = val);
+          },
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsTile(
+          icon: Icons.timer,
+          iconColor: const Color(0xFFEA580C),
+          title: 'Staff Session Timeout',
+          subtitle:
+              'Automatic logout after $_sessionTimeoutMinutes minutes inactivity',
+          onTap: () async {
+            final val = await showDialog<int>(
+              context: context,
+              builder: (ctx) => SimpleDialog(
+                title: const Text('Session Inactivity Timeout'),
+                children: [15, 30, 60, 120]
+                    .map(
+                      (v) => SimpleDialogOption(
+                        onPressed: () => Navigator.pop(ctx, v),
+                        child: Text('$v minutes ${v == 60 ? '(Default)' : ''}'),
+                      ),
+                    )
+                    .toList(),
+              ),
+            );
+            if (val != null) setState(() => _sessionTimeoutMinutes = val);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommunicationGroup(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) {
+    return _GroupCard(
+      children: [
+        _SettingsSwitchTile(
+          icon: Icons.sms_outlined,
+          iconColor: const Color(0xFF059669),
+          title: 'Emergency SMS Dispatch Gateway',
+          subtitle: 'Deliver direct SMS alerts to on-duty field responders',
+          value: _emergencySmsDispatch,
+          onChanged: (val) => setState(() => _emergencySmsDispatch = val),
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsSwitchTile(
+          icon: Icons.mail_outline,
+          iconColor: const Color(0xFF4F46E5),
+          title: 'Transactional Email Relays',
+          subtitle:
+              'Deliver consultation confirmations, receipts, and e-prescriptions',
+          value: _emailNotificationsEnabled,
+          onChanged: (val) => setState(() => _emailNotificationsEnabled = val),
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsSwitchTile(
+          icon: Icons.notifications_active_outlined,
+          iconColor: const Color(0xFFD97706),
+          title: 'FCM Push Notifications',
+          subtitle:
+              'Live broadcast alerts to iOS and Android companion devices',
+          value: _pushNotificationsEnabled,
+          onChanged: (val) => setState(() => _pushNotificationsEnabled = val),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVeterinaryGroup(BuildContext context, ColorScheme colorScheme) {
+    return _GroupCard(
+      children: [
+        _SettingsSwitchTile(
+          icon: Icons.verified_user_outlined,
+          iconColor: const Color(0xFF0284C7),
+          title: 'Require Medical License Validation',
+          subtitle:
+              'Block e-prescriptions until practitioner license is accredited',
+          value: _requirePrescriptionLicense,
+          onChanged: (val) => setState(() => _requirePrescriptionLicense = val),
+        ),
+        const Divider(height: 1, indent: 64),
+        _SettingsTile(
+          icon: Icons.more_time,
+          iconColor: const Color(0xFF6366F1),
+          title: 'Telemedicine Buffer Interval',
+          subtitle:
+              '$_telemedicineBufferMinutes minutes buffer between consultations',
+          onTap: () async {
+            final val = await showDialog<int>(
+              context: context,
+              builder: (ctx) => SimpleDialog(
+                title: const Text('Consultation Buffer Duration'),
+                children: [5, 10, 15]
+                    .map(
+                      (v) => SimpleDialogOption(
+                        onPressed: () => Navigator.pop(ctx, v),
+                        child: Text(
+                          '$v minutes transition buffer ${v == 10 ? '(Default)' : ''}',
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            );
+            if (val != null) setState(() => _telemedicineBufferMinutes = val);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDynamicKeyCatalogGroup(
+    BuildContext context,
+    ColorScheme colorScheme,
+    List<PlatformSetting> settings,
+  ) {
+    return _GroupCard(
+      children: [
+        if (settings.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(child: Text('No platform keys found in database.')),
+          )
+        else
+          ...settings.map(
+            (s) => Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.key, color: Colors.white, size: 18),
+                  ),
+                  title: Text(
+                    s.settingKey,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      fontSize: 13,
+                    ),
+                  ),
+                  subtitle: Text(
+                    s.settingValue.toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: Colors.grey,
+                  ),
+                  onTap: () => _editKeyDialog(s),
+                ),
+                if (s != settings.last) const Divider(height: 1, indent: 64),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Telegram-style card container with subtle shadow and border radius.
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(children: children),
+      ),
+    );
+  }
+}
+
+/// Telegram-style list item tile with solid colored squircle and white icon.
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: iconColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+      ),
+      subtitle: subtitle != null
+          ? Text(subtitle!, style: const TextStyle(fontSize: 13))
+          : null,
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        size: 20,
+        color: Colors.grey,
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+/// Telegram-style switch tile with solid colored squircle and white icon.
+class _SettingsSwitchTile extends StatelessWidget {
+  const _SettingsSwitchTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      secondary: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: iconColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+      ),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
+      value: value,
+      activeThumbColor: Theme.of(context).colorScheme.primary,
+      onChanged: onChanged,
     );
   }
 }

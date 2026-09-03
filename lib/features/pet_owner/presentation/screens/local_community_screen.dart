@@ -15,6 +15,16 @@ import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
+final localCommunityMembersProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  final res = await client
+      .from('profiles')
+      .select('id, full_name, role, city, avatar_url')
+      .order('created_at', ascending: false)
+      .limit(6);
+  return (res as List).cast<Map<String, dynamic>>();
+});
+
 /// The **Local Community** screen connecting pet owners with local activity,
 /// community posts, and verified local network directory.
 class LocalCommunityScreen extends ConsumerStatefulWidget {
@@ -296,31 +306,52 @@ class _LocalCommunityScreenState extends ConsumerState<LocalCommunityScreen> {
                     actionLabel: 'Browse All',
                   ),
                   AppSpacing.vGapSm,
-                  _buildNetworkTile(
-                    context,
-                    name: 'Dr. Sarah Jenkins, DVM',
-                    role: 'Veterinary Specialist',
-                    location: 'City Pet Hospital • 1.2 mi',
-                    icon: Icons.local_hospital,
-                    isVerified: true,
-                  ),
-                  AppSpacing.vGapXs,
-                  _buildNetworkTile(
-                    context,
-                    name: 'Marcus Chen',
-                    role: 'Certified Rescue Volunteer',
-                    location: 'Local Shelter Network • 2.5 mi',
-                    icon: Icons.volunteer_activism,
-                    isVerified: true,
-                  ),
-                  AppSpacing.vGapXs,
-                  _buildNetworkTile(
-                    context,
-                    name: 'Elena Rodriguez',
-                    role: 'Community Pet Parent',
-                    location: 'Oak Park District • 0.8 mi',
-                    icon: Icons.person_pin_circle_outlined,
-                    isVerified: false,
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final membersAsync = ref.watch(localCommunityMembersProvider);
+                      return membersAsync.when(
+                        data: (members) {
+                          if (members.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            children: members.map((m) {
+                              final name = m['full_name'] as String? ?? 'Community Member';
+                              final role = m['role'] as String? ?? 'pet_owner';
+                              final city = m['city'] as String? ?? 'Local Area';
+                              final roleDisplay = switch (role) {
+                                'veterinarian' => 'Veterinary Practitioner',
+                                'volunteer_rescue' => 'Verified Rescue Specialist',
+                                _ => 'Pet Parent & Advocate',
+                              };
+                              final icon = switch (role) {
+                                'veterinarian' => Icons.local_hospital,
+                                'volunteer_rescue' => Icons.volunteer_activism,
+                                _ => Icons.person_pin_circle_outlined,
+                              };
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                                child: _buildNetworkTile(
+                                  context,
+                                  name: role == 'veterinarian' && !name.startsWith('Dr.') ? 'Dr. $name' : name,
+                                  role: roleDisplay,
+                                  location: '$city • Community Member',
+                                  icon: icon,
+                                  isVerified: role == 'veterinarian' || role == 'volunteer_rescue',
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator.adaptive(),
+                          ),
+                        ),
+                        error: (_, __) => const SizedBox.shrink(),
+                      );
+                    },
                   ),
                 ],
               ),

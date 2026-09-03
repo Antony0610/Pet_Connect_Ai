@@ -5,10 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/appointment.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
+import 'package:petconnect_ai/features/veterinarian/presentation/widgets/vet_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
-import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
-import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
 class AppointmentManagementScreen extends ConsumerStatefulWidget {
   const AppointmentManagementScreen({super.key});
@@ -85,9 +84,18 @@ class _AppointmentManagementScreenState
                   ),
                   items: const [
                     DropdownMenuItem(value: 15, child: Text('15 min (Brief)')),
-                    DropdownMenuItem(value: 30, child: Text('30 min (Standard)')),
-                    DropdownMenuItem(value: 45, child: Text('45 min (Extended)')),
-                    DropdownMenuItem(value: 60, child: Text('60 min (Procedure)')),
+                    DropdownMenuItem(
+                      value: 30,
+                      child: Text('30 min (Standard)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 45,
+                      child: Text('45 min (Extended)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 60,
+                      child: Text('60 min (Procedure)'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) setDlgState(() => duration = val);
@@ -103,7 +111,10 @@ class _AppointmentManagementScreenState
                   items: const [
                     DropdownMenuItem(value: 'routine', child: Text('Routine')),
                     DropdownMenuItem(value: 'urgent', child: Text('Urgent')),
-                    DropdownMenuItem(value: 'critical', child: Text('Critical / Emergency')),
+                    DropdownMenuItem(
+                      value: 'critical',
+                      child: Text('Critical / Emergency'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) setDlgState(() => priority = val);
@@ -127,7 +138,11 @@ class _AppointmentManagementScreenState
     );
 
     if (added == true && nameCtrl.text.trim().isNotEmpty) {
-      final now = DateTime(_calendarDate.year, _calendarDate.month, _selectedDay);
+      final now = DateTime(
+        _calendarDate.year,
+        _calendarDate.month,
+        _selectedDay,
+      );
       final currentTimestamp = DateTime.now();
       final newAppt = Appointment(
         id: '',
@@ -136,7 +151,8 @@ class _AppointmentManagementScreenState
         veterinarianId: '',
         appointmentDate: now,
         durationMinutes: duration,
-        reason: '${nameCtrl.text.trim()} (${breedCtrl.text.trim()}): ${reasonCtrl.text.trim()}',
+        reason:
+            '${nameCtrl.text.trim()} (${breedCtrl.text.trim()}): ${reasonCtrl.text.trim()}',
         status: 'confirmed',
         priority: priority,
         notes: 'Scheduled for ${timeCtrl.text.trim()}',
@@ -150,7 +166,11 @@ class _AppointmentManagementScreenState
         (failure) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to schedule appointment: ${failure.message}')),
+              SnackBar(
+                content: Text(
+                  'Failed to schedule appointment: ${failure.message}',
+                ),
+              ),
             );
           }
         },
@@ -177,7 +197,9 @@ class _AppointmentManagementScreenState
       (failure) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to update status: ${failure.message}')),
+            SnackBar(
+              content: Text('Failed to update status: ${failure.message}'),
+            ),
           );
         }
       },
@@ -201,12 +223,15 @@ class _AppointmentManagementScreenState
     final clinics = clinicsAsync.valueOrNull ?? [];
     final clinicId = clinics.isNotEmpty ? clinics.first.id : null;
 
-    final appointmentsAsync = ref.watch(appointmentsProvider({'clinicId': clinicId}));
+    final appointmentsAsync = ref.watch(
+      appointmentsProvider({'clinicId': clinicId}),
+    );
     final allAppointments = appointmentsAsync.valueOrNull ?? [];
 
     final filteredAppointments = allAppointments.where((appt) {
       // Filter by day if desired
-      final matchesDay = appt.appointmentDate.day == _selectedDay &&
+      final matchesDay =
+          appt.appointmentDate.day == _selectedDay &&
           appt.appointmentDate.month == _calendarDate.month &&
           appt.appointmentDate.year == _calendarDate.year;
 
@@ -264,9 +289,10 @@ class _AppointmentManagementScreenState
           ),
         ],
       ),
+      bottomNavigationBar: const VetBottomNavBar(currentTab: VetTab.dashboard),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddAppointmentDialog(clinicId),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
         label: const Text('Add Appointment'),
       ),
       body: SafeArea(
@@ -282,11 +308,11 @@ class _AppointmentManagementScreenState
               children: [
                 // Calendar Month Navigator Header
                 _buildMonthHeader(context, theme, colorScheme),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
                 // Calendar Days Grid Bar
                 _buildCalendarDaysGrid(context, theme, colorScheme),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
                 // Filter Chips Row + New Appointment CTA
                 Row(
@@ -330,28 +356,111 @@ class _AppointmentManagementScreenState
                       child: CircularProgressIndicator(),
                     ),
                   )
-                else if (filteredAppointments.isEmpty)
-                  AppCard(
+                else if (appointmentsAsync.hasError)
+                  Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorScheme.error.withValues(alpha: 0.3),
+                      ),
+                    ),
                     child: Center(
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.event_available_outlined, size: 48, color: colorScheme.primary.withValues(alpha: 0.6)),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No appointments found for this selection',
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: colorScheme.error.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.error_outline_rounded,
+                              size: 28,
+                              color: colorScheme.error,
+                            ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 14),
                           Text(
-                            'Tap "+ New" or the button below to book an appointment.',
-                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                            'Unable to Load Schedule',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            appointmentsAsync.error.toString(),
+                            textAlign: TextAlign.center,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           FilledButton.icon(
-                            icon: const Icon(Icons.add),
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('Retry'),
+                            onPressed: () =>
+                                ref.invalidate(appointmentsProvider),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (filteredAppointments.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.event_available_outlined,
+                              size: 30,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'No appointments found for this selection',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Tap "+ New" or the button below to book an appointment.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.add_rounded, size: 18),
                             label: const Text('Schedule Appointment'),
-                            onPressed: () => _openAddAppointmentDialog(clinicId),
+                            onPressed: () =>
+                                _openAddAppointmentDialog(clinicId),
                           ),
                         ],
                       ),
@@ -373,6 +482,7 @@ class _AppointmentManagementScreenState
                       );
                     },
                   ),
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -388,38 +498,72 @@ class _AppointmentManagementScreenState
   ) {
     final monthStr = DateFormat('MMMM yyyy').format(_calendarDate);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          monthStr,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.calendar_month_rounded,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                monthStr,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-        ),
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              tooltip: 'Previous Month',
-              onPressed: () {
-                setState(() {
-                  _calendarDate = DateTime(_calendarDate.year, _calendarDate.month - 1);
-                });
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              tooltip: 'Next Month',
-              onPressed: () {
-                setState(() {
-                  _calendarDate = DateTime(_calendarDate.year, _calendarDate.month + 1);
-                });
-              },
-            ),
-          ],
-        ),
-      ],
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded),
+                tooltip: 'Previous Month',
+                onPressed: () {
+                  setState(() {
+                    _calendarDate = DateTime(
+                      _calendarDate.year,
+                      _calendarDate.month - 1,
+                    );
+                  });
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded),
+                tooltip: 'Next Month',
+                onPressed: () {
+                  setState(() {
+                    _calendarDate = DateTime(
+                      _calendarDate.year,
+                      _calendarDate.month + 1,
+                    );
+                  });
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -430,54 +574,76 @@ class _AppointmentManagementScreenState
   ) {
     final now = DateTime.now();
     final daysInWeek = List.generate(7, (i) {
-      final d = now.subtract(Duration(days: now.weekday - 1)).add(Duration(days: i));
+      final d = now
+          .subtract(Duration(days: now.weekday - 1))
+          .add(Duration(days: i));
       return d;
     });
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: daysInWeek.map((d) {
         final dayNum = d.day;
-        final selected = _selectedDay == dayNum && _calendarDate.month == d.month;
+        final selected =
+            _selectedDay == dayNum && _calendarDate.month == d.month;
         final label = DateFormat('E').format(d).substring(0, 2);
 
-        return InkWell(
-          onTap: () {
-            setState(() {
-              _selectedDay = dayNum;
-              _calendarDate = d;
-            });
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            decoration: BoxDecoration(
-              color: selected
-                  ? colorScheme.primary
-                  : colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedDay = dayNum;
+                  _calendarDate = d;
+                });
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: selected ? colorScheme.primary : colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
                     color: selected
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurfaceVariant,
+                        ? colorScheme.primary
+                        : colorScheme.outlineVariant.withValues(alpha: 0.35),
                   ),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: colorScheme.primary.withValues(alpha: 0.28),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$dayNum',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: selected
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurface,
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: selected
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$dayNum',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: selected
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -506,7 +672,9 @@ class _AppointmentManagementScreenState
             ? colorScheme.onPrimaryContainer
             : colorScheme.onSurfaceVariant,
         fontSize: 12,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     );
   }
 
@@ -516,16 +684,30 @@ class _AppointmentManagementScreenState
     ColorScheme colorScheme,
     Appointment appt,
   ) {
-    final statusColor = appt.status.toLowerCase() == 'completed'
+    final isCompleted = appt.status.toLowerCase() == 'completed';
+    final isCancelled = appt.status.toLowerCase() == 'cancelled';
+    final statusColor = isCompleted
         ? AppColors.success
-        : (appt.status.toLowerCase() == 'cancelled'
-            ? colorScheme.error
-            : AppColors.info);
+        : (isCancelled ? colorScheme.error : colorScheme.primary);
 
     final timeStr = DateFormat('hh:mm a').format(appt.appointmentDate);
 
-    return AppCard(
+    return Container(
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -534,7 +716,11 @@ class _AppointmentManagementScreenState
             children: [
               Row(
                 children: [
-                  Icon(Icons.schedule, size: 18, color: colorScheme.primary),
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     '$timeStr (${appt.durationMinutes} min)',
@@ -544,19 +730,43 @@ class _AppointmentManagementScreenState
                   ),
                 ],
               ),
-              AppChip(
-                label: appt.status.toUpperCase(),
-                backgroundColor: statusColor.withValues(alpha: 0.15),
-                textColor: statusColor,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  appt.status.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
-          const Divider(height: 20),
+          Divider(
+            height: 22,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+          ),
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: colorScheme.primaryContainer,
-                child: Icon(Icons.pets, color: colorScheme.primary),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.pets_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -583,18 +793,18 @@ class _AppointmentManagementScreenState
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
                   Icon(
-                    Icons.flag_outlined,
+                    Icons.flag_rounded,
                     size: 16,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 5),
                   Text(
                     'Priority: ${appt.priority.toUpperCase()}',
                     style: theme.textTheme.labelSmall?.copyWith(
@@ -606,14 +816,18 @@ class _AppointmentManagementScreenState
               ),
               Row(
                 children: [
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.video_call_outlined, size: 16),
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.video_call_rounded, size: 16),
                     label: const Text('Start Consult'),
-                    onPressed: () => context.push('${RoutePaths.vetConsultation}?appointmentId=${appt.id}'),
+                    onPressed: () =>
+                        context.push(RoutePaths.vetConsultationPath(appt.id)),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, size: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     onSelected: (val) {
                       if (val == 'complete') {
                         _updateStatus(appt.id, 'completed');
@@ -624,9 +838,18 @@ class _AppointmentManagementScreenState
                       }
                     },
                     itemBuilder: (ctx) => [
-                      const PopupMenuItem(value: 'in_progress', child: Text('Mark In Progress')),
-                      const PopupMenuItem(value: 'complete', child: Text('Mark Completed')),
-                      const PopupMenuItem(value: 'cancel', child: Text('Cancel Appointment')),
+                      const PopupMenuItem(
+                        value: 'in_progress',
+                        child: Text('Mark In Progress'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'complete',
+                        child: Text('Mark Completed'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'cancel',
+                        child: Text('Cancel Appointment'),
+                      ),
                     ],
                   ),
                 ],

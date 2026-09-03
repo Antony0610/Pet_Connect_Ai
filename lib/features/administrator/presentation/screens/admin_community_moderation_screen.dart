@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
@@ -27,12 +26,20 @@ class _AdminCommunityModerationScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Suspend User Account'),
-        content: Text('Are you sure you want to suspend $authorName for policy violations?'),
+        content: Text(
+          'Are you sure you want to suspend $authorName for policy violations?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Suspend Account', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Suspend Account',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -43,7 +50,9 @@ class _AdminCommunityModerationScreenState
       await repo.suspendUser(authorId, true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$authorName suspended by administrative order.')),
+          SnackBar(
+            content: Text('$authorName suspended by administrative order.'),
+          ),
         );
       }
     }
@@ -59,8 +68,12 @@ class _AdminCommunityModerationScreenState
     final filtered = flaggedItems.where((item) {
       if (_selectedCategory == 'All Pending') return true;
       if (_selectedCategory == 'Flagged Posts') return item['type'] == 'Post';
-      if (_selectedCategory == 'Reported Comments') return item['type'] == 'Comment';
-      if (_selectedCategory == 'High Priority') return item['priority'] == 'HIGH';
+      if (_selectedCategory == 'Reported Comments') {
+        return item['type'] == 'Comment';
+      }
+      if (_selectedCategory == 'High Priority') {
+        return item['priority'] == 'HIGH';
+      }
       return true;
     }).toList();
 
@@ -88,7 +101,11 @@ class _AdminCommunityModerationScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Queue Header Banner ──────────────────────────────
-                _buildModerationHeaderBanner(theme, colorScheme, filtered.length),
+                _buildModerationHeaderBanner(
+                  theme,
+                  colorScheme,
+                  filtered.length,
+                ),
 
                 AppSpacing.vGapLg,
 
@@ -102,12 +119,8 @@ class _AdminCommunityModerationScreenState
                   _buildCleanEmptyState(theme, colorScheme)
                 else
                   ...filtered.map(
-                    (item) => _buildFlaggedCard(
-                      context,
-                      theme,
-                      colorScheme,
-                      item,
-                    ),
+                    (item) =>
+                        _buildFlaggedCard(context, theme, colorScheme, item),
                   ),
 
                 AppSpacing.vGapXl,
@@ -124,38 +137,81 @@ class _AdminCommunityModerationScreenState
     ColorScheme colorScheme,
     int pendingCount,
   ) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(
+            0xFF7C3AED,
+          ).withValues(alpha: isDark ? 0.25 : 0.15),
+        ),
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(Icons.gavel, color: colorScheme.primary),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7C3AED),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.gavel_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
-          AppSpacing.hGapSm,
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Community Moderation Queue',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTypography.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   '$pendingCount items pending review • AI Safety Filter Active',
-                  style: theme.textTheme.bodySmall?.copyWith(
+                  style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          AppChip(
-            label: '$pendingCount PENDING',
-            backgroundColor: pendingCount > 0 ? AppColors.warning : AppColors.success,
-            textColor: AppColors.white,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color:
+                  (pendingCount > 0
+                          ? const Color(0xFFD97706)
+                          : const Color(0xFF059669))
+                      .withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$pendingCount PENDING',
+              style: TextStyle(
+                color: pendingCount > 0
+                    ? const Color(0xFFD97706)
+                    : const Color(0xFF059669),
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
           ),
         ],
       ),
@@ -175,12 +231,12 @@ class _AdminCommunityModerationScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.12),
+                color: const Color(0xFF059669).withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.verified_user_rounded,
-                color: AppColors.success,
+                color: Color(0xFF059669),
                 size: 44,
               ),
             ),
@@ -206,7 +262,7 @@ class _AdminCommunityModerationScreenState
   }
 
   Widget _buildCategoryFilterChips(ThemeData theme, ColorScheme colorScheme) {
-    final categories = [
+    final cats = [
       'All Pending',
       'Flagged Posts',
       'Reported Comments',
@@ -215,7 +271,7 @@ class _AdminCommunityModerationScreenState
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: categories.map((c) {
+        children: cats.map((c) {
           final isSelected = _selectedCategory == c;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -242,8 +298,11 @@ class _AdminCommunityModerationScreenState
     ColorScheme colorScheme,
     Map<String, dynamic> item,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
     final isHigh = item['priority'] == 'HIGH';
-    final priorityColor = isHigh ? colorScheme.error : AppColors.warning;
+    final priorityColor = isHigh
+        ? const Color(0xFFE11D48)
+        : const Color(0xFFD97706);
     final scaffold = ScaffoldMessenger.of(context);
     final contentId = item['id'] as String? ?? '';
     final contentType = item['type'] as String? ?? 'Post';
@@ -251,123 +310,200 @@ class _AdminCommunityModerationScreenState
     final authorId = item['author_id'] as String? ?? '';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: priorityColor.withValues(alpha: 0.15),
-                  child: Icon(Icons.flag_outlined, color: priorityColor),
-                ),
-                AppSpacing.hGapSm,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '$authorName • $contentType',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: AppTypography.bold,
-                        ),
-                      ),
-                      Text(
-                        'Reported ${item['time']} • Reason: ${item['reason']}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AppChip(
-                  label: item['priority'] as String? ?? 'MEDIUM',
-                  backgroundColor: priorityColor.withValues(alpha: 0.15),
-                  textColor: priorityColor,
-                ),
-              ],
-            ),
-            AppSpacing.vGapSm,
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '"${item['content']}"',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-            AppSpacing.vGapMd,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (authorId.isNotEmpty) ...[
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.block, size: 14, color: Colors.orange),
-                    label: const Text('Suspend Author', style: TextStyle(color: Colors.orange, fontSize: 12)),
-                    onPressed: () => _suspendAuthor(authorId, authorName),
-                  ),
-                  AppSpacing.hGapSm,
-                ],
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.check, size: 16),
-                  label: const Text('Approve'),
-                  onPressed: () async {
-                    final res = await ref.read(adminRepositoryProvider).moderateContent(
-                          contentId: contentId,
-                          contentType: contentType,
-                          action: 'approve',
-                        );
-                    res.fold(
-                      (f) => scaffold.showSnackBar(
-                        SnackBar(content: Text('Moderation error: ${f.message}')),
-                      ),
-                      (_) {
-                        ref.invalidate(adminFlaggedContentProvider);
-                        scaffold.showSnackBar(
-                          const SnackBar(content: Text('Content approved and cleared from queue.')),
-                        );
-                      },
-                    );
-                  },
-                ),
-                AppSpacing.hGapSm,
-                AppButton(
-                  text: 'Remove Content',
-                  icon: Icons.delete_outline,
-                  onPressed: () async {
-                    final res = await ref.read(adminRepositoryProvider).moderateContent(
-                          contentId: contentId,
-                          contentType: contentType,
-                          action: 'remove',
-                        );
-                    res.fold(
-                      (f) => scaffold.showSnackBar(
-                        SnackBar(content: Text('Removal error: ${f.message}')),
-                      ),
-                      (_) {
-                        ref.invalidate(adminFlaggedContentProvider);
-                        scaffold.showSnackBar(
-                          const SnackBar(content: Text('Content permanently removed from platform.')),
-                        );
-                      },
-                    );
-                  },
-                  backgroundColor: colorScheme.error,
-                  textColor: colorScheme.onError,
-                  height: 36,
-                ),
-              ],
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
+          border: Border.all(
+            color: priorityColor.withValues(alpha: isDark ? 0.25 : 0.12),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: priorityColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.flag_rounded,
+                      color: priorityColor,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$authorName • $contentType',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          'Reported ${item['time']} • Reason: ${item['reason']}',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: priorityColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      item['priority'] as String? ?? 'MEDIUM',
+                      style: TextStyle(
+                        color: priorityColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '"${item['content']}"',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: colorScheme.onSurface,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (authorId.isNotEmpty) ...[
+                    OutlinedButton.icon(
+                      icon: const Icon(
+                        Icons.block_rounded,
+                        size: 14,
+                        color: Color(0xFFD97706),
+                      ),
+                      label: const Text(
+                        'Suspend Author',
+                        style: TextStyle(
+                          color: Color(0xFFD97706),
+                          fontSize: 12,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFD97706)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () => _suspendAuthor(authorId, authorName),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('Approve'),
+                    onPressed: () async {
+                      final res = await ref
+                          .read(adminRepositoryProvider)
+                          .moderateContent(
+                            contentId: contentId,
+                            contentType: contentType,
+                            action: 'approve',
+                          );
+                      res.fold(
+                        (f) => scaffold.showSnackBar(
+                          SnackBar(
+                            content: Text('Moderation error: ${f.message}'),
+                          ),
+                        ),
+                        (_) {
+                          ref.invalidate(adminFlaggedContentProvider);
+                          scaffold.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Content approved and cleared from queue.',
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  AppSpacing.hGapSm,
+                  AppButton(
+                    text: 'Remove Content',
+                    icon: Icons.delete_outline,
+                    onPressed: () async {
+                      final res = await ref
+                          .read(adminRepositoryProvider)
+                          .moderateContent(
+                            contentId: contentId,
+                            contentType: contentType,
+                            action: 'remove',
+                          );
+                      res.fold(
+                        (f) => scaffold.showSnackBar(
+                          SnackBar(
+                            content: Text('Removal error: ${f.message}'),
+                          ),
+                        ),
+                        (_) {
+                          ref.invalidate(adminFlaggedContentProvider);
+                          scaffold.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Content permanently removed from platform.',
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    backgroundColor: colorScheme.error,
+                    textColor: colorScheme.onError,
+                    height: 36,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

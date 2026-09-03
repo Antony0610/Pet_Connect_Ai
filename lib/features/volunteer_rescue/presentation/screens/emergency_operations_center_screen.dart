@@ -216,7 +216,7 @@ class _EmergencyOperationsCenterScreenState
     final totalOccupied = shelters.fold<int>(0, (s, sh) => s + sh.capacityOccupied);
     final overallOccupancyPercent = totalCapacity > 0
         ? ((totalOccupied / totalCapacity) * 100).toInt()
-        : 84;
+        : 0;
 
     final volunteersAsync = ref.watch(volunteerRespondersProvider);
     final volunteers = volunteersAsync.valueOrNull ?? [];
@@ -252,9 +252,9 @@ class _EmergencyOperationsCenterScreenState
             onPressed: () {
               ExternalActions.shareText(
                 '🚨 EOC EMERGENCY ALERT BROADCAST\n'
-                'Sector 4 & 5 Incident Oversight Active.\n'
+                'Sector Incident Oversight Active.\n'
                 'Shelter Occupancy: $overallOccupancyPercent% ($totalOccupied/$totalCapacity)\n'
-                'Active Units: ${activeVolunteers.isNotEmpty ? activeVolunteers.length : 8} field units deployed.\n'
+                'Active Units: ${activeVolunteers.length} field units deployed.\n'
                 'PetConnect AI Multi-Agency Disaster Coordination.',
                 subject: '🚨 PetConnect AI EOC Alert Broadcast',
               );
@@ -280,8 +280,8 @@ class _EmergencyOperationsCenterScreenState
                 _buildEocStatusCounters(
                   theme,
                   colorScheme,
-                  criticalCount: alerts.isNotEmpty ? '${alerts.length} Active' : '3 Active',
-                  deployedUnitsCount: activeVolunteers.isNotEmpty ? '${activeVolunteers.length} Units' : '8 Units',
+                  criticalCount: '${alerts.length} Active',
+                  deployedUnitsCount: '${activeVolunteers.length} Units',
                   occupancyStr: '$overallOccupancyPercent% Cap',
                 ),
 

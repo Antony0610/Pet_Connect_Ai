@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
-import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/admin_article.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
+import 'package:petconnect_ai/features/administrator/presentation/widgets/admin_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
-import 'package:petconnect_ai/shared/widgets/buttons/app_button.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
 import 'package:petconnect_ai/shared/widgets/chips/app_chip.dart';
 
@@ -27,8 +25,10 @@ class _AdminContentManagementScreenState
     AdminArticle(
       id: 'art_1',
       title: 'Top 5 Dog Parks in the City',
-      summary: 'Discover the best places to let your furry friend run free. From sprawling fields to agility courses...',
-      content: 'Full article body with recommended dog parks, hydration stations, and off-leash safety rules.',
+      summary:
+          'Discover the best places to let your furry friend run free. From sprawling fields to agility courses...',
+      content:
+          'Full article body with recommended dog parks, hydration stations, and off-leash safety rules.',
       authorName: 'Editorial Staff',
       category: 'Pet Care & Recreation',
       status: 'Published',
@@ -40,8 +40,10 @@ class _AdminContentManagementScreenState
     AdminArticle(
       id: 'art_2',
       title: 'Nutritional Needs for Senior Cats',
-      summary: 'As cats age, their dietary requirements change significantly. Here is a comprehensive guide to keeping them healthy...',
-      content: 'Detailed guidelines on protein density, kidney health, moisture content in senior feline diets.',
+      summary:
+          'As cats age, their dietary requirements change significantly. Here is a comprehensive guide to keeping them healthy...',
+      content:
+          'Detailed guidelines on protein density, kidney health, moisture content in senior feline diets.',
       authorName: 'Dr. Emily Chen, DVM',
       category: 'Veterinary Advice',
       status: 'Published',
@@ -53,8 +55,10 @@ class _AdminContentManagementScreenState
     AdminArticle(
       id: 'art_3',
       title: 'Understanding Canine Allergy Symptoms',
-      summary: 'Seasonal allergies in dogs can cause itchiness and discomfort. Learn how to recognize and treat them...',
-      content: 'Early detection protocol for environmental and dietary allergies in canines.',
+      summary:
+          'Seasonal allergies in dogs can cause itchiness and discomfort. Learn how to recognize and treat them...',
+      content:
+          'Early detection protocol for environmental and dietary allergies in canines.',
       authorName: 'Clinical Editorial',
       category: 'Health & Wellness',
       status: 'Draft',
@@ -111,23 +115,45 @@ class _AdminContentManagementScreenState
                   initialValue: category,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: const [
-                    DropdownMenuItem(value: 'Health & Wellness', child: Text('Health & Wellness')),
-                    DropdownMenuItem(value: 'Veterinary Advice', child: Text('Veterinary Advice')),
-                    DropdownMenuItem(value: 'Pet Care & Recreation', child: Text('Pet Care & Recreation')),
-                    DropdownMenuItem(value: 'Official Announcements', child: Text('Official Announcements')),
+                    DropdownMenuItem(
+                      value: 'Health & Wellness',
+                      child: Text('Health & Wellness'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Veterinary Advice',
+                      child: Text('Veterinary Advice'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Pet Care & Recreation',
+                      child: Text('Pet Care & Recreation'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Official Announcements',
+                      child: Text('Official Announcements'),
+                    ),
                   ],
-                  onChanged: (val) => setDlgState(() => category = val ?? 'Health & Wellness'),
+                  onChanged: (val) =>
+                      setDlgState(() => category = val ?? 'Health & Wellness'),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: status,
-                  decoration: const InputDecoration(labelText: 'Publication State'),
+                  decoration: const InputDecoration(
+                    labelText: 'Publication State',
+                  ),
                   items: const [
-                    DropdownMenuItem(value: 'Published', child: Text('Published')),
+                    DropdownMenuItem(
+                      value: 'Published',
+                      child: Text('Published'),
+                    ),
                     DropdownMenuItem(value: 'Draft', child: Text('Draft')),
-                    DropdownMenuItem(value: 'Archived', child: Text('Archived')),
+                    DropdownMenuItem(
+                      value: 'Archived',
+                      child: Text('Archived'),
+                    ),
                   ],
-                  onChanged: (val) => setDlgState(() => status = val ?? 'Published'),
+                  onChanged: (val) =>
+                      setDlgState(() => status = val ?? 'Published'),
                 ),
               ],
             ),
@@ -165,7 +191,9 @@ class _AdminContentManagementScreenState
         (failure) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to save article: ${failure.message}')),
+              SnackBar(
+                content: Text('Failed to save article: ${failure.message}'),
+              ),
             );
           }
         },
@@ -173,7 +201,11 @@ class _AdminContentManagementScreenState
           ref.invalidate(adminArticlesProvider(null));
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Article "${titleCtrl.text.trim()}" published to database!')),
+              SnackBar(
+                content: Text(
+                  'Article "${titleCtrl.text.trim()}" published to database!',
+                ),
+              ),
             );
           }
         },
@@ -188,7 +220,10 @@ class _AdminContentManagementScreenState
         title: const Text('Delete Article'),
         content: Text('Are you sure you want to remove "${article.title}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -215,7 +250,9 @@ class _AdminContentManagementScreenState
     final colorScheme = theme.colorScheme;
 
     final articlesAsync = ref.watch(adminArticlesProvider(null));
-    final articleList = (articlesAsync.valueOrNull != null && articlesAsync.valueOrNull!.isNotEmpty)
+    final articleList =
+        (articlesAsync.valueOrNull != null &&
+            articlesAsync.valueOrNull!.isNotEmpty)
         ? articlesAsync.valueOrNull!
         : _fallbackArticles;
 
@@ -278,16 +315,24 @@ class _AdminContentManagementScreenState
                     child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.article_outlined, size: 48, color: colorScheme.primary),
+                          Icon(
+                            Icons.article_outlined,
+                            size: 48,
+                            color: colorScheme.primary,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             'No articles found in "$_selectedTab".',
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Tap "Create Post" to publish new educational content or announcements.',
-                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -295,7 +340,8 @@ class _AdminContentManagementScreenState
                   )
                 else
                   ...filtered.map(
-                    (art) => _buildArticleCard(context, theme, colorScheme, art),
+                    (art) =>
+                        _buildArticleCard(context, theme, colorScheme, art),
                   ),
 
                 AppSpacing.vGapXl,
@@ -304,43 +350,84 @@ class _AdminContentManagementScreenState
           ),
         ),
       ),
+      bottomNavigationBar: const AdminBottomNavBar(
+        currentTab: AdminTab.content,
+      ),
     );
   }
 
   Widget _buildCmsHeaderCard(ThemeData theme, ColorScheme colorScheme) {
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(
+            0xFF059669,
+          ).withValues(alpha: isDark ? 0.25 : 0.15),
+        ),
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(Icons.article_outlined, color: colorScheme.primary),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF059669),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.newspaper_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
-          AppSpacing.hGapSm,
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Community Posts & Educational CMS',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTypography.bold,
-                  ),
+                const Text(
+                  'Community & Education CMS',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  'Manage articles, care guides, and official community announcements.',
-                  style: theme.textTheme.bodySmall?.copyWith(
+                  'Manage articles, pet health advisories, and care bulletins.',
+                  style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          AppButton(
-            text: 'Create Post',
-            icon: Icons.add,
+          const SizedBox(width: 10),
+          FilledButton.icon(
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text(
+              'Create Post',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF059669),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             onPressed: _openCreateArticleDialog,
-            height: 36,
           ),
         ],
       ),
@@ -379,93 +466,165 @@ class _AdminContentManagementScreenState
     ColorScheme colorScheme,
     AdminArticle art,
   ) {
-    final statusColor = art.status == 'Published'
-        ? AppColors.success
-        : (art.status == 'Draft' ? AppColors.warning : AppColors.info);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final (statusColor, statusBg) = switch (art.status) {
+      'Published' => (
+        const Color(0xFF059669),
+        const Color(0xFF059669).withValues(alpha: 0.12),
+      ),
+      'Draft' => (
+        const Color(0xFFD97706),
+        const Color(0xFFD97706).withValues(alpha: 0.12),
+      ),
+      _ => (
+        const Color(0xFF64748B),
+        const Color(0xFF64748B).withValues(alpha: 0.12),
+      ),
+    };
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    art.title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
-                    ),
-                  ),
-                ),
-                AppChip(
-                  label: art.status.toUpperCase(),
-                  backgroundColor: statusColor.withValues(alpha: 0.15),
-                  textColor: statusColor,
-                ),
-              ],
-            ),
-            AppSpacing.vGapXs,
-            Text(
-              art.summary,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            AppSpacing.vGapSm,
-            Row(
-              children: [
-                Icon(
-                  Icons.category_outlined,
-                  size: 14,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  art.category,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
-                ),
-                AppSpacing.hGapMd,
-                Icon(
-                  Icons.visibility_outlined,
-                  size: 14,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${art.viewsCount}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                AppSpacing.hGapMd,
-                Icon(
-                  Icons.favorite_outline,
-                  size: 14,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${art.likesCount}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                  tooltip: 'Delete Article',
-                  onPressed: () => _deleteArticle(art),
-                ),
-              ],
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      art.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      art.status.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                art.summary,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      art.category,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.visibility_outlined,
+                        size: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${art.viewsCount}',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.favorite_outline_rounded,
+                        size: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${art.likesCount}',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: Color(0xFFE11D48),
+                    ),
+                    tooltip: 'Delete Article',
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(6),
+                      minimumSize: const Size(32, 32),
+                    ),
+                    onPressed: () => _deleteArticle(art),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
