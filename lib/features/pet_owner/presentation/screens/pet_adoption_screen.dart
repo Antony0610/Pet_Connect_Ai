@@ -17,9 +17,9 @@ import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
-import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
+import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -461,10 +461,11 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
         if (!cloudImgUrl.startsWith('http://') && !cloudImgUrl.startsWith('https://')) {
           try {
             final file = File(cloudImgUrl);
-            if (await file.exists()) {
+            if (file.existsSync()) {
               final bytes = await file.readAsBytes();
               final storageRepo = ref.read(storageRepositoryProvider);
               final uploadRes = await storageRepo.uploadPetAvatar(
+                userId: currentUid,
                 petId: 'adopt-${DateTime.now().millisecondsSinceEpoch}',
                 bytes: bytes,
                 fileName: 'adopt_${DateTime.now().millisecondsSinceEpoch}.jpg',
@@ -496,7 +497,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
         if (inserted != null && inserted['id'] != null) {
           final cloudId = inserted['id'].toString();
           final withCloudId = candidate.copyWith(id: cloudId, imageUrl: cloudImgUrl);
-          final refreshedCustom = _customCandidates.map((c) => c.id == candidate.id ? withCloudId : c).toList();
+          final List<_AdoptionCandidate> refreshedCustom = _customCandidates.map((c) => c.id == candidate.id ? withCloudId : c).toList();
           setState(() {
             _customCandidates = refreshedCustom;
             _cloudCandidates = [withCloudId, ..._cloudCandidates];
@@ -3069,6 +3070,40 @@ class _AdoptionCandidate {
   final String? contactPhone;
   final String? ownerId;
   final bool isUserListed;
+
+  _AdoptionCandidate copyWith({
+    String? id,
+    String? name,
+    String? age,
+    String? species,
+    String? breed,
+    int? matchScore,
+    String? shelter,
+    String? distance,
+    String? imageUrl,
+    List<String>? personality,
+    String? description,
+    String? contactPhone,
+    String? ownerId,
+    bool? isUserListed,
+  }) {
+    return _AdoptionCandidate(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      age: age ?? this.age,
+      species: species ?? this.species,
+      breed: breed ?? this.breed,
+      matchScore: matchScore ?? this.matchScore,
+      shelter: shelter ?? this.shelter,
+      distance: distance ?? this.distance,
+      imageUrl: imageUrl ?? this.imageUrl,
+      personality: personality ?? this.personality,
+      description: description ?? this.description,
+      contactPhone: contactPhone ?? this.contactPhone,
+      ownerId: ownerId ?? this.ownerId,
+      isUserListed: isUserListed ?? this.isUserListed,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

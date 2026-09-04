@@ -5,12 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/features/auth/domain/entities/user_profile.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_weight_log.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dart';
-import 'package:petconnect_ai/core/config/env.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Professional PDF generator for AI Clinical Pet Health & Telemetry Reports.
