@@ -20,6 +20,7 @@ import 'package:petconnect_ai/features/auth/presentation/providers/auth_provider
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The **Pet Adoption Hub** connecting pet owners, rescuers, and prospective adopters
 /// with real candidate listings, custom photo uploads, an interactive AI Companion Matcher quiz,
@@ -48,6 +49,9 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   String _searchQuery = '';
   Set<String> _favoritePetIds = {};
   List<_AdoptionCandidate> _customCandidates = [];
+  List<_AdoptionCandidate> _cloudCandidates = [];
+  Set<String> _adoptedPetIds = {};
+  RealtimeChannel? _realtimeChannel;
   List<Map<String, dynamic>> _sentInquiries = [];
   List<Map<String, dynamic>> _receivedInquiries = [];
 
@@ -55,7 +59,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
   static const List<_AdoptionCandidate> _defaultCandidates = [
     _AdoptionCandidate(
-      id: 'adopt-1',
+      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1001',
       name: 'Bella',
       age: '2 yrs',
       species: 'Dog',
@@ -69,7 +73,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       contactPhone: '+91 98765 43210',
     ),
     _AdoptionCandidate(
-      id: 'adopt-2',
+      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1002',
       name: 'Oliver',
       age: '3 mos',
       species: 'Cat',
@@ -83,7 +87,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       contactPhone: '+91 98111 22334',
     ),
     _AdoptionCandidate(
-      id: 'adopt-3',
+      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1003',
       name: 'Charlie',
       age: '4 mos',
       species: 'Dog',
@@ -97,7 +101,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       contactPhone: '+91 97444 55667',
     ),
     _AdoptionCandidate(
-      id: 'adopt-4',
+      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1004',
       name: 'Luna',
       age: '1 yr',
       species: 'Cat',
@@ -111,7 +115,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       contactPhone: '+91 96555 88990',
     ),
     _AdoptionCandidate(
-      id: 'adopt-5',
+      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1005',
       name: 'Rocky',
       age: '1.5 yrs',
       species: 'Dog',
@@ -126,19 +130,66 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     ),
   ];
 
+  List<_AdoptionCandidate> get _allCandidates {
+    final adopted = _adoptedPetIds;
+    if (_cloudCandidates.isNotEmpty) {
+      final cloudIds = _cloudCandidates.map((c) => c.id).toSet();
+      final pendingLocal = _customCandidates.where((c) => !cloudIds.contains(c.id)).toList();
+      return [..._cloudCandidates, ...pendingLocal]
+          .where((c) => !adopted.contains(c.id))
+          .toList();
+    }
+    final defaultIds = _defaultCandidates.map((c) => c.id).toSet();
+    final pendingLocal = _customCandidates.where((c) => !defaultIds.contains(c.id)).toList();
+    return [...pendingLocal, ..._defaultCandidates]
+        .where((c) => !adopted.contains(c.id))
+        .toList();
+  }
+
   @override
   void initState() {
     super.initState();
     _loadStoredData();
     _syncWithSupabase();
+    _setupRealtime();
+  }
+
+  @override
+  void dispose() {
+    if (_realtimeChannel != null) {
+      try {
+        ref.read(supabaseClientProvider).removeChannel(_realtimeChannel!);
+      } catch (_) {}
+    }
+    super.dispose();
+  }
+
+  void _setupRealtime() {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      _realtimeChannel = client.channel('public:adoption_listings')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'adoption_listings',
+          callback: (payload) {
+            debugPrint('Realtime change received in Flutter: ${payload.eventType}');
+            _syncWithSupabase();
+          },
+        )
+        ..subscribe();
+    } catch (e) {
+      debugPrint('Supabase realtime subscription notice: $e');
+    }
   }
 
   void _loadStoredData() {
     final prefs = ref.read(sharedPreferencesProvider);
-    final favs = prefs.getStringList(_favStorageKey) ?? ['adopt-1'];
+    final favs = prefs.getStringList(_favStorageKey) ?? ['e2831d10-8b43-4f9e-a89c-567e89ab1001'];
     final rawCustom = prefs.getString(_customPetsKey);
     final rawSent = prefs.getString(_sentInquiriesKey);
     final rawReceived = prefs.getString(_receivedInquiriesKey);
+    final rawAdopted = prefs.getStringList('app_adopted_pet_ids_v1') ?? [];
 
     List<_AdoptionCandidate> loadedCustom = [];
     if (rawCustom != null && rawCustom.isNotEmpty) {
@@ -169,6 +220,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       _customCandidates = loadedCustom;
       _sentInquiries = loadedSent;
       _receivedInquiries = loadedReceived;
+      _adoptedPetIds = rawAdopted.toSet();
     });
   }
 
@@ -180,14 +232,21 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       final listings = await client
           .from('adoption_listings')
           .select('*')
-          .eq('status', 'active')
           .order('created_at', ascending: false);
 
-      if (listings.isNotEmpty && mounted) {
+      if (mounted) {
         final List<_AdoptionCandidate> cloudCandidates = [];
+        final Set<String> cloudAdoptedIds = Set<String>.from(_adoptedPetIds);
+
         for (final item in listings) {
           final map = item;
           final id = map['id']?.toString() ?? '';
+          final status = map['status']?.toString() ?? 'active';
+          if (status == 'adopted') {
+            cloudAdoptedIds.add(id);
+            continue;
+          }
+
           final name = map['name']?.toString() ?? 'Companion';
           final species = map['species']?.toString() ?? 'Dog';
           final breed = map['breed']?.toString() ?? 'Companion';
@@ -196,15 +255,20 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           final loc = map['location']?.toString() ?? 'Kerala, India';
           final phone = map['contact_phone']?.toString();
           final owner = map['owner_id']?.toString();
+
+          final rawImg = map['image_url']?.toString();
           final images = map['images'] as List?;
-          final img = (images != null && images.isNotEmpty)
-              ? images.first.toString()
-              : (species.toLowerCase() == 'dog'
-                  ? 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800'
-                  : 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800');
-          final traits = map['personality_traits'] as List?;
-          final personalityList = traits != null
-              ? traits.map((t) => t.toString()).toList()
+          final img = (rawImg != null && rawImg.isNotEmpty)
+              ? rawImg
+              : ((images != null && images.isNotEmpty)
+                  ? images.first.toString()
+                  : (species.toLowerCase() == 'dog'
+                      ? 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800'
+                      : 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800'));
+
+          final rawTraits = (map['temperament'] as List?) ?? (map['personality_traits'] as List?);
+          final personalityList = rawTraits != null
+              ? rawTraits.map((t) => t.toString()).toList()
               : ['Loving', 'Healthy', 'Vaccinated'];
 
           cloudCandidates.add(_AdoptionCandidate(
@@ -214,7 +278,9 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
             species: species.substring(0, 1).toUpperCase() + (species.length > 1 ? species.substring(1) : ''),
             breed: breed,
             matchScore: 96,
-            shelter: 'PetConnect Verified Hub',
+            shelter: loc.contains('Shelter') || loc.contains('Rescue') || loc.contains('CUPA') || loc.contains('Foundation') || loc.contains('Welfare') || loc.contains('Care')
+                ? loc
+                : 'PetConnect Rescue Network',
             distance: loc,
             imageUrl: img,
             personality: personalityList,
@@ -225,13 +291,10 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           ));
         }
 
-        final existingIds = _customCandidates.map((c) => c.id).toSet();
-        final newFromCloud = cloudCandidates.where((c) => !existingIds.contains(c.id)).toList();
-        if (newFromCloud.isNotEmpty && mounted) {
-          setState(() {
-            _customCandidates = [...newFromCloud, ..._customCandidates];
-          });
-        }
+        setState(() {
+          _cloudCandidates = cloudCandidates;
+          _adoptedPetIds = cloudAdoptedIds;
+        });
       }
 
       // 2. Fetch live inquiries for this user's listed pets
@@ -291,6 +354,57 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     await prefs.setStringList(_favStorageKey, updated.toList());
   }
 
+  Future<void> _markPetAsAdopted(String petId, String petName) async {
+    await HapticFeedback.mediumImpact();
+
+    // 1. Update status in cloud Supabase table
+    try {
+      final client = ref.read(supabaseClientProvider);
+      await client
+          .from('adoption_listings')
+          .update({
+            'status': 'adopted',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', petId);
+    } catch (e) {
+      debugPrint('Cloud adoption status update notice: $e');
+    }
+
+    // 2. Persist to local adopted set and remove from local active lists
+    final updatedAdopted = Set<String>.from(_adoptedPetIds)..add(petId);
+    setState(() {
+      _adoptedPetIds = updatedAdopted;
+      _cloudCandidates.removeWhere((c) => c.id == petId);
+      _customCandidates.removeWhere((c) => c.id == petId);
+    });
+
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setStringList('app_adopted_pet_ids_v1', updatedAdopted.toList());
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF047857),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Row(
+            children: [
+              const Icon(Icons.celebration, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '🎉 $petName marked as Adopted! Removed from public listings.',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _addCustomCandidate(_AdoptionCandidate candidate) async {
     final updated = [candidate, ..._customCandidates];
     setState(() => _customCandidates = updated);
@@ -305,7 +419,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       final client = ref.read(supabaseClientProvider);
       final currentUid = _currentUserId;
       if (currentUid != 'anon') {
-        await client.from('adoption_listings').insert({
+        final inserted = await client.from('adoption_listings').insert({
           'owner_id': currentUid,
           'name': candidate.name,
           'species': candidate.species.toLowerCase(),
@@ -316,10 +430,21 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           'contact_phone': candidate.contactPhone,
           'adoption_fee': 'Free / Loving Home',
           'is_vaccinated': true,
+          'temperament': candidate.personality,
           'personality_traits': candidate.personality,
+          'image_url': candidate.imageUrl,
           'images': [candidate.imageUrl],
           'status': 'active',
-        });
+        }).select().maybeSingle();
+
+        if (inserted != null && inserted['id'] != null) {
+          final cloudId = inserted['id'].toString();
+          final withCloudId = candidate.copyWith(id: cloudId);
+          setState(() {
+            _customCandidates = _customCandidates.map((c) => c.id == candidate.id ? withCloudId : c).toList();
+            _cloudCandidates = [withCloudId, ..._cloudCandidates];
+          });
+        }
       }
     } catch (e) {
       debugPrint('Listing Supabase sync error: $e');
@@ -343,7 +468,10 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
   Future<void> _deleteCustomCandidate(String id) async {
     final updated = _customCandidates.where((c) => c.id != id).toList();
-    setState(() => _customCandidates = updated);
+    setState(() {
+      _customCandidates = updated;
+      _cloudCandidates.removeWhere((c) => c.id == id);
+    });
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(
       _customPetsKey,
@@ -397,13 +525,33 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     }
   }
 
-  Future<void> _updateReceivedInquiryStatus(int index, String newStatus) async {
+  Future<void> _updateReceivedInquiryStatus(int index, String newStatus, {bool markPetAdopted = false}) async {
     await HapticFeedback.lightImpact();
     final updated = List<Map<String, dynamic>>.from(_receivedInquiries);
-    updated[index]['status'] = newStatus;
+    final inq = updated[index];
+    inq['status'] = newStatus;
     setState(() => _receivedInquiries = updated);
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_receivedInquiriesKey, jsonEncode(updated));
+
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final inqId = inq['id']?.toString();
+      if (inqId != null && !inqId.startsWith('inq-')) {
+        await client
+            .from('adoption_inquiries')
+            .update({'status': newStatus.toLowerCase()})
+            .eq('id', inqId);
+      }
+      if (markPetAdopted) {
+        final petId = inq['petId']?.toString();
+        if (petId != null && petId.isNotEmpty) {
+          await _markPetAsAdopted(petId, inq['petName']?.toString() ?? 'Pet');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error syncing inquiry status to cloud: $e');
+    }
   }
 
   void _openPostPetDialog() {
@@ -897,7 +1045,37 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      onPressed: () => _updateReceivedInquiryStatus(i, 'Approved'),
+                      onPressed: () {
+                        showDialog<void>(
+                          context: context,
+                          builder: (dialogCtx) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Text('Approve Application'),
+                            content: Text(
+                              'Approve $applicantName\'s application for $petName?\n\nWould you also like to mark $petName as officially adopted and remove from public website listings?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(dialogCtx);
+                                  _updateReceivedInquiryStatus(i, 'Approved', markPetAdopted: false);
+                                },
+                                child: const Text('Approve Only'),
+                              ),
+                              FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(dialogCtx);
+                                  _updateReceivedInquiryStatus(i, 'Approved', markPetAdopted: true);
+                                },
+                                child: const Text('Approve & Mark Adopted'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                       child: const Text('Approve Match', style: TextStyle(fontSize: 11)),
                     ),
                 ],
@@ -1235,7 +1413,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final isDark = context.theme.brightness == Brightness.dark;
-    final allList = [..._customCandidates, ..._defaultCandidates];
+    final allList = _allCandidates;
 
     final filteredCandidates = allList.where((pet) {
       if (_selectedCategory == 'Favorites' && !_favoritePetIds.contains(pet.id)) return false;
@@ -1603,7 +1781,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   void _openFavoritesModal(BuildContext context) {
     HapticFeedback.lightImpact();
     final scheme = context.colorScheme;
-    final allList = [..._customCandidates, ..._defaultCandidates];
+    final allList = _allCandidates;
 
     showModalBottomSheet<void>(
       context: context,
@@ -2553,6 +2731,12 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                       tooltip: 'Generate Adoption Poster',
                       onPressed: () => _openAdoptionPosterDialog(context, pet),
                     ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.check_circle_outline, color: Color(0xFF10B981)),
+                      tooltip: 'Mark as Adopted',
+                      onPressed: () => _confirmMarkAsAdopted(context, pet),
+                    ),
                     if (pet.isUserListed && (pet.ownerId == null || pet.ownerId == _currentUserId)) ...[
                       const SizedBox(width: 8),
                       IconButton.filledTonal(
@@ -2571,6 +2755,44 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmMarkAsAdopted(BuildContext context, _AdoptionCandidate pet) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.volunteer_activism, color: Color(0xFF10B981)),
+            SizedBox(width: 10),
+            Text('Confirm Adoption'),
+          ],
+        ),
+        content: Text(
+          'Mark ${pet.name} as successfully adopted?\n\nThis updates PetConnect Cloud and immediately removes ${pet.name} from the public website (petconnectai.vercel.app) in real-time.',
+          style: const TextStyle(height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _markPetAsAdopted(pet.id, pet.name);
+            },
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('Mark Adopted'),
           ),
         ],
       ),
