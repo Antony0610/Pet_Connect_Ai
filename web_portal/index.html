@@ -1386,6 +1386,7 @@
             listing_id: listingId,
             applicant_name: name,
             applicant_phone: phone,
+            living_arrangement: living,
             housing_type: living,
             message: msg,
             status: 'pending'
@@ -1409,9 +1410,39 @@
       item.classList.toggle('open');
     }
 
+    // 7. Supabase Realtime Subscriptions
+    function setupRealtimeSubscriptions() {
+      if (!sb) return;
+
+      // Realtime listener: instantly adds or removes adoptable companions
+      sb.channel('realtime-adoption')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'adoption_listings' },
+          (payload) => {
+            console.log('Realtime change detected on adoption_listings:', payload);
+            loadAdoptionCandidates();
+          }
+        )
+        .subscribe();
+
+      // Realtime listener: instantly shows or hides emergency missing banners
+      sb.channel('realtime-alerts')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'lost_pet_alerts' },
+          (payload) => {
+            console.log('Realtime change detected on lost_pet_alerts:', payload);
+            checkActiveLostPetAlert();
+          }
+        )
+        .subscribe();
+    }
+
     // Init
     checkActiveLostPetAlert();
     loadAdoptionCandidates();
+    setupRealtimeSubscriptions();
   </script>
 </body>
 </html>
