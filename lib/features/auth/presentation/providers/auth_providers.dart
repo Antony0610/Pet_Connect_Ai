@@ -119,6 +119,13 @@ final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
   final user = client.auth.currentUser;
   if (user == null) return null;
 
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final cachedName = prefs.getString('user_profile_name_${user.id}');
+  final cachedPhone = prefs.getString('user_profile_phone_${user.id}');
+  final cachedCity = prefs.getString('user_profile_city_${user.id}');
+  final cachedBio = prefs.getString('user_profile_bio_${user.id}');
+  final cachedAvatar = prefs.getString('user_profile_avatar_${user.id}');
+
   final getUserProfile = ref.watch(getUserProfileProvider);
   final profileResult = await getUserProfile(user.id);
   return profileResult.fold(
@@ -127,22 +134,38 @@ final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
       final role = (email.toLowerCase().trim() == 'antonythomson06@gmail.com')
           ? AppPortal.administrator
           : AppPortal.petOwner;
+      final meta = user.userMetadata ?? {};
       return UserProfile(
         id: user.id,
         email: email,
-        fullName: (user.userMetadata?['full_name'] as String?) ??
-            (email.split('@').first),
+        fullName: (cachedName != null && cachedName.isNotEmpty)
+            ? cachedName
+            : ((meta['full_name'] as String?) ?? (email.split('@').first)),
         role: role,
-        avatarUrl: user.userMetadata?['avatar_url'] as String?,
+        avatarUrl: cachedAvatar ?? (meta['avatar_url'] as String?),
+        phone: cachedPhone ?? (meta['phone'] as String?),
+        city: cachedCity ?? (meta['city'] as String?),
+        bio: cachedBio ?? (meta['bio'] as String?),
         createdAt: DateTime.tryParse(user.createdAt) ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
     },
     (profile) {
-      if (profile != null &&
-          profile.email.toLowerCase().trim() == 'antonythomson06@gmail.com' &&
-          profile.role != AppPortal.administrator) {
-        return profile.copyWith(role: AppPortal.administrator);
+      if (profile != null) {
+        var p = profile;
+        if (p.email.toLowerCase().trim() == 'antonythomson06@gmail.com' &&
+            p.role != AppPortal.administrator) {
+          p = p.copyWith(role: AppPortal.administrator);
+        }
+        return p.copyWith(
+          fullName: (cachedName != null && cachedName.isNotEmpty)
+              ? cachedName
+              : p.fullName,
+          phone: cachedPhone ?? p.phone,
+          city: cachedCity ?? p.city,
+          bio: cachedBio ?? p.bio,
+          avatarUrl: cachedAvatar ?? p.avatarUrl,
+        );
       }
       return profile;
     },

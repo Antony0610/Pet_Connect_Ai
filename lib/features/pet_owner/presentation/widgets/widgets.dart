@@ -2,6 +2,7 @@
 library;
 
 export 'community_photo_viewer.dart';
+export 'edit_owner_profile_dialog.dart';
 export 'owner_action_fab.dart';
 export 'owner_ai_fab.dart';
 export 'owner_app_bar.dart';

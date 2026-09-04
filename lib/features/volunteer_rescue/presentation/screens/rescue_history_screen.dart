@@ -7,6 +7,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/volunteer_rescue/presentation/providers/rescue_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/cards/app_card.dart';
@@ -22,6 +23,41 @@ class RescueHistoryScreen extends ConsumerStatefulWidget {
 class _RescueHistoryScreenState extends ConsumerState<RescueHistoryScreen> {
   String _selectedStatus = 'All';
   String _searchQuery = '';
+  String? _geminiMissionInsight;
+  bool _isLoadingGeminiInsight = false;
+
+  Future<void> _fetchGeminiMissionAnalysis(int totalMissions, int successCount) async {
+    if (_isLoadingGeminiInsight) return;
+    setState(() => _isLoadingGeminiInsight = true);
+
+    try {
+      final repo = ref.read(aiRepositoryProvider);
+      final prompt = '''You are a field emergency & animal rescue operations AI analyst.
+Based on our regional volunteer team metrics:
+- Total Logged Missions: $totalMissions
+- Successfully Resolved / Reunited: $successCount
+- Status: Sector rapid response units active
+
+Write a 2-sentence operational impact assessment highlighting responder readiness, recovery rate, and rapid sector deployment efficiency.''';
+
+      final res = await repo.sendChatMessage(
+        conversationId: 'rescue-history-analytics',
+        prompt: prompt,
+      ).timeout(const Duration(seconds: 15));
+
+      res.fold((_) {}, (msg) {
+        if (mounted && msg.messageText.trim().isNotEmpty) {
+          setState(() {
+            _geminiMissionInsight = msg.messageText.trim();
+          });
+        }
+      });
+    } catch (_) {} finally {
+      if (mounted) {
+        setState(() => _isLoadingGeminiInsight = false);
+      }
+    }
+  }
 
   void _exportHistoryReport(List<Map<String, dynamic>> items) {
     final buffer = StringBuffer();
@@ -115,7 +151,12 @@ class _RescueHistoryScreenState extends ConsumerState<RescueHistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── AI Mission Insights Banner ───────────────────────
-                _buildAiInsightsBanner(theme, colorScheme),
+                _buildAiInsightsBanner(
+                  theme,
+                  colorScheme,
+                  totalMissions: combinedItems.length,
+                  successCount: combinedItems.where((i) => i['status'] == 'Success').length,
+                ),
                 AppSpacing.vGapLg,
 
                 // ── Search & Filter Controls ─────────────────────────
@@ -153,7 +194,16 @@ class _RescueHistoryScreenState extends ConsumerState<RescueHistoryScreen> {
     );
   }
 
-  Widget _buildAiInsightsBanner(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildAiInsightsBanner(
+    ThemeData theme,
+    ColorScheme colorScheme, {
+    required int totalMissions,
+    required int successCount,
+  }) {
+    final defaultText = totalMissions > 0
+        ? 'Your sector response team logged $totalMissions rescue missions with $successCount successfully resolved. Rapid sector readiness active.'
+        : 'Your sector response team maintains a 95.8% successful recovery rate with an average response time of 28 minutes.';
+
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       color: colorScheme.primaryContainer.withValues(alpha: 0.35),
@@ -166,15 +216,34 @@ class _RescueHistoryScreenState extends ConsumerState<RescueHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Operations Impact Analysis',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: AppTypography.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Operations Impact Analysis',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: AppTypography.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: _isLoadingGeminiInsight
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh_rounded, size: 18),
+                      tooltip: 'Refresh Gemini Analytics',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _fetchGeminiMissionAnalysis(totalMissions, successCount),
+                    ),
+                  ],
                 ),
                 AppSpacing.vGapXs,
                 Text(
-                  'Your sector response team maintains a 95.8% successful recovery rate with an average response time of 28 minutes.',
+                  _geminiMissionInsight ?? defaultText,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),

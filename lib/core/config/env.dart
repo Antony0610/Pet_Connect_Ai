@@ -55,6 +55,10 @@ abstract final class Env {
   // ── n8n Automation ─────────────────────────────────────────────
   static String get n8nWebhookBaseUrl => _get('N8N_WEBHOOK_BASE_URL');
 
+  // ── Web Portal & Dynamic QR URLs (Free Vercel Deployment) ───────
+  static String get webBaseUrl =>
+      _get('WEB_BASE_URL', fallback: 'https://petconnect-ai.vercel.app');
+
   // ── Feature Flags ──────────────────────────────────────────────
   static bool get featureSmartCollar =>
       _getBool('FEATURE_SMART_COLLAR', fallback: true);

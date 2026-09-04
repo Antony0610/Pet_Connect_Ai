@@ -1,18 +1,16 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/community_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
@@ -36,12 +34,16 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
+  final _bodyFocusNode = FocusNode();
+  TextSelection _lastKnownSelection = const TextSelection.collapsed(offset: 0);
+
   String _selectedCategory = 'Photo/Video';
   bool _isGeneratingDraft = false;
   bool _isSubmitting = false;
   bool _isPreviewMode = false;
   Uint8List? _attachedImageBytes;
   String? _attachedImageName;
+  bool _isVideo = false;
   String? _attachedLocation;
   final List<String> _tags = ['DogLife', 'Training'];
 
@@ -53,16 +55,83 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _bodyController.addListener(() {
+      if (_bodyController.selection.isValid) {
+        _lastKnownSelection = _bodyController.selection;
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
+    _bodyFocusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _pickMedia() async {
+  Future<void> _showMediaPickerSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Attach Media',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Photo from Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take Photo with Camera'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam_outlined),
+              title: const Text('Video from Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickVideo();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 85,
       maxWidth: 1440,
     );
@@ -73,6 +142,24 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     setState(() {
       _attachedImageBytes = bytes;
       _attachedImageName = picked.name;
+      _isVideo = false;
+    });
+  }
+
+  Future<void> _pickVideo() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: const Duration(minutes: 5),
+    );
+    if (picked == null) return;
+
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      _attachedImageBytes = bytes;
+      _attachedImageName = picked.name;
+      _isVideo = true;
     });
   }
 
@@ -80,31 +167,42 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     setState(() {
       _attachedImageBytes = null;
       _attachedImageName = null;
+      _isVideo = false;
     });
   }
 
   void _insertFormatting(String prefix, [String suffix = '']) {
     final text = _bodyController.text;
-    final selection = _bodyController.selection;
+    var selection = _bodyController.selection;
     if (!selection.isValid || selection.start < 0) {
-      _bodyController.text = '$text$prefix$suffix';
-      _bodyController.selection = TextSelection.collapsed(
-        offset: _bodyController.text.length,
-      );
-    } else {
-      final selectedText = selection.textInside(text);
-      final newText = selection.textBefore(text) +
-          prefix +
-          selectedText +
-          suffix +
-          selection.textAfter(text);
-      _bodyController.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(
-          offset: selection.start + prefix.length + selectedText.length + suffix.length,
-        ),
-      );
+      selection = _lastKnownSelection;
     }
+    if (!selection.isValid || selection.start < 0 || selection.start > text.length) {
+      selection = TextSelection.collapsed(offset: text.length);
+    }
+
+    final selectedText = selection.textInside(text);
+    final newText = selection.textBefore(text) +
+        prefix +
+        selectedText +
+        suffix +
+        selection.textAfter(text);
+
+    int newCursorPos;
+    if (selectedText.isEmpty && suffix.isNotEmpty) {
+      // Position cursor between prefix and suffix (e.g. inside **|**)
+      newCursorPos = selection.start + prefix.length;
+    } else {
+      newCursorPos = selection.start + prefix.length + selectedText.length + suffix.length;
+    }
+
+    _bodyController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newCursorPos),
+    );
+    _lastKnownSelection = TextSelection.collapsed(offset: newCursorPos);
+    _bodyFocusNode.requestFocus();
+    if (_isPreviewMode) setState(() {});
   }
 
   Future<void> _promptInsertLink() async {
@@ -359,42 +457,55 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   Future<void> _handleGenerateDraft() async {
     setState(() => _isGeneratingDraft = true);
     try {
-      final apiKey = Env.geminiApiKey;
-      if (apiKey.isNotEmpty) {
-        final dio = Dio();
-        final prompt = 'Write a helpful, friendly community post for pet owners in category "$_selectedCategory" '
-            '${_titleController.text.trim().isNotEmpty ? 'with topic "${_titleController.text.trim()}"' : ''}. '
-            'Format as JSON: {"title": "concise engaging title", "content": "2 short paragraphs of authentic pet advice and tips"}. '
-            'Output only the raw JSON object, without markdown quotes.';
-        final response = await dio.post<Map<String, dynamic>>(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
-          data: {
-            'contents': [
-              {
-                'parts': [{'text': prompt}]
+      final aiRepo = ref.read(aiRepositoryProvider);
+      final userTopic = _titleController.text.trim();
+      final prompt = 'You are a warm, certified veterinary and pet care community writer. '
+          'Write a helpful, engaging, and high-quality community post for pet parents in the category "$_selectedCategory"'
+          '${userTopic.isNotEmpty ? ' with the specific topic: "$userTopic"' : ''}.\n'
+          'Format your reply strictly as valid JSON with no backticks and no markdown formatting:\n'
+          '{"title": "engaging title", "content": "two informative, authentic paragraphs of pet advice or community sharing with tips and formatting."}';
+
+      final result = await aiRepo.sendChatMessage(
+        conversationId: 'post-draft-${DateTime.now().millisecondsSinceEpoch}',
+        prompt: prompt,
+      );
+
+      final responseText = result.fold((_) => null, (msg) => msg.messageText);
+      if (responseText != null && responseText.isNotEmpty) {
+        var clean = responseText.trim();
+        if (clean.startsWith('```json')) clean = clean.substring(7);
+        if (clean.startsWith('```')) clean = clean.substring(3);
+        if (clean.endsWith('```')) clean = clean.substring(0, clean.length - 3);
+        clean = clean.trim();
+
+        try {
+          final decoded = jsonDecode(clean) as Map<String, dynamic>;
+          final title = decoded['title']?.toString();
+          final content = decoded['content']?.toString();
+          if (mounted && content != null && content.isNotEmpty) {
+            setState(() {
+              if (title != null && title.isNotEmpty) {
+                _titleController.text = title;
               }
-            ]
-          },
-          options: Options(headers: {'Content-Type': 'application/json'}),
-        );
-        if (response.statusCode == 200 && response.data != null) {
-          final data = response.data!;
-          final candidates = data['candidates'] as List<dynamic>?;
-          final firstCandidate = candidates?.isNotEmpty == true ? candidates!.first as Map<String, dynamic> : null;
-          final content = firstCandidate?['content'] as Map<String, dynamic>?;
-          final parts = content?['parts'] as List<dynamic>?;
-          final text = parts?.isNotEmpty == true ? (parts!.first as Map<String, dynamic>)['text'] as String? : null;
-          if (text != null) {
-            final clean = text.replaceAll('```json', '').replaceAll('```', '').trim();
-            final decoded = jsonDecode(clean) as Map<String, dynamic>;
-            if (mounted) {
-              setState(() {
-                _titleController.text = (decoded['title']?.toString()) ?? _titleController.text;
-                _bodyController.text = (decoded['content']?.toString()) ?? _bodyController.text;
-                _isGeneratingDraft = false;
-              });
-              return;
-            }
+              _bodyController.text = content;
+              _isGeneratingDraft = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('AI draft generated with Gemini!')),
+            );
+            return;
+          }
+        } catch (_) {
+          // Fallback: If not valid JSON, use the raw response text directly as body
+          if (mounted && clean.isNotEmpty) {
+            setState(() {
+              _bodyController.text = clean;
+              if (_titleController.text.trim().isEmpty) {
+                _titleController.text = '$_selectedCategory Community Discussion';
+              }
+              _isGeneratingDraft = false;
+            });
+            return;
           }
         }
       }
@@ -406,7 +517,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         if (_selectedCategory == 'Health') {
           _titleController.text = 'Seasonal Allergy Signs to Watch Out For';
           _bodyController.text =
-              'With the changing weather, please keep an eye on paw licking, ear scratching, and watery eyes. Consistent grooming and wipe-downs after walks helped us reduce flare-ups significantly!';
+              'With changing weather, please keep an eye on paw licking, ear scratching, and watery eyes. Consistent grooming and wipe-downs after walks helped us reduce flare-ups significantly!';
         } else if (_selectedCategory == 'Question') {
           _titleController.text = 'Best Puzzle Toys for High-Energy Pups?';
           _bodyController.text =
@@ -446,8 +557,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             userId: userId,
             petId: 'community',
             bytes: _attachedImageBytes!,
-            fileName: _attachedImageName ?? 'post_media_${DateTime.now().millisecondsSinceEpoch}.jpg',
-            mimeType: 'image/jpeg',
+            fileName: _attachedImageName ??
+                (_isVideo
+                    ? 'post_video_${DateTime.now().millisecondsSinceEpoch}.mp4'
+                    : 'post_media_${DateTime.now().millisecondsSinceEpoch}.jpg'),
+            mimeType: _isVideo ? 'video/mp4' : 'image/jpeg',
             caption: _titleController.text.trim(),
           );
           uploadResult.fold((_) {}, (media) {
@@ -457,8 +571,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           });
         } catch (_) {}
 
-        // If remote upload didn't yield a URL, preserve the base64 data URI
-        uploadedImageUrl ??= 'data:image/jpeg;base64,${base64Encode(_attachedImageBytes!)}';
+        // If remote upload didn't yield a URL, preserve data URI
+        if (uploadedImageUrl == null) {
+          final mime = _isVideo ? 'video/mp4' : 'image/jpeg';
+          uploadedImageUrl = 'data:$mime;base64,${base64Encode(_attachedImageBytes!)}';
+        }
       }
 
       final repo = ref.read(communityRepositoryProvider);
@@ -518,14 +635,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               onPressed: _isSubmitting ? null : _handleSubmit,
               size: AppButtonSize.small,
               isLoading: _isSubmitting,
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Submit'),
-                  SizedBox(width: 4),
-                  Icon(Icons.send, size: 14),
-                ],
-              ),
+              label: 'Publish',
+              icon: Icons.send,
             ),
           ),
         ],
@@ -718,6 +829,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 else
                   TextField(
                     controller: _bodyController,
+                    focusNode: _bodyFocusNode,
                     maxLines: 7,
                     decoration: InputDecoration(
                       hintText: 'Share your advice, update, or question with pet parents...',
@@ -759,9 +871,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 Row(
                   children: [
                     OutlinedButton.icon(
-                      onPressed: _pickMedia,
-                      icon: const Icon(Icons.add_photo_alternate_outlined),
-                      label: Text(_attachedImageBytes != null ? 'Change Photo' : 'Add Photo'),
+                      onPressed: _showMediaPickerSheet,
+                      icon: Icon(_isVideo
+                          ? Icons.videocam_outlined
+                          : Icons.add_photo_alternate_outlined),
+                      label: Text(_attachedImageBytes != null
+                          ? (_isVideo ? 'Change Video' : 'Change Photo')
+                          : 'Add Media / Video'),
                     ),
                     AppSpacing.hGapSm,
                     OutlinedButton.icon(
@@ -787,12 +903,50 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: AppRadius.brSection,
-                        child: Image.memory(
-                          _attachedImageBytes!,
-                          height: 200,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+                        child: _isVideo
+                            ? Container(
+                                height: 180,
+                                width: double.infinity,
+                                color: Colors.black87,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.play_circle_fill_rounded,
+                                          size: 56,
+                                          color: scheme.primary,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          _attachedImageName ?? 'Video attached',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${(_attachedImageBytes!.lengthInBytes / (1024 * 1024)).toStringAsFixed(1)} MB • Video ready to upload',
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(alpha: 0.7),
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Image.memory(
+                                _attachedImageBytes!,
+                                height: 200,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(AppSpacing.sm),
@@ -973,7 +1127,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
   Widget _buildPreview(ColorScheme scheme) {
-    if (_bodyController.text.trim().isEmpty) {
+    final text = _bodyController.text.trim();
+    if (text.isEmpty && _titleController.text.trim().isEmpty) {
       return Container(
         height: 160,
         alignment: Alignment.center,
@@ -988,6 +1143,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         ),
       );
     }
+
+    final lines = _bodyController.text.split('\n');
+    final baseStyle = TextStyle(
+      fontSize: 14.5,
+      height: 1.55,
+      color: scheme.onSurface,
+    );
+
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 160),
@@ -1007,13 +1170,175 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ),
             const Divider(height: 16),
           ],
-          Text(
-            _bodyController.text,
-            style: const TextStyle(fontSize: 14.5, height: 1.5),
-          ),
+          ...lines.map((line) {
+            final trimmed = line.trim();
+            if (trimmed.isEmpty) {
+              return const SizedBox(height: 10);
+            }
+            if (trimmed.startsWith('### ')) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  trimmed.substring(4),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              );
+            }
+            if (trimmed.startsWith('## ')) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  trimmed.substring(3),
+                  style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold),
+                ),
+              );
+            }
+            if (trimmed.startsWith('# ')) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  trimmed.substring(2),
+                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                ),
+              );
+            }
+            if (trimmed.startsWith('> ')) {
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
+                decoration: BoxDecoration(
+                  border: Border(left: BorderSide(color: scheme.primary, width: 3)),
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    children: _parseInlineMarkdown(
+                      trimmed.substring(2),
+                      baseStyle.copyWith(fontStyle: FontStyle.italic, color: scheme.onSurfaceVariant),
+                      scheme,
+                    ),
+                  ),
+                ),
+              );
+            }
+            if (trimmed.startsWith('• ') || trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+              final content = trimmed.substring(2);
+              return Padding(
+                padding: const EdgeInsets.only(left: 4, top: 2, bottom: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• ', style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          children: _parseInlineMarkdown(content, baseStyle, scheme),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: RichText(
+                text: TextSpan(
+                  children: _parseInlineMarkdown(line, baseStyle, scheme),
+                ),
+              ),
+            );
+          }),
+          if (_attachedImageBytes != null) ...[
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _isVideo
+                  ? Container(
+                      height: 160,
+                      width: double.infinity,
+                      color: Colors.black87,
+                      child: Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.play_circle_fill, size: 36, color: scheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              _attachedImageName ?? 'Attached Video',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Image.memory(
+                      _attachedImageBytes!,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  List<InlineSpan> _parseInlineMarkdown(String line, TextStyle baseStyle, ColorScheme scheme) {
+    final spans = <InlineSpan>[];
+    final regExp = RegExp(r'(\*\*(.*?)\*\*|\*(.*?)\*|~~(.*?)~~|`(.*?)`|\[(.*?)\]\((.*?)\))');
+    int lastEnd = 0;
+    for (final match in regExp.allMatches(line)) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: line.substring(lastEnd, match.start), style: baseStyle));
+      }
+      final full = match.group(0)!;
+      if (full.startsWith('**') && full.endsWith('**') && full.length >= 4) {
+        spans.add(TextSpan(
+          text: match.group(2) ?? '',
+          style: baseStyle.copyWith(fontWeight: FontWeight.bold),
+        ));
+      } else if (full.startsWith('*') && full.endsWith('*') && full.length >= 2) {
+        spans.add(TextSpan(
+          text: match.group(3) ?? '',
+          style: baseStyle.copyWith(fontStyle: FontStyle.italic),
+        ));
+      } else if (full.startsWith('~~') && full.endsWith('~~') && full.length >= 4) {
+        spans.add(TextSpan(
+          text: match.group(4) ?? '',
+          style: baseStyle.copyWith(decoration: TextDecoration.lineThrough),
+        ));
+      } else if (full.startsWith('`') && full.endsWith('`') && full.length >= 2) {
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              match.group(5) ?? '',
+              style: baseStyle.copyWith(fontFamily: 'monospace', fontSize: 13, color: scheme.primary),
+            ),
+          ),
+        ));
+      } else if (full.startsWith('[') && full.contains('](') && full.endsWith(')')) {
+        spans.add(TextSpan(
+          text: match.group(6) ?? '',
+          style: baseStyle.copyWith(
+            color: scheme.primary,
+            decoration: TextDecoration.underline,
+            fontWeight: FontWeight.w600,
+          ),
+        ));
+      }
+      lastEnd = match.end;
+    }
+    if (lastEnd < line.length) {
+      spans.add(TextSpan(text: line.substring(lastEnd), style: baseStyle));
+    }
+    return spans;
   }
 }
 

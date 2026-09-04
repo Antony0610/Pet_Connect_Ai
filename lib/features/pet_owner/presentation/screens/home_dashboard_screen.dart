@@ -14,6 +14,7 @@ import 'package:petconnect_ai/features/auth/presentation/providers/auth_provider
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
+import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_activity_summary.dart';
 import 'package:petconnect_ai/features/smart_collar/domain/entities/collar_device.dart';
 import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
@@ -68,7 +69,7 @@ class _HomeDashboardScreenState
         OwnerAppBarAction(
           icon: Icons.notifications_outlined,
           tooltip: 'Notifications',
-          showBadge: true,
+          showBadge: ref.watch(unreadNotificationsCountProvider) > 0,
           onPressed: () => context.push(RoutePaths.ownerNotifications),
         ),
         AppSpacing.hGapXs,

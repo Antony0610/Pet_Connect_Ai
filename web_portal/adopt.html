@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐾 Pet Adoption Listing | PetConnect AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #7c3aed;
+      --surface: #ffffff;
+      --bg: #faf5ff;
+      --border: #f3e8ff;
+      --text: #1e1b4b;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 12px 48px;
+    }
+    .card {
+      width: 100%;
+      max-width: 500px;
+      background: var(--surface);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      padding: 24px 20px;
+      box-shadow: 0 10px 30px rgba(124, 58, 237, 0.08);
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: #f3e8ff;
+      color: #6b21a8;
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .btn-inquire {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 14px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="tag">🏡 Available for Adoption</div>
+    <h1 id="petName" style="font-size: 2rem; font-weight: 800;">Friendly Pet</h1>
+    <p id="petSub" style="color: var(--muted); margin-bottom: 16px;">Verified listing on PetConnect AI Adoption Hub</p>
+    <div style="background: #fdf4ff; border: 1px solid #f5d0fe; padding: 14px; border-radius: 14px; margin-bottom: 16px;">
+      ✨ Fully vaccinated, microchipped, and socialized. Looking for a loving permanent home.
+    </div>
+    <a href="#" id="inquireBtn" class="btn-inquire">💬 Inquire & Contact Guardian</a>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name') || 'Companion';
+    const phone = params.get('phone') || '';
+    document.getElementById('petName').textContent = name;
+    if (phone) {
+      document.getElementById('inquireBtn').href = `tel:${phone}`;
+    }
+  </script>
+</body>
+</html>

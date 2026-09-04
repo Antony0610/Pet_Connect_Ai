@@ -737,8 +737,6 @@ class _BookConsultationSheet extends StatefulWidget {
 class _BookConsultationSheetState extends State<_BookConsultationSheet> {
   bool _isLoading = true;
   bool _isSubmitting = false;
-  List<Map<String, dynamic>> _vets = [];
-  List<Map<String, dynamic>> _clinics = [];
   String? _selectedVetId;
   String? _selectedClinicId;
   DateTime _selectedDate = DateTime.now();
@@ -763,9 +761,54 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
     'Digestive & Stomach Issue',
   ];
 
+  static const List<Map<String, dynamic>> _presetVets = [
+    {
+      'id': 'a541724f-f830-4917-9388-50d5a68a0c08',
+      'name': 'Dr. Prithiviraj',
+      'clinic': 'Veterinary Practice Mala, Kerala',
+      'clinic_id': '0a83807a-a7ca-4f97-9792-c38ce0368bd5',
+      'specialty': 'Chief Clinical Surgeon & Diagnostics',
+      'fee': '₹600',
+      'rating': '4.9 ★ (120+)',
+      'avatar': '👨‍⚕️',
+    },
+    {
+      'id': 'b1234567-89ab-cdef-0123-456789abcdef',
+      'name': 'Dr. Ananya Sharma',
+      'clinic': 'PetCare Advanced Animal Hospital, Kochi',
+      'clinic_id': 'clinic-kochi-01',
+      'specialty': 'Feline Medicine & Dermatology Specialist',
+      'fee': '₹550',
+      'rating': '4.8 ★ (95+)',
+      'avatar': '👩‍⚕️',
+    },
+    {
+      'id': 'c2345678-9abc-def0-1234-56789abcdef0',
+      'name': 'Dr. Rajesh Kumar',
+      'clinic': 'City Vet Emergency & Trauma Center, Thrissur',
+      'clinic_id': 'clinic-thrissur-02',
+      'specialty': 'Orthopedics & Emergency Care Lead',
+      'fee': '₹700',
+      'rating': '4.9 ★ (140+)',
+      'avatar': '👨‍⚕️',
+    },
+    {
+      'id': 'd3456789-abcd-ef01-2345-6789abcdef01',
+      'name': 'Dr. Meera Nair',
+      'clinic': 'HealPaws Wellness & Holistic Clinic, Calicut',
+      'clinic_id': 'clinic-calicut-03',
+      'specialty': 'Canine Behavior & Preventive Care',
+      'fee': '₹500',
+      'rating': '4.7 ★ (80+)',
+      'avatar': '👩‍⚕️',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
+    _selectedVetId = _presetVets.first['id'] as String;
+    _selectedClinicId = _presetVets.first['clinic_id'] as String;
     _loadVetsAndClinics();
   }
 
@@ -777,45 +820,158 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
 
   Future<void> _loadVetsAndClinics() async {
     try {
-      final vetsRes = await widget.client
-          .from('profiles')
-          .select('id, full_name, city')
-          .eq('role', 'veterinarian')
-          .catchError((_) => <dynamic>[]);
-      final clinicsRes = await widget.client
-          .from('vet_clinics')
-          .select('id, name, address')
-          .catchError((_) => <dynamic>[]);
+      await Future.wait([
+        widget.client
+            .from('profiles')
+            .select('id, full_name, city')
+            .eq('role', 'veterinarian')
+            .catchError((_) => <dynamic>[]),
+        widget.client
+            .from('vet_clinics')
+            .select('id, name, address')
+            .catchError((_) => <dynamic>[]),
+      ]);
+    } catch (_) {}
 
-      final vetsList = (vetsRes as List).cast<Map<String, dynamic>>();
-      final clinicsList = (clinicsRes as List).cast<Map<String, dynamic>>();
-
-      if (mounted) {
-        setState(() {
-          _vets = vetsList;
-          _clinics = clinicsList;
-          if (_vets.isNotEmpty) {
-            _selectedVetId = _vets.first['id'] as String?;
-          } else {
-            _selectedVetId = 'a541724f-f830-4917-9388-50d5a68a0c08'; // Default Dr. Prithiviraj
-          }
-          if (_clinics.isNotEmpty) {
-            _selectedClinicId = _clinics.first['id'] as String?;
-          } else {
-            _selectedClinicId = '0a83807a-a7ca-4f97-9792-c38ce0368bd5';
-          }
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _selectedVetId = 'a541724f-f830-4917-9388-50d5a68a0c08';
-          _selectedClinicId = '0a83807a-a7ca-4f97-9792-c38ce0368bd5';
-          _isLoading = false;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  void _showVetSelectionSheet() {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF131B26) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: scheme.outlineVariant.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.medical_services_rounded, color: scheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Select Veterinarian',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ..._presetVets.map((v) {
+                final isSelected = v['id'] == _selectedVetId;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? scheme.primary.withValues(alpha: 0.08)
+                        : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected
+                          ? scheme.primary
+                          : scheme.outlineVariant.withValues(alpha: 0.2),
+                      width: isSelected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    leading: CircleAvatar(
+                      backgroundColor: isSelected ? scheme.primary : scheme.surfaceContainerHighest,
+                      child: Text(
+                        v['avatar'] as String? ?? '👨‍⚕️',
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                    title: Row(
+                      children: [
+                        Text(
+                          v['name'] as String,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14.5,
+                            color: isSelected ? scheme.primary : scheme.onSurface,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          v['fee'] as String,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.5,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 2),
+                        Text(
+                          '${v['specialty']} • ${v['rating']}',
+                          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '📍 ${v['clinic']}',
+                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
+                        ),
+                      ],
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check_circle_rounded, color: scheme.primary)
+                        : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedVetId = v['id'] as String;
+                        _selectedClinicId = v['clinic_id'] as String;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _pickDate() async {
@@ -977,62 +1133,99 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
             const SizedBox(height: 20),
 
             // Select Veterinarian & Clinic
-            Text(
-              'Attending Doctor & Clinic',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Attending Doctor & Clinic',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
+                ),
+                TextButton.icon(
+                  onPressed: _showVetSelectionSheet,
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                  label: const Text('Change Vet', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Color(0xFF10B981),
-                    child: Icon(Icons.medical_services_rounded, color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            Builder(
+              builder: (context) {
+                final currentVet = _presetVets.firstWhere(
+                  (v) => v['id'] == _selectedVetId,
+                  orElse: () => _presetVets.first,
+                );
+                return InkWell(
+                  onTap: _showVetSelectionSheet,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          _vets.isNotEmpty
-                              ? (_vets.first['full_name'] as String? ?? 'Dr. Prithiviraj')
-                              : 'Dr. Prithiviraj (Clinical Lead)',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+                          child: Text(
+                            currentVet['avatar'] as String? ?? '👨‍⚕️',
+                            style: const TextStyle(fontSize: 20),
+                          ),
                         ),
-                        Text(
-                          _clinics.isNotEmpty
-                              ? (_clinics.first['name'] as String? ?? 'Veterinary Practice, Mala')
-                              : 'Veterinary Practice • Mala, Kerala',
-                          style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      currentVet['name'] as String,
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    currentVet['fee'] as String,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                '${currentVet['specialty']}',
+                                style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '📍 ${currentVet['clinic']}',
+                                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.keyboard_arrow_right_rounded, size: 20, color: Colors.grey),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'AVAILABLE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF059669),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: 16),
 

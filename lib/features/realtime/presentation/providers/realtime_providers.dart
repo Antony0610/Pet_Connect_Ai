@@ -156,6 +156,27 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
   }
 
   Future<void> markRead(String notificationId) async {
+    // 1. Immediate optimistic UI state update
+    state.whenData((currentList) {
+      final updated = currentList.map((n) {
+        if (n.id == notificationId) {
+          return UserNotification(
+            id: n.id,
+            userId: n.userId,
+            title: n.title,
+            body: n.body,
+            notificationType: n.notificationType,
+            isRead: true,
+            payload: n.payload,
+            createdAt: n.createdAt,
+          );
+        }
+        return n;
+      }).toList();
+      state = AsyncValue.data(updated);
+    });
+
+    // 2. Persist read status locally
     try {
       final prefs = await SharedPreferences.getInstance();
       final readIds = prefs.getStringList(_readKey) ?? [];
@@ -165,30 +186,35 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
       }
     } catch (_) {}
 
-    final repo = ref.read(realtimeRepositoryProvider);
-    await repo.markNotificationRead(notificationId);
-    state.whenData((currentList) {
-      final updated =
-          currentList.map((n) {
-            if (n.id == notificationId) {
-              return UserNotification(
-                id: n.id,
-                userId: n.userId,
-                title: n.title,
-                body: n.body,
-                notificationType: n.notificationType,
-                isRead: true,
-                payload: n.payload,
-                createdAt: n.createdAt,
-              );
-            }
-            return n;
-          }).toList();
-      state = AsyncValue.data(updated);
-    });
+    // 3. Sync to backend in background
+    try {
+      final repo = ref.read(realtimeRepositoryProvider);
+      await repo.markNotificationRead(notificationId);
+    } catch (_) {}
   }
 
   Future<int> markAllRead() async {
+    int markedCount = 0;
+
+    // 1. Immediate optimistic UI state update
+    state.whenData((currentList) {
+      markedCount = currentList.where((n) => !n.isRead).length;
+      final updated = currentList.map((n) {
+        return UserNotification(
+          id: n.id,
+          userId: n.userId,
+          title: n.title,
+          body: n.body,
+          notificationType: n.notificationType,
+          isRead: true,
+          payload: n.payload,
+          createdAt: n.createdAt,
+        );
+      }).toList();
+      state = AsyncValue.data(updated);
+    });
+
+    // 2. Persist read status locally
     state.whenData((currentList) async {
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -202,29 +228,14 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
       } catch (_) {}
     });
 
-    final repo = ref.read(realtimeRepositoryProvider);
-    final result = await repo.markAllNotificationsRead();
-    return result.fold((failure) => throw Exception(failure.message), (
-      count,
-    ) {
-      state.whenData((currentList) {
-        final updated =
-            currentList.map((n) {
-              return UserNotification(
-                id: n.id,
-                userId: n.userId,
-                title: n.title,
-                body: n.body,
-                notificationType: n.notificationType,
-                isRead: true,
-                payload: n.payload,
-                createdAt: n.createdAt,
-              );
-            }).toList();
-        state = AsyncValue.data(updated);
-      });
-      return count;
-    });
+    // 3. Sync to backend
+    try {
+      final repo = ref.read(realtimeRepositoryProvider);
+      final result = await repo.markAllNotificationsRead();
+      result.fold((_) {}, (count) => markedCount = count);
+    } catch (_) {}
+
+    return markedCount;
   }
 
   Future<void> deleteNotification(String notificationId) async {

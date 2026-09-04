@@ -39,7 +39,6 @@ enum _NotifKind { critical, ai, health, social }
 
 /// Filterable categories shown as chips (in frozen order).
 enum _NotifFilter {
-  all('All'),
   health('Health'),
   ai('AI'),
   collar('Collar'),
@@ -143,12 +142,13 @@ class _NotifData {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  _NotifFilter _selected = _NotifFilter.all;
+  String _selectedFilterStr = 'All';
 
   Future<void> _markAllRead() async {
     try {
       await ref.read(userNotificationsProvider.notifier).markAllRead();
       if (mounted) {
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('All notifications marked as read')),
         );
@@ -342,6 +342,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         .where((String n) => n.isNotEmpty)
         .toSet();
 
+    final effectiveRole = widget.portalRole != AppPortal.petOwner
+        ? widget.portalRole
+        : ref.watch(selectedPortalProvider);
+
+    final filterList = effectiveRole == AppPortal.volunteerRescue
+        ? const ['All', 'Emergency/SOS', 'Lost Pets', 'Sightings', 'Updates']
+        : effectiveRole == AppPortal.veterinarian
+            ? const ['All', 'Appointments', 'Consultations', 'Lab / Vitals', 'Prescriptions']
+            : const ['All', 'Health', 'AI', 'Collar', 'Social'];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -390,14 +400,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           height: 40,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: _NotifFilter.values.length,
+            itemCount: filterList.length,
             separatorBuilder: (_, __) => AppSpacing.hGapSm,
             itemBuilder: (context, i) {
-              final filter = _NotifFilter.values[i];
+              final label = filterList[i];
               return _FilterChip(
-                label: filter.label,
-                selected: filter == _selected,
-                onTap: () => setState(() => _selected = filter),
+                label: label,
+                selected: label == _selectedFilterStr,
+                onTap: () => setState(() => _selectedFilterStr = label),
               );
             },
           ),
@@ -421,11 +431,31 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
           data: (entities) {
             final filteredEntities = entities.where((e) {
-              if (widget.portalRole == AppPortal.petOwner) {
-                final type = e.notificationType.toLowerCase();
-                final title = e.title.toLowerCase();
-                final body = e.body.toLowerCase();
+              final type = e.notificationType.toLowerCase();
+              final title = e.title.toLowerCase();
+              final body = e.body.toLowerCase();
 
+              if (effectiveRole == AppPortal.volunteerRescue) {
+                // Strictly exclude vet, clinical consultations, vaccinations, prescriptions
+                if (type.contains('vet') ||
+                    type.contains('consultation') ||
+                    type.contains('appointment') ||
+                    type.contains('prescription') ||
+                    type.contains('vaccin') ||
+                    title.contains('consultation') ||
+                    title.contains('appointment') ||
+                    title.contains('prescription') ||
+                    title.contains('vaccin') ||
+                    body.contains('consultation') ||
+                    body.contains('appointment') ||
+                    body.contains('prescription') ||
+                    body.contains('dr. ')) {
+                  return false;
+                }
+                return true;
+              }
+
+              if (effectiveRole == AppPortal.petOwner) {
                 // 1. Filter out clinical veterinarian consultation alerts from the Pet Owner portal
                 if (type == 'vet_consultation' ||
                     type == 'clinical_alert' ||
@@ -458,14 +488,45 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               return true;
             }).toList();
 
-            final allItems =
-                filteredEntities.map(_NotifData.fromEntity).toList();
-                    final visible =
-                        _selected == _NotifFilter.all
-                            ? allItems
-                            : allItems
-                                .where((i) => i.filter == _selected)
-                                .toList();
+            final allItems = filteredEntities.map(_NotifData.fromEntity).toList();
+            final visible = allItems.where((item) {
+              if (_selectedFilterStr == 'All') return true;
+
+              if (effectiveRole == AppPortal.volunteerRescue) {
+                final t = item.title.toLowerCase();
+                final b = item.body.toLowerCase();
+                if (_selectedFilterStr == 'Emergency/SOS') {
+                  return t.contains('emergency') || t.contains('sos') || t.contains('p1') || item.kind == _NotifKind.critical;
+                }
+                if (_selectedFilterStr == 'Lost Pets') {
+                  return t.contains('lost') || t.contains('missing');
+                }
+                if (_selectedFilterStr == 'Sightings') {
+                  return t.contains('sighting') || b.contains('sighted') || b.contains('spotted');
+                }
+                if (_selectedFilterStr == 'Updates') {
+                  return !t.contains('emergency') && !t.contains('sos') && !t.contains('lost') && !t.contains('sighting');
+                }
+                return true;
+              }
+
+              if (effectiveRole == AppPortal.veterinarian) {
+                final t = item.title.toLowerCase();
+                if (_selectedFilterStr == 'Appointments') return t.contains('appointment');
+                if (_selectedFilterStr == 'Consultations') return t.contains('consultation');
+                if (_selectedFilterStr == 'Lab / Vitals') return t.contains('vital') || t.contains('telemetry');
+                if (_selectedFilterStr == 'Prescriptions') return t.contains('prescription');
+                return true;
+              }
+
+              // Pet Owner default
+              if (_selectedFilterStr == 'Health') return item.filter == _NotifFilter.health;
+              if (_selectedFilterStr == 'AI') return item.filter == _NotifFilter.ai;
+              if (_selectedFilterStr == 'Collar') return item.filter == _NotifFilter.collar;
+              if (_selectedFilterStr == 'Social') return item.filter == _NotifFilter.social;
+
+              return true;
+            }).toList();
 
                     if (visible.isEmpty) {
                       return _EmptyState();
@@ -514,6 +575,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               data: visible[i],
                               onTap: () async {
                                 if (visible[i].unread) {
+                                  setState(() {
+                                    visible[i].unread = false;
+                                  });
                                   await ref
                                       .read(userNotificationsProvider.notifier)
                                       .markRead(visible[i].id);

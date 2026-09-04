@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/missing/:id", "destination": "/missing.html" },
+    { "source": "/emergency/:id", "destination": "/emergency.html" },
+    { "source": "/adopt/:id", "destination": "/adopt.html" },
+    { "source": "/verify/vaccine/:id", "destination": "/verify.html" },
+    { "source": "/verify/report", "destination": "/verify.html" },
+    { "source": "/passport/:id", "destination": "/emergency.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    }
+  ]
+}

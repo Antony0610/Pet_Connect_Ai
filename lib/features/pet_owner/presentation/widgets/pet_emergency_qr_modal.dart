@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -77,7 +78,7 @@ Medical Alert: ${pet.healthStatus.isNotEmpty ? pet.healthStatus : 'No Known Crit
 Primary Caregiver: $ownerName
 Emergency Phone: ${ownerPhone != null && ownerPhone.isNotEmpty ? ownerPhone : 'Protected on Profile'}
 Primary Email: $ownerEmail
-Live Emergency Cloud Dossier: https://petconnect.ai/emergency/${pet.id}
+Live Emergency Cloud Dossier: ${Env.webBaseUrl}/emergency/${pet.id}
 -----------------------------------------
 Instant PetConnect AI Rescue Network Enabled
 '''.trim();

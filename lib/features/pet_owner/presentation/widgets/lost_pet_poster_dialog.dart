@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
@@ -192,7 +193,15 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     final rewardAmount = _cleanText(_rewardController.text);
     final todayStr = DateFormat('dd MMM').format(DateTime.now());
 
-    final qrPayload = 'tel:$ownerPhone';
+    final baseUrl = Env.webBaseUrl;
+    final petNameEnc = Uri.encodeComponent(pet.name);
+    final phoneEnc = Uri.encodeComponent(ownerPhone);
+    final locEnc = Uri.encodeComponent(lastSeenLocation);
+    final rewardEnc = Uri.encodeComponent(rewardAmount);
+    final notesEnc = Uri.encodeComponent(_cleanText(_notesController.text));
+    final imgEnc = Uri.encodeComponent(pet.imageUrl ?? '');
+
+    final qrPayload = '$baseUrl/missing/${pet.id}?name=$petNameEnc&species=${Uri.encodeComponent(pet.species)}&breed=${Uri.encodeComponent(pet.breed ?? "")}&phone=$phoneEnc&location=$locEnc&reward=$rewardEnc&notes=$notesEnc&img=$imgEnc';
 
     const creamBg = Color(0xFFFAF6EE);
     const crimsonColor = Color(0xFFB91C1C);

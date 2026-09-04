@@ -36,12 +36,24 @@ class Pet extends Entity {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// Calculated age in years, or fallback.
+  int get ageYears {
+    if (dateOfBirth == null) return 2;
+    final now = DateTime.now();
+    int age = now.year - dateOfBirth!.year;
+    if (now.month < dateOfBirth!.month ||
+        (now.month == dateOfBirth!.month && now.day < dateOfBirth!.day)) {
+      age--;
+    }
+    return age > 0 ? age : 1;
+  }
+
   /// Helper formatting breed & age string for UI display.
   String get breedLine {
     final b = (breed != null && breed!.isNotEmpty) ? breed : 'Unknown Breed';
     if (dateOfBirth == null) return b!;
     final now = DateTime.now();
-    int ageYears = now.year - dateOfBirth!.year;
+    int ageYears = this.ageYears;
     if (now.month < dateOfBirth!.month ||
         (now.month == dateOfBirth!.month && now.day < dateOfBirth!.day)) {
       ageYears--;

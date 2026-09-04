@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetConnect AI — Intelligent Pet Care & Emergency Rescue Cloud</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --surface: #ffffff;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(2, 132, 199, 0.2);
+      border: 1px solid rgba(2, 132, 199, 0.4);
+      border-radius: 20px;
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      max-width: 680px;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      max-width: 580px;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 860px;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: left;
+    }
+    .card-icon { font-size: 2rem; margin-bottom: 12px; }
+    .card h3 { font-size: 1.2rem; margin-bottom: 6px; }
+    .card p { font-size: 0.92rem; margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <div class="hero-badge">🐾 PetConnect AI Emergency & Cloud Platform</div>
+  <h1>Omni-Portal Care, Emergency Rescue & Smart Vitals</h1>
+  <p>Connecting Pet Owners, Veterinarians, and Rapid Volunteer Responders in one unified intelligent ecosystem.</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-icon">🚨</div>
+      <h3>Live Missing Pet Network</h3>
+      <p>Instant digital missing pet posters with scannable QR tags and real-time community sighting dispatch.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🩺</div>
+      <h3>Clinical Health Passport</h3>
+      <p>Verified vaccination certificates, multi-vet consultations, and Gemini-powered clinical insights.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🤝</div>
+      <h3>Volunteer Rescue Hub</h3>
+      <p>Rapid tactical search missions, SOS incident coordinates, and community pet protection.</p>
+    </div>
+  </div>
+</body>
+</html>

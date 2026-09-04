@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
@@ -243,46 +242,137 @@ class _DriftingPaw {
   final double phase;
 }
 
-/// The glowing rounded logo tile with the paw glyph.
+/// The glossy 3D embossed logo tile with specular highlight and raised paw emblem.
 class _LogoTile extends StatelessWidget {
   const _LogoTile();
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final primary = scheme.primary;
+    final primaryDark = Color.lerp(primary, Colors.black, 0.35)!;
+    final primaryLight = Color.lerp(primary, Colors.white, 0.45)!;
+
     return Container(
-      width: 148,
-      height: 148,
+      width: 154,
+      height: 154,
       decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        borderRadius: BorderRadius.circular(38),
+        // 3D Outer drop shadows: bottom depth + colored ambient aura
         boxShadow: [
           BoxShadow(
-            color: scheme.primary.withValues(alpha: 0.3),
-            blurRadius: 40,
-            spreadRadius: 4,
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+            spreadRadius: -2,
+          ),
+          BoxShadow(
+            color: primary.withValues(alpha: 0.45),
+            blurRadius: 42,
+            offset: const Offset(0, 8),
+            spreadRadius: 2,
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: [
-                  scheme.primary.withValues(alpha: 0.20),
-                  scheme.primaryContainer.withValues(alpha: 0.0),
-                ],
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(38),
+          // 3D Glass bevel border: light from top-left, shadow on bottom-right
+          border: Border.all(
+            width: 2.2,
+            color: Colors.white.withValues(alpha: 0.55),
+          ),
+          gradient: LinearGradient(
+            begin: const Alignment(-0.85, -0.9),
+            end: const Alignment(0.85, 0.95),
+            colors: [
+              primaryLight,
+              primary,
+              primaryDark,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Specular gloss reflection curve across upper half
+            Positioned(
+              top: -60,
+              left: -50,
+              right: -50,
+              height: 140,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.3),
+                    radius: 0.85,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.42),
+                      Colors.white.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
               ),
             ),
-            child: const SizedBox.expand(),
-          ),
-          Icon(Icons.pets, size: 74, color: scheme.onPrimaryContainer),
-        ],
+            // Lower rim light bounce reflection
+            Positioned(
+              bottom: -4,
+              left: 20,
+              right: 20,
+              height: 18,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.0),
+                      Colors.white.withValues(alpha: 0.35),
+                      Colors.white.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // 3D Embossed Paw: Bottom shadow layer
+            Transform.translate(
+              offset: const Offset(0, 4),
+              child: Icon(
+                Icons.pets_rounded,
+                size: 78,
+                color: Colors.black.withValues(alpha: 0.38),
+              ),
+            ),
+            // 3D Embossed Paw: Subtle upper highlight layer
+            Transform.translate(
+              offset: const Offset(0, -1),
+              child: Icon(
+                Icons.pets_rounded,
+                size: 78,
+                color: Colors.white.withValues(alpha: 0.95),
+              ),
+            ),
+            // 3D Embossed Paw: Face layer with rich gloss
+            ShaderMask(
+              shaderCallback: (bounds) => LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white,
+                  Colors.white.withValues(alpha: 0.92),
+                  Color.lerp(Colors.white, primary, 0.15)!,
+                ],
+              ).createShader(bounds),
+              child: const Icon(
+                Icons.pets_rounded,
+                size: 78,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

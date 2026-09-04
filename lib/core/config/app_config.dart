@@ -17,6 +17,7 @@ class AppConfig {
     required this.fcmSenderId,
     required this.collarIngestUrl,
     required this.n8nWebhookBaseUrl,
+    required this.webBaseUrl,
     required this.featureSmartCollar,
     required this.featureAiAssistant,
   });
@@ -32,6 +33,7 @@ class AppConfig {
     fcmSenderId: Env.fcmSenderId,
     collarIngestUrl: Env.collarIngestUrl,
     n8nWebhookBaseUrl: Env.n8nWebhookBaseUrl,
+    webBaseUrl: Env.webBaseUrl,
     featureSmartCollar: Env.featureSmartCollar,
     featureAiAssistant: Env.featureAiAssistant,
   );
@@ -46,6 +48,7 @@ class AppConfig {
   final String fcmSenderId;
   final String collarIngestUrl;
   final String n8nWebhookBaseUrl;
+  final String webBaseUrl;
 
   final bool featureSmartCollar;
   final bool featureAiAssistant;

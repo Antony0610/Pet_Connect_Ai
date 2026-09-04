@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✅ Certificate Verification | PetConnect AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #10b981;
+      --surface: #ffffff;
+      --bg: #f0fdf4;
+      --border: #bbf7d0;
+      --text: #064e3b;
+      --muted: #047857;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border-radius: 24px;
+      border: 2px solid var(--border);
+      padding: 28px 22px;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.1);
+    }
+    .seal {
+      width: 64px;
+      height: 64px;
+      background: #dcfce7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="seal">✅</div>
+    <h1 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;">Authentic Clinical Record</h1>
+    <p style="color: var(--muted); font-weight: 600; margin-bottom: 20px;">Digitally Verified on PetConnect AI Blockchain Registry</p>
+    <div style="background: #f8fafc; border-radius: 16px; padding: 16px; text-align: left; font-size: 0.95rem; margin-bottom: 20px;">
+      <div style="margin-bottom: 8px;"><strong>Patient:</strong> <span id="vaxPet">Verified Companion</span></div>
+      <div style="margin-bottom: 8px;"><strong>Vaccine/Protocol:</strong> <span id="vaxName">Core Vaccination</span></div>
+      <div><strong>Status:</strong> <span style="color: #047857; font-weight: bold;">Valid & Protected</span></div>
+    </div>
+    <p style="font-size: 0.8rem; color: #64748b;">Issued by Licensed Clinical Practitioner via PetConnect AI Health Passport</p>
+  </div>
+  <script>
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('pet')) document.getElementById('vaxPet').textContent = p.get('pet');
+    if (p.get('vax')) document.getElementById('vaxName').textContent = p.get('vax');
+  </script>
+</body>
+</html>

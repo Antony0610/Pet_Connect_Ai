@@ -55,6 +55,9 @@ class AiHealthInsightsScreen extends ConsumerStatefulWidget {
 
 class _AiHealthInsightsScreenState extends ConsumerState<AiHealthInsightsScreen> {
   String _selectedCategory = 'All';
+  List<_Insight>? _geminiInsights;
+  bool _isGeneratingGemini = false;
+  String? _lastGeneratedPetId;
 
   final List<String> _categories = const [
     'All',
@@ -63,6 +66,121 @@ class _AiHealthInsightsScreenState extends ConsumerState<AiHealthInsightsScreen>
     'Sleep & Recovery',
     'Symptom Scans',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pet = ref.read(selectedPetProvider);
+      _fetchGeminiInsights(pet);
+    });
+  }
+
+  Future<void> _fetchGeminiInsights(Pet? pet, {bool forceRefresh = false}) async {
+    if (pet == null || (!forceRefresh && _lastGeneratedPetId == pet.id && _geminiInsights != null)) {
+      return;
+    }
+    if (_isGeneratingGemini) return;
+
+    setState(() => _isGeneratingGemini = true);
+    _lastGeneratedPetId = pet.id;
+
+    try {
+      final repo = ref.read(aiRepositoryProvider);
+      final prompt = '''You are a veterinary clinical AI. Generate 3 distinct clinical health insights for ${pet.name}, a ${pet.ageYears}-year-old ${pet.breed ?? pet.species}.
+Format strictly as:
+INSIGHT 1:
+TITLE: <title>
+CATEGORY: <Vitals & Nutrition OR Activity & Mobility OR Sleep & Recovery>
+DETAIL: <2-3 sentences of clear, clinical, breed-specific insight>
+SOURCES: <e.g. WSAVA Nutritional Guidelines, Smart Collar Vitals>
+---
+INSIGHT 2:
+TITLE: <title>
+CATEGORY: <Vitals & Nutrition OR Activity & Mobility OR Sleep & Recovery>
+DETAIL: <2-3 sentences of clear, clinical, breed-specific insight>
+SOURCES: <e.g. Canine Mobility Index, Vet Practice Mala>
+---
+INSIGHT 3:
+TITLE: <title>
+CATEGORY: <Vitals & Nutrition OR Activity & Mobility OR Sleep & Recovery>
+DETAIL: <2-3 sentences of clear, clinical, breed-specific insight>
+SOURCES: <e.g. Rest & Circadian Guide, Health Passport>''';
+
+      final res = await repo.sendChatMessage(
+        conversationId: 'health-insights-${pet.id}',
+        prompt: prompt,
+        petId: pet.id,
+      ).timeout(const Duration(seconds: 15));
+
+      res.fold((_) {}, (msg) {
+        final text = msg.messageText;
+        final blocks = text.split(RegExp(r'---|\n(?=INSIGHT \d:)'));
+        final parsed = <_Insight>[];
+
+        for (final block in blocks) {
+          final lines = block.split('\n');
+          String title = '';
+          String category = '';
+          String detail = '';
+          List<String> sources = ['Gemini AI Intelligence'];
+
+          for (final rawLine in lines) {
+            final line = rawLine.trim();
+            if (line.toUpperCase().startsWith('TITLE:')) {
+              title = line.substring(6).replaceAll('*', '').trim();
+            } else if (line.toUpperCase().startsWith('CATEGORY:')) {
+              category = line.substring(9).replaceAll('*', '').trim();
+            } else if (line.toUpperCase().startsWith('DETAIL:')) {
+              detail = line.substring(7).replaceAll('*', '').trim();
+            } else if (line.toUpperCase().startsWith('SOURCES:')) {
+              sources = line.substring(8).split(',').map((s) => s.trim().replaceAll('*', '')).where((s) => s.isNotEmpty).toList();
+            } else if (detail.isNotEmpty && !line.toUpperCase().startsWith('INSIGHT') && !line.toUpperCase().startsWith('SOURCES:')) {
+              detail += ' $line';
+            }
+          }
+
+          if (title.isNotEmpty && detail.isNotEmpty) {
+            IconData icon = Icons.health_and_safety_rounded;
+            _Tint tint = _Tint.primary;
+            if (category.toLowerCase().contains('sleep') || title.toLowerCase().contains('sleep')) {
+              icon = Icons.bedtime_rounded;
+              tint = _Tint.secondary;
+            } else if (category.toLowerCase().contains('activity') || title.toLowerCase().contains('activity')) {
+              icon = Icons.show_chart_rounded;
+              tint = _Tint.primary;
+            } else if (category.toLowerCase().contains('nutrition') || title.toLowerCase().contains('nutrition') || title.toLowerCase().contains('hydration')) {
+              icon = Icons.water_drop_outlined;
+              tint = _Tint.tertiary;
+            }
+
+            parsed.add(
+              _Insight(
+                icon: icon,
+                tint: tint,
+                title: title,
+                detail: detail.trim(),
+                confidence: _Confidence.high,
+                sources: sources.isNotEmpty ? sources : const ['Gemini 3.1 Clinical Intelligence'],
+              ),
+            );
+          }
+        }
+
+        if (parsed.isNotEmpty && mounted) {
+          setState(() {
+            _geminiInsights = parsed;
+          });
+        }
+      });
+    } catch (_) {
+      // Gracefully retain fallback
+    } finally {
+      if (mounted) {
+        setState(() => _isGeneratingGemini = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,11 +200,18 @@ class _AiHealthInsightsScreenState extends ConsumerState<AiHealthInsightsScreen>
         title: 'Health Insights',
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: _isGeneratingGemini
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh Insights',
             onPressed: () {
               ref.invalidate(aiHealthScansProvider);
-              context.showSnackbar('Refreshing health insights for $petName…');
+              _fetchGeminiInsights(pet, forceRefresh: true);
+              context.showSnackbar('Generating real-time AI insights for $petName…');
             },
           ),
         ],
@@ -110,7 +235,7 @@ class _AiHealthInsightsScreenState extends ConsumerState<AiHealthInsightsScreen>
             );
           }).toList();
 
-          final fallbackInsights = _getDynamicInsightsForPet(pet);
+          final fallbackInsights = _geminiInsights ?? _getDynamicInsightsForPet(pet);
           final displayInsights = [...liveInsights, ...fallbackInsights];
 
           final filteredInsights = displayInsights.where((item) {

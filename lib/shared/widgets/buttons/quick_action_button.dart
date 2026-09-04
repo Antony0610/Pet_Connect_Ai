@@ -77,8 +77,8 @@ class QuickActionButton extends StatelessWidget {
     final isCompact = containerSize <= 48;
     final content = Padding(
       padding: EdgeInsets.symmetric(
-        vertical: isCompact ? 8 : 14,
-        horizontal: isCompact ? 4 : 6,
+        vertical: isCompact ? 4 : 14,
+        horizontal: isCompact ? 3 : 6,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -180,9 +180,9 @@ class QuickActionButton extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(height: isCompact ? 6 : 12),
+          SizedBox(height: isCompact ? 4 : 12),
           SizedBox(
-            height: isCompact ? 28 : 34,
+            height: isCompact ? 26 : 34,
             child: Text(
               title,
               textAlign: TextAlign.center,

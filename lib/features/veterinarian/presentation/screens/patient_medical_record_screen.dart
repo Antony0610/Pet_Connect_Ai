@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/vet_patient.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -30,6 +31,51 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
   List<Map<String, dynamic>> _treatmentPlans = [];
   Map<String, dynamic>? _pairedCollar;
   bool _isLoading = true;
+  String? _geminiPrognosis;
+  bool _isLoadingGeminiPrognosis = false;
+
+  Future<void> _fetchGeminiPrognosis(VetPatient patient) async {
+    if (_isLoadingGeminiPrognosis) return;
+    setState(() => _isLoadingGeminiPrognosis = true);
+
+    try {
+      final repo = ref.read(aiRepositoryProvider);
+      final recentDx = _treatmentPlans.isNotEmpty
+          ? _treatmentPlans.first['diagnosis'] ?? 'Clinical review'
+          : (_healthRecords.isNotEmpty
+              ? _healthRecords.first['diagnosis'] ?? _healthRecords.first['treatment'] ?? 'Routine consultation'
+              : 'Routine preventive health assessment');
+
+      final prompt = '''You are a veterinary clinical AI specialist. Provide an objective clinical prognosis and medical insight for this patient:
+Name: ${patient.name}
+Species: ${patient.species}
+Breed: ${patient.breedLine}
+Weight: ${patient.weightKg} kg
+Recent Clinical History / Diagnosis: $recentDx
+
+Respond with 2 concise sentences:
+Sentence 1: Clinical prognosis and organ/metabolic state.
+Sentence 2: Preventive veterinary care action or monitoring priority.''';
+
+      final res = await repo.sendChatMessage(
+        conversationId: 'vet-record-${patient.id}',
+        prompt: prompt,
+        petId: patient.id,
+      ).timeout(const Duration(seconds: 15));
+
+      res.fold((_) {}, (msg) {
+        if (mounted && msg.messageText.trim().isNotEmpty) {
+          setState(() {
+            _geminiPrognosis = msg.messageText.trim();
+          });
+        }
+      });
+    } catch (_) {} finally {
+      if (mounted) {
+        setState(() => _isLoadingGeminiPrognosis = false);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -657,9 +703,11 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
         ? 'AI Clinical Intelligence: Feline Health Protocol'
         : 'AI Clinical Intelligence: Canine Health Protocol';
 
-    final insightText = isCat
+    final defaultInsightText = isCat
         ? 'Vitals for ${patient.name} (${patient.breedLine}) indicate stable metabolic function. Recommended: Maintain urinary hydration with high moisture content diet. Dental grade 1 calculus check advised during next routine review.'
         : 'Vitals and mobility for ${patient.name} (${patient.breedLine}, ${patient.weightKg ?? 25.0} kg) are optimal. Recommended: Caloric balance for weight maintenance and regular orthopedic mobility checks.';
+
+    final effectiveInsight = _geminiPrognosis ?? defaultInsightText;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -684,11 +732,22 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
                   ),
                 ),
               ),
+              IconButton(
+                icon: _isLoadingGeminiPrognosis
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 18),
+                tooltip: 'Regenerate Gemini Clinical Prognosis',
+                onPressed: () => _fetchGeminiPrognosis(patient),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
-            insightText,
+            effectiveInsight,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -699,9 +758,9 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
             runSpacing: 6,
             children: [
               AppChip(
-                label: 'Vitals: Optimal',
-                backgroundColor: colorScheme.surfaceContainerHigh,
-                textColor: colorScheme.onSurface,
+                label: _geminiPrognosis != null ? 'Gemini 3.1 Live' : 'Clinical Protocol',
+                backgroundColor: colorScheme.primary.withValues(alpha: 0.15),
+                textColor: colorScheme.primary,
               ),
               AppChip(
                 label: 'Species: ${patient.species.toUpperCase()}',

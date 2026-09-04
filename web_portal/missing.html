@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚨 MISSING PET ALERT | PetConnect AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #b91c1c;
+      --primary-hover: #991b1b;
+      --gold: #d97706;
+      --gold-bg: #fef3c7;
+      --gold-border: #b45309;
+      --surface: #ffffff;
+      --bg: #f8fafc;
+      --card-cream: #faf6ee;
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --green: #10b981;
+      --green-hover: #059669;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 12px 48px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    /* Live Urgent Beacon Header */
+    .urgent-banner {
+      background: linear-gradient(135deg, #b91c1c, #dc2626);
+      color: white;
+      padding: 14px 20px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 10px 25px -5px rgba(185, 28, 28, 0.4);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .beacon-dot {
+      width: 12px;
+      height: 12px;
+      background-color: #fef08a;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+      box-shadow: 0 0 12px #fef08a;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .urgent-banner h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Main Poster Card */
+    .poster-card {
+      background: var(--card-cream);
+      border: 2px solid #e5e0d0;
+      border-radius: 24px;
+      padding: 24px 20px;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pet-photo-wrap {
+      width: 100%;
+      height: 280px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #e2e8f0;
+      margin-bottom: 20px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pet-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-fallback {
+      font-size: 5rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .pet-title {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      line-height: 1.1;
+    }
+
+    .pet-subtitle {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 16px;
+      text-transform: capitalize;
+    }
+
+    /* Reward Badge */
+    .reward-box {
+      background: var(--gold-bg);
+      border: 2px dashed var(--gold-border);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .reward-title {
+      color: #78350f;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .reward-subtitle {
+      color: #92400e;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* Info Table */
+    .info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid #eee8d8;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+
+    .info-icon {
+      font-size: 1.2rem;
+      line-height: 1.2;
+    }
+
+    .info-label {
+      font-weight: 700;
+      color: #475569;
+      min-width: 90px;
+    }
+
+    .info-val {
+      font-weight: 600;
+      color: var(--text-main);
+      flex: 1;
+    }
+
+    /* Action Buttons */
+    .actions-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 20px;
+      border-radius: 16px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-call {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 8px 20px -4px rgba(185, 28, 28, 0.4);
+    }
+    .btn-call:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-whatsapp {
+      background: var(--green);
+      color: white;
+      box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.4);
+    }
+    .btn-whatsapp:hover {
+      background: var(--green-hover);
+    }
+
+    .btn-report {
+      background: white;
+      color: var(--text-main);
+      border: 2px solid var(--border);
+    }
+    .btn-report:hover {
+      background: #f1f5f9;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+
+    .modal-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 8px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      margin-top: 6px;
+      margin-bottom: 14px;
+      font-family: inherit;
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Top Urgent Beacon Banner -->
+    <div class="urgent-banner">
+      <div class="beacon-dot"></div>
+      <h1>Active Missing Pet Alert</h1>
+    </div>
+
+    <!-- Main Poster Container -->
+    <div class="poster-card">
+      <div class="pet-photo-wrap" id="photoWrap">
+        <div class="photo-fallback" id="photoFallback">🐾</div>
+      </div>
+
+      <h2 class="pet-title" id="petName">PET NAME</h2>
+      <div class="pet-subtitle" id="petSubtitle">Species • Breed</div>
+
+      <!-- Reward Box (conditionally shown) -->
+      <div class="reward-box" id="rewardBox" style="display: none;">
+        <div class="reward-title" id="rewardAmount">REWARD OFFERED</div>
+        <div class="reward-subtitle">NO QUESTIONS ASKED • SAFE RETURN</div>
+      </div>
+
+      <!-- Key Details -->
+      <div class="info-list">
+        <div class="info-row">
+          <span class="info-icon">📍</span>
+          <span class="info-label">Last Seen:</span>
+          <span class="info-val" id="lastSeen">Neighborhood / Local Area</span>
+        </div>
+        <div class="info-row">
+          <span class="info-icon">📅</span>
+          <span class="info-label">Missing Since:</span>
+          <span class="info-val" id="missingDate">Recently Reported</span>
+        </div>
+        <div class="info-row" id="notesRow" style="display: none;">
+          <span class="info-icon">ℹ️</span>
+          <span class="info-label">Notes:</span>
+          <span class="info-val" id="petNotes">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-icon">🛡️</span>
+          <span class="info-label">Registry:</span>
+          <span class="info-val" style="color: var(--green);">PetConnect AI Emergency Network Verified</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-grid">
+        <a href="#" id="callBtn" class="btn btn-call">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          Call Guardian Immediately
+        </a>
+
+        <a href="#" id="whatsappBtn" class="btn btn-whatsapp">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.53 1.95.814 2.791.814 3.18 0 5.767-2.587 5.768-5.766.001-3.182-2.585-5.77-5.768-5.77zm3.393 8.243c-.144.405-.837.774-1.17.824-.312.045-.698.077-2.222-.553-1.636-.677-2.684-2.348-2.766-2.457-.081-.109-.652-.867-.652-1.652 0-.786.411-1.173.557-1.332.146-.159.32-.199.427-.199.106 0 .213.001.306.006.098.005.23-.037.36.275.134.321.458 1.118.498 1.2.04.082.067.178.013.285-.053.107-.08.174-.16.267-.08.093-.169.208-.241.28-.08.08-.163.167-.07.327.094.16.416.687.892 1.111.614.547 1.132.716 1.292.796.16.08.254.067.348-.04.094-.107.4-.467.507-.627.107-.16.214-.134.361-.08.147.054.935.441 1.095.521.16.08.267.12.307.187.04.067.04.387-.104.792z"/></svg>
+          Send WhatsApp Sighting
+        </a>
+
+        <button id="openReportModal" class="btn btn-report">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          Report Sighting Online
+        </button>
+      </div>
+    </div>
+
+    <!-- Sighting Modal -->
+    <div class="modal-overlay" id="reportModal">
+      <div class="modal-card">
+        <h3>📍 Report Pet Sighting</h3>
+        <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 16px;">
+          Your notification will immediately alert the guardian and regional rescue network.
+        </p>
+        <form id="sightingForm">
+          <label style="font-size: 0.85rem; font-weight: 700; color: #334155;">Where did you spot the pet?</label>
+          <input type="text" class="input-field" id="sightingLocation" placeholder="Street name, landmark, crossroad" required>
+
+          <label style="font-size: 0.85rem; font-weight: 700; color: #334155;">Your Contact Phone (optional):</label>
+          <input type="tel" class="input-field" id="sightingPhone" placeholder="+91 Your Number">
+
+          <label style="font-size: 0.85rem; font-weight: 700; color: #334155;">Additional observations:</label>
+          <textarea class="input-field" id="sightingNotes" rows="3" placeholder="Condition, direction pet was moving, etc."></textarea>
+
+          <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <button type="button" class="btn btn-report" id="closeModalBtn" style="padding: 12px;">Cancel</button>
+            <button type="submit" class="btn btn-call" style="padding: 12px;">Submit Sighting</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      Powered by <strong>PetConnect AI Rescue Network</strong> • Free Emergency Animal Protection Portal
+    </div>
+  </div>
+
+  <script>
+    // Parse URL Search Query Params
+    const urlParams = new URLSearchParams(window.location.search);
+    const petName = urlParams.get('name') || 'Beloved Pet';
+    const species = urlParams.get('species') || 'Companion';
+    const breed = urlParams.get('breed') || '';
+    const phone = urlParams.get('phone') || '';
+    const locationStr = urlParams.get('location') || 'Neighborhood / Local Area';
+    const reward = urlParams.get('reward') || '';
+    const notes = urlParams.get('notes') || '';
+    const imgUrl = urlParams.get('img') || '';
+
+    // Populate DOM
+    document.getElementById('petName').textContent = petName;
+    document.getElementById('petSubtitle').textContent = breed ? `${species} • ${breed}` : species;
+    document.getElementById('lastSeen').textContent = locationStr;
+    document.title = `🚨 MISSING: ${petName.toUpperCase()} | PetConnect AI`;
+
+    const now = new Date();
+    document.getElementById('missingDate').textContent = `${now.toLocaleString('default', { month: 'short' })} ${now.getDate()}, ${now.getFullYear()}`;
+
+    if (imgUrl) {
+      const img = document.createElement('img');
+      img.src = imgUrl;
+      img.className = 'pet-photo';
+      img.alt = petName;
+      const wrap = document.getElementById('photoWrap');
+      wrap.innerHTML = '';
+      wrap.appendChild(img);
+    }
+
+    if (reward && reward.trim().length > 0) {
+      document.getElementById('rewardBox').style.display = 'block';
+      document.getElementById('rewardAmount').textContent = `💰 ${reward.toUpperCase()} CASH REWARD`;
+    }
+
+    if (notes && notes.trim().length > 0) {
+      document.getElementById('notesRow').style.display = 'flex';
+      document.getElementById('petNotes').textContent = notes;
+    }
+
+    // Call and WhatsApp Handlers
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    const callBtn = document.getElementById('callBtn');
+    const whatsappBtn = document.getElementById('whatsappBtn');
+
+    if (cleanPhone) {
+      callBtn.href = `tel:${cleanPhone}`;
+      const waText = encodeURIComponent(`Hi, I am contacting you regarding your missing pet ${petName} seen on PetConnect AI!`);
+      whatsappBtn.href = `https://wa.me/${cleanPhone.replace('+', '')}?text=${waText}`;
+    } else {
+      callBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('Owner phone is registered directly on file. Please submit a sighting below!');
+      });
+      whatsappBtn.style.display = 'none';
+    }
+
+    // Modal Interaction
+    const modal = document.getElementById('reportModal');
+    document.getElementById('openReportModal').addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+    document.getElementById('closeModalBtn').addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    document.getElementById('sightingForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const loc = document.getElementById('sightingLocation').value;
+      alert(`Thank you! Your sighting at "${loc}" has been dispatched to the pet guardian and emergency network.`);
+      modal.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

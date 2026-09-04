@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐾 Emergency Health Dossier | PetConnect AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --green: #10b981;
+      --surface: #ffffff;
+      --bg: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 12px 48px;
+    }
+    .card {
+      width: 100%;
+      max-width: 520px;
+      background: var(--surface);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      padding: 24px 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    .badge-verified {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .pet-name {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .pet-sub {
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .item-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .item-box {
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .item-lbl { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+    .item-val { font-size: 0.95rem; color: var(--text); font-weight: 700; margin-top: 2px; }
+    .btn-contact {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      background: var(--green);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 14px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge-verified">
+      <span>🛡️</span> Verified PetConnect AI Health Passport
+    </div>
+
+    <h1 class="pet-name" id="petName">Emergency Patient</h1>
+    <div class="pet-sub" id="petSub">Feline / Canine • Active Clinical Record</div>
+
+    <div class="section-title">Emergency Clinical Parameters</div>
+    <div class="item-grid">
+      <div class="item-box">
+        <div class="item-lbl">Microchip ID</div>
+        <div class="item-val" id="microchipId">CHIP-9840219</div>
+      </div>
+      <div class="item-box">
+        <div class="item-lbl">Core Vaccination</div>
+        <div class="item-val" style="color: #047857;">VERIFIED ACTIVE</div>
+      </div>
+      <div class="item-box">
+        <div class="item-lbl">Critical Drug Allergies</div>
+        <div class="item-val">No Known Allergies (NKDA)</div>
+      </div>
+      <div class="item-box">
+        <div class="item-lbl">Attending Clinic</div>
+        <div class="item-val">Veterinary Practice Mala</div>
+      </div>
+    </div>
+
+    <a href="#" id="callOwnerBtn" class="btn-contact">📞 Call Emergency Guardian</a>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name') || 'Companion';
+    const phone = params.get('phone') || '';
+    document.getElementById('petName').textContent = name;
+    if (phone) {
+      document.getElementById('callOwnerBtn').href = `tel:${phone}`;
+    }
+  </script>
+</body>
+</html>

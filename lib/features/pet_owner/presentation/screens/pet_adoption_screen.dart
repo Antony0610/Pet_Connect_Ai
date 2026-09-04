@@ -32,10 +32,16 @@ class PetAdoptionScreen extends ConsumerStatefulWidget {
 
 class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   static const double _maxContentWidth = 1100;
-  static const String _favStorageKey = 'app_adoption_favorites_v3';
   static const String _customPetsKey = 'app_adoption_custom_pets_v3';
-  static const String _sentInquiriesKey = 'app_adoption_sent_inquiries_v3';
-  static const String _receivedInquiriesKey = 'app_adoption_received_inquiries_v3';
+
+  String get _currentUserId {
+    final user = ref.read(currentUserProfileProvider).valueOrNull;
+    return user?.id ?? 'anon';
+  }
+
+  String get _favStorageKey => 'app_adoption_favorites_${_currentUserId}_v4';
+  String get _sentInquiriesKey => 'app_adoption_sent_inquiries_${_currentUserId}_v4';
+  String get _receivedInquiriesKey => 'app_adoption_received_inquiries_${_currentUserId}_v4';
 
   String _selectedCategory = 'All';
   String _searchQuery = '';
@@ -194,6 +200,16 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       }
       return c;
     }).toList();
+    setState(() => _customCandidates = updated);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString(
+      _customPetsKey,
+      jsonEncode(updated.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  Future<void> _deleteCustomCandidate(String id) async {
+    final updated = _customCandidates.where((c) => c.id != id).toList();
     setState(() => _customCandidates = updated);
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(
@@ -488,6 +504,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                       ? descCtrl.text.trim()
                       : 'A wonderful companion waiting for a loving permanent home.',
                   contactPhone: phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : '+91 Contact via App',
+                  ownerId: _currentUserId,
                   isUserListed: true,
                 );
 
@@ -2237,6 +2254,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                   personality: pet.personality,
                   description: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : pet.description,
                   contactPhone: phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : pet.contactPhone,
+                  ownerId: pet.ownerId ?? _currentUserId,
                   isUserListed: true,
                 );
                 _updateCustomCandidate(updated);
@@ -2397,18 +2415,61 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                       tooltip: 'Generate Adoption Poster',
                       onPressed: () => _openAdoptionPosterDialog(context, pet),
                     ),
-                    if (pet.isUserListed) ...[
+                    if (pet.isUserListed && (pet.ownerId == null || pet.ownerId == _currentUserId)) ...[
                       const SizedBox(width: 8),
                       IconButton.filledTonal(
                         icon: const Icon(Icons.edit_outlined),
                         tooltip: 'Edit Listing',
                         onPressed: () => _openEditPetDialog(context, pet),
                       ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        icon: Icon(Icons.delete_outline, color: scheme.error),
+                        tooltip: 'Delete Listing',
+                        onPressed: () => _confirmDeletePet(context, pet),
+                      ),
                     ],
                   ],
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeletePet(BuildContext context, _AdoptionCandidate pet) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+            const SizedBox(width: 8),
+            const Text('Delete Listing'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to remove ${pet.name} from adoption listings? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteCustomCandidate(pet.id);
+              context.showSnackbar('✓ Removed ${pet.name}\'s listing.');
+            },
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -2569,6 +2630,7 @@ class _AdoptionCandidate {
     required this.personality,
     required this.description,
     this.contactPhone,
+    this.ownerId,
     this.isUserListed = false,
   });
 
@@ -2584,6 +2646,7 @@ class _AdoptionCandidate {
   final List<String> personality;
   final String description;
   final String? contactPhone;
+  final String? ownerId;
   final bool isUserListed;
 
   Map<String, dynamic> toJson() => {
@@ -2599,6 +2662,7 @@ class _AdoptionCandidate {
     'personality': personality,
     'description': description,
     'contactPhone': contactPhone,
+    'ownerId': ownerId,
     'isUserListed': isUserListed,
   };
 
@@ -2615,6 +2679,7 @@ class _AdoptionCandidate {
     personality: List<String>.from(j['personality'] as List),
     description: j['description'] as String,
     contactPhone: j['contactPhone'] as String?,
+    ownerId: j['ownerId'] as String?,
     isUserListed: j['isUserListed'] as bool? ?? false,
   );
 }

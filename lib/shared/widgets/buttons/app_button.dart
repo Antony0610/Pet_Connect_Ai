@@ -202,9 +202,7 @@ class AppButton extends StatelessWidget {
     }
 
     final effectiveLabel = _getEffectiveLabel();
-    final labelWidget = child is Text
-        ? (child!)
-        : Text(effectiveLabel, overflow: TextOverflow.ellipsis);
+    final labelWidget = child ?? Text(effectiveLabel, overflow: TextOverflow.ellipsis);
 
     if (icon == null) {
       return labelWidget;

@@ -577,13 +577,13 @@ class _MissionDashboardScreenState
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 1.0,
+                childAspectRatio: 1.25,
               ),
               itemBuilder: (context, index) {
                 return QuickActionButton.fromSpec(
                   actions[index],
-                  containerSize: 44,
-                  iconSize: 22,
+                  containerSize: 38,
+                  iconSize: 20,
                 );
               },
             );

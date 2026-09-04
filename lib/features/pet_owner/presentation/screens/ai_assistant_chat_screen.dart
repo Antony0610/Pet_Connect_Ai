@@ -1490,8 +1490,22 @@ class _AiCard extends StatelessWidget {
                   ],
                 ],
               ),
-              AppSpacing.vGapSm,
-              _RichMarkdownView(text: text),
+              Builder(
+                builder: (ctx) {
+                  try {
+                    return _RichMarkdownView(text: text);
+                  } catch (_) {
+                    return SelectableText(
+                      text.replaceAll('**', ''),
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 14.5,
+                        height: 1.5,
+                      ),
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ),
@@ -1509,85 +1523,120 @@ class _RichMarkdownView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final lines = text.split('\n');
-    final widgets = <Widget>[];
+    try {
+      final scheme = Theme.of(context).colorScheme;
+      final lines = text.split('\n');
+      final widgets = <Widget>[];
 
-    bool inCodeBlock = false;
-    final codeBuffer = StringBuffer();
-    String codeLanguage = '';
+      bool inCodeBlock = false;
+      final codeBuffer = StringBuffer();
+      String codeLanguage = '';
 
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i];
 
-      // Code block start/end
-      if (line.trim().startsWith('```')) {
-        if (inCodeBlock) {
-          // Finish code block
-          final code = codeBuffer.toString().trimRight();
-          widgets.add(_buildCodeBlock(code, codeLanguage, context));
-          codeBuffer.clear();
-          inCodeBlock = false;
-          codeLanguage = '';
-        } else {
-          inCodeBlock = true;
-          codeLanguage = line.trim().substring(3).trim();
+        // Code block start/end
+        if (line.trim().startsWith('```')) {
+          if (inCodeBlock) {
+            // Finish code block
+            final code = codeBuffer.toString().trimRight();
+            widgets.add(_buildCodeBlock(code, codeLanguage, context));
+            codeBuffer.clear();
+            inCodeBlock = false;
+            codeLanguage = '';
+          } else {
+            inCodeBlock = true;
+            codeLanguage = line.trim().length > 3 ? line.trim().substring(3).trim() : '';
+          }
+          continue;
         }
-        continue;
-      }
 
-      if (inCodeBlock) {
-        codeBuffer.writeln(line);
-        continue;
-      }
+        if (inCodeBlock) {
+          codeBuffer.writeln(line);
+          continue;
+        }
 
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) {
-        widgets.add(const SizedBox(height: 6));
-        continue;
-      }
+        final trimmed = line.trim();
+        if (trimmed.isEmpty) {
+          widgets.add(const SizedBox(height: 6));
+          continue;
+        }
 
-      // Headings (#, ##, ###, ####, #####)
-      if (RegExp(r'^#{1,6}\s+').hasMatch(trimmed)) {
-        final level = RegExp(r'^(#+)').firstMatch(trimmed)?.group(1)?.length ?? 1;
-        final title = trimmed.replaceFirst(RegExp(r'^#+\s*'), '');
-        widgets.add(
-          _buildSectionHeader(
-            context: context,
-            title: title,
-            isMajor: level <= 2,
-          ),
-        );
-      }
-      // Standalone bold line acting as a title (e.g., **Key Symptoms:** or **Daily Care Plan**)
-      else if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 90 && !trimmed.substring(2, trimmed.length - 2).contains('**')) {
-        final title = trimmed.substring(2, trimmed.length - 2);
-        widgets.add(
-          _buildSectionHeader(
-            context: context,
-            title: title,
-            isMajor: true,
-          ),
-        );
-      }
-      // Numbered heading or list item (e.g., 1) **Heading:** or 1. **Heading** or 1. Detail text)
-      else if (RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed)) {
-        final match = RegExp(r'^(\d+[\.\)])\s+(.*)$').firstMatch(trimmed);
-        final numPrefix = match?.group(1) ?? '1.';
-        final itemText = match?.group(2) ?? trimmed;
-        
-        final isShortTitle = (itemText.startsWith('**') && itemText.contains('**') && itemText.length < 70) ||
-                             (itemText.endsWith(':') && itemText.length < 50);
-        if (isShortTitle) {
+        // Headings (#, ##, ###, ####, #####)
+        if (RegExp(r'^#{1,6}\s+').hasMatch(trimmed)) {
+          final level = RegExp(r'^(#+)').firstMatch(trimmed)?.group(1)?.length ?? 1;
+          final title = trimmed.replaceFirst(RegExp(r'^#+\s*'), '');
           widgets.add(
             _buildSectionHeader(
               context: context,
-              badgeText: numPrefix,
-              title: itemText,
+              title: title,
+              isMajor: level <= 2,
+            ),
+          );
+        }
+        // Standalone bold line acting as a title (e.g., **Key Symptoms:** or **Daily Care Plan**)
+        else if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length >= 4 && trimmed.length < 90 && !trimmed.substring(2, trimmed.length - 2).contains('**')) {
+          final title = trimmed.substring(2, trimmed.length - 2);
+          widgets.add(
+            _buildSectionHeader(
+              context: context,
+              title: title,
               isMajor: true,
             ),
           );
-        } else {
+        }
+        // Numbered heading or list item (e.g., 1) **Heading:** or 1. **Heading** or 1. Detail text)
+        else if (RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed)) {
+          final match = RegExp(r'^(\d+[\.\)])\s+(.*)$').firstMatch(trimmed);
+          final numPrefix = match?.group(1) ?? '1.';
+          final itemText = match?.group(2) ?? trimmed;
+          
+          final isShortTitle = (itemText.startsWith('**') && itemText.contains('**') && itemText.length < 70) ||
+                               (itemText.endsWith(':') && itemText.length < 50);
+          if (isShortTitle) {
+            widgets.add(
+              _buildSectionHeader(
+                context: context,
+                badgeText: numPrefix,
+                title: itemText,
+                isMajor: true,
+              ),
+            );
+          } else {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 8, top: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        numPrefix,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildFormattedSpans(itemText, context),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        }
+        // Bullet list items (•, *, -)
+        else if (trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+          final itemText = trimmed.length > 2 ? trimmed.substring(2) : trimmed;
           widgets.add(
             Padding(
               padding: const EdgeInsets.only(left: 4, bottom: 6),
@@ -1595,19 +1644,12 @@ class _RichMarkdownView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    margin: const EdgeInsets.only(right: 8, top: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    margin: const EdgeInsets.only(top: 8, right: 8),
+                    width: 5.5,
+                    height: 5.5,
                     decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Text(
-                      numPrefix,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: scheme.primary,
-                      ),
+                      color: scheme.primary,
+                      shape: BoxShape.circle,
                     ),
                   ),
                   Expanded(
@@ -1618,53 +1660,37 @@ class _RichMarkdownView extends StatelessWidget {
             ),
           );
         }
-      }
-      // Bullet list items (•, *, -)
-      else if (trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
-        final itemText = trimmed.substring(2);
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 8, right: 8),
-                  width: 5.5,
-                  height: 5.5,
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                Expanded(
-                  child: _buildFormattedSpans(itemText, context),
-                ),
-              ],
+        // Normal paragraph
+        else {
+          widgets.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _buildFormattedSpans(trimmed, context),
             ),
-          ),
-        );
+          );
+        }
       }
-      // Normal paragraph
-      else {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: _buildFormattedSpans(trimmed, context),
-          ),
-        );
+
+      // Unclosed code block
+      if (inCodeBlock && codeBuffer.isNotEmpty) {
+        widgets.add(_buildCodeBlock(codeBuffer.toString().trimRight(), codeLanguage, context));
       }
-    }
 
-    // Unclosed code block
-    if (inCodeBlock && codeBuffer.isNotEmpty) {
-      widgets.add(_buildCodeBlock(codeBuffer.toString().trimRight(), codeLanguage, context));
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: widgets,
+      );
+    } catch (_) {
+      // Safe fallback that never breaks or turns grey
+      return SelectableText(
+        text.replaceAll('**', ''),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontSize: 14.5,
+          height: 1.5,
+        ),
+      );
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: widgets,
-    );
   }
 
   Widget _buildSectionHeader({
@@ -1786,15 +1812,81 @@ class _RichMarkdownView extends StatelessWidget {
 
   Widget _buildFormattedSpans(String rawText, BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final spans = <InlineSpan>[];
+    try {
+      final spans = <InlineSpan>[];
 
-    // Regex for bold (**text**), inline code (`code`), and italics (*text*)
-    final pattern = RegExp(r'(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)');
-    int lastIndex = 0;
+      // Regex for bold (**text**), inline code (`code`), and italics (*text*)
+      final pattern = RegExp(r'(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)');
+      int lastIndex = 0;
 
-    for (final match in pattern.allMatches(rawText)) {
-      if (match.start > lastIndex) {
-        final slice = rawText.substring(lastIndex, match.start).replaceAll('**', '');
+      for (final match in pattern.allMatches(rawText)) {
+        if (match.start > lastIndex) {
+          final slice = rawText.substring(lastIndex, match.start).replaceAll('**', '');
+          spans.add(
+            TextSpan(
+              text: slice,
+              style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
+            ),
+          );
+        }
+
+        final matchedText = match.group(0)!;
+        if (matchedText.startsWith('**') && matchedText.endsWith('**') && matchedText.length >= 4) {
+          final content = matchedText.substring(2, matchedText.length - 2).replaceAll('**', '');
+          spans.add(
+            TextSpan(
+              text: content,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface,
+                fontSize: 14.5,
+                height: 1.5,
+              ),
+            ),
+          );
+        } else if (matchedText.startsWith('`') && matchedText.endsWith('`') && matchedText.length >= 2) {
+          final content = matchedText.substring(1, matchedText.length - 1);
+          spans.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  content,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else if (matchedText.startsWith('*') && matchedText.endsWith('*') && matchedText.length >= 2) {
+          final content = matchedText.substring(1, matchedText.length - 1);
+          spans.add(
+            TextSpan(
+              text: content,
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: scheme.onSurface,
+                fontSize: 14.5,
+                height: 1.5,
+              ),
+            ),
+          );
+        }
+        lastIndex = match.end;
+      }
+
+      if (lastIndex < rawText.length) {
+        final slice = rawText.substring(lastIndex).replaceAll('**', '');
         spans.add(
           TextSpan(
             text: slice,
@@ -1803,73 +1895,15 @@ class _RichMarkdownView extends StatelessWidget {
         );
       }
 
-      final matchedText = match.group(0)!;
-      if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
-        final content = matchedText.substring(2, matchedText.length - 2).replaceAll('**', '');
-        spans.add(
-          TextSpan(
-            text: content,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
-              fontSize: 14.5,
-              height: 1.5,
-            ),
-          ),
-        );
-      } else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
-        final content = matchedText.substring(1, matchedText.length - 1);
-        spans.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                content,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        );
-      } else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
-        final content = matchedText.substring(1, matchedText.length - 1);
-        spans.add(
-          TextSpan(
-            text: content,
-            style: TextStyle(
-              fontStyle: FontStyle.italic,
-              color: scheme.onSurface,
-              fontSize: 14.5,
-              height: 1.5,
-            ),
-          ),
-        );
-      }
-      lastIndex = match.end;
-    }
-
-    if (lastIndex < rawText.length) {
-      final slice = rawText.substring(lastIndex).replaceAll('**', '');
-      spans.add(
-        TextSpan(
-          text: slice,
-          style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
-        ),
+      return SelectableText.rich(
+        TextSpan(children: spans),
+        style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
+      );
+    } catch (_) {
+      return SelectableText(
+        rawText.replaceAll('**', ''),
+        style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
       );
     }
-
-    return SelectableText.rich(
-      TextSpan(children: spans),
-    );
   }
 }
