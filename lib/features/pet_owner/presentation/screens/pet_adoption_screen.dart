@@ -183,10 +183,10 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           .eq('status', 'active')
           .order('created_at', ascending: false);
 
-      if (listings is List && listings.isNotEmpty && mounted) {
+      if (listings.isNotEmpty && mounted) {
         final List<_AdoptionCandidate> cloudCandidates = [];
         for (final item in listings) {
-          final map = item as Map<String, dynamic>;
+          final map = item;
           final id = map['id']?.toString() ?? '';
           final name = map['name']?.toString() ?? 'Companion';
           final species = map['species']?.toString() ?? 'Dog';
@@ -243,10 +243,10 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
             .eq('adoption_listings.owner_id', currentUid)
             .order('created_at', ascending: false);
 
-        if (inquiries is List && inquiries.isNotEmpty && mounted) {
+        if (inquiries.isNotEmpty && mounted) {
           final List<Map<String, dynamic>> cloudInquiries = [];
           for (final inq in inquiries) {
-            final m = inq as Map<String, dynamic>;
+            final m = inq;
             final listing = m['adoption_listings'] as Map<String, dynamic>?;
             cloudInquiries.add({
               'id': m['id']?.toString() ?? '',
@@ -305,7 +305,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       final client = ref.read(supabaseClientProvider);
       final currentUid = _currentUserId;
       if (currentUid != 'anon') {
-        client.from('adoption_listings').insert({
+        await client.from('adoption_listings').insert({
           'owner_id': currentUid,
           'name': candidate.name,
           'species': candidate.species.toLowerCase(),
@@ -319,9 +319,11 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           'personality_traits': candidate.personality,
           'images': [candidate.imageUrl],
           'status': 'active',
-        }).then((_) {}, onError: (e) => debugPrint('Listing Supabase sync error: $e'));
+        });
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Listing Supabase sync error: $e');
+    }
   }
 
   Future<void> _updateCustomCandidate(_AdoptionCandidate candidate) async {
@@ -350,7 +352,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
     try {
       final client = ref.read(supabaseClientProvider);
-      client.from('adoption_listings').delete().eq('id', id).then((_) {}, onError: (_) {});
+      await client.from('adoption_listings').delete().eq('id', id);
     } catch (_) {}
   }
 
