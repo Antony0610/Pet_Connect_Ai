@@ -425,10 +425,16 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
   void _showPracticeHoursDialog() async {
     final clinics = ref.read(vetClinicsProvider).valueOrNull ?? [];
     final clinic = clinics.isNotEmpty ? clinics.first : null;
+    final prefs = ref.read(sharedPreferencesProvider);
     final nameCtrl = TextEditingController(
-      text: clinic?.name ?? 'Oakwood Veterinary Centre',
+      text: clinic?.name ?? prefs.getString('vet_practice_name') ?? 'Oakwood Veterinary Centre',
     );
-    final feeCtrl = TextEditingController(text: '600');
+    final feeCtrl = TextEditingController(
+      text: prefs.getString('vet_consultation_fee') ?? '600',
+    );
+    final hoursCtrl = TextEditingController(
+      text: prefs.getString('vet_operating_hours') ?? 'Mon - Sat: 8:00 AM - 7:00 PM',
+    );
 
     final saved = await showDialog<bool>(
       context: context,
@@ -456,13 +462,12 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const ListTile(
-                leading: Icon(Icons.schedule),
-                title: Text('Operating Schedule'),
-                subtitle: Text(
-                  'Mon - Fri: 8:00 AM - 7:00 PM\nSat: 9:00 AM - 2:00 PM\nSun: Emergency On-Call',
+              TextField(
+                controller: hoursCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Operating Schedule',
+                  prefixIcon: Icon(Icons.schedule),
                 ),
-                contentPadding: EdgeInsets.zero,
               ),
             ],
           ),
@@ -481,7 +486,14 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
     );
 
     if (saved == true && mounted) {
-      context.showSnackbar('Practice operational details updated!');
+      final p = ref.read(sharedPreferencesProvider);
+      await p.setString('vet_practice_name', nameCtrl.text.trim());
+      await p.setString('vet_consultation_fee', feeCtrl.text.trim());
+      await p.setString('vet_operating_hours', hoursCtrl.text.trim());
+      if (mounted) {
+        setState(() {});
+        context.showSnackbar('Practice operational details updated & saved!');
+      }
     }
   }
 
@@ -697,7 +709,7 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                   icon: Icons.access_time_rounded,
                   iconBgColor: const Color(0xFF0D9488),
                   title: 'Operational Schedule & Rates',
-                  subtitle: 'Mon - Sat • Standard rate ₹600',
+                  subtitle: '${ref.watch(sharedPreferencesProvider).getString('vet_operating_hours') ?? 'Mon - Sat: 8:00 AM - 7:00 PM'} • Standard rate ₹${ref.watch(sharedPreferencesProvider).getString('vet_consultation_fee') ?? '600'}',
                   onTap: _showPracticeHoursDialog,
                 ),
                 _buildTelegramSwitchTile(

@@ -52,7 +52,7 @@ class _EmergencyOperationsCenterScreenState
                 controller: addressCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Location / Address',
-                  hintText: 'e.g. 100ft Road, Indiranagar',
+                  hintText: 'e.g. Sector 4 Command Post / Central Road',
                   prefixIcon: Icon(Icons.location_on),
                 ),
               ),

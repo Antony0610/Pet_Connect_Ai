@@ -67,8 +67,14 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
   void initState() {
     super.initState();
     final profile = ref.read(currentUserProfileProvider).valueOrNull;
+    final String ownerDefaultLocation = (profile?.city != null && profile!.city!.trim().isNotEmpty)
+        ? profile.city!.trim()
+        : 'Home Vicinity / Local Neighborhood';
+
     _locationController = TextEditingController(
-      text: widget.initialLocation ?? '',
+      text: (widget.initialLocation != null && widget.initialLocation!.trim().isNotEmpty)
+          ? widget.initialLocation!
+          : ownerDefaultLocation,
     );
     _rewardController = TextEditingController(
       text: widget.initialReward ?? '',

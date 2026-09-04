@@ -388,7 +388,7 @@ class _EditVetProfileDialogState extends ConsumerState<EditVetProfileDialog> {
                     controller: _cityController,
                     decoration: const InputDecoration(
                       labelText: 'Clinic City / Location',
-                      hintText: 'e.g. Indiranagar, Bengaluru',
+                      hintText: 'e.g. Central Avenue, Bengaluru',
                       prefixIcon: Icon(Icons.location_on_outlined),
                       border: OutlineInputBorder(borderRadius: AppRadius.brCard),
                     ),
