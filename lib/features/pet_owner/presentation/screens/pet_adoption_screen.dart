@@ -130,6 +130,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   void initState() {
     super.initState();
     _loadStoredData();
+    _syncWithSupabase();
   }
 
   void _loadStoredData() {
@@ -171,6 +172,112 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     });
   }
 
+  Future<void> _syncWithSupabase() async {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      
+      // 1. Fetch active adoption listings from Supabase cloud
+      final listings = await client
+          .from('adoption_listings')
+          .select('*')
+          .eq('status', 'active')
+          .order('created_at', ascending: false);
+
+      if (listings is List && listings.isNotEmpty && mounted) {
+        final List<_AdoptionCandidate> cloudCandidates = [];
+        for (final item in listings) {
+          final map = item as Map<String, dynamic>;
+          final id = map['id']?.toString() ?? '';
+          final name = map['name']?.toString() ?? 'Companion';
+          final species = map['species']?.toString() ?? 'Dog';
+          final breed = map['breed']?.toString() ?? 'Companion';
+          final age = map['age']?.toString() ?? '1 yr';
+          final desc = map['description']?.toString() ?? '';
+          final loc = map['location']?.toString() ?? 'Kerala, India';
+          final phone = map['contact_phone']?.toString();
+          final owner = map['owner_id']?.toString();
+          final images = map['images'] as List?;
+          final img = (images != null && images.isNotEmpty)
+              ? images.first.toString()
+              : (species.toLowerCase() == 'dog'
+                  ? 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800'
+                  : 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800');
+          final traits = map['personality_traits'] as List?;
+          final personalityList = traits != null
+              ? traits.map((t) => t.toString()).toList()
+              : ['Loving', 'Healthy', 'Vaccinated'];
+
+          cloudCandidates.add(_AdoptionCandidate(
+            id: id,
+            name: name,
+            age: age,
+            species: species.substring(0, 1).toUpperCase() + (species.length > 1 ? species.substring(1) : ''),
+            breed: breed,
+            matchScore: 96,
+            shelter: 'PetConnect Verified Hub',
+            distance: loc,
+            imageUrl: img,
+            personality: personalityList,
+            description: desc,
+            contactPhone: phone,
+            ownerId: owner,
+            isUserListed: owner != null && owner == _currentUserId,
+          ));
+        }
+
+        final existingIds = _customCandidates.map((c) => c.id).toSet();
+        final newFromCloud = cloudCandidates.where((c) => !existingIds.contains(c.id)).toList();
+        if (newFromCloud.isNotEmpty && mounted) {
+          setState(() {
+            _customCandidates = [...newFromCloud, ..._customCandidates];
+          });
+        }
+      }
+
+      // 2. Fetch live inquiries for this user's listed pets
+      final currentUid = _currentUserId;
+      if (currentUid != 'anon') {
+        final inquiries = await client
+            .from('adoption_inquiries')
+            .select('*, adoption_listings!inner(owner_id, name, species)')
+            .eq('adoption_listings.owner_id', currentUid)
+            .order('created_at', ascending: false);
+
+        if (inquiries is List && inquiries.isNotEmpty && mounted) {
+          final List<Map<String, dynamic>> cloudInquiries = [];
+          for (final inq in inquiries) {
+            final m = inq as Map<String, dynamic>;
+            final listing = m['adoption_listings'] as Map<String, dynamic>?;
+            cloudInquiries.add({
+              'id': m['id']?.toString() ?? '',
+              'petId': m['listing_id']?.toString() ?? '',
+              'petName': listing?['name']?.toString() ?? 'Your Pet',
+              'petSpecies': listing?['species']?.toString() ?? 'Companion',
+              'shelter': 'Your Listing',
+              'adopterName': m['applicant_name']?.toString() ?? 'Applicant',
+              'adopterPhone': m['applicant_phone']?.toString() ?? '',
+              'housingType': m['living_arrangement']?.toString() ?? m['housing_type']?.toString() ?? 'Home',
+              'message': m['message']?.toString() ?? '',
+              'timestamp': m['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+              'status': m['status']?.toString() ?? 'Under Review',
+              'isMyListedPet': true,
+            });
+          }
+
+          final existingInqIds = _receivedInquiries.map((i) => i['id']?.toString()).toSet();
+          final fresh = cloudInquiries.where((i) => !existingInqIds.contains(i['id'])).toList();
+          if (fresh.isNotEmpty && mounted) {
+            setState(() {
+              _receivedInquiries = [...fresh, ..._receivedInquiries];
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Supabase adoption sync notice: $e');
+    }
+  }
+
   Future<void> _toggleFavorite(String id) async {
     await HapticFeedback.lightImpact();
     final updated = Set<String>.from(_favoritePetIds);
@@ -192,6 +299,29 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       _customPetsKey,
       jsonEncode(updated.map((e) => e.toJson()).toList()),
     );
+
+    // Sync to Supabase cloud table
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final currentUid = _currentUserId;
+      if (currentUid != 'anon') {
+        client.from('adoption_listings').insert({
+          'owner_id': currentUid,
+          'name': candidate.name,
+          'species': candidate.species.toLowerCase(),
+          'breed': candidate.breed,
+          'age': candidate.age,
+          'description': candidate.description,
+          'location': candidate.distance,
+          'contact_phone': candidate.contactPhone,
+          'adoption_fee': 'Free / Loving Home',
+          'is_vaccinated': true,
+          'personality_traits': candidate.personality,
+          'images': [candidate.imageUrl],
+          'status': 'active',
+        }).then((_) {}, onError: (e) => debugPrint('Listing Supabase sync error: $e'));
+      }
+    } catch (_) {}
   }
 
   Future<void> _updateCustomCandidate(_AdoptionCandidate candidate) async {
@@ -217,6 +347,11 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       _customPetsKey,
       jsonEncode(updated.map((e) => e.toJson()).toList()),
     );
+
+    try {
+      final client = ref.read(supabaseClientProvider);
+      client.from('adoption_listings').delete().eq('id', id).then((_) {}, onError: (_) {});
+    } catch (_) {}
   }
 
   Future<void> _recordInquiry({

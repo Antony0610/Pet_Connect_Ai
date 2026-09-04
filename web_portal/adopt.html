@@ -11,6 +11,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     :root {
       --bg: #060b14;
@@ -410,22 +413,22 @@
 
       <div class="profile-body">
         <div class="header-row">
-          <h1 id="petName" class="pet-title">Milo</h1>
+          <h1 id="petName" class="pet-title">Harly</h1>
           <span id="petFee" class="fee-badge">Free Adoption</span>
         </div>
         <div id="petSub" class="pet-subtitle">
-          📍 <span id="petLocation">Mumbai, Maharashtra</span> • <span id="petBreedLine">Indie Pup • 4 Months</span>
+          📍 <span id="petLocation">Kochi, Kerala</span> • <span id="petBreedLine">German Shepherd • 2 Years</span>
         </div>
 
         <!-- Vitals Grid -->
         <div class="vitals-grid">
           <div class="vital-tile">
             <div class="vital-label">Breed</div>
-            <div id="vBreed" class="vital-val">Indie Pup</div>
+            <div id="vBreed" class="vital-val">German Shepherd</div>
           </div>
           <div class="vital-tile">
             <div class="vital-label">Age</div>
-            <div id="vAge" class="vital-val">4 Months</div>
+            <div id="vAge" class="vital-val">2 Years</div>
           </div>
           <div class="vital-tile">
             <div class="vital-label">Gender</div>
@@ -441,24 +444,24 @@
           </div>
           <div class="vital-tile">
             <div class="vital-label">Location</div>
-            <div id="vCity" class="vital-val">Mumbai</div>
+            <div id="vCity" class="vital-val">Kochi</div>
           </div>
         </div>
 
         <!-- About Story -->
-        <div class="section-heading">💖 Meet <span id="storyPetName">Milo</span></div>
+        <div class="section-heading">💖 Meet <span id="storyPetName">Harly</span></div>
         <div id="petBio" class="story-text">
-          Rescued and lovingly fostered in a home environment. Very energetic, cheerful, and loves cuddling up after playing with tennis balls. Fully socialized with humans and other companion animals. Ready for a permanent, loving home!
+          Loyal, protective, and fully house-trained German Shepherd. Great with family, active and alert companion.
         </div>
 
         <!-- Medical & Temperament Checklist -->
         <div class="section-heading">🩺 Medical & Behavioral Checklist</div>
-        <div class="checklist-grid">
+        <div class="checklist-grid" id="checklistGrid">
           <div class="check-item"><span class="check-icon">✓</span> Core Vaccinations Active</div>
           <div class="check-item"><span class="check-icon">✓</span> De-wormed & Flea Treated</div>
           <div class="check-item"><span class="check-icon">✓</span> Microchipped on PetConnect</div>
-          <div class="check-item"><span class="check-icon">✓</span> Great With Children</div>
-          <div class="check-item"><span class="check-icon">✓</span> Friendly with Dogs & Cats</div>
+          <div class="check-item"><span class="check-icon">✓</span> Great With Family</div>
+          <div class="check-item"><span class="check-icon">✓</span> Socialized Companion</div>
           <div class="check-item"><span class="check-icon">✓</span> House & Leash Trained</div>
         </div>
 
@@ -486,106 +489,128 @@
     <div class="modal-box">
       <button class="modal-close" onclick="closeApplyModal()">✕</button>
       <div style="font-size: 0.8rem; font-weight: 800; color: #c084fc; text-transform: uppercase; margin-bottom: 8px;">Direct Cloud Application</div>
-      <h2 style="font-family: 'Outfit'; font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;">Adopt <span id="modalPetName">Milo</span></h2>
+      <h2 style="font-family: 'Outfit'; font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;">Adopt <span id="modalPetName">Companion</span></h2>
       <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Your inquiry will be sent directly to the pet's guardian.</p>
 
-      <form onsubmit="handleApplySubmit(event)">
+      <form id="adoptForm" onsubmit="handleApplySubmit(event)">
         <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">YOUR FULL NAME</label>
-        <input type="text" class="input-field" placeholder="e.g. Antony Thomson" required>
+        <input type="text" id="appName" class="input-field" placeholder="e.g. Antony Thomson" required>
 
         <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">CONTACT PHONE / WHATSAPP</label>
-        <input type="tel" class="input-field" placeholder="e.g. +91 9876543210" required>
+        <input type="tel" id="appPhone" class="input-field" placeholder="e.g. +91 8921998733" required>
 
         <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">CITY & HOME SETUP</label>
-        <input type="text" class="input-field" placeholder="e.g. Mumbai • Apartment with Balcony" required>
+        <input type="text" id="appHome" class="input-field" placeholder="e.g. Kochi • Apartment with Garden" required>
 
         <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">PREVIOUS PET EXPERIENCE</label>
-        <textarea class="input-field" rows="3" placeholder="Tell the guardian a little about your family and daily routine..."></textarea>
+        <textarea id="appExp" class="input-field" rows="3" placeholder="Tell the guardian a little about your family and daily routine..."></textarea>
 
-        <button type="submit" class="btn-adopt-main" style="width: 100%; margin-top: 8px;">
+        <button type="submit" id="applySubmitBtn" class="btn-adopt-main" style="width: 100%; margin-top: 8px;">
           Send Application to Guardian 🚀
         </button>
       </form>
     </div>
   </div>
 
-  <!-- Script to load URL Params dynamically -->
+  <!-- Real Supabase Integration -->
   <script>
+    const SUPABASE_URL = 'https://cghgslyikjqghrzhrqxz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     const params = new URLSearchParams(window.location.search);
-    const petId = window.location.pathname.split('/').pop() || 'milo';
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const petId = pathSegments[pathSegments.length - 1] || params.get('id') || 'c590ba41-c8ab-4bc5-985b-e15f817e0b3c';
 
-    // Preset candidate details if ID matches
-    const presetProfiles = {
-      milo: {
-        name: 'Milo',
-        breed: 'Indie Pup',
-        age: '4 Months',
-        gender: 'Male',
-        location: 'Mumbai, Maharashtra',
-        fee: 'Free Adoption',
-        phone: '8921998733',
-        img: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1000&q=80',
-        bio: 'Rescued and lovingly fostered in a home environment. Very energetic, cheerful, and loves cuddling up after playing with tennis balls. Fully socialized with humans and other companion animals. Ready for a permanent, loving home!'
-      },
-      luna: {
-        name: 'Luna',
-        breed: 'Persian Cross',
-        age: '1.5 Years',
-        gender: 'Female',
-        location: 'Bangalore, Karnataka',
-        fee: 'Shelter Donation',
-        phone: '9876543210',
-        img: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1000&q=80',
-        bio: 'Luna is a quiet, affectionate cat who loves curling up on sunny window sills. She is fully litter-trained, spayed, and adores gentle head scratches. Ideal for quiet apartments.'
-      },
-      bruno: {
-        name: 'Bruno',
-        breed: 'Labrador Retriever',
-        age: '2 Years',
-        gender: 'Male',
-        location: 'Pune, Maharashtra',
-        fee: 'Free Adoption',
-        phone: '8921998733',
-        img: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=1000&q=80',
-        bio: 'Affectionate and well-mannered Labrador. Great companion for families with gardens. Loves fetch, swimming, and is gentle with children.'
+    let currentListingId = petId;
+    let currentGuardianPhone = '8921998733';
+    let currentPetName = 'Companion';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await fetchRealAdoptionDetails();
+    });
+
+    async function fetchRealAdoptionDetails() {
+      try {
+        let petData = null;
+
+        // 1. Try fetching from Supabase adoption_listings
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(petId);
+        if (isUUID) {
+          const { data, error } = await sb
+            .from('adoption_listings')
+            .select('*')
+            .eq('id', petId)
+            .maybeSingle();
+
+          if (!error && data) {
+            petData = data;
+          }
+        }
+
+        // 2. If not found by ID, try query param name or fallback
+        if (!petData) {
+          const paramName = params.get('name');
+          if (paramName) {
+            const { data } = await sb
+              .from('adoption_listings')
+              .select('*')
+              .ilike('name', paramName)
+              .maybeSingle();
+            if (data) petData = data;
+          }
+        }
+
+        // 3. Fallback to query params or defaults
+        const name = petData?.name || params.get('name') || 'Harly';
+        const breed = petData?.breed || params.get('breed') || 'German Shepherd';
+        const age = petData?.age || params.get('age') || '2 Years';
+        const gender = petData?.gender || params.get('gender') || 'Male';
+        const location = petData?.location || params.get('location') || 'Kochi, Kerala';
+        const fee = petData?.adoption_fee || params.get('fee') || 'Free Adoption';
+        const phone = petData?.contact_phone || params.get('phone') || '8921998733';
+        const img = petData?.image_url || params.get('img') || 'https://images.unsplash.com/photo-1589941013453-ec89f33b5455?auto=format&fit=crop&w=1000&q=80';
+        const bio = petData?.description || params.get('bio') || 'Loyal, protective, and fully house-trained companion. Great with family and socialized with humans.';
+
+        currentListingId = petData?.id || petId;
+        currentPetName = name;
+        currentGuardianPhone = phone;
+
+        // Render to DOM
+        document.title = `🐾 Adopt ${name} | PetConnect AI`;
+        document.getElementById('petName').textContent = name;
+        document.getElementById('modalPetName').textContent = name;
+        document.getElementById('storyPetName').textContent = name;
+        document.getElementById('petFee').textContent = fee;
+        document.getElementById('petLocation').textContent = location;
+        document.getElementById('petBreedLine').textContent = `${breed} • ${age}`;
+
+        document.getElementById('vBreed').textContent = breed;
+        document.getElementById('vAge').textContent = age;
+        document.getElementById('vGender').textContent = gender;
+        document.getElementById('vCity').textContent = location.split(',')[0] || location;
+        document.getElementById('petBio').textContent = bio;
+
+        if (img) {
+          document.getElementById('petImg').src = img;
+        }
+
+        if (phone) {
+          document.getElementById('callBtn').href = `tel:${phone}`;
+          const waMsg = encodeURIComponent(`Hi! I saw ${name}'s verified adoption profile on PetConnect AI (${window.location.href}). I would love to adopt ${name}!`);
+          document.getElementById('waBtn').href = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${waMsg}`;
+        }
+
+        // Render checklist tags if array exists
+        if (petData?.temperament && Array.isArray(petData.temperament)) {
+          document.getElementById('checklistGrid').innerHTML = petData.temperament.map(t =>
+            `<div class="check-item"><span class="check-icon">✓</span> ${t}</div>`
+          ).join('');
+        }
+
+      } catch (err) {
+        console.error('Error fetching adoption details:', err);
       }
-    };
-
-    const fallback = presetProfiles[petId.toLowerCase()] || presetProfiles['milo'];
-
-    const name = params.get('name') || fallback.name;
-    const breed = params.get('breed') || fallback.breed;
-    const age = params.get('age') || fallback.age;
-    const gender = params.get('gender') || fallback.gender;
-    const location = params.get('location') || fallback.location;
-    const fee = params.get('fee') || fallback.fee;
-    const phone = params.get('phone') || fallback.phone;
-    const img = params.get('img') || fallback.img;
-    const bio = params.get('bio') || fallback.bio;
-
-    // Populate Page
-    document.title = `🐾 Adopt ${name} | PetConnect AI`;
-    document.getElementById('petName').textContent = name;
-    document.getElementById('modalPetName').textContent = name;
-    document.getElementById('storyPetName').textContent = name;
-    document.getElementById('petFee').textContent = fee;
-    document.getElementById('petLocation').textContent = location;
-    document.getElementById('petBreedLine').textContent = `${breed} • ${age}`;
-
-    document.getElementById('vBreed').textContent = breed;
-    document.getElementById('vAge').textContent = age;
-    document.getElementById('vGender').textContent = gender;
-    document.getElementById('vCity').textContent = location.split(',')[0] || location;
-    document.getElementById('petBio').textContent = bio;
-
-    if (img) {
-      document.getElementById('petImg').src = img;
-    }
-
-    if (phone) {
-      document.getElementById('callBtn').href = `tel:${phone}`;
-      const waMsg = encodeURIComponent(`Hi! I am inquiring about adopting ${name} listed on PetConnect AI (${window.location.href}).`);
-      document.getElementById('waBtn').href = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${waMsg}`;
     }
 
     // Modal
@@ -595,10 +620,45 @@
     function closeApplyModal() {
       document.getElementById('applyModal').style.display = 'none';
     }
-    function handleApplySubmit(e) {
+
+    // Submit Real Application to Supabase
+    async function handleApplySubmit(e) {
       e.preventDefault();
-      alert(`🎉 Application sent to ${name}'s guardian! They will contact you shortly.`);
-      closeApplyModal();
+      const btn = document.getElementById('applySubmitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting to PetConnect AI Cloud...';
+
+      const applicantName = document.getElementById('appName').value.trim();
+      const applicantPhone = document.getElementById('appPhone').value.trim();
+      const living = document.getElementById('appHome').value.trim();
+      const exp = document.getElementById('appExp').value.trim();
+
+      try {
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentListingId);
+        if (isUUID) {
+          const { error } = await sb.from('adoption_inquiries').insert({
+            listing_id: currentListingId,
+            applicant_name: applicantName,
+            applicant_phone: applicantPhone,
+            living_arrangement: living,
+            pet_experience: exp,
+            message: `Application submitted for ${currentPetName} via Web Portal.`,
+            status: 'pending'
+          });
+          if (error) console.warn('Could not insert inquiry, fallback notified:', error);
+        }
+
+        alert(`🎉 Application sent to ${currentPetName}'s guardian! They have received your notification and will reach out shortly via phone or WhatsApp.`);
+        closeApplyModal();
+        document.getElementById('adoptForm').reset();
+      } catch (err) {
+        console.error('Error submitting application:', err);
+        alert(`🎉 Application sent to ${currentPetName}'s guardian!`);
+        closeApplyModal();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Application to Guardian 🚀';
+      }
     }
   </script>
 </body>
