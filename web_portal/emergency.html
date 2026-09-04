@@ -4,139 +4,351 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🐾 Emergency Health Dossier | PetConnect AI</title>
+  <meta name="description" content="Official Emergency Health Dossier on PetConnect AI. Critical medical alerts, microchip identification, and primary caregiver contacts.">
+
+  <!-- Premium Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --primary: #0284c7;
-      --primary-dark: #0369a1;
-      --green: #10b981;
-      --surface: #ffffff;
-      --bg: #f8fafc;
-      --border: #e2e8f0;
-      --text: #0f172a;
-      --muted: #64748b;
+      --bg: #060b14;
+      --card: rgba(16, 26, 46, 0.85);
+      --border: rgba(255, 255, 255, 0.09);
+      --red: #ef4444;
+      --red-glow: rgba(239, 68, 68, 0.4);
+      --emerald: #10b981;
+      --cyan: #06b6d4;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-sub: #cbd5e1;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
       background: var(--bg);
       color: var(--text);
+      min-height: 100vh;
+      padding: 20px 16px 64px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px 12px 48px;
+      line-height: 1.6;
     }
-    .card {
+
+    .ambient-glow {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 10%, rgba(239, 68, 68, 0.12), transparent 50%);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
       width: 100%;
-      max-width: 520px;
-      background: var(--surface);
-      border-radius: 24px;
-      border: 1px solid var(--border);
-      padding: 24px 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      max-width: 580px;
     }
-    .badge-verified {
-      display: inline-flex;
+
+    /* Top Nav Bar */
+    .top-nav {
+      display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      background: #ecfdf5;
-      color: #047857;
-      font-size: 0.82rem;
-      font-weight: 700;
-      margin-bottom: 14px;
-    }
-    .pet-name {
-      font-size: 2rem;
-      font-weight: 800;
-      color: #0f172a;
-    }
-    .pet-sub {
-      color: var(--muted);
-      font-size: 1rem;
-      font-weight: 600;
+      justify-content: space-between;
       margin-bottom: 20px;
     }
-    .section-title {
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      text-decoration: none;
       font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    /* Emergency Alert Banner */
+    .sos-banner {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.3));
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 20px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .beacon {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 16px var(--red);
+      animation: pulse 1.5s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+    .sos-text-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.05rem;
       font-weight: 800;
+      color: #fca5a5;
+    }
+    .sos-text-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    .pet-avatar {
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+      background: #1e293b;
+      object-fit: cover;
+      border: 2px solid var(--border);
+    }
+    .header-info {
+      flex-grow: 1;
+    }
+    .pet-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .pet-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    /* Critical Medical Alert Box */
+    .alert-box {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 24px;
+    }
+    .alert-label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #fca5a5;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: var(--muted);
-      margin-top: 16px;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
-    .item-grid {
+    .alert-content {
+      font-size: 0.95rem;
+      color: white;
+      font-weight: 600;
+    }
+
+    /* Details Grid */
+    .detail-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 12px;
+      margin-bottom: 24px;
     }
-    .item-box {
-      background: #f1f5f9;
-      padding: 12px;
-      border-radius: 12px;
+    .detail-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
     }
-    .item-lbl { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
-    .item-val { font-size: 0.95rem; color: var(--text); font-weight: 700; margin-top: 2px; }
-    .btn-contact {
+    .d-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .d-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    /* Primary Contacts */
+    .contacts-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .contact-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .contact-row:not(:last-child) {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Actions */
+    .btn-call-urgent {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
       width: 100%;
-      padding: 14px;
-      background: var(--green);
+      padding: 16px;
+      background: linear-gradient(135deg, #10b981, #059669);
       color: white;
       text-decoration: none;
-      font-weight: 700;
-      border-radius: 14px;
-      margin-top: 20px;
+      font-weight: 800;
+      font-size: 1.05rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s ease;
+      margin-bottom: 12px;
+    }
+    .btn-call-urgent:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(16, 185, 129, 0.5);
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="badge-verified">
-      <span>🛡️</span> Verified PetConnect AI Health Passport
+  <div class="ambient-glow"></div>
+
+  <div class="container">
+    <div class="top-nav">
+      <a href="/" class="nav-back">← PetConnect AI Cloud</a>
+      <div style="font-size: 0.82rem; color: #34d399; font-weight: 800;">🩺 CLINICAL EMERGENCY DOSSIER</div>
     </div>
 
-    <h1 class="pet-name" id="petName">Emergency Patient</h1>
-    <div class="pet-sub" id="petSub">Feline / Canine • Active Clinical Record</div>
-
-    <div class="section-title">Emergency Clinical Parameters</div>
-    <div class="item-grid">
-      <div class="item-box">
-        <div class="item-lbl">Microchip ID</div>
-        <div class="item-val" id="microchipId">CHIP-9840219</div>
-      </div>
-      <div class="item-box">
-        <div class="item-lbl">Core Vaccination</div>
-        <div class="item-val" style="color: #047857;">VERIFIED ACTIVE</div>
-      </div>
-      <div class="item-box">
-        <div class="item-lbl">Critical Drug Allergies</div>
-        <div class="item-val">No Known Allergies (NKDA)</div>
-      </div>
-      <div class="item-box">
-        <div class="item-lbl">Attending Clinic</div>
-        <div class="item-val">Veterinary Practice Mala</div>
+    <div class="sos-banner">
+      <div class="beacon"></div>
+      <div>
+        <div class="sos-text-title">First Responder & Clinical Access Active</div>
+        <div class="sos-text-sub">Verified identity and critical veterinary medical alerts</div>
       </div>
     </div>
 
-    <a href="#" id="callOwnerBtn" class="btn-contact">📞 Call Emergency Guardian</a>
+    <div class="card">
+      <div class="profile-header">
+        <img id="petImg" class="pet-avatar" src="https://images.unsplash.com/photo-1589941013453-ec89f33b5455?auto=format&fit=crop&w=300&q=80" alt="Avatar">
+        <div class="header-info">
+          <h1 id="petName" class="pet-name">Rocky</h1>
+          <div id="petBreedLine" class="pet-sub">German Shepherd • 3 yrs • Male</div>
+        </div>
+      </div>
+
+      <!-- Critical Alert -->
+      <div class="alert-box">
+        <div class="alert-label">⚠️ Critical Allergies & Medical Alert</div>
+        <div id="alertText" class="alert-content">No Known Drug Allergies (NKDA). Sensitive to high grain feeds. Routine cardiac vitals stable.</div>
+      </div>
+
+      <!-- Details -->
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="d-label">Microchip ID</div>
+          <div id="dChip" class="d-val">PC-99824-IND</div>
+        </div>
+        <div class="detail-item">
+          <div class="d-label">Vaccination Status</div>
+          <div class="d-val" style="color: #34d399;">Active & Verified</div>
+        </div>
+        <div class="detail-item">
+          <div class="d-label">Weight / Body Condition</div>
+          <div id="dWeight" class="d-val">32.0 kg (Score 5/9)</div>
+        </div>
+        <div class="detail-item">
+          <div class="d-label">Attending Clinic</div>
+          <div class="d-val">Veterinary Practice, Mala</div>
+        </div>
+      </div>
+
+      <!-- Primary Caregiver Contacts -->
+      <div class="contacts-box">
+        <div style="font-family: 'Outfit'; font-size: 1.1rem; font-weight: 800; margin-bottom: 10px;">Primary Caregiver Details</div>
+        <div class="contact-row">
+          <span style="color: var(--text-muted); font-size: 0.9rem;">Guardian</span>
+          <strong id="ownerName">Dr. Prithiviraj</strong>
+        </div>
+        <div class="contact-row">
+          <span style="color: var(--text-muted); font-size: 0.9rem;">Emergency Phone</span>
+          <strong id="ownerPhone" style="color: #38bdf8;">+91 9876543210</strong>
+        </div>
+        <div class="contact-row">
+          <span style="color: var(--text-muted); font-size: 0.9rem;">Cloud Dossier ID</span>
+          <code id="dossierId" style="color: #c084fc; font-size: 0.85rem;">DOS-2026-LIVE</code>
+        </div>
+      </div>
+
+      <!-- Action -->
+      <a href="tel:9876543210" id="callBtn" class="btn-call-urgent">
+        📞 Contact Guardian Immediately
+      </a>
+      <a href="/" class="nav-back" style="width: 100%; justify-content: center;">
+        View Full PetConnect AI Cloud Network
+      </a>
+    </div>
   </div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const name = params.get('name') || 'Companion';
-    const phone = params.get('phone') || '';
+    const petId = window.location.pathname.split('/').pop() || 'demo';
+
+    const name = params.get('name') || 'Rocky';
+    const species = params.get('species') || 'Dog';
+    const breed = params.get('breed') || 'German Shepherd';
+    const age = params.get('age') || '3 yrs';
+    const weight = params.get('weight') || '32.0 kg';
+    const microchip = params.get('microchip') || 'PC-99824-IND';
+    const health = params.get('health') || 'No Known Drug Allergies (NKDA)';
+    const owner = params.get('owner') || 'Pet Guardian';
+    const phone = params.get('phone') || '8921998733';
+    const img = params.get('img');
+
+    document.title = `🐾 Emergency Pass: ${name} | PetConnect AI`;
     document.getElementById('petName').textContent = name;
+    document.getElementById('petBreedLine').textContent = `${species} (${breed}) • ${age}`;
+    document.getElementById('alertText').textContent = health;
+    document.getElementById('dChip').textContent = microchip;
+    document.getElementById('dWeight').textContent = weight;
+    document.getElementById('ownerName').textContent = owner;
+    document.getElementById('ownerPhone').textContent = phone;
+    document.getElementById('dossierId').textContent = `DOS-${petId.substring(0, 8).toUpperCase()}`;
+
+    if (img) {
+      document.getElementById('petImg').src = img;
+    }
     if (phone) {
-      document.getElementById('callOwnerBtn').href = `tel:${phone}`;
+      document.getElementById('callBtn').href = `tel:${phone}`;
     }
   </script>
 </body>

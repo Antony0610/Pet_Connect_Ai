@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
@@ -1922,7 +1923,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 PetQrCodeView(
-                                  data: 'https://petconnect.ai/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}&phone=${Uri.encodeComponent(pet.contactPhone ?? '')}',
+                                  data: '${Env.webBaseUrl}/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}&breed=${Uri.encodeComponent(pet.breed)}&age=${Uri.encodeComponent(pet.age)}&gender=${Uri.encodeComponent(pet.gender)}&location=${Uri.encodeComponent(pet.location)}&phone=${Uri.encodeComponent(pet.contactPhone ?? '')}&fee=${Uri.encodeComponent(pet.adoptionFee != null ? pet.adoptionFee.toString() : 'Free')}&img=${Uri.encodeComponent(pet.imageUrl ?? '')}&bio=${Uri.encodeComponent(pet.bio ?? '')}',
                                   size: 76,
                                   padding: 0,
                                   foregroundColor: pQrFg,

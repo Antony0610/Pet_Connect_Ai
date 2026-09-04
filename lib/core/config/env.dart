@@ -57,7 +57,7 @@ abstract final class Env {
 
   // ── Web Portal & Dynamic QR URLs (Free Vercel Deployment) ───────
   static String get webBaseUrl =>
-      _get('WEB_BASE_URL', fallback: 'https://petconnect-ai.vercel.app');
+      _get('WEB_BASE_URL', fallback: 'https://petconnectai.vercel.app');
 
   // ── Feature Flags ──────────────────────────────────────────────
   static bool get featureSmartCollar =>

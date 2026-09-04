@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -877,7 +878,7 @@ class _VaccinationCertificateDialog extends StatelessWidget {
         ? vax.batchNumber!
         : 'LOT-B892-VET';
 
-    final qrPayload = 'https://petconnect.ai/verify/vaccine/${vax.id}?pet=${Uri.encodeComponent(petName)}&vax=${Uri.encodeComponent(vax.vaccineName)}&admin=$adminDate';
+    final qrPayload = '${Env.webBaseUrl}/verify/vaccine/${vax.id}?pet=${Uri.encodeComponent(petName)}&vax=${Uri.encodeComponent(vax.vaccineName)}&admin=$adminDate&batch=$batch&doc=${Uri.encodeComponent(doctor)}&next=$nextDueDate';
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

@@ -64,24 +64,9 @@ class PetEmergencyQrModal extends ConsumerWidget {
         ? '${(DateTime.now().difference(pet.dateOfBirth!).inDays / 365).toStringAsFixed(1)} yrs'
         : 'Adult';
 
-    // Rich comprehensive emergency medical passport payload
-    final qrPayload = '''
-PETCONNECT AI EMERGENCY MEDICAL PASSPORT
------------------------------------------
-Companion: ${pet.name}
-Species/Breed: ${pet.species} • ${pet.breed ?? 'Standard Breed'}
-Gender/Age: ${pet.gender ?? 'Companion'} • $ageStr
-Weight: ${pet.weightKg != null ? '${pet.weightKg} kg' : 'Standard Weight'}
-Microchip ID: ${pet.microchipId ?? 'Registered & Active on PetConnect'}
-Vaccination Status: Verified Current (Rabies, Core Vaccines)
-Medical Alert: ${pet.healthStatus.isNotEmpty ? pet.healthStatus : 'No Known Critical Drug Allergies (NKDA)'}
-Primary Caregiver: $ownerName
-Emergency Phone: ${ownerPhone != null && ownerPhone.isNotEmpty ? ownerPhone : 'Protected on Profile'}
-Primary Email: $ownerEmail
-Live Emergency Cloud Dossier: ${Env.webBaseUrl}/emergency/${pet.id}
------------------------------------------
-Instant PetConnect AI Rescue Network Enabled
-'''.trim();
+    // Direct camera-scannable live emergency URL with comprehensive clinical query fallbacks
+    final qrPayload =
+        '${Env.webBaseUrl}/emergency/${pet.id}?name=${Uri.encodeComponent(pet.name)}&species=${Uri.encodeComponent(pet.species)}&breed=${Uri.encodeComponent(pet.breed ?? "Standard Breed")}&owner=${Uri.encodeComponent(ownerName)}&phone=${Uri.encodeComponent(ownerPhone ?? "")}&microchip=${Uri.encodeComponent(pet.microchipId ?? "")}&health=${Uri.encodeComponent(pet.healthStatus)}&age=${Uri.encodeComponent(ageStr)}&weight=${Uri.encodeComponent(pet.weightKg != null ? "${pet.weightKg} kg" : "")}&img=${Uri.encodeComponent(pet.imageUrl ?? "")}';
 
     return Container(
       decoration: BoxDecoration(
