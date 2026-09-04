@@ -64,9 +64,14 @@ class PetEmergencyQrModal extends ConsumerWidget {
         ? '${(DateTime.now().difference(pet.dateOfBirth!).inDays / 365).toStringAsFixed(1)} yrs'
         : 'Adult';
 
+    final cleanImg = (pet.imageUrl != null &&
+            (pet.imageUrl!.startsWith('http://') || pet.imageUrl!.startsWith('https://')))
+        ? pet.imageUrl!
+        : '';
+
     // Direct camera-scannable live emergency URL with comprehensive clinical query fallbacks
     final qrPayload =
-        '${Env.webBaseUrl}/emergency/${pet.id}?name=${Uri.encodeComponent(pet.name)}&species=${Uri.encodeComponent(pet.species)}&breed=${Uri.encodeComponent(pet.breed ?? "Standard Breed")}&owner=${Uri.encodeComponent(ownerName)}&phone=${Uri.encodeComponent(ownerPhone ?? "")}&microchip=${Uri.encodeComponent(pet.microchipId ?? "")}&health=${Uri.encodeComponent(pet.healthStatus)}&age=${Uri.encodeComponent(ageStr)}&weight=${Uri.encodeComponent(pet.weightKg != null ? "${pet.weightKg} kg" : "")}&img=${Uri.encodeComponent(pet.imageUrl ?? "")}';
+        '${Env.webBaseUrl}/emergency/${pet.id}?name=${Uri.encodeComponent(pet.name)}&species=${Uri.encodeComponent(pet.species)}&breed=${Uri.encodeComponent(pet.breed ?? "Standard Breed")}&owner=${Uri.encodeComponent(ownerName)}&phone=${Uri.encodeComponent(ownerPhone ?? "")}&microchip=${Uri.encodeComponent(pet.microchipId ?? "")}&health=${Uri.encodeComponent(pet.healthStatus)}&age=${Uri.encodeComponent(ageStr)}&weight=${Uri.encodeComponent(pet.weightKg != null ? "${pet.weightKg} kg" : "")}&img=${Uri.encodeComponent(cleanImg)}';
 
     return Container(
       decoration: BoxDecoration(

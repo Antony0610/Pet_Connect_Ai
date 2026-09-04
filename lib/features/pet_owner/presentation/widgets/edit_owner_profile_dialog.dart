@@ -49,13 +49,6 @@ class _EditOwnerProfileDialogState extends ConsumerState<EditOwnerProfileDialog>
   bool _uploadingAvatar = false;
   String? _error;
 
-  static const List<String> _presetAvatars = [
-    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-  ];
 
   static const List<String> _quickCities = [
     'Annamanada',
@@ -378,48 +371,6 @@ class _EditOwnerProfileDialogState extends ConsumerState<EditOwnerProfileDialog>
             ),
             AppSpacing.vGapSm,
 
-            // Quick Preset Avatars
-            Center(
-              child: Text(
-                'Choose an avatar or tap camera to upload',
-                style: textTheme.labelSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 48,
-              child: Center(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _presetAvatars.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (context, index) {
-                    final url = _presetAvatars[index];
-                    final isSelected = _selectedAvatarUrl == url;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedAvatarUrl = url),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected ? scheme.primary : Colors.transparent,
-                            width: 2.5,
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundImage: NetworkImage(url),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
             AppSpacing.vGapMd,
 
             // Full Name

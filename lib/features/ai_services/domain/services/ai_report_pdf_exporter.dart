@@ -10,6 +10,7 @@ import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.d
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_weight_log.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dart';
+import 'package:petconnect_ai/core/config/env.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Professional PDF generator for AI Clinical Pet Health & Telemetry Reports.
@@ -91,7 +92,7 @@ class AiReportPdfExporter {
     final cleanGender = _cleanText(pet.gender?.toUpperCase() ?? 'UNKNOWN');
     final cleanScope = _cleanText('$reportTitle ($reportRange)');
 
-    final qrPayload = 'https://petconnect.ai/verify/report?id=${pet.id}&owner=${Uri.encodeComponent(cleanOwnerName)}&date=${Uri.encodeComponent(nowStr)}&score=$calculatedScore';
+    final qrPayload = '${Env.webBaseUrl}/verify/report?id=${pet.id}&owner=${Uri.encodeComponent(cleanOwnerName)}&date=${Uri.encodeComponent(nowStr)}&score=$calculatedScore';
 
     doc.addPage(
       pw.MultiPage(

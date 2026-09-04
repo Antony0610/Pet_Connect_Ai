@@ -199,7 +199,11 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     final locEnc = Uri.encodeComponent(lastSeenLocation);
     final rewardEnc = Uri.encodeComponent(rewardAmount);
     final notesEnc = Uri.encodeComponent(_cleanText(_notesController.text));
-    final imgEnc = Uri.encodeComponent(pet.imageUrl ?? '');
+    final cleanImg = (pet.imageUrl != null &&
+            (pet.imageUrl!.startsWith('http://') || pet.imageUrl!.startsWith('https://')))
+        ? pet.imageUrl!
+        : '';
+    final imgEnc = Uri.encodeComponent(cleanImg);
 
     final qrPayload = '$baseUrl/missing/${pet.id}?name=$petNameEnc&species=${Uri.encodeComponent(pet.species)}&breed=${Uri.encodeComponent(pet.breed ?? "")}&phone=$phoneEnc&location=$locEnc&reward=$rewardEnc&notes=$notesEnc&img=$imgEnc';
 

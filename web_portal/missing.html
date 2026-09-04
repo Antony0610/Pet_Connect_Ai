@@ -3,28 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🚨 MISSING PET ALERT | PetConnect AI Cloud</title>
-  <meta name="description" content="URGENT: Missing Pet Sighting Alert broadcasted via PetConnect AI Emergency Network. Help locate and reunite.">
+  <title>🚨 MISSING PET ALERT | PetConnect AI Emergency Network</title>
+  <meta name="description" content="URGENT: Missing pet sighting alert broadcasted via PetConnect AI Emergency Network. Help locate and reunite with caregiver.">
 
   <!-- Premium Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <!-- Supabase JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
-      --bg: #060b14;
-      --card: rgba(16, 26, 46, 0.88);
-      --border: rgba(255, 255, 255, 0.09);
+      --bg: #060913;
+      --surface: #0c1322;
+      --card-inner: #111a2e;
+      --border: rgba(255, 255, 255, 0.08);
       --red: #ef4444;
-      --red-glow: rgba(239, 68, 68, 0.45);
+      --red-dark: #dc2626;
       --amber: #f59e0b;
       --emerald: #10b981;
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --text-sub: #cbd5e1;
+      --radius-lg: 20px;
+      --radius-md: 14px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,36 +40,27 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px 14px 64px;
+      padding: 20px 16px 80px;
       line-height: 1.6;
     }
 
-    .ambient-glow {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      pointer-events: none;
-      z-index: 0;
-      background: radial-gradient(circle at 50% 10%, rgba(239, 68, 68, 0.18), transparent 60%);
-    }
-
     .container {
-      position: relative;
-      z-index: 1;
       width: 100%;
-      max-width: 540px;
+      max-width: 560px;
+      margin: 0 auto;
     }
 
-    /* Urgent Beacon Banner */
+    /* Urgent Beacon Header */
     .urgent-banner {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.4));
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      border-radius: 20px;
-      padding: 14px 20px;
+      background: #1c1015;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 18px;
-      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2);
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.15);
     }
     .beacon-left {
       display: flex;
@@ -73,42 +68,42 @@
       gap: 12px;
     }
     .beacon-dot {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: var(--red);
-      box-shadow: 0 0 16px var(--red);
+      box-shadow: 0 0 14px var(--red);
       animation: pulse 1.5s infinite;
       flex-shrink: 0;
     }
     @keyframes pulse {
       0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.4); opacity: 0.5; }
+      50% { transform: scale(1.3); opacity: 0.4; }
     }
     .urgent-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 1.05rem;
+      font-size: 1.02rem;
       font-weight: 800;
       color: #fca5a5;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     .urgent-badge {
+      font-family: 'JetBrains Mono', monospace;
       padding: 4px 10px;
       border-radius: 999px;
-      background: rgba(239, 68, 68, 0.25);
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.35);
       color: #fca5a5;
       font-size: 0.75rem;
-      font-weight: 800;
+      font-weight: 700;
     }
 
     /* Poster Card */
     .poster-card {
-      background: var(--card);
-      backdrop-filter: blur(24px);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 26px;
+      border-radius: var(--radius-lg);
       padding: 24px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
     }
@@ -116,9 +111,9 @@
     .photo-wrap {
       width: 100%;
       height: 290px;
-      border-radius: 20px;
+      border-radius: var(--radius-md);
       overflow: hidden;
-      background: #0f172a;
+      background: #0d1527;
       margin-bottom: 20px;
       border: 1px solid var(--border);
       position: relative;
@@ -127,12 +122,13 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
     }
     .pet-photo-overlay {
       position: absolute;
       bottom: 0; left: 0; right: 0;
       padding: 20px 16px 12px;
-      background: linear-gradient(to top, rgba(6, 11, 20, 0.9), transparent);
+      background: linear-gradient(to top, rgba(6, 9, 19, 0.95), transparent);
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
@@ -144,7 +140,7 @@
       font-weight: 900;
       line-height: 1.1;
       margin-bottom: 4px;
-      color: white;
+      color: #ffffff;
     }
     .pet-sub {
       font-size: 0.95rem;
@@ -154,31 +150,31 @@
 
     /* Reward Box */
     .reward-box {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.25));
-      border: 1px dashed rgba(245, 158, 11, 0.5);
-      border-radius: 18px;
+      background: #1c180a;
+      border: 1px dashed rgba(245, 158, 11, 0.45);
+      border-radius: var(--radius-md);
       padding: 14px 18px;
       text-align: center;
       margin-bottom: 20px;
     }
     .reward-amount {
       font-family: 'Outfit', sans-serif;
-      font-size: 1.4rem;
-      font-weight: 900;
+      font-size: 1.35rem;
+      font-weight: 800;
       color: #fde047;
       letter-spacing: 0.5px;
     }
     .reward-sub {
       font-size: 0.8rem;
       color: #fef08a;
-      font-weight: 700;
+      font-weight: 600;
     }
 
     /* Info Table */
     .info-list {
-      background: rgba(255, 255, 255, 0.025);
+      background: var(--card-inner);
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: var(--radius-md);
       padding: 16px 18px;
       margin-bottom: 20px;
       display: flex;
@@ -192,29 +188,34 @@
       font-size: 0.92rem;
     }
     .info-icon {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       flex-shrink: 0;
     }
     .info-label {
+      font-family: 'JetBrains Mono', monospace;
       color: var(--text-muted);
+      font-size: 0.8rem;
       font-weight: 700;
-      min-width: 95px;
+      min-width: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
     .info-val {
       font-weight: 600;
-      color: white;
+      color: #ffffff;
       flex: 1;
     }
 
     /* Description Box */
     .desc-box {
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--card-inner);
       border-left: 3px solid var(--red);
-      padding: 12px 16px;
-      border-radius: 0 12px 12px 0;
+      padding: 14px 16px;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
       margin-bottom: 22px;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       color: #cbd5e1;
+      line-height: 1.6;
     }
 
     /* Actions Grid */
@@ -234,8 +235,8 @@
       justify-content: center;
       gap: 8px;
       padding: 15px 18px;
-      border-radius: 16px;
-      font-size: 1rem;
+      border-radius: 12px;
+      font-size: 0.98rem;
       font-weight: 800;
       text-decoration: none;
       border: none;
@@ -245,146 +246,149 @@
     }
     .btn-call {
       flex: 1;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
+      background: #dc2626;
       color: white;
-      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 6px 20px rgba(220, 38, 38, 0.3);
     }
     .btn-call:hover {
+      background: #b91c1c;
       transform: translateY(-2px);
-      box-shadow: 0 12px 26px rgba(239, 68, 68, 0.5);
     }
     .btn-wa {
       flex: 1;
-      background: rgba(37, 211, 102, 0.15);
-      border: 1px solid rgba(37, 211, 102, 0.4);
-      color: #4ade80;
+      background: #15803d;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 6px 20px rgba(21, 128, 61, 0.3);
     }
     .btn-wa:hover {
-      background: rgba(37, 211, 102, 0.25);
+      background: #166534;
+      transform: translateY(-2px);
     }
     .btn-report {
       width: 100%;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--border);
-      color: white;
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
     .btn-report:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: #334155;
+      transform: translateY(-2px);
     }
 
-    /* Sighting Modal */
+    /* Report Modal */
     .modal-overlay {
-      display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(6, 9, 19, 0.88);
       backdrop-filter: blur(8px);
+      display: none;
       align-items: center;
       justify-content: center;
       padding: 16px;
-      z-index: 100;
+      z-index: 1000;
     }
     .modal-card {
-      background: #0f1a2e;
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 28px;
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 460px;
       width: 100%;
-      max-width: 480px;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
     }
     .modal-title {
       font-family: 'Outfit', sans-serif;
       font-size: 1.4rem;
       font-weight: 800;
+      color: #ffffff;
       margin-bottom: 6px;
     }
     .input-group {
       margin-bottom: 14px;
-      text-align: left;
     }
     .input-label {
+      font-family: 'JetBrains Mono', monospace;
       display: block;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
       margin-bottom: 6px;
+      text-transform: uppercase;
     }
     .input-field {
       width: 100%;
-      padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.04);
+      padding: 12px 14px;
+      background: #060913;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 10px;
       color: white;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-family: inherit;
-      outline: none;
     }
     .input-field:focus {
+      outline: none;
       border-color: #ef4444;
-      background: rgba(255, 255, 255, 0.07);
+      background: #0d1527;
     }
 
-    /* Toast */
+    /* Toast Notification */
     .toast {
-      display: none;
       position: fixed;
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      background: #10b981;
-      color: white;
+      background: #064e3b;
+      border: 1px solid #059669;
+      color: #ecfdf5;
       padding: 14px 24px;
-      border-radius: 999px;
+      border-radius: 14px;
       font-weight: 700;
-      font-size: 0.92rem;
-      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
-      z-index: 200;
+      font-size: 0.95rem;
+      display: none;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 2000;
     }
   </style>
 </head>
 <body>
-  <div class="ambient-glow"></div>
-
   <div class="container">
-    <!-- Urgent Top Banner -->
+    <!-- Urgent Beacon Banner -->
     <div class="urgent-banner">
       <div class="beacon-left">
         <div class="beacon-dot"></div>
-        <span class="urgent-title">Active Missing Pet Alert</span>
+        <div class="urgent-title">EMERGENCY RESCUE TAG ACTIVE</div>
       </div>
-      <div class="urgent-badge">LIVE REGISTRY</div>
+      <div class="urgent-badge">PRIORITY HIGH</div>
     </div>
 
-    <!-- Main Card -->
+    <!-- Main Poster Card -->
     <div class="poster-card">
       <div class="photo-wrap">
-        <img id="petPhoto" class="pet-photo" src="https://images.unsplash.com/photo-1589941013453-ec89f33b5455?auto=format&fit=crop&w=600&q=80" alt="Missing Pet">
+        <img id="petPhoto" class="pet-photo" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80" alt="Missing Pet">
         <div class="pet-photo-overlay">
           <div>
-            <h1 class="pet-name" id="petName">Sample Alert</h1>
-            <div class="pet-sub" id="petSubtitle">Demo Mode • Regional Rescue Mesh</div>
+            <div id="petName" class="pet-name">Companion</div>
+            <div id="petSubtitle" class="pet-sub">PetConnect AI Missing Alert</div>
           </div>
         </div>
       </div>
 
-      <!-- Reward Box -->
+      <!-- Reward Box (conditionally displayed) -->
       <div class="reward-box" id="rewardBox" style="display: none;">
         <div class="reward-amount" id="rewardAmount">💰 REWARD OFFERED</div>
-        <div class="reward-sub">SAFE RETURN • NO QUESTIONS ASKED</div>
+        <div class="reward-sub">No questions asked upon safe return</div>
       </div>
 
-      <!-- Info Table -->
+      <!-- Info List -->
       <div class="info-list">
         <div class="info-row">
           <span class="info-icon">📍</span>
           <span class="info-label">Last Seen:</span>
-          <span class="info-val" id="lastSeen">Neighborhood / Local Area</span>
+          <span class="info-val" id="lastSeen">Coordinates recorded on network</span>
         </div>
         <div class="info-row">
           <span class="info-icon">📅</span>
@@ -393,8 +397,8 @@
         </div>
         <div class="info-row">
           <span class="info-icon">👤</span>
-          <span class="info-label">Guardian:</span>
-          <span class="info-val" id="ownerName">Pet Guardian</span>
+          <span class="info-label">Caregiver:</span>
+          <span class="info-val" id="ownerName">Verified Pet Guardian</span>
         </div>
         <div class="info-row">
           <span class="info-icon">🛡️</span>
@@ -405,14 +409,14 @@
 
       <!-- Description / Instructions -->
       <div class="desc-box" id="petDescription">
-        Emergency missing pet poster powered by PetConnect AI. Anyone spotting this companion can submit GPS coordinates directly to the guardian.
+        Emergency missing pet poster powered by PetConnect AI. Anyone spotting this companion can dispatch location coordinates directly to the guardian.
       </div>
 
       <!-- Actions -->
       <div class="actions-grid">
         <div class="btn-row">
           <a href="tel:8921998733" id="callBtn" class="btn btn-call">
-            📞 Call Guardian
+            📞 Call Caregiver
           </a>
           <a href="https://wa.me/918921998733" id="waBtn" class="btn btn-wa" target="_blank" rel="noopener">
             💬 WhatsApp
@@ -424,7 +428,7 @@
       </div>
 
       <a href="/" style="display: flex; justify-content: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 700; text-decoration: none; margin-top: 14px;">
-        ← PetConnect AI Emergency Cloud
+        ← PetConnect AI Portal
       </a>
     </div>
   </div>
@@ -434,12 +438,12 @@
     <div class="modal-card">
       <div class="modal-title">📍 Report Pet Sighting</div>
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 18px;">
-        Instantly alert the guardian and dispatch location coordinates to the regional rescue network.
+        Instantly alerts the caregiver and dispatches sighting coordinates to their PetConnect AI mobile app.
       </p>
       <form id="sightingForm">
         <div class="input-group">
           <label class="input-label">Where did you spot the pet? *</label>
-          <input type="text" class="input-field" id="sightingLocation" placeholder="e.g. Near Mala bakery, crossing road" required>
+          <input type="text" class="input-field" id="sightingLocation" placeholder="e.g. Near Meladoor junction, heading north" required>
         </div>
         <div class="input-group">
           <label class="input-label">Your Name (optional)</label>
@@ -451,7 +455,7 @@
         </div>
         <div class="input-group">
           <label class="input-label">Observations / Direction moving</label>
-          <textarea class="input-field" id="sightingNotes" rows="2" placeholder="Healthy condition, heading east towards school"></textarea>
+          <textarea class="input-field" id="sightingNotes" rows="2" placeholder="Healthy condition, wearing collar, alert..."></textarea>
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 18px;">
@@ -463,7 +467,7 @@
   </div>
 
   <div class="toast" id="toast">
-    ✓ Sighting dispatched! Guardian notified via PetConnect AI.
+    ✓ Sighting dispatched! Caregiver notified in real-time on PetConnect AI.
   </div>
 
   <script>
@@ -481,25 +485,24 @@
         alertId = lastPart;
       }
     }
-    // If no alertId specified, operate in demo mode
     if (!alertId) {
       alertId = 'demo';
     }
 
     let currentAlertId = alertId;
-    let currentOwnerPhone = '+91 98765 43210';
-    let currentPetName = 'Leo';
+    let currentOwnerPhone = '+91 8921998733';
+    let currentPetName = 'Companion';
 
     async function loadAlert() {
-      // 1. Initial fallback from query params or demo defaults
+      // 1. Initial fallback from query params or defaults
       const fallbackName = urlParams.get('name') || 'Leo';
       const fallbackSpecies = urlParams.get('species') || 'Dog';
       const fallbackBreed = urlParams.get('breed') || 'Golden Retriever';
-      const fallbackLocation = urlParams.get('location') || 'Bangalore / Regional Mesh';
-      const fallbackPhone = urlParams.get('phone') || '+91 98765 43210';
+      const fallbackLocation = urlParams.get('location') || 'Regional Mesh Broadcast';
+      const fallbackPhone = urlParams.get('phone') || '+91 8921998733';
       const fallbackReward = urlParams.get('reward') || '';
-      const fallbackNotes = urlParams.get('notes') || 'Demonstration rescue poster. When a real pet alert is active, scanning its QR tag provides live GPS sighting dispatch directly to the guardian.';
-      const fallbackImg = urlParams.get('img') || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800';
+      const fallbackNotes = urlParams.get('notes') || 'Active emergency missing pet poster. Scanning this QR code enables passersby to instantly alert the caregiver with live sighting coordinates.';
+      const fallbackImg = urlParams.get('img') || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80';
 
       currentPetName = fallbackName;
       currentOwnerPhone = fallbackPhone;
@@ -508,10 +511,17 @@
       document.getElementById('petSubtitle').textContent = `${fallbackSpecies} • ${fallbackBreed}`;
       document.getElementById('lastSeen').textContent = fallbackLocation;
       document.getElementById('petDescription').textContent = fallbackNotes;
-      document.getElementById('callBtn').href = `tel:${fallbackPhone}`;
-      document.getElementById('waBtn').href = `https://wa.me/91${fallbackPhone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hi, I am contacting you regarding missing companion ${fallbackName} seen on PetConnect AI!`)}`;
+      document.getElementById('callBtn').href = `tel:${fallbackPhone.replace(/\s+/g, '')}`;
+      document.getElementById('waBtn').href = `https://wa.me/91${fallbackPhone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hi, I am contacting you regarding missing pet ${fallbackName} seen on PetConnect AI!`)}`;
       
-      if (fallbackImg) document.getElementById('petPhoto').src = fallbackImg;
+      if (fallbackImg) {
+        const petPhotoEl = document.getElementById('petPhoto');
+        petPhotoEl.onerror = () => {
+          petPhotoEl.src = 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80';
+        };
+        petPhotoEl.src = fallbackImg;
+      }
+
       if (fallbackReward && fallbackReward.trim().length > 0) {
         document.getElementById('rewardBox').style.display = 'block';
         document.getElementById('rewardAmount').textContent = `💰 ${fallbackReward.toUpperCase()} REWARD OFFERED`;
@@ -519,7 +529,7 @@
         document.getElementById('rewardBox').style.display = 'none';
       }
 
-      document.title = `🚨 MISSING: ${fallbackName.toUpperCase()} | PetConnect AI Cloud`;
+      document.title = `🚨 MISSING: ${fallbackName.toUpperCase()} | PetConnect AI`;
 
       // 2. Fetch live alert data from Supabase RPC
       if (!supabase) return;
@@ -527,8 +537,7 @@
       try {
         const { data, error } = await supabase.rpc('get_public_lost_pet_alert', { p_id: alertId });
         if (error || !data) {
-          console.warn('RPC check failed, querying direct table:', error);
-          const { data: aRow } = await supabase.from('lost_pet_alerts').select('*, pets(*)').eq('id', alertId).single();
+          const { data: aRow } = await supabase.from('lost_pet_alerts').select('*, pets(*)').eq('id', alertId).maybeSingle();
           if (aRow) {
             applyAlertData({
               alert_id: aRow.id,
@@ -554,7 +563,7 @@
 
     function applyAlertData(alert) {
       currentAlertId = alert.alert_id || alertId;
-      currentPetName = alert.pet_name || 'Pet';
+      currentPetName = alert.pet_name || 'Companion';
       currentOwnerPhone = alert.contact_phone || '8921998733';
 
       document.title = `🚨 MISSING: ${currentPetName.toUpperCase()} | PetConnect AI`;
@@ -592,9 +601,9 @@
       }
 
       // Action links
-      document.getElementById('callBtn').href = `tel:${currentOwnerPhone}`;
+      document.getElementById('callBtn').href = `tel:${currentOwnerPhone.replace(/\s+/g, '')}`;
       const cleanDigits = currentOwnerPhone.replace(/[^0-9]/g, '').slice(-10);
-      document.getElementById('waBtn').href = `https://wa.me/91${cleanDigits}?text=${encodeURIComponent(`Hi, I am contacting you regarding your missing pet ${currentPetName} seen on PetConnect AI!`)}`;
+      document.getElementById('waBtn').href = `https://wa.me/91${cleanDigits}?text=${encodeURIComponent(`Hi, I am contacting you regarding missing pet ${currentPetName} seen on PetConnect AI!`)}`;
     }
 
     // Modal interaction
@@ -615,12 +624,12 @@
       const notes = document.getElementById('sightingNotes').value;
 
       const submitBtn = document.getElementById('submitSightingBtn');
-      submitBtn.textContent = 'Submitting...';
+      submitBtn.textContent = 'Dispatching to App...';
       submitBtn.disabled = true;
 
       try {
         if (supabase) {
-          const { data, error } = await supabase.from('lost_pet_sightings').insert([{
+          const { error } = await supabase.from('lost_pet_sightings').insert([{
             alert_id: currentAlertId,
             sighting_location: loc,
             reporter_name: reporter || 'Passerby Helper',
@@ -630,7 +639,7 @@
             status: 'pending'
           }]);
           if (error) {
-            console.error('Failed to insert sighting:', error);
+            console.warn('Failed to insert sighting directly:', error);
           }
         }
       } catch (err) {

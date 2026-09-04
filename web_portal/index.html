@@ -52,41 +52,13 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient Spatial Backdrops */
+    /* Clean Solid Obsidian Spatial Backdrop */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
-      overflow: hidden;
-    }
-    .ambient-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.18;
-      animation: float-slow 20s infinite alternate ease-in-out;
-    }
-    .orb-1 {
-      top: -150px; left: 15%;
-      width: 650px; height: 650px;
-      background: radial-gradient(circle, #0284c7, transparent 70%);
-    }
-    .orb-2 {
-      top: 35%; right: -120px;
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, #8b5cf6, transparent 70%);
-      animation-delay: -5s;
-    }
-    .orb-3 {
-      bottom: -100px; left: 10%;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, #10b981, transparent 70%);
-      animation-delay: -10s;
-    }
-    @keyframes float-slow {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(40px, 30px) scale(1.08); }
+      background: #060913;
     }
 
     /* Subtle Geometric Grid Matrix */
@@ -892,11 +864,7 @@
   </style>
 </head>
 <body>
-  <div class="spatial-bg">
-    <div class="ambient-orb orb-1"></div>
-    <div class="ambient-orb orb-2"></div>
-    <div class="ambient-orb orb-3"></div>
-  </div>
+  <div class="spatial-bg"></div>
   <div class="grid-matrix"></div>
 
   <div class="wrapper">
@@ -1443,6 +1411,12 @@
     checkActiveLostPetAlert();
     loadAdoptionCandidates();
     setupRealtimeSubscriptions();
+
+    // 12s polling fallback ensures UI stays fresh even if WebSocket reconnects
+    setInterval(() => {
+      loadAdoptionCandidates();
+      checkActiveLostPetAlert();
+    }, 12000);
   </script>
 </body>
 </html>

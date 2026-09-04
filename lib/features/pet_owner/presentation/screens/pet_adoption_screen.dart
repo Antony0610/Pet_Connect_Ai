@@ -17,6 +17,7 @@ import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
@@ -52,6 +53,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   List<_AdoptionCandidate> _cloudCandidates = [];
   Set<String> _adoptedPetIds = {};
   RealtimeChannel? _realtimeChannel;
+  RealtimeChannel? _inquiriesChannel;
   List<Map<String, dynamic>> _sentInquiries = [];
   List<Map<String, dynamic>> _receivedInquiries = [];
 
@@ -132,18 +134,33 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
   List<_AdoptionCandidate> get _allCandidates {
     final adopted = _adoptedPetIds;
-    if (_cloudCandidates.isNotEmpty) {
-      final cloudIds = _cloudCandidates.map((c) => c.id).toSet();
-      final pendingLocal = _customCandidates.where((c) => !cloudIds.contains(c.id)).toList();
-      return [..._cloudCandidates, ...pendingLocal]
-          .where((c) => !adopted.contains(c.id))
-          .toList();
+    final List<_AdoptionCandidate> baseList =
+        _cloudCandidates.isNotEmpty ? _cloudCandidates : _defaultCandidates;
+
+    // Strict deduplication by ID and normalized (name + species)
+    final seenIds = <String>{};
+    final seenNames = <String>{};
+    final List<_AdoptionCandidate> uniqueCandidates = [];
+
+    // 1. Add cloud/default candidates first
+    for (final pet in baseList) {
+      if (adopted.contains(pet.id)) continue;
+      final key = '${pet.name.trim().toLowerCase()}_${pet.species.trim().toLowerCase()}';
+      if (seenIds.add(pet.id) && seenNames.add(key)) {
+        uniqueCandidates.add(pet);
+      }
     }
-    final defaultIds = _defaultCandidates.map((c) => c.id).toSet();
-    final pendingLocal = _customCandidates.where((c) => !defaultIds.contains(c.id)).toList();
-    return [...pendingLocal, ..._defaultCandidates]
-        .where((c) => !adopted.contains(c.id))
-        .toList();
+
+    // 2. Add custom/local candidates only if not already present in cloud by id or name
+    for (final pet in _customCandidates) {
+      if (adopted.contains(pet.id)) continue;
+      final key = '${pet.name.trim().toLowerCase()}_${pet.species.trim().toLowerCase()}';
+      if (seenIds.add(pet.id) && seenNames.add(key)) {
+        uniqueCandidates.add(pet);
+      }
+    }
+
+    return uniqueCandidates;
   }
 
   @override
@@ -156,9 +173,15 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
   @override
   void dispose() {
+    final client = ref.read(supabaseClientProvider);
     if (_realtimeChannel != null) {
       try {
-        ref.read(supabaseClientProvider).removeChannel(_realtimeChannel!);
+        client.removeChannel(_realtimeChannel!);
+      } catch (_) {}
+    }
+    if (_inquiriesChannel != null) {
+      try {
+        client.removeChannel(_inquiriesChannel!);
       } catch (_) {}
     }
     super.dispose();
@@ -167,13 +190,28 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   void _setupRealtime() {
     try {
       final client = ref.read(supabaseClientProvider);
+      
+      // 1. Listen for adoption listings additions, removals, and status updates
       _realtimeChannel = client.channel('public:adoption_listings')
         ..onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'adoption_listings',
           callback: (payload) {
-            debugPrint('Realtime change received in Flutter: ${payload.eventType}');
+            debugPrint('Realtime listing change received in Flutter: ${payload.eventType}');
+            _syncWithSupabase();
+          },
+        )
+        ..subscribe();
+
+      // 2. Listen for adoption inquiries submitted from web portal or mobile app
+      _inquiriesChannel = client.channel('public:adoption_inquiries')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'adoption_inquiries',
+          callback: (payload) {
+            debugPrint('Realtime web inquiry received in Flutter: ${payload.eventType}');
             _syncWithSupabase();
           },
         )
@@ -419,6 +457,24 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       final client = ref.read(supabaseClientProvider);
       final currentUid = _currentUserId;
       if (currentUid != 'anon') {
+        String cloudImgUrl = candidate.imageUrl;
+        if (!cloudImgUrl.startsWith('http://') && !cloudImgUrl.startsWith('https://')) {
+          try {
+            final file = File(cloudImgUrl);
+            if (await file.exists()) {
+              final bytes = await file.readAsBytes();
+              final storageRepo = ref.read(storageRepositoryProvider);
+              final uploadRes = await storageRepo.uploadPetAvatar(
+                petId: 'adopt-${DateTime.now().millisecondsSinceEpoch}',
+                bytes: bytes,
+                fileName: 'adopt_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                mimeType: 'image/jpeg',
+              );
+              uploadRes.fold((_) {}, (url) => cloudImgUrl = url);
+            }
+          } catch (_) {}
+        }
+
         final inserted = await client.from('adoption_listings').insert({
           'owner_id': currentUid,
           'name': candidate.name,
@@ -432,18 +488,23 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           'is_vaccinated': true,
           'temperament': candidate.personality,
           'personality_traits': candidate.personality,
-          'image_url': candidate.imageUrl,
-          'images': [candidate.imageUrl],
+          'image_url': cloudImgUrl,
+          'images': [cloudImgUrl],
           'status': 'active',
         }).select().maybeSingle();
 
         if (inserted != null && inserted['id'] != null) {
           final cloudId = inserted['id'].toString();
-          final withCloudId = candidate.copyWith(id: cloudId);
+          final withCloudId = candidate.copyWith(id: cloudId, imageUrl: cloudImgUrl);
+          final refreshedCustom = _customCandidates.map((c) => c.id == candidate.id ? withCloudId : c).toList();
           setState(() {
-            _customCandidates = _customCandidates.map((c) => c.id == candidate.id ? withCloudId : c).toList();
+            _customCandidates = refreshedCustom;
             _cloudCandidates = [withCloudId, ..._cloudCandidates];
           });
+          await prefs.setString(
+            _customPetsKey,
+            jsonEncode(refreshedCustom.map((e) => e.toJson()).toList()),
+          );
         }
       }
     } catch (e) {

@@ -1,12 +1,18 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/missing/:id", "destination": "/missing.html" },
-    { "source": "/emergency/:id", "destination": "/emergency.html" },
-    { "source": "/adopt/:id", "destination": "/adopt.html" },
-    { "source": "/verify/vaccine/:id", "destination": "/verify.html" },
-    { "source": "/verify/report", "destination": "/verify.html" },
-    { "source": "/passport/:id", "destination": "/emergency.html" }
+    { "source": "/verify/vaccine/(.*)", "destination": "/verify.html" },
+    { "source": "/verify/report(.*)", "destination": "/verify.html" },
+    { "source": "/verify/(.*)", "destination": "/verify.html" },
+    { "source": "/verify", "destination": "/verify.html" },
+    { "source": "/emergency/(.*)", "destination": "/emergency.html" },
+    { "source": "/emergency", "destination": "/emergency.html" },
+    { "source": "/adopt/(.*)", "destination": "/adopt.html" },
+    { "source": "/adopt", "destination": "/adopt.html" },
+    { "source": "/missing/(.*)", "destination": "/missing.html" },
+    { "source": "/missing", "destination": "/missing.html" },
+    { "source": "/passport/(.*)", "destination": "/emergency.html" },
+    { "source": "/passport", "destination": "/emergency.html" }
   ],
   "headers": [
     {

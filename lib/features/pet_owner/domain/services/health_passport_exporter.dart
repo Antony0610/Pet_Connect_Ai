@@ -11,6 +11,7 @@ import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.d
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_weight_log.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dart';
+import 'package:petconnect_ai/core/config/env.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Service responsible for generating and sharing comprehensive, clinic-grade
@@ -64,7 +65,7 @@ class HealthPassportExporter {
     final borderColor = PdfColor.fromHex('#CBD5E1');
 
     final petImgBytes = await _fetchImageBytes(pet.imageUrl);
-    final qrPayload = 'https://petconnect.ai/passport/${pet.id}?auth=verified';
+    final qrPayload = '${Env.webBaseUrl}/passport/${pet.id}?auth=verified';
 
     doc.addPage(
       pw.MultiPage(
