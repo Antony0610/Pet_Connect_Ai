@@ -367,15 +367,15 @@
         <img id="petPhoto" class="pet-photo" src="https://images.unsplash.com/photo-1589941013453-ec89f33b5455?auto=format&fit=crop&w=600&q=80" alt="Missing Pet">
         <div class="pet-photo-overlay">
           <div>
-            <h1 class="pet-name" id="petName">Harly</h1>
-            <div class="pet-sub" id="petSubtitle">Dog • German Shepard (Male)</div>
+            <h1 class="pet-name" id="petName">Sample Alert</h1>
+            <div class="pet-sub" id="petSubtitle">Demo Mode • Regional Rescue Mesh</div>
           </div>
         </div>
       </div>
 
       <!-- Reward Box -->
-      <div class="reward-box" id="rewardBox">
-        <div class="reward-amount" id="rewardAmount">💰 RS. 5,000 REWARD OFFERED</div>
+      <div class="reward-box" id="rewardBox" style="display: none;">
+        <div class="reward-amount" id="rewardAmount">💰 REWARD OFFERED</div>
         <div class="reward-sub">SAFE RETURN • NO QUESTIONS ASKED</div>
       </div>
 
@@ -384,7 +384,7 @@
         <div class="info-row">
           <span class="info-icon">📍</span>
           <span class="info-label">Last Seen:</span>
-          <span class="info-val" id="lastSeen">Near Mala Police Station Junction, Meladoor</span>
+          <span class="info-val" id="lastSeen">Neighborhood / Local Area</span>
         </div>
         <div class="info-row">
           <span class="info-icon">📅</span>
@@ -394,7 +394,7 @@
         <div class="info-row">
           <span class="info-icon">👤</span>
           <span class="info-label">Guardian:</span>
-          <span class="info-val" id="ownerName">Antony</span>
+          <span class="info-val" id="ownerName">Pet Guardian</span>
         </div>
         <div class="info-row">
           <span class="info-icon">🛡️</span>
@@ -405,7 +405,7 @@
 
       <!-- Description / Instructions -->
       <div class="desc-box" id="petDescription">
-        Wearing green collar with PetConnect AI smart tag. Friendly but cautious of loud vehicles. Responds to Harly.
+        Emergency missing pet poster powered by PetConnect AI. Anyone spotting this companion can submit GPS coordinates directly to the guardian.
       </div>
 
       <!-- Actions -->
@@ -481,25 +481,25 @@
         alertId = lastPart;
       }
     }
-    // Default fallback to real active lost alert in DB (Harly)
-    if (!alertId || alertId === 'demo') {
-      alertId = 'c590ba41-c8ab-4bc5-985b-e15f817e0b3c';
+    // If no alertId specified, operate in demo mode
+    if (!alertId) {
+      alertId = 'demo';
     }
 
     let currentAlertId = alertId;
-    let currentOwnerPhone = '8921998733';
-    let currentPetName = 'Harly';
+    let currentOwnerPhone = '+91 98765 43210';
+    let currentPetName = 'Leo';
 
     async function loadAlert() {
-      // 1. Initial fallback from query params
-      const fallbackName = urlParams.get('name') || 'Harly';
+      // 1. Initial fallback from query params or demo defaults
+      const fallbackName = urlParams.get('name') || 'Leo';
       const fallbackSpecies = urlParams.get('species') || 'Dog';
-      const fallbackBreed = urlParams.get('breed') || 'German Shepard';
-      const fallbackLocation = urlParams.get('location') || 'Near Mala Police Station Junction, Meladoor';
-      const fallbackPhone = urlParams.get('phone') || '8921998733';
-      const fallbackReward = urlParams.get('reward') || 'Rs. 5,000';
-      const fallbackNotes = urlParams.get('notes') || 'Wearing green collar with PetConnect AI smart tag. Friendly but cautious of loud vehicles. Responds to Harly.';
-      const fallbackImg = urlParams.get('img');
+      const fallbackBreed = urlParams.get('breed') || 'Golden Retriever';
+      const fallbackLocation = urlParams.get('location') || 'Bangalore / Regional Mesh';
+      const fallbackPhone = urlParams.get('phone') || '+91 98765 43210';
+      const fallbackReward = urlParams.get('reward') || '';
+      const fallbackNotes = urlParams.get('notes') || 'Demonstration rescue poster. When a real pet alert is active, scanning its QR tag provides live GPS sighting dispatch directly to the guardian.';
+      const fallbackImg = urlParams.get('img') || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800';
 
       currentPetName = fallbackName;
       currentOwnerPhone = fallbackPhone;
@@ -509,12 +509,14 @@
       document.getElementById('lastSeen').textContent = fallbackLocation;
       document.getElementById('petDescription').textContent = fallbackNotes;
       document.getElementById('callBtn').href = `tel:${fallbackPhone}`;
-      document.getElementById('waBtn').href = `https://wa.me/91${fallbackPhone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hi, I am contacting you regarding your missing pet ${fallbackName} seen on PetConnect AI!`)}`;
+      document.getElementById('waBtn').href = `https://wa.me/91${fallbackPhone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hi, I am contacting you regarding missing companion ${fallbackName} seen on PetConnect AI!`)}`;
       
       if (fallbackImg) document.getElementById('petPhoto').src = fallbackImg;
-      if (fallbackReward) {
+      if (fallbackReward && fallbackReward.trim().length > 0) {
         document.getElementById('rewardBox').style.display = 'block';
         document.getElementById('rewardAmount').textContent = `💰 ${fallbackReward.toUpperCase()} REWARD OFFERED`;
+      } else {
+        document.getElementById('rewardBox').style.display = 'none';
       }
 
       document.title = `🚨 MISSING: ${fallbackName.toUpperCase()} | PetConnect AI Cloud`;

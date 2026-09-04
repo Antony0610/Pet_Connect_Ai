@@ -561,16 +561,16 @@
           }
         }
 
-        // 3. Fallback to query params or defaults
-        const name = petData?.name || params.get('name') || 'Harly';
-        const breed = petData?.breed || params.get('breed') || 'German Shepherd';
+        // 3. Fallback to query params or shelter defaults
+        const name = petData?.name || params.get('name') || 'Bella';
+        const breed = petData?.breed || params.get('breed') || 'Golden Retriever';
         const age = petData?.age || params.get('age') || '2 Years';
-        const gender = petData?.gender || params.get('gender') || 'Male';
-        const location = petData?.location || params.get('location') || 'Kochi, Kerala';
-        const fee = petData?.adoption_fee || params.get('fee') || 'Free Adoption';
-        const phone = petData?.contact_phone || params.get('phone') || '8921998733';
-        const img = petData?.image_url || params.get('img') || 'https://images.unsplash.com/photo-1589941013453-ec89f33b5455?auto=format&fit=crop&w=1000&q=80';
-        const bio = petData?.description || params.get('bio') || 'Loyal, protective, and fully house-trained companion. Great with family and socialized with humans.';
+        const gender = petData?.gender || params.get('gender') || 'Female';
+        const location = petData?.location || params.get('location') || 'Bangalore Animal Rescue & Care';
+        const fee = petData?.adoption_fee || params.get('fee') || 'Free / Loving Home';
+        const phone = petData?.contact_phone || params.get('phone') || '+91 98765 43210';
+        const img = petData?.image_url || params.get('img') || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800';
+        const bio = petData?.description || params.get('bio') || 'Loving, gentle, and highly trainable. Thrives with daily walks and a caring family. Completely vaccinated and spayed.';
 
         currentListingId = petData?.id || petId;
         currentPetName = name;

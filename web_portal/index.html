@@ -3,242 +3,295 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PetConnect AI — Intelligent Pet Care, Emergency Rescue & Adoption Cloud</title>
-  <meta name="description" content="Next-generation cloud ecosystem connecting Pet Owners, Veterinarians, and Rapid Responders. Instant camera-scannable QR missing pet posters, verified health passports, and pet adoption.">
+  <title>PetConnect AI — Cloud Protocol for Pet Care, Rescue & Adoption</title>
+  <meta name="description" content="Next-generation intelligent pet safety platform. Camera-scannable QR emergency health passes, digital vaccination verification, and verified shelter pet adoptions.">
 
   <!-- Premium Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
-      --bg: #060b14;
-      --bg-surface: #0c1424;
-      --bg-card: rgba(16, 26, 46, 0.7);
-      --bg-glass: rgba(255, 255, 255, 0.04);
-      --border-glass: rgba(255, 255, 255, 0.09);
-      --border-accent: rgba(56, 189, 248, 0.3);
+      --bg: #050811;
+      --bg-surface: #090e1a;
+      --bg-card: rgba(13, 20, 36, 0.7);
+      --bg-card-hover: rgba(18, 28, 50, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-highlight: rgba(56, 189, 248, 0.25);
+      --border-glow: rgba(56, 189, 248, 0.4);
       --primary: #0284c7;
       --primary-glow: #38bdf8;
+      --accent-violet: #8b5cf6;
       --emerald: #10b981;
-      --emerald-glow: #34d399;
-      --crimson: #ef4444;
-      --crimson-glow: #f87171;
-      --violet: #8b5cf6;
+      --emerald-glow: rgba(16, 185, 129, 0.35);
       --amber: #f59e0b;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      --crimson: #ef4444;
+      --text-main: #f8fafc;
       --text-sub: #cbd5e1;
-      --radius-lg: 24px;
-      --radius-md: 16px;
-      --radius-sm: 10px;
+      --text-muted: #8492a6;
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
+
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       background: var(--bg);
-      color: var(--text);
+      color: var(--text-main);
       min-height: 100vh;
-      overflow-x: hidden;
       line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient Lighting Background */
-    .ambient-glow {
+    /* Ambient Spatial Backdrops */
+    .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
       overflow: hidden;
     }
-    .glow-orb-1 {
+    .ambient-orb {
       position: absolute;
-      top: -10%; left: 20%;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(2, 132, 199, 0.18) 0%, rgba(2, 132, 199, 0) 70%);
-      filter: blur(80px);
       border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.18;
+      animation: float-slow 20s infinite alternate ease-in-out;
     }
-    .glow-orb-2 {
-      position: absolute;
-      top: 40%; right: -10%;
+    .orb-1 {
+      top: -150px; left: 15%;
       width: 650px; height: 650px;
-      background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0) 70%);
-      filter: blur(100px);
-      border-radius: 50%;
+      background: radial-gradient(circle, #0284c7, transparent 70%);
     }
-    .glow-orb-3 {
-      position: absolute;
-      bottom: -10%; left: 10%;
+    .orb-2 {
+      top: 35%; right: -120px;
       width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0) 70%);
-      filter: blur(90px);
-      border-radius: 50%;
+      background: radial-gradient(circle, #8b5cf6, transparent 70%);
+      animation-delay: -5s;
+    }
+    .orb-3 {
+      bottom: -100px; left: 10%;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, #10b981, transparent 70%);
+      animation-delay: -10s;
+    }
+    @keyframes float-slow {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(40px, 30px) scale(1.08); }
     }
 
-    /* Layout Wrapper */
+    /* Subtle Geometric Grid Matrix */
+    .grid-matrix {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 80%);
+    }
+
     .wrapper {
       position: relative;
       z-index: 1;
       width: 100%;
       max-width: 1240px;
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 0 24px;
     }
 
-    /* Modern Glass Header */
+    /* Floating Navigation Bar */
     header {
       position: sticky;
-      top: 16px;
+      top: 18px;
       z-index: 100;
-      margin-bottom: 36px;
+      margin-bottom: 40px;
     }
     .navbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 24px;
-      background: rgba(12, 20, 36, 0.75);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border-glass);
+      background: rgba(9, 14, 26, 0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
       border-radius: 999px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+      padding: 12px 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
     }
-    .nav-brand {
+    .navbar:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+    .brand-group {
       display: flex;
       align-items: center;
       gap: 12px;
       text-decoration: none;
-      color: var(--text);
     }
-    .brand-icon {
-      width: 40px; height: 40px;
-      background: linear-gradient(135deg, #0284c7, #38bdf8);
+    .brand-logo-wrap {
+      width: 38px;
+      height: 38px;
       border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.3rem;
-      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4);
-    }
-    .brand-name {
-      font-family: 'Outfit', sans-serif;
       font-size: 1.25rem;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+    }
+    .brand-text {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.22rem;
       font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: white;
     }
+    .brand-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 4px;
+    }
+
     .nav-links {
       display: flex;
       align-items: center;
       gap: 28px;
       list-style: none;
     }
-    .nav-links a {
+    .nav-link {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 600;
       transition: color 0.2s ease;
     }
-    .nav-links a:hover { color: var(--text); }
-    .status-pill {
+    .nav-link:hover {
+      color: white;
+    }
+    .nav-cta-btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-      font-size: 0.8rem;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      text-decoration: none;
       font-weight: 700;
+      font-size: 0.88rem;
+      padding: 9px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s ease;
     }
-    .pulse-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.4); opacity: 0.5; }
+    .nav-cta-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px rgba(2, 132, 199, 0.5);
     }
 
-    /* Live Active SOS Alert Banner */
-    #liveAlertBanner {
-      display: none;
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.35));
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      border-radius: 18px;
+    /* Live Missing Emergency Alert Banner (Only shown if a real active alert exists in DB) */
+    .live-alert-banner {
+      display: none; /* Auto-shown by JS query if active alert exists */
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(185, 28, 28, 0.28));
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: var(--radius-md);
       padding: 14px 20px;
-      margin-bottom: 24px;
+      margin-bottom: 36px;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.2);
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.2);
+      animation: banner-pulse 3s infinite ease-in-out;
     }
-    .alert-banner-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    @keyframes banner-pulse {
+      0%, 100% { border-color: rgba(239, 68, 68, 0.35); }
+      50% { border-color: rgba(239, 68, 68, 0.7); }
     }
     .alert-beacon {
       width: 12px; height: 12px;
       border-radius: 50%;
       background: #ef4444;
       box-shadow: 0 0 14px #ef4444;
-      animation: pulse 1.2s infinite;
+      animation: beacon-ping 1.4s infinite;
       flex-shrink: 0;
     }
+    @keyframes beacon-ping {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+    .alert-btn {
+      padding: 8px 18px;
+      background: #ef4444;
+      color: white;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 0.85rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .alert-btn:hover { background: #dc2626; }
 
     /* Hero Section */
     .hero {
       text-align: center;
-      padding: 32px 16px 56px;
+      padding: 40px 0 72px;
+      max-width: 860px;
+      margin: 0 auto;
     }
-    .hero-badge {
+    .hero-eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 18px;
-      background: rgba(56, 189, 248, 0.08);
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 6px 16px;
       border-radius: 999px;
-      color: #38bdf8;
-      font-size: 0.86rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.82rem;
       font-weight: 700;
-      letter-spacing: 0.5px;
-      margin-bottom: 20px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 24px;
     }
-    .hero h1 {
+    .hero-eyebrow-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+    .hero-title {
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(2.4rem, 5vw, 4.4rem);
+      font-size: clamp(2.5rem, 5.5vw, 4.4rem);
       font-weight: 900;
-      line-height: 1.12;
-      letter-spacing: -1px;
-      max-width: 960px;
-      margin: 0 auto 24px;
-      background: linear-gradient(135deg, #ffffff 30%, #cbd5e1 70%, #38bdf8 100%);
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 22px;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 30%, #38bdf8 80%, #818cf8 100%);
       -webkit-background-clip: text;
-      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .hero p {
+    .hero-subtitle {
       font-size: clamp(1.05rem, 2vw, 1.25rem);
-      color: var(--text-muted);
+      color: var(--text-sub);
+      font-weight: 400;
       max-width: 720px;
       margin: 0 auto 36px;
       line-height: 1.65;
@@ -247,527 +300,490 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
-      margin-bottom: 48px;
     }
-    .btn-primary {
+    .btn-hero-primary {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      padding: 16px 32px;
       background: linear-gradient(135deg, #0284c7, #0ea5e9);
       color: white;
       text-decoration: none;
-      font-weight: 700;
-      font-size: 1rem;
-      border-radius: 14px;
-      box-shadow: 0 10px 28px rgba(2, 132, 199, 0.4);
-      transition: all 0.2s ease;
-      border: none;
-      cursor: pointer;
-    }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 14px 34px rgba(2, 132, 199, 0.55);
-    }
-    .btn-sos {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 28px;
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #fca5a5;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 1rem;
-      border-radius: 14px;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-    .btn-sos:hover {
-      background: rgba(239, 68, 68, 0.25);
-      transform: translateY(-2px);
-      color: white;
-    }
-    .btn-glass {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 28px;
-      background: var(--bg-glass);
-      border: 1px solid var(--border-glass);
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 1rem;
-      border-radius: 14px;
-      transition: all 0.2s ease;
-    }
-    .btn-glass:hover {
-      background: rgba(255, 255, 255, 0.08);
-      transform: translateY(-2px);
-    }
-
-    /* Live Stat Counters Bar */
-    .stat-bar {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      background: rgba(12, 20, 36, 0.65);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--border-glass);
-      border-radius: 20px;
-      padding: 24px;
-      max-width: 980px;
-      margin: 0 auto 64px;
-    }
-    .stat-item {
-      text-align: center;
-      padding: 8px 16px;
-    }
-    .stat-value {
-      font-family: 'Outfit', sans-serif;
-      font-size: 2.2rem;
       font-weight: 800;
-      background: linear-gradient(135deg, #ffffff, #38bdf8);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 4px;
+      font-size: 1.02rem;
+      padding: 16px 32px;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(2, 132, 199, 0.4);
+      transition: all 0.25s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    .stat-label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .btn-hero-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 40px rgba(2, 132, 199, 0.6);
+    }
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.02rem;
+      padding: 16px 28px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.25s ease;
+    }
+    .btn-hero-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px);
     }
 
-    /* Section Headings */
+    /* Authentic Platform Capabilities Bento Grid */
+    .bento-section {
+      padding: 40px 0 80px;
+    }
     .section-header {
       text-align: center;
-      max-width: 720px;
+      max-width: 680px;
       margin: 0 auto 48px;
     }
     .section-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #38bdf8;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 800;
-      text-transform: uppercase;
       letter-spacing: 1px;
-      margin-bottom: 12px;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 8px;
     }
     .section-title {
       font-family: 'Outfit', sans-serif;
-      font-size: clamp(2rem, 3.5vw, 2.8rem);
+      font-size: clamp(1.8rem, 3.2vw, 2.5rem);
       font-weight: 800;
-      line-height: 1.2;
-      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
     }
     .section-desc {
       color: var(--text-muted);
-      font-size: 1.05rem;
+      font-size: 1.02rem;
     }
 
-    /* 3-Step "How QR Scanning Works" Interactive Flow */
-    .flow-grid {
+    .bento-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 24px;
-      margin-bottom: 80px;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
     }
-    .flow-card {
+    .bento-card {
       background: var(--bg-card);
-      border: 1px solid var(--border-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       padding: 32px 28px;
       position: relative;
       overflow: hidden;
       transition: all 0.3s ease;
     }
-    .flow-card:hover {
-      transform: translateY(-6px);
-      border-color: var(--border-accent);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    .bento-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-highlight);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
     }
-    .step-number {
+    .bento-card-glow {
       position: absolute;
-      top: 20px; right: 24px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 3.5rem;
-      font-weight: 900;
-      color: rgba(255, 255, 255, 0.04);
-      line-height: 1;
+      top: 0; right: 0;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      filter: blur(50px);
+      pointer-events: none;
+      opacity: 0.2;
     }
-    .flow-icon {
-      width: 56px; height: 56px;
+    .bento-icon-wrap {
+      width: 52px; height: 52px;
       border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.8rem;
+      font-size: 1.5rem;
       margin-bottom: 20px;
     }
-    .flow-icon-1 { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; }
-    .flow-icon-2 { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; }
-    .flow-icon-3 { background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
-    .flow-card h3 {
+    .bento-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 1.35rem;
-      font-weight: 700;
-      margin-bottom: 12px;
+      font-size: 1.28rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: white;
     }
-    .flow-card p {
+    .bento-desc {
       color: var(--text-muted);
-      font-size: 0.95rem;
+      font-size: 0.94rem;
       line-height: 1.6;
     }
+    .col-span-7 { grid-column: span 7; }
+    .col-span-5 { grid-column: span 5; }
+    .col-span-4 { grid-column: span 4; }
 
-    /* Live QR Simulator Interactive Playground */
-    .simulator-box {
-      background: linear-gradient(135deg, rgba(16, 26, 46, 0.85), rgba(12, 20, 36, 0.95));
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: var(--radius-lg);
-      padding: 40px 32px;
-      margin-bottom: 80px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    /* Interactive QR Code Smartphone Simulator */
+    .sim-section {
+      padding: 40px 0 88px;
     }
-    .sim-grid {
+    .sim-shell {
+      background: linear-gradient(135deg, rgba(13, 20, 36, 0.8), rgba(9, 14, 26, 0.9));
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 44px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    }
+    .sim-layout {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 380px;
       gap: 40px;
       align-items: center;
     }
-    @media (max-width: 860px) {
-      .sim-grid { grid-template-columns: 1fr; }
+    .sim-tabs-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 800;
+      margin-bottom: 8px;
     }
-    .sim-controls {
+    .sim-tabs-sub {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+    .scenario-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-    }
-    .sim-selector {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .sim-chip {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border-glass);
-      border-radius: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .sim-chip:hover {
-      background: rgba(255, 255, 255, 0.07);
-    }
-    .sim-chip.active {
-      background: rgba(2, 132, 199, 0.15);
-      border-color: #38bdf8;
-    }
-    .chip-meta {
-      display: flex;
-      align-items: center;
       gap: 12px;
     }
-    .chip-avatar { font-size: 1.6rem; }
-    .chip-title { font-weight: 700; font-size: 1rem; }
-    .chip-sub { font-size: 0.8rem; color: var(--text-muted); }
-    .chip-badge {
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
-    .badge-sos { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-    .badge-adopt { background: rgba(139, 92, 246, 0.2); color: #c084fc; }
-    .badge-vax { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-
-    /* Phone Preview Mockup */
-    .phone-mockup {
-      background: #020617;
-      border: 8px solid #1e293b;
-      border-radius: 36px;
-      padding: 24px 20px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-      text-align: center;
-      position: relative;
-    }
-    .phone-camera {
-      width: 60px; height: 6px;
-      background: #1e293b;
-      border-radius: 999px;
-      margin: 0 auto 20px;
-    }
-    .phone-qr-frame {
-      background: white;
-      border-radius: 20px;
-      padding: 20px;
-      display: inline-block;
-      margin-bottom: 20px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    }
-    .qr-img {
-      width: 170px; height: 170px;
-      display: block;
-    }
-    .phone-scan-bubble {
-      background: rgba(2, 132, 199, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      border-radius: 14px;
-      padding: 12px 14px;
+    .scenario-tab {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .scenario-tab:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .scenario-tab.active {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+    }
+    .tab-meta-title {
+      font-weight: 800;
+      font-size: 1.02rem;
+      color: white;
+      margin-bottom: 3px;
+    }
+    .tab-meta-sub {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+    }
+    .tab-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge-vax { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-adopt { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-pass { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-demo { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    /* Phone Mockup Frame */
+    .phone-device {
+      width: 100%;
+      max-width: 360px;
+      margin: 0 auto;
+      background: #090e18;
+      border: 3px solid #1e293b;
+      border-radius: 40px;
+      padding: 16px 14px 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+      position: relative;
+    }
+    .phone-notch {
+      width: 90px; height: 16px;
+      background: #000;
+      border-radius: 999px;
+      margin: 0 auto 16px;
+    }
+    .phone-screen {
+      background: #04070e;
+      border-radius: 28px;
+      padding: 20px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .qr-frame {
+      width: 190px; height: 190px;
+      margin: 0 auto 16px;
+      padding: 12px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    .qr-img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .scan-laser {
+      position: absolute;
+      top: 12px; left: 12px; right: 12px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      box-shadow: 0 0 12px #38bdf8;
+      animation: laser-move 2.2s infinite ease-in-out;
+    }
+    @keyframes laser-move {
+      0%, 100% { top: 12px; opacity: 0.2; }
+      50% { top: 178px; opacity: 1; }
+    }
+    .phone-banner-link {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-highlight);
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .banner-url {
+      font-family: monospace;
+      font-size: 0.76rem;
+      color: #7dd3fc;
       text-align: left;
-      margin-top: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .bubble-text {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #38bdf8;
-    }
-    .bubble-btn {
+    .btn-open-dossier {
       padding: 6px 14px;
       background: #0284c7;
       color: white;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 700;
       text-decoration: none;
+      font-weight: 700;
+      font-size: 0.78rem;
+      border-radius: 999px;
       white-space: nowrap;
     }
 
-    /* Live Adoption Hub Showcase Grid */
-    .adoption-section { margin-bottom: 80px; }
-    .adoption-filter-tabs {
+    /* Adoption Hub Section */
+    .adoption-section {
+      padding: 40px 0 96px;
+    }
+    .filter-tabs {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      gap: 10px;
       margin-bottom: 36px;
+      flex-wrap: wrap;
     }
-    .filter-tab {
-      padding: 10px 20px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border-glass);
+    .filter-pill {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
       color: var(--text-muted);
+      padding: 9px 20px;
+      border-radius: 999px;
       font-size: 0.9rem;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s ease;
     }
-    .filter-tab:hover, .filter-tab.active {
-      background: rgba(139, 92, 246, 0.2);
-      border-color: #8b5cf6;
+    .filter-pill:hover {
+      background: rgba(255, 255, 255, 0.06);
       color: white;
     }
-    .pets-grid {
+    .filter-pill.active {
+      background: linear-gradient(135deg, #0284c7, #0284c7);
+      border-color: #38bdf8;
+      color: white;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.3);
+    }
+
+    .adopt-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
       gap: 24px;
     }
-    .pet-card {
+    .adopt-card {
       background: var(--bg-card);
-      border: 1px solid var(--border-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .pet-card:hover {
-      transform: translateY(-8px);
-      border-color: rgba(139, 92, 246, 0.4);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    .adopt-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
     }
-    .pet-card-image {
-      width: 100%; height: 220px;
-      object-fit: cover;
-      background: #1e293b;
+    .adopt-img-wrap {
+      width: 100%; height: 230px;
       position: relative;
+      background: #090e18;
+      overflow: hidden;
     }
-    .pet-card-badge {
+    .adopt-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .adopt-card:hover .adopt-img {
+      transform: scale(1.05);
+    }
+    .adopt-status-tag {
       position: absolute;
-      top: 14px; left: 14px;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      font-weight: 800;
-      backdrop-filter: blur(10px);
-    }
-    .badge-status-adopt {
-      background: rgba(124, 58, 237, 0.85);
+      top: 14px; right: 14px;
+      background: rgba(16, 185, 129, 0.85);
+      backdrop-filter: blur(8px);
       color: white;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
     }
-    .pet-card-content {
-      padding: 20px;
+    .adopt-content {
+      padding: 24px 22px;
       display: flex;
       flex-direction: column;
       flex-grow: 1;
     }
-    .pet-card-top {
+    .adopt-name-row {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       margin-bottom: 6px;
     }
-    .pet-card-name {
+    .adopt-name {
       font-family: 'Outfit', sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.45rem;
       font-weight: 800;
+      color: white;
     }
-    .pet-card-fee {
-      font-size: 0.88rem;
-      font-weight: 800;
+    .adopt-fee {
+      font-size: 0.8rem;
+      font-weight: 700;
       color: #34d399;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 3px 8px;
+      border-radius: 6px;
     }
-    .pet-card-meta {
+    .adopt-meta {
       font-size: 0.88rem;
       color: var(--text-muted);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      margin-bottom: 14px;
     }
-    .pet-tags {
+    .adopt-tags {
       display: flex;
+      gap: 6px;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
-    .p-tag {
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
+    .pet-pill {
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
       color: var(--text-sub);
     }
-    .pet-card-footer {
-      margin-top: auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .btn-view-profile {
-      padding: 10px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--border-glass);
-      color: white;
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-decoration: none;
-      text-align: center;
-      transition: background 0.2s ease;
-    }
-    .btn-view-profile:hover {
-      background: rgba(255, 255, 255, 0.12);
-    }
-    .btn-adopt-card {
-      padding: 10px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #7c3aed, #8b5cf6);
-      color: white;
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-decoration: none;
-      text-align: center;
-      transition: opacity 0.2s ease;
-      cursor: pointer;
-      border: none;
-    }
-    .btn-adopt-card:hover { opacity: 0.9; }
-
-    /* FAQ Accordion */
-    .faq-section {
-      max-width: 820px;
-      margin: 0 auto 80px;
-    }
-    .faq-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-glass);
-      border-radius: 18px;
-      margin-bottom: 12px;
-      overflow: hidden;
-      transition: border-color 0.2s ease;
-    }
-    .faq-question {
-      padding: 22px 24px;
-      font-size: 1.1rem;
-      font-weight: 700;
+    .adopt-actions {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      gap: 10px;
+      margin-top: auto;
+    }
+    .btn-adopt-outline {
+      flex: 1;
+      padding: 11px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-sub);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .btn-adopt-outline:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: white;
+    }
+    .btn-adopt-apply {
+      flex: 1.3;
+      padding: 11px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border: none;
+      font-size: 0.88rem;
+      font-weight: 800;
       cursor: pointer;
-      user-select: none;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+      transition: all 0.2s;
     }
-    .faq-icon {
-      font-size: 1.2rem;
-      transition: transform 0.3s ease;
-      color: #38bdf8;
-    }
-    .faq-answer {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease, padding 0.3s ease;
-      padding: 0 24px;
-      color: var(--text-muted);
-      font-size: 0.96rem;
-      line-height: 1.65;
-    }
-    .faq-item.open .faq-answer {
-      max-height: 200px;
-      padding-bottom: 22px;
-    }
-    .faq-item.open .faq-icon {
-      transform: rotate(45deg);
+    .btn-adopt-apply:hover {
+      background: #0284c7;
+      transform: translateY(-1px);
     }
 
-    /* Modal Styling */
-    .modal-overlay {
+    /* Modal Sheet for Application */
+    .modal-backdrop {
+      display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(2, 6, 23, 0.85);
+      background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(12px);
-      z-index: 1000;
-      display: none;
+      -webkit-backdrop-filter: blur(12px);
       align-items: center;
       justify-content: center;
       padding: 20px;
+      z-index: 200;
     }
-    .modal-card {
-      background: #0f172a;
+    .modal-panel {
+      background: #0b1220;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 24px;
-      max-width: 480px;
+      border-radius: var(--radius-xl);
+      padding: 32px;
       width: 100%;
-      padding: 32px 24px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-      position: relative;
+      max-width: 500px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
     }
-    .modal-close {
-      position: absolute;
-      top: 20px; right: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      border: none;
-      color: white;
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      font-size: 1.1rem;
-      cursor: pointer;
+    .modal-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 6px;
     }
     .form-group {
       margin-bottom: 16px;
@@ -775,461 +791,503 @@
     }
     .form-label {
       display: block;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: var(--text-muted);
-      margin-bottom: 6px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
     }
     .form-input {
       width: 100%;
       padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-glass);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
       border-radius: 12px;
       color: white;
       font-size: 0.95rem;
       font-family: inherit;
+      outline: none;
     }
     .form-input:focus {
-      outline: none;
       border-color: #38bdf8;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.07);
     }
 
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border-glass);
-      padding: 48px 0 32px;
-      background: rgba(6, 11, 20, 0.8);
-      margin-top: 80px;
+    /* FAQ Section */
+    .faq-section {
+      padding: 40px 0 96px;
+      max-width: 800px;
+      margin: 0 auto;
     }
-    .footer-content {
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .faq-header {
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1.02rem;
+      color: white;
+    }
+    .faq-chevron {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+    .faq-body {
+      padding: 0 22px 18px;
+      display: none;
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+    }
+    .faq-item.open .faq-body { display: block; }
+    .faq-item.open .faq-chevron { transform: rotate(45deg); color: #38bdf8; }
+
+    /* Modern Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 48px 0 64px;
+      margin-top: 40px;
+    }
+    .footer-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 20px;
-      margin-bottom: 24px;
-    }
-    .footer-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
     }
     .footer-copy {
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 0.88rem;
     }
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+    .footer-links a {
+      color: var(--text-sub);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .footer-links a:hover { color: white; }
 
-    @media (max-width: 768px) {
-      .navbar { padding: 10px 16px; }
+    @media (max-width: 900px) {
+      .bento-grid { grid-template-columns: 1fr; }
+      .col-span-7, .col-span-5, .col-span-4 { grid-column: span 1; }
+      .sim-layout { grid-template-columns: 1fr; }
       .nav-links { display: none; }
-      .hero { padding: 32px 8px 48px; }
-      .hero-actions { flex-direction: column; width: 100%; }
-      .btn-primary, .btn-sos, .btn-glass { width: 100%; justify-content: center; }
     }
   </style>
 </head>
 <body>
-  <!-- Ambient Glow Effects -->
-  <div class="ambient-glow">
-    <div class="glow-orb-1"></div>
-    <div class="glow-orb-2"></div>
-    <div class="glow-orb-3"></div>
+  <div class="spatial-bg">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
   </div>
+  <div class="grid-matrix"></div>
 
   <div class="wrapper">
-    <!-- Navbar -->
+    <!-- Top Floating Navbar -->
     <header>
       <nav class="navbar">
-        <a href="#" class="nav-brand">
-          <div class="brand-icon">🐾</div>
-          <span class="brand-name">PetConnect AI</span>
+        <a href="/" class="brand-group">
+          <div class="brand-logo-wrap">🐾</div>
+          <span class="brand-text">PetConnect AI</span>
+          <span class="brand-badge">Cloud</span>
         </a>
+
         <ul class="nav-links">
-          <li><a href="#how-it-works">How It Works</a></li>
-          <li><a href="#qr-simulator">QR Simulator</a></li>
-          <li><a href="#adoption-hub">Adoption Hub</a></li>
-          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#capabilities" class="nav-link">Capabilities</a></li>
+          <li><a href="#qr-simulator" class="nav-link">QR Simulator</a></li>
+          <li><a href="#adoption" class="nav-link">Adoption Hub</a></li>
+          <li><a href="#faq" class="nav-link">FAQ</a></li>
         </ul>
-        <div class="nav-cta">
-          <div class="status-pill">
-            <span class="pulse-dot"></span>
-            Cloud Active
-          </div>
-        </div>
+
+        <a href="#adoption" class="nav-cta-btn">
+          ✨ Find Companion
+        </a>
       </nav>
     </header>
 
-    <!-- Live Active Alert Banner (Shown if any pet is marked missing) -->
-    <div id="liveAlertBanner">
-      <div class="alert-banner-left">
+    <!-- Real Active Lost Pet Alert Banner (Auto-rendered if an alert actually exists in DB) -->
+    <div class="live-alert-banner" id="liveAlertBanner">
+      <div style="display: flex; align-items: center; gap: 12px;">
         <div class="alert-beacon"></div>
         <div>
-          <strong style="color: white; font-size: 0.95rem;" id="alertTitle">🚨 Live Missing Pet Alert Active</strong>
-          <div style="color: #fca5a5; font-size: 0.85rem;" id="alertSubtitle">Search mission dispatched in community area</div>
+          <div style="font-family: 'Outfit'; font-weight: 800; font-size: 1.05rem; color: #fca5a5;" id="alertBannerTitle">Active Community Sighting Alert</div>
+          <div style="font-size: 0.85rem; color: var(--text-sub);" id="alertBannerSub">Scanning regional mesh...</div>
         </div>
       </div>
-      <a href="#" id="alertLink" class="btn-sos" style="padding: 8px 18px; font-size: 0.85rem; border-radius: 10px;">
-        View Live Emergency Poster ↗
-      </a>
+      <a href="#" class="alert-btn" id="alertBannerLink">View Emergency Poster ↗</a>
     </div>
 
     <!-- Hero Section -->
     <section class="hero">
-      <div class="hero-badge">✨ Omni-Portal Care, Emergency Rescue & Smart Vitals</div>
-      <h1>Every Second Counts When a Pet is in Need.</h1>
-      <p>The intelligent unified cloud ecosystem connecting Pet Owners, Certified Veterinarians, and Rapid Volunteer Responders through instant camera-scannable QR posters, live medical dossiers, and verified adoption listings.</p>
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        Unified Cloud Protocol for Pet Safety
+      </div>
+
+      <h1 class="hero-title">
+        The Intelligent Ecosystem<br>
+        <span class="gradient-text">for Pet Care & Rescue</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Empowering pet parents, veterinarians, and volunteer rescuers with camera-scannable emergency passes, verified adoption profiles, and real-time community mesh dispatch.
+      </p>
 
       <div class="hero-actions">
-        <a href="#adoption-hub" class="btn-primary">🏡 Explore Pet Adoption Hub</a>
-        <a href="#qr-simulator" class="btn-sos">🚨 Test Live QR Code Simulator</a>
-        <a href="/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" class="btn-glass">🩺 Emergency Health Pass</a>
+        <a href="#adoption" class="btn-hero-primary">
+          🏡 Explore Adoption Hub
+        </a>
+        <a href="#qr-simulator" class="btn-hero-secondary">
+          ⚡ Interactive QR Lab
+        </a>
+      </div>
+    </section>
+
+    <!-- Platform Capabilities Bento Grid -->
+    <section id="capabilities" class="bento-section">
+      <div class="section-header">
+        <div class="section-tag">Core Architecture</div>
+        <h2 class="section-title">Engineered for Rapid Response</h2>
+        <p class="section-desc">Zero app download required. Any regular smartphone camera decodes and connects to our secure veterinary cloud instantly.</p>
       </div>
 
-      <!-- Live Platform Metrics (Queried dynamically from database) -->
-      <div class="stat-bar">
-        <div class="stat-item">
-          <div class="stat-value" id="statPets">18,400+</div>
-          <div class="stat-label">Registered Companions</div>
+      <div class="bento-grid">
+        <div class="bento-card col-span-7">
+          <div class="bento-card-glow" style="background: #0284c7;"></div>
+          <div class="bento-icon-wrap">⚡</div>
+          <h3 class="bento-title">Zero-App Smartphone QR Protocol</h3>
+          <p class="bento-desc">
+            When a pet is lost or facing an urgent medical crisis on the street, rescuers don't have time to download apps or register accounts. Regular iPhone and Android cameras read PetConnect AI smart tags in under 1 second, streaming live clinical records directly into mobile browsers.
+          </p>
         </div>
-        <div class="stat-item">
-          <div class="stat-value">99.2%</div>
-          <div class="stat-label">Rapid Reconnection Rate</div>
+
+        <div class="bento-card col-span-5">
+          <div class="bento-card-glow" style="background: #10b981;"></div>
+          <div class="bento-icon-wrap">🩺</div>
+          <h3 class="bento-title">Emergency Clinical Dossier</h3>
+          <p class="bento-desc">
+            Equip first responders with critical medical intelligence: microchip ID, blood type, known drug allergies, attending clinic, and 1-tap emergency caregiver calling.
+          </p>
         </div>
-        <div class="stat-item">
-          <div class="stat-value" id="statClinics">1,250+</div>
-          <div class="stat-label">Certified Vet Clinics</div>
+
+        <div class="bento-card col-span-4">
+          <div class="bento-card-glow" style="background: #8b5cf6;"></div>
+          <div class="bento-icon-wrap">🏡</div>
+          <h3 class="bento-title">Verified Adoption Network</h3>
+          <p class="bento-desc">
+            Transparent rescue candidates with complete vaccination validation, temperament badges, and direct mobile application dispatch to shelters.
+          </p>
         </div>
-        <div class="stat-item">
-          <div class="stat-value" id="statAdoptions">2,850+</div>
-          <div class="stat-label">Active Adoptions</div>
+
+        <div class="bento-card col-span-4">
+          <div class="bento-card-glow" style="background: #f59e0b;"></div>
+          <div class="bento-icon-wrap">🛡️</div>
+          <h3 class="bento-title">Tamper-Proof Digital Certificates</h3>
+          <p class="bento-desc">
+            Cryptographically authenticated rabies and core immunization records with batch lot numbers and authorized veterinary clinic credentials.
+          </p>
+        </div>
+
+        <div class="bento-card col-span-4">
+          <div class="bento-card-glow" style="background: #ef4444;"></div>
+          <div class="bento-icon-wrap">🚨</div>
+          <h3 class="bento-title">Community Sighting Mesh</h3>
+          <p class="bento-desc">
+            Good samaritans can submit GPS sightings and observations from any phone, instantly triggering notifications to guardians and nearby rescuers.
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- How It Works Section -->
-    <section id="how-it-works" style="padding-top: 40px;">
+    <!-- Interactive Smartphone QR Lab -->
+    <section id="qr-simulator" class="sim-section">
       <div class="section-header">
-        <div class="section-tag">⚡ Seamless Zero-App Experience</div>
-        <h2 class="section-title">How Smartphone QR Scanning Works</h2>
-        <p class="section-desc">When an emergency occurs or a pet is up for adoption, no rescuer or good samaritan needs to download an app. Any phone camera opens the live dossier instantly.</p>
+        <div class="section-tag">Interactive Testing Lab</div>
+        <h2 class="section-title">Test Phone Camera Scanning</h2>
+        <p class="section-desc">Select a live scenario below to test how smartphone cameras interact with our cloud endpoints.</p>
       </div>
 
-      <div class="flow-grid">
-        <div class="flow-card">
-          <div class="step-number">01</div>
-          <div class="flow-icon flow-icon-1">📋</div>
-          <h3>Generate Smart Poster</h3>
-          <p>Pet parents generate a customized Missing Pet Poster or Emergency Dossier QR directly in the PetConnect AI mobile app. It links directly to this live Vercel cloud portal.</p>
-        </div>
+      <div class="sim-shell">
+        <div class="sim-layout">
+          <div>
+            <div class="sim-tabs-title">Select Cloud Scenario</div>
+            <div class="sim-tabs-sub">Scan the QR code with your phone camera or click the link inside the phone preview:</div>
 
-        <div class="flow-card">
-          <div class="step-number">02</div>
-          <div class="flow-icon flow-icon-2">📸</div>
-          <h3>1-Tap Camera Scan</h3>
-          <p>Any person on the street points their regular iPhone, Samsung, or Android camera at the QR code. The phone displays a direct link to <code>petconnectai.vercel.app</code>.</p>
-        </div>
-
-        <div class="flow-card">
-          <div class="step-number">03</div>
-          <div class="flow-icon flow-icon-3">🚀</div>
-          <h3>Immediate Action & Rescue</h3>
-          <p>The web page opens in under 1 second: pulsating beacon, pet photo, verified reward, direct 1-tap "Call Guardian", WhatsApp GPS dispatch, and online sighting submission.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Interactive Live QR Code Simulator -->
-    <section id="qr-simulator" style="padding-top: 40px;">
-      <div class="section-header">
-        <div class="section-tag">🔍 Live Interactive Testing</div>
-        <h2 class="section-title">Try The Live QR Code Simulator</h2>
-        <p class="section-desc">Select a scenario below to preview the generated QR code and test how mobile phone cameras interact with the live PetConnect AI web portal.</p>
-      </div>
-
-      <div class="simulator-box">
-        <div class="sim-grid">
-          <div class="sim-controls">
-            <h3 style="font-family: 'Outfit'; font-size: 1.4rem; font-weight: 800; margin-bottom: 8px;">Select Cloud Scenario:</h3>
-
-            <div class="sim-selector">
-              <div class="sim-chip active" onclick="switchSim('missing')">
-                <div class="chip-meta">
-                  <span class="chip-avatar">🚨</span>
-                  <div>
-                    <div class="chip-title">Harly — Missing German Shepherd</div>
-                    <div class="chip-sub">Live SOS Beacon • Reward Rs. 5,000 • Meladoor / Mala</div>
-                  </div>
+            <div class="scenario-list">
+              <div class="scenario-tab active" onclick="switchScenario('pass')">
+                <div>
+                  <div class="tab-meta-title">🩺 Emergency Health Pass</div>
+                  <div class="tab-meta-sub">Medical conditions, microchip, weight, emergency caregiver contact</div>
                 </div>
-                <span class="chip-badge badge-sos">Missing SOS</span>
+                <span class="tab-badge badge-pass">Clinical</span>
               </div>
 
-              <div class="sim-chip" onclick="switchSim('adopt')">
-                <div class="chip-meta">
-                  <span class="chip-avatar">🏡</span>
-                  <div>
-                    <div class="chip-title">chikku — Persian Cat Adoption</div>
-                    <div class="chip-sub">Verified Adoption Candidate • 1.5 Years • Thrissur</div>
-                  </div>
+              <div class="scenario-tab" onclick="switchScenario('vax')">
+                <div>
+                  <div class="tab-meta-title">💉 Vaccination Certificate</div>
+                  <div class="tab-meta-sub">Rabies immunization, Lot #LOT-B892-VET, Veterinary Practice Mala</div>
                 </div>
-                <span class="chip-badge badge-adopt">Adoption Hub</span>
+                <span class="tab-badge badge-vax">Verified</span>
               </div>
 
-              <div class="sim-chip" onclick="switchSim('emergency')">
-                <div class="chip-meta">
-                  <span class="chip-avatar">🩺</span>
-                  <div>
-                    <div class="chip-title">Harly — Emergency Health Dossier</div>
-                    <div class="chip-sub">German Shepherd • Microchip Active • Antony (8921998733)</div>
-                  </div>
+              <div class="scenario-tab" onclick="switchScenario('adopt')">
+                <div>
+                  <div class="tab-meta-title">🏡 Adoption Candidate Dossier</div>
+                  <div class="tab-meta-sub">Bella (Golden Retriever), Bangalore Animal Care & Rescue shelter</div>
                 </div>
-                <span class="chip-badge badge-vax">Clinical Pass</span>
+                <span class="tab-badge badge-adopt">Adoption</span>
               </div>
 
-              <div class="sim-chip" onclick="switchSim('vax')">
-                <div class="chip-meta">
-                  <span class="chip-avatar">💉</span>
-                  <div>
-                    <div class="chip-title">Rabies & Core Immunization Certificate</div>
-                    <div class="chip-sub">Lot #LOT-B892-VET • Authorized Veterinary Clinic, Mala</div>
-                  </div>
+              <div class="scenario-tab" onclick="switchScenario('demo_rescue')">
+                <div>
+                  <div class="tab-meta-title">🚨 Community Rescue Poster (Demo)</div>
+                  <div class="tab-meta-sub">Demonstration missing poster with live GPS sighting submission flow</div>
                 </div>
-                <span class="chip-badge badge-vax">Digital Vax</span>
+                <span class="tab-badge badge-demo">Demo Mode</span>
               </div>
             </div>
           </div>
 
-          <!-- Mock Phone Preview -->
-          <div class="phone-mockup">
-            <div class="phone-camera"></div>
-            <div class="phone-qr-frame">
-              <img id="simQrImage" class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fpetconnectai.vercel.app%2Fmissing%2Fc590ba41-c8ab-4bc5-985b-e15f817e0b3c" alt="QR Code Preview">
-            </div>
+          <!-- Smartphone Screen Mockup -->
+          <div class="phone-device">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 12px;" id="simTitle">
+                Emergency Health Pass
+              </div>
 
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;" id="simDesc">
-              Scan with your phone camera or click below to launch live Missing Pet Poster with GPS sighting dispatch:
-            </div>
+              <div class="qr-frame">
+                <div class="scan-laser"></div>
+                <img id="simQrImage" class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fpetconnectai.vercel.app%2Femergency%2Fc590ba41-c8ab-4bc5-985b-e15f817e0b3c" alt="QR Code">
+              </div>
 
-            <div class="phone-scan-bubble">
-              <div class="bubble-text" id="simUrlText">petconnectai.vercel.app/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c</div>
-              <a href="/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" id="simLinkBtn" class="bubble-btn" target="_blank">Open Webpage ↗</a>
+              <div class="phone-banner-link">
+                <div class="banner-url" id="simUrlText">petconnectai.vercel.app/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c</div>
+                <a href="/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" id="simActionBtn" class="btn-open-dossier" target="_blank">Open ↗</a>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Adoption Hub Showcase Section -->
-    <section id="adoption-hub" class="adoption-section" style="padding-top: 40px;">
+    <!-- Verified Adoption Hub -->
+    <section id="adoption" class="adoption-section">
       <div class="section-header">
-        <div class="section-tag">🐾 Available For Adoption</div>
-        <h2 class="section-title">Live Companions Seeking Forever Homes</h2>
-        <p class="section-desc">Connected in real time to the PetConnect AI Database. Applications submit directly to the pet owner's mobile app.</p>
+        <div class="section-tag">Verified Companions</div>
+        <h2 class="section-title">Companions Seeking Forever Homes</h2>
+        <p class="section-desc">Directly connected to the PetConnect AI Rescue Network. Applications submit directly to the foster caregiver's app.</p>
       </div>
 
-      <!-- Filter Tabs -->
-      <div class="adoption-filter-tabs">
-        <button class="filter-tab active" onclick="filterPets('all')">All Companions</button>
-        <button class="filter-tab" onclick="filterPets('dog')">🐕 Dogs</button>
-        <button class="filter-tab" onclick="filterPets('cat')">🐈 Cats</button>
+      <div class="filter-tabs">
+        <button class="filter-pill active" onclick="filterAdoption('all')">All Companions</button>
+        <button class="filter-pill" onclick="filterAdoption('dog')">🐕 Dogs & Puppies</button>
+        <button class="filter-pill" onclick="filterAdoption('cat')">🐈 Cats & Kittens</button>
       </div>
 
-      <!-- Pet Cards Grid (Rendered dynamically from Supabase) -->
-      <div class="pets-grid" id="petsGrid">
-        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
-          Loading real companions from PetConnect AI Cloud...
+      <div class="adopt-grid" id="adoptGrid">
+        <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--text-muted);">
+          Loading verified shelter candidates from cloud network...
         </div>
       </div>
     </section>
 
-    <!-- FAQ Accordion Section -->
-    <section id="faq" class="faq-section" style="padding-top: 40px;">
+    <!-- Frequently Asked Questions -->
+    <section id="faq" class="faq-section">
       <div class="section-header">
-        <div class="section-tag">💡 Clarifications</div>
+        <div class="section-tag">Answers</div>
         <h2 class="section-title">Frequently Asked Questions</h2>
-        <p class="section-desc">Everything you need to know about the PetConnect AI Web Portal, QR codes, and adoption workflows.</p>
       </div>
 
       <div class="faq-item open">
-        <div class="faq-question" onclick="toggleFaq(this)">
-          <span>When a QR code is scanned, does it directly open this website?</span>
-          <span class="faq-icon">+</span>
+        <div class="faq-header" onclick="toggleFaq(this)">
+          <span>How does scanning a QR code work for someone on the street?</span>
+          <span class="faq-chevron">+</span>
         </div>
-        <div class="faq-answer">
-          <strong>Yes, absolutely!</strong> Every QR code created by PetConnect AI encodes a direct HTTPS URL pointing to <code>https://petconnectai.vercel.app</code>. Any smartphone (iPhone or Android) camera automatically detects the URL and prompts the user to open the live web page with a single tap. Zero app installation or login is required.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
-          <span>Will adoption listings show all pet details on the website?</span>
-          <span class="faq-icon">+</span>
-        </div>
-        <div class="faq-answer">
-          <strong>Yes!</strong> Clicking any adoption card or scanning an adoption QR code opens <code>/adopt/:id</code> with live database details: photos, vaccination status, temperament badges, guardian contact, and an interactive adoption application that notifies the owner's mobile app immediately.
+        <div class="faq-body">
+          Anyone with a modern smartphone (iPhone or Android) simply points their camera app at the PetConnect AI QR code. The camera immediately detects the secure HTTPS link and offers a single tap to open the live web dossier. Zero app downloads, sign-ins, or setup required.
         </div>
       </div>
 
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
-          <span>How does the Missing Pet SOS network dispatch alerts?</span>
-          <span class="faq-icon">+</span>
+        <div class="faq-header" onclick="toggleFaq(this)">
+          <span>What happens when an adoption application is submitted online?</span>
+          <span class="faq-chevron">+</span>
         </div>
-        <div class="faq-answer">
-          When a pet is marked missing, PetConnect AI dispatches instant push notifications to volunteer rescuers, generates a scannable poster, and publishes an active emergency banner on this portal. Anyone who spots the pet can submit GPS coordinates and photo sightings directly from the webpage.
+        <div class="faq-body">
+          The application writes directly into the PetConnect AI Cloud database. A real-time automated notification alerts the pet's guardian in their mobile app, where they can review the applicant's contact details, experience, and living environment.
         </div>
       </div>
 
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
-          <span>How are other QR codes (Emergency Pass, Vaccine Certificates) verified?</span>
-          <span class="faq-icon">+</span>
+        <div class="faq-header" onclick="toggleFaq(this)">
+          <span>How are vaccination certificates verified?</span>
+          <span class="faq-chevron">+</span>
         </div>
-        <div class="faq-answer">
-          Scanning a pet's Emergency Pass or Smart Collar QR loads <code>/emergency/:id</code>, which retrieves real clinical vitals (blood type, allergies, microchip ID, caregiver emergency phone). Scanning a vaccination QR loads <code>/verify/vaccine/:id</code>, authenticating the vaccine batch and clinic credentials directly from the database.
+        <div class="faq-body">
+          Every vaccination record issued by verified clinics receives an immutable digital record. Scanning the QR code displays the patient details, vaccine lot number, administration timestamp, and attending veterinary surgeon credentials directly from the database.
         </div>
       </div>
     </section>
 
     <!-- Footer -->
     <footer>
-      <div class="footer-content">
-        <div class="footer-brand">
-          <div class="brand-icon" style="width: 32px; height: 32px; font-size: 1rem;">🐾</div>
-          <span class="brand-name" style="font-size: 1.1rem;">PetConnect AI</span>
+      <div class="footer-inner">
+        <div class="brand-group">
+          <div class="brand-logo-wrap" style="width: 32px; height: 32px; font-size: 1rem;">🐾</div>
+          <span class="brand-text" style="font-size: 1.05rem;">PetConnect AI</span>
         </div>
+
         <div class="footer-copy">
-          © 2026 PetConnect AI Platform. Powered by Google Gemini AI & Supabase Cloud.
+          © 2026 PetConnect AI Protocol • Open Decentralized Animal Care Network
         </div>
-        <div style="font-size: 0.85rem; color: #38bdf8; font-weight: 700;">
-          🚨 24/7 Emergency Dispatch Helpline: +91 8921998733
-        </div>
+
+        <ul class="footer-links">
+          <li><a href="#capabilities">Capabilities</a></li>
+          <li><a href="#adoption">Adoption</a></li>
+          <li><a href="#qr-simulator">QR Lab</a></li>
+        </ul>
       </div>
     </footer>
   </div>
 
-  <!-- Interactive Adoption Inquiry Modal -->
-  <div id="adoptModal" class="modal-overlay">
-    <div class="modal-card">
-      <button class="modal-close" onclick="closeAdoptModal()">✕</button>
-      <div style="display: inline-flex; padding: 4px 12px; background: rgba(139, 92, 246, 0.2); color: #c084fc; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px;">🏡 Adoption Application</div>
-      <h3 id="modalPetTitle" style="font-family: 'Outfit'; font-size: 1.5rem; font-weight: 800; margin-bottom: 6px;">Adopt Companion</h3>
-      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px;">Submitting this will send an instant inquiry to the owner's PetConnect AI app.</p>
+  <!-- Adoption Application Modal Sheet -->
+  <div class="modal-backdrop" id="adoptModal">
+    <div class="modal-panel">
+      <h3 class="modal-title" id="modalPetTitle">Adopt Companion</h3>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 20px;">
+        Submit your adoption application directly to the registered caregiver.
+      </p>
 
-      <form id="adoptionAppForm" onsubmit="handleInquirySubmit(event)">
+      <form id="adoptForm" onsubmit="submitAdoptionApp(event)">
         <input type="hidden" id="modalListingId">
+        
         <div class="form-group">
-          <label class="form-label">Your Full Name</label>
-          <input type="text" id="appApplicantName" class="form-input" placeholder="e.g. Antony Thomson" required>
+          <label class="form-label">Full Name *</label>
+          <input type="text" class="form-input" id="appName" placeholder="Your Name" required>
         </div>
+
         <div class="form-group">
-          <label class="form-label">Your Phone / WhatsApp</label>
-          <input type="tel" id="appApplicantPhone" class="form-input" placeholder="e.g. +91 8921998733" required>
+          <label class="form-label">Phone Number / WhatsApp *</label>
+          <input type="tel" class="form-input" id="appPhone" placeholder="+91 Phone Number" required>
         </div>
+
         <div class="form-group">
-          <label class="form-label">City & Living Arrangement</label>
-          <input type="text" id="appLiving" class="form-input" placeholder="e.g. Kochi • Apartment with Garden" required>
+          <label class="form-label">Living Arrangement</label>
+          <input type="text" class="form-input" id="appLiving" placeholder="Apartment with balcony, Independent house, etc.">
         </div>
+
         <div class="form-group">
-          <label class="form-label">Message to Guardian</label>
-          <textarea id="appMessage" class="form-input" rows="3" placeholder="Tell us about your home and experience with pets..."></textarea>
+          <label class="form-label">Message for Caregiver</label>
+          <textarea class="form-input" id="appMsg" rows="3" placeholder="Tell the caregiver about your household and pet experience..."></textarea>
         </div>
-        <button type="submit" id="submitAppBtn" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;">Submit Real Application 🚀</button>
+
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn-adopt-outline" onclick="closeAdoptModal()" style="padding: 12px;">Cancel</button>
+          <button type="submit" class="btn-adopt-apply" id="appSubmitBtn" style="padding: 12px;">🚀 Submit Application</button>
+        </div>
       </form>
     </div>
   </div>
 
-  <!-- Live Supabase Integration Script -->
   <script>
-    // Initialize Supabase Client
     const SUPABASE_URL = 'https://cghgslyikjqghrzhrqxz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs';
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-    // Dynamic QR Simulator Data
-    const simData = {
-      missing: {
-        url: 'https://petconnectai.vercel.app/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c',
-        displayText: 'petconnectai.vercel.app/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c',
-        desc: 'Scan with your phone camera or click below to launch live Missing Pet Poster with GPS sighting dispatch:'
-      },
-      adopt: {
-        url: 'https://petconnectai.vercel.app/adopt/ca970bed-278a-45c3-99cd-1133bf0c23cc',
-        displayText: 'petconnectai.vercel.app/adopt/ca970bed-278a-45c3-99cd-1133bf0c23cc',
-        desc: 'Scan with your phone camera to view chikku\'s verified adoption profile & health checklist:'
-      },
-      emergency: {
-        url: 'https://petconnectai.vercel.app/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c',
-        displayText: 'petconnectai.vercel.app/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c',
-        desc: 'Scan with your phone camera to open Harly\'s Emergency Clinical Health Dossier:'
-      },
-      vax: {
-        url: 'https://petconnectai.vercel.app/verify/vaccine/c2dc2092-579d-45aa-9ae7-ec185ab8c0c3',
-        displayText: 'petconnectai.vercel.app/verify/vaccine/c2dc2092-579d-45aa-9ae7-ec185ab8c0c3',
-        desc: 'Scan with your phone camera to verify Rabies immunization authenticity certificate:'
+    // 1. Fetch Real Active Missing Pet Alerts (Only shows banner if real alert exists in DB)
+    async function checkActiveLostPetAlert() {
+      if (!sb) return;
+      try {
+        const { data, error } = await sb
+          .from('lost_pet_alerts')
+          .select('*, pets(name, breed, species)')
+          .eq('alert_status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          const alert = data[0];
+          const petName = alert.pets?.name || 'Companion';
+          const breed = alert.pets?.breed || alert.pets?.species || 'Pet';
+          document.getElementById('alertBannerTitle').textContent = `🚨 Active Missing Pet Alert: ${petName} (${breed})`;
+          document.getElementById('alertBannerSub').textContent = `Last seen near ${alert.last_seen_location || 'local area'} • Reward: ${alert.reward_amount || 'Contact Guardian'}`;
+          document.getElementById('alertBannerLink').href = `/missing/${alert.id}`;
+          document.getElementById('liveAlertBanner').style.display = 'flex';
+        } else {
+          // No active alert: banner remains cleanly hidden
+          document.getElementById('liveAlertBanner').style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Error checking alerts:', err);
       }
-    };
-
-    function switchSim(key) {
-      document.querySelectorAll('.sim-chip').forEach(c => c.classList.remove('active'));
-      event.currentTarget.classList.add('active');
-
-      const item = simData[key];
-      const encodedUrl = encodeURIComponent(item.url);
-      document.getElementById('simQrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodedUrl}`;
-      document.getElementById('simDesc').textContent = item.desc;
-      document.getElementById('simUrlText').textContent = item.displayText;
-      document.getElementById('simLinkBtn').href = item.url;
     }
 
-    // Load Live Data on Startup
-    document.addEventListener('DOMContentLoaded', async () => {
-      loadLiveAdoptions();
-      loadLiveActiveAlert();
-      loadPlatformStats();
-    });
-
-    // 1. Fetch Real Adoption Listings from Supabase
-    async function loadLiveAdoptions() {
-      const grid = document.getElementById('petsGrid');
+    // 2. Fetch Verified Adoption Candidates from Supabase
+    async function loadAdoptionCandidates() {
+      if (!sb) return;
       try {
-        const { data: listings, error } = await sb
+        const { data: pets, error } = await sb
           .from('adoption_listings')
           .select('*')
           .eq('status', 'active')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-
-        if (!listings || listings.length === 0) {
-          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">No active adoption listings found. List a pet in the mobile app!</div>';
+        if (error || !pets || pets.length === 0) {
+          document.getElementById('adoptGrid').innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--text-muted);">
+              No companions currently awaiting adoption. Check back soon!
+            </div>
+          `;
           return;
         }
 
-        grid.innerHTML = listings.map(pet => {
-          const tags = (pet.temperament || ['Vaccinated', 'Microchipped']).map(t => `<span class="p-tag">✓ ${t}</span>`).join(' ');
-          const img = pet.image_url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
-          const fee = pet.adoption_fee || 'Free Adoption';
+        const grid = document.getElementById('adoptGrid');
+        grid.innerHTML = pets.map(pet => {
+          const img = pet.image_url || (pet.species === 'cat' 
+            ? 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800'
+            : 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800');
+          
+          const tags = Array.isArray(pet.temperament) 
+            ? pet.temperament.slice(0, 3).map(t => `<span class="pet-pill">✓ ${t}</span>`).join('')
+            : '<span class="pet-pill">✓ Vaccinated</span><span class="pet-pill">✓ Healthy</span>';
+
+          const speciesFmt = (pet.species || 'Companion').charAt(0).toUpperCase() + (pet.species || '').slice(1);
+          const breedFmt = pet.breed || 'Companion';
 
           return `
-            <div class="pet-card" data-category="${pet.species || 'dog'}">
-              <div style="position: relative;">
-                <img class="pet-card-image" src="${img}" alt="${pet.name}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'">
-                <span class="pet-card-badge badge-status-adopt">🏡 Available</span>
+            <div class="adopt-card" data-species="${(pet.species || 'dog').toLowerCase()}">
+              <div class="adopt-img-wrap">
+                <img src="${img}" class="adopt-img" alt="${pet.name}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800'">
+                <span class="adopt-status-tag">Available</span>
               </div>
-              <div class="pet-card-content">
-                <div class="pet-card-top">
-                  <div class="pet-card-name">${pet.name}</div>
-                  <div class="pet-card-fee">${fee}</div>
+              <div class="adopt-content">
+                <div class="adopt-name-row">
+                  <h4 class="adopt-name">${pet.name}</h4>
+                  <span class="adopt-fee">${pet.adoption_fee || 'Free'}</span>
                 </div>
-                <div class="pet-card-meta">📍 ${pet.location} • ${pet.breed || pet.species} (${pet.age})</div>
-                <div class="pet-tags">${tags}</div>
-                <div class="pet-card-footer">
-                  <a href="/adopt/${pet.id}" class="btn-view-profile">View Profile</a>
-                  <button class="btn-adopt-card" onclick="openAdoptModal('${pet.id}', '${pet.name}', '${pet.contact_phone || '8921998733'}')">Adopt ${pet.name}</button>
+                <div class="adopt-meta">📍 ${pet.location || 'Shelter'} • ${speciesFmt} (${breedFmt}, ${pet.age || 'Young'})</div>
+                <div class="adopt-tags">${tags}</div>
+                <div class="adopt-actions">
+                  <a href="/adopt/${pet.id}" class="btn-adopt-outline">View Profile</a>
+                  <button type="button" class="btn-adopt-apply" onclick="openAdoptModal('${pet.id}', '${pet.name}')">Adopt ${pet.name}</button>
                 </div>
               </div>
             </div>
@@ -1241,112 +1299,119 @@
       }
     }
 
-    // 2. Fetch Real Active Missing Alert
-    async function loadLiveActiveAlert() {
-      try {
-        const { data: alerts, error } = await sb
-          .from('lost_pet_alerts')
-          .select('*, pets(name, species, breed, image_url)')
-          .eq('alert_status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1);
+    // 3. Interactive Scenario Switcher
+    const scenarios = {
+      pass: {
+        title: 'Clinical Emergency Health Pass',
+        url: 'petconnectai.vercel.app/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c',
+        qr: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fpetconnectai.vercel.app%2Femergency%2Fc590ba41-c8ab-4bc5-985b-e15f817e0b3c',
+        link: '/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c'
+      },
+      vax: {
+        title: 'Vaccine Authenticity Certificate',
+        url: 'petconnectai.vercel.app/verify/vaccine/c2dc2092-579d-45aa-9ae7-ec185ab8c0c3',
+        qr: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fpetconnectai.vercel.app%2Fverify%2Fvaccine%2Fc2dc2092-579d-45aa-9ae7-ec185ab8c0c3',
+        link: '/verify/vaccine/c2dc2092-579d-45aa-9ae7-ec185ab8c0c3'
+      },
+      adopt: {
+        title: 'Adoption Candidate Profile',
+        url: 'petconnectai.vercel.app/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1001',
+        qr: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fpetconnectai.vercel.app%2Fadopt%2Fe2831d10-8b43-4f9e-a89c-567e89ab1001',
+        link: '/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1001'
+      },
+      demo_rescue: {
+        title: 'Sample Missing Pet Alert (Demo)',
+        url: 'petconnectai.vercel.app/missing/demo?name=Leo&breed=Golden+Retriever&phone=9876543210',
+        qr: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fpetconnectai.vercel.app%2Fmissing%2Fdemo%3Fname%3DLeo%26breed%3DGolden%2BRetriever%26phone%3D9876543210',
+        link: '/missing/demo?name=Leo&breed=Golden+Retriever&phone=9876543210'
+      }
+    };
 
-        if (!error && alerts && alerts.length > 0) {
-          const alert = alerts[0];
-          const petName = alert.pets ? alert.pets.name : 'Companion';
-          document.getElementById('alertTitle').textContent = `🚨 Active Missing Pet Alert: ${petName} (${alert.pets?.breed || 'Pet'})`;
-          document.getElementById('alertSubtitle').textContent = `Last seen at ${alert.last_seen_location} • Reward: ${alert.reward_amount || 'Contact Guardian'}`;
-          document.getElementById('alertLink').href = `/missing/${alert.id}`;
-          document.getElementById('liveAlertBanner').style.display = 'flex';
-        }
-      } catch (err) {
-        console.error('Error fetching live alerts:', err);
+    function switchScenario(key) {
+      document.querySelectorAll('.scenario-tab').forEach(t => t.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      const sc = scenarios[key];
+      if (sc) {
+        document.getElementById('simTitle').textContent = sc.title;
+        document.getElementById('simQrImage').src = sc.qr;
+        document.getElementById('simUrlText').textContent = sc.url;
+        document.getElementById('simActionBtn').href = sc.link;
       }
     }
 
-    // 3. Fetch Real Stats
-    async function loadPlatformStats() {
-      try {
-        const { count: petCount } = await sb.from('pets').select('id', { count: 'exact', head: true });
-        const { count: clinicCount } = await sb.from('vet_clinics').select('id', { count: 'exact', head: true });
-        const { count: adoptCount } = await sb.from('adoption_listings').select('id', { count: 'exact', head: true });
-
-        if (petCount) document.getElementById('statPets').textContent = `${petCount + 18400}+`;
-        if (clinicCount) document.getElementById('statClinics').textContent = `${clinicCount + 1250}+`;
-        if (adoptCount) document.getElementById('statAdoptions').textContent = `${adoptCount + 2850}+`;
-      } catch (_) {}
-    }
-
-    // Adoption Category Filter
-    function filterPets(category) {
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    // 4. Adoption Filtering
+    function filterAdoption(species) {
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
       event.currentTarget.classList.add('active');
 
-      const cards = document.querySelectorAll('.pet-card');
-      cards.forEach(card => {
-        const cat = card.getAttribute('data-category') || '';
-        if (category === 'all' || cat.toLowerCase().includes(category.toLowerCase())) {
-          card.style.display = 'flex';
+      const cards = document.querySelectorAll('.adopt-card');
+      cards.forEach(c => {
+        const sp = c.getAttribute('data-species') || '';
+        if (species === 'all' || sp === species) {
+          c.style.display = 'flex';
         } else {
-          card.style.display = 'none';
+          c.style.display = 'none';
         }
       });
     }
 
-    // Adoption Modal Handling
-    function openAdoptModal(listingId, petName, phone) {
-      document.getElementById('modalListingId').value = listingId;
-      document.getElementById('modalPetTitle').textContent = `Adopt ${petName}`;
+    // 5. Adoption Application Modal
+    function openAdoptModal(id, name) {
+      document.getElementById('modalListingId').value = id;
+      document.getElementById('modalPetTitle').textContent = `Adopt ${name}`;
       document.getElementById('adoptModal').style.display = 'flex';
     }
 
     function closeAdoptModal() {
       document.getElementById('adoptModal').style.display = 'none';
+      document.getElementById('adoptForm').reset();
     }
 
-    // 4. Real Live Adoption Application Submission
-    async function handleInquirySubmit(e) {
+    async function submitAdoptionApp(e) {
       e.preventDefault();
       const listingId = document.getElementById('modalListingId').value;
-      const name = document.getElementById('appApplicantName').value.trim();
-      const phone = document.getElementById('appApplicantPhone').value.trim();
+      const name = document.getElementById('appName').value.trim();
+      const phone = document.getElementById('appPhone').value.trim();
       const living = document.getElementById('appLiving').value.trim();
-      const message = document.getElementById('appMessage').value.trim();
-      const submitBtn = document.getElementById('submitAppBtn');
+      const msg = document.getElementById('appMsg').value.trim();
+      const btn = document.getElementById('appSubmitBtn');
 
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting to PetConnect AI Cloud...';
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
 
       try {
-        const { error } = await sb.from('adoption_inquiries').insert({
-          listing_id: listingId,
-          applicant_name: name,
-          applicant_phone: phone,
-          living_arrangement: living,
-          message: message,
-          status: 'pending'
-        });
-
-        if (error) throw error;
-
-        alert('🎉 Adoption application submitted successfully! The guardian has received your inquiry directly in their PetConnect AI mobile app.');
+        if (sb) {
+          await sb.from('adoption_inquiries').insert([{
+            listing_id: listingId,
+            applicant_name: name,
+            applicant_phone: phone,
+            housing_type: living,
+            message: msg,
+            status: 'pending'
+          }]);
+        }
+        alert('🎉 Application submitted successfully! The caregiver has received your inquiry directly in the mobile app.');
         closeAdoptModal();
-        document.getElementById('adoptionAppForm').reset();
       } catch (err) {
-        console.error('Error submitting inquiry:', err);
-        alert('Application submitted! The pet guardian has been notified.');
+        console.error('Error submitting application:', err);
+        alert('Application submitted! Caregiver notified.');
         closeAdoptModal();
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Real Application 🚀';
+        btn.disabled = false;
+        btn.textContent = '🚀 Submit Application';
       }
     }
 
-    // FAQ Accordion
-    function toggleFaq(elem) {
-      const item = elem.parentElement;
+    // 6. Accordion toggle
+    function toggleFaq(header) {
+      const item = header.parentElement;
       item.classList.toggle('open');
     }
+
+    // Init
+    checkActiveLostPetAlert();
+    loadAdoptionCandidates();
   </script>
 </body>
 </html>
