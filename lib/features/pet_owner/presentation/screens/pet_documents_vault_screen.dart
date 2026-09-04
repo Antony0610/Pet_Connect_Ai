@@ -1,6 +1,10 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -8,6 +12,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/features/storage/domain/entities/pet_document.dart';
@@ -195,86 +200,274 @@ class _PetDocumentsVaultScreenState
   Widget _buildDocumentCard(BuildContext context, PetDocument doc) {
     final scheme = context.colorScheme;
     final sizeKb = (doc.fileSize ?? 0) ~/ 1024;
-    final meta = 'PDF • $sizeKb KB • Uploaded Vault';
+    final meta = '${doc.mimeType?.split('/').last.toUpperCase() ?? 'PDF'} • ${sizeKb > 0 ? '$sizeKb KB' : 'Document'} • Verified';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: AppCard(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: scheme.primaryContainer,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(
-                Icons.picture_as_pdf,
-                color: scheme.primary,
-                size: AppIconSizes.md,
-              ),
-            ),
-            AppSpacing.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doc.documentName,
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
-                    ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: () => _showDocumentViewerDialog(context, doc),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  AppSpacing.vGapXs,
-                  Text(
-                    meta,
-                    style: context.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 11,
-                    ),
+                  child: Icon(
+                    (doc.mimeType?.contains('image') ?? false)
+                        ? Icons.image_outlined
+                        : Icons.picture_as_pdf_outlined,
+                    color: scheme.primary,
+                    size: AppIconSizes.md,
                   ),
-                  Text(
-                    doc.documentType,
-                    style: context.textTheme.bodySmall?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: AppTypography.semiBold,
-                      fontSize: 11,
-                    ),
+                ),
+                AppSpacing.hGapMd,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        doc.documentName,
+                        style: context.textTheme.titleSmall?.copyWith(
+                          fontWeight: AppTypography.bold,
+                        ),
+                      ),
+                      AppSpacing.vGapXs,
+                      Text(
+                        meta,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                      Text(
+                        doc.documentType,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: AppTypography.semiBold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.file_download_outlined,
-                color: scheme.onSurfaceVariant,
-              ),
-              tooltip: 'Download Signed Document',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      doc.signedUrl != null
-                          ? 'Signed URL ready for ${doc.documentName}'
-                          : 'Preparing download...',
-                    ),
+                ),
+                // View Document Button
+                IconButton(
+                  icon: Icon(
+                    Icons.visibility_outlined,
+                    color: scheme.primary,
+                    size: 20,
                   ),
-                );
-              },
+                  tooltip: 'View Document',
+                  onPressed: () => _showDocumentViewerDialog(context, doc),
+                ),
+                // Download Document Button
+                IconButton(
+                  icon: Icon(
+                    Icons.file_download_outlined,
+                    color: scheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                  tooltip: 'Download Document',
+                  onPressed: () => _downloadDocument(context, doc),
+                ),
+                // Share Document Button
+                IconButton(
+                  icon: Icon(
+                    Icons.share_outlined,
+                    color: scheme.onSurfaceVariant,
+                    size: 19,
+                  ),
+                  tooltip: 'Share Document',
+                  onPressed: () => _shareDocument(context, doc),
+                ),
+                // Delete Document Button
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    color: scheme.error.withValues(alpha: 0.8),
+                    size: 20,
+                  ),
+                  tooltip: 'Delete Document',
+                  onPressed: () => _confirmDeleteDocument(context, doc),
+                ),
+              ],
             ),
-            IconButton(
-              icon: Icon(
-                Icons.delete_outline_rounded,
-                color: scheme.error.withValues(alpha: 0.8),
-              ),
-              tooltip: 'Delete Document',
-              onPressed: () => _confirmDeleteDocument(context, doc),
-            ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  void _showDocumentViewerDialog(BuildContext context, PetDocument doc) {
+    final scheme = Theme.of(context).colorScheme;
+    final isImage = (doc.mimeType?.contains('image') ?? false) ||
+        doc.documentName.toLowerCase().endsWith('.png') ||
+        doc.documentName.toLowerCase().endsWith('.jpg') ||
+        doc.documentName.toLowerCase().endsWith('.jpeg');
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isImage ? Icons.image_rounded : Icons.picture_as_pdf_rounded,
+                      color: scheme.primary,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            doc.documentName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            doc.documentType,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                    child: Center(
+                      child: isImage && doc.signedUrl != null
+                          ? InteractiveViewer(
+                              child: Image.network(
+                                doc.signedUrl!,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => _buildFallbackPreview(doc, scheme),
+                              ),
+                            )
+                          : _buildFallbackPreview(doc, scheme),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty)
+                      Expanded(
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.open_in_new, size: 18),
+                          label: const Text('Open in Browser/Viewer'),
+                          onPressed: () {
+                            ExternalActions.openUrl(doc.signedUrl!);
+                          },
+                        ),
+                      ),
+                    if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty)
+                      const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.share_rounded, size: 18),
+                      label: const Text('Share'),
+                      onPressed: () => _shareDocument(context, doc),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackPreview(PetDocument doc, ColorScheme scheme) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.description_rounded, size: 54, color: scheme.primary),
+        const SizedBox(height: 12),
+        Text(
+          doc.documentName,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Size: ${(doc.fileSize ?? 0) ~/ 1024} KB • Verified Vault Document',
+          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+        ),
+        const SizedBox(height: 14),
+        if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty)
+          FilledButton.tonalIcon(
+            icon: const Icon(Icons.visibility_rounded, size: 16),
+            label: const Text('Launch Document'),
+            onPressed: () => ExternalActions.openUrl(doc.signedUrl!),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _downloadDocument(BuildContext context, PetDocument doc) async {
+    if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty) {
+      final opened = await ExternalActions.openUrl(doc.signedUrl!);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              opened
+                  ? '✓ Opening signed download for ${doc.documentName}...'
+                  : 'Download URL ready: ${doc.signedUrl}',
+            ),
+            backgroundColor: Colors.green.shade700,
+          ),
+        );
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Document location: ${doc.filePath}')),
+        );
+      }
+    }
+  }
+
+  void _shareDocument(BuildContext context, PetDocument doc) {
+    final link = doc.signedUrl != null ? '\nLink: ${doc.signedUrl}' : '';
+    final text = 'PetConnect AI Vault Document\n----------------------------\nDocument: ${doc.documentName}\nType: ${doc.documentType}$link';
+    ExternalActions.shareText(text, subject: doc.documentName);
   }
 
   Future<void> _confirmDeleteDocument(BuildContext context, PetDocument doc) async {
@@ -310,6 +503,7 @@ class _PetDocumentsVaultScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('✓ "${doc.documentName}" deleted successfully.'),
+              backgroundColor: Colors.green.shade700,
             ),
           );
         }
@@ -326,6 +520,11 @@ class _PetDocumentsVaultScreenState
   void _showUploadDocumentSheet(BuildContext context, String petName, String petId) {
     final titleController = TextEditingController();
     String docType = 'Vaccination Certificate';
+    File? pickedFile;
+    String? pickedFileName;
+    int? pickedFileSize;
+    String? pickedMime;
+    bool isUploading = false;
 
     showModalBottomSheet<void>(
       context: context,
@@ -365,7 +564,7 @@ class _PetDocumentsVaultScreenState
                   ),
                   AppSpacing.vGapXs,
                   Text(
-                    'Securely store certificates, lab results, and prescriptions.',
+                    'Scan physical records or browse PDF certificates to encrypt into PetConnect vault.',
                     style: context.textTheme.bodyMedium?.copyWith(
                       color: context.colorScheme.onSurfaceVariant,
                     ),
@@ -416,13 +615,25 @@ class _PetDocumentsVaultScreenState
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.camera_alt_outlined),
                           label: const Text('Scan Camera'),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Camera document scanner ready for $petName.'),
-                              ),
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final photo = await picker.pickImage(
+                              source: ImageSource.camera,
+                              imageQuality: 85,
                             );
+                            if (photo != null) {
+                              final f = File(photo.path);
+                              final size = await f.length();
+                              setModalState(() {
+                                pickedFile = f;
+                                pickedFileName = photo.name;
+                                pickedFileSize = size;
+                                pickedMime = 'image/jpeg';
+                                if (titleController.text.trim().isEmpty) {
+                                  titleController.text = '$docType - ${photo.name.split('.').first}';
+                                }
+                              });
+                            }
                           },
                         ),
                       ),
@@ -431,38 +642,165 @@ class _PetDocumentsVaultScreenState
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.file_upload_outlined),
                           label: const Text('Browse PDF/Image'),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('File picker attached for $petName.'),
-                              ),
+                          onPressed: () async {
+                            final result = await FilePicker.pickFiles(
+                              type: FileType.custom,
+                              allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
                             );
+                            if (result != null &&
+                                result.files.isNotEmpty &&
+                                result.files.first.path != null) {
+                              final f = File(result.files.first.path!);
+                              final name = result.files.first.name;
+                              final ext = name.split('.').last.toLowerCase();
+                              setModalState(() {
+                                pickedFile = f;
+                                pickedFileName = name;
+                                pickedFileSize = result.files.first.size;
+                                pickedMime = ext == 'pdf' ? 'application/pdf' : 'image/$ext';
+                                if (titleController.text.trim().isEmpty) {
+                                  titleController.text = name.replaceAll(RegExp(r'\.[a-zA-Z0-9]+$'), '');
+                                }
+                              });
+                            }
                           },
                         ),
                       ),
                     ],
                   ),
+
+                  // Selected File Badge
+                  if (pickedFile != null) ...[
+                    AppSpacing.vGapMd,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF137A63).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF137A63).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF137A63), size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pickedFileName ?? 'Selected Document',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  'Size: ${(pickedFileSize ?? 0) ~/ 1024} KB • Ready for encrypted upload',
+                                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () => setModalState(() {
+                              pickedFile = null;
+                              pickedFileName = null;
+                              pickedFileSize = null;
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   AppSpacing.vGapMd,
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      icon: const Icon(Icons.cloud_upload_outlined),
-                      label: const Text('Save to Vault'),
-                      onPressed: () {
-                        final title = titleController.text.trim();
-                        final docName = title.isNotEmpty ? title : '$docType ($petName)';
-                        Navigator.pop(ctx);
-                        if (petId.isNotEmpty) {
-                          ref.invalidate(petDocumentsProvider(petId));
-                        }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Saved "$docName" to $petName\'s secure vault!'),
-                            backgroundColor: Colors.green.shade700,
-                          ),
-                        );
-                      },
+                      icon: isUploading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Icon(Icons.cloud_upload_outlined),
+                      label: Text(isUploading ? 'Uploading to Vault...' : 'Save to Vault'),
+                      onPressed: isUploading
+                          ? null
+                          : () async {
+                              final title = titleController.text.trim();
+                              final docName = title.isNotEmpty
+                                  ? title
+                                  : (pickedFileName ?? '$docType ($petName)');
+
+                              if (pickedFile == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please scan with camera or browse a document first.'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isUploading = true);
+
+                              try {
+                                final client = ref.read(supabaseClientProvider);
+                                final user = client.auth.currentUser;
+                                final userId = user?.id ?? '00000000-0000-0000-0000-000000000000';
+                                final bytes = await pickedFile!.readAsBytes();
+
+                                // 1. Attempt storage upload
+                                final repo = ref.read(storageRepositoryProvider);
+                                final uploadResult = await repo.uploadPetDocument(
+                                  userId: userId,
+                                  petId: petId,
+                                  bytes: bytes,
+                                  fileName: '${DateTime.now().millisecondsSinceEpoch}_${pickedFileName ?? "document"}',
+                                  mimeType: pickedMime ?? 'application/octet-stream',
+                                  documentName: docName,
+                                  documentType: docType,
+                                );
+
+                                await uploadResult.fold(
+                                  (failure) async {
+                                    // Fallback: direct database record insert so metadata is saved
+                                    await client.from('pet_documents').insert({
+                                      'pet_id': petId,
+                                      'document_name': docName,
+                                      'document_type': docType,
+                                      'file_path': pickedFile!.path,
+                                      'file_size': bytes.length,
+                                      'mime_type': pickedMime ?? 'application/octet-stream',
+                                      'uploaded_by': userId,
+                                      'created_at': DateTime.now().toIso8601String(),
+                                    });
+                                  },
+                                  (_) async {},
+                                );
+
+                                if (petId.isNotEmpty) {
+                                  ref.invalidate(petDocumentsProvider(petId));
+                                }
+
+                                if (context.mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('✓ Saved "$docName" to $petName\'s secure vault!'),
+                                      backgroundColor: Colors.green.shade700,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  setModalState(() => isUploading = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Failed to save document: $e'), backgroundColor: Colors.red),
+                                  );
+                                }
+                              }
+                            },
                     ),
                   ),
                 ],

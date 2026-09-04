@@ -14,6 +14,8 @@ class Pet extends Entity {
     this.microchipId,
     this.imageUrl,
     this.healthStatus = 'optimal',
+    this.allergies = const [],
+    this.chronicConditions = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -29,6 +31,8 @@ class Pet extends Entity {
   final String? microchipId;
   final String? imageUrl;
   final String healthStatus;
+  final List<String> allergies;
+  final List<String> chronicConditions;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -62,6 +66,8 @@ class Pet extends Entity {
     String? microchipId,
     String? imageUrl,
     String? healthStatus,
+    List<String>? allergies,
+    List<String>? chronicConditions,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -77,6 +83,8 @@ class Pet extends Entity {
       microchipId: microchipId ?? this.microchipId,
       imageUrl: imageUrl ?? this.imageUrl,
       healthStatus: healthStatus ?? this.healthStatus,
+      allergies: allergies ?? this.allergies,
+      chronicConditions: chronicConditions ?? this.chronicConditions,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -95,6 +103,8 @@ class Pet extends Entity {
     microchipId,
     imageUrl,
     healthStatus,
+    allergies,
+    chronicConditions,
     createdAt,
     updatedAt,
   ];

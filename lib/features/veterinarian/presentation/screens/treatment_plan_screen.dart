@@ -28,55 +28,121 @@ class VetTreatmentPlanScreen extends ConsumerStatefulWidget {
 
 class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen> {
   String _diagnosis = 'Seasonal Atopic Dermatitis & Pruritus';
+  String _category = 'Dermatology';
   String _notes = 'Target complete clinical remission within 3 weeks. Medicated bath protocol and oral therapy.';
   int _progress = 35;
-  final String _stage1 = 'Symptom Relief (Medication) • Active Stage';
-  final String _stage2 = 'Allergen Avoidance & Environmental Controls';
-  final String _stage3 = 'Re-Evaluation & Tapering Protocol';
+  String _stage1 = 'Symptom Relief (Medication) - Active Stage';
+  String _stage2 = 'Allergen Avoidance & Environmental Controls';
+  String _stage3 = 'Re-Evaluation & Tapering Protocol';
 
-  void _openEditPlanDialog(String targetPetId) async {
+  void _openEditPlanDialog(String targetPetId, [String? planId]) async {
     final diagCtrl = TextEditingController(text: _diagnosis);
     final notesCtrl = TextEditingController(text: _notes);
+    final stage1Ctrl = TextEditingController(text: _stage1);
+    final stage2Ctrl = TextEditingController(text: _stage2);
+    final stage3Ctrl = TextEditingController(text: _stage3);
+    String selectedCat = _category;
     int progressVal = _progress;
+
+    final categories = [
+      'General Medicine',
+      'Dermatology',
+      'Surgery & Orthopedics',
+      'Gastroenterology',
+      'Cardiology',
+      'Dentistry',
+      'Preventive Care',
+    ];
 
     final updated = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) => AlertDialog(
-          title: const Text('Edit Treatment Plan'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: diagCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Diagnosis & Primary Condition',
-                    hintText: 'e.g. Seasonal Atopic Dermatitis',
+          title: const Text('Clinical Treatment Protocol Builder'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: diagCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Diagnosis & Primary Condition *',
+                      hintText: 'e.g. Acute Canine Gastroenteritis',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: notesCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Clinical Notes & Goal',
-                    hintText: 'e.g. Remission within 3 weeks',
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: categories.contains(selectedCat) ? selectedCat : categories.first,
+                    decoration: const InputDecoration(
+                      labelText: 'Clinical Specialty / Category',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: categories
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => selectedCat = val);
+                    },
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text('Treatment Progress: $progressVal%'),
-                Slider(
-                  value: progressVal.toDouble(),
-                  min: 0,
-                  max: 100,
-                  divisions: 20,
-                  label: '$progressVal%',
-                  onChanged: (val) {
-                    setDlgState(() => progressVal = val.toInt());
-                  },
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: stage1Ctrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Stage 1 Milestone (Initial Therapy)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: stage2Ctrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Stage 2 Milestone (Ongoing Care)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: stage3Ctrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Stage 3 Milestone (Taper / Discharge)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Attending Clinician Directives & Goal',
+                      hintText: 'e.g. Dietary reintroduction and electrolyte hydration',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Recovery Progress', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text('$progressVal%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF137A63))),
+                    ],
+                  ),
+                  Slider(
+                    value: progressVal.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 20,
+                    activeColor: const Color(0xFF137A63),
+                    label: '$progressVal%',
+                    onChanged: (val) {
+                      setDlgState(() => progressVal = val.toInt());
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -86,7 +152,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Save Plan'),
+              child: const Text('Save & Publish Plan'),
             ),
           ],
         ),
@@ -95,20 +161,24 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
 
     if (updated == true) {
       setState(() {
-        _diagnosis = diagCtrl.text.trim();
-        _notes = notesCtrl.text.trim();
+        _diagnosis = diagCtrl.text.trim().isNotEmpty ? diagCtrl.text.trim() : _diagnosis;
+        _notes = notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : _notes;
+        _stage1 = stage1Ctrl.text.trim().isNotEmpty ? stage1Ctrl.text.trim() : _stage1;
+        _stage2 = stage2Ctrl.text.trim().isNotEmpty ? stage2Ctrl.text.trim() : _stage2;
+        _stage3 = stage3Ctrl.text.trim().isNotEmpty ? stage3Ctrl.text.trim() : _stage3;
+        _category = selectedCat;
         _progress = progressVal;
       });
 
       final plan = TreatmentPlan(
-        id: '',
+        id: planId ?? '',
         petId: targetPetId,
         title: _diagnosis,
-        category: 'Dermatology',
+        category: _category,
         targetDate: DateTime.now().add(const Duration(days: 21)),
         progressPercent: _progress,
         status: _progress >= 100 ? 'completed' : 'active',
-        notes: _notes,
+        notes: '$_notes\nStages: 1. $_stage1 | 2. $_stage2 | 3. $_stage3',
       );
 
       final repo = ref.read(vetRepositoryProvider);
@@ -125,7 +195,10 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
           ref.invalidate(treatmentPlansProvider(targetPetId));
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Treatment plan persisted to Supabase!')),
+              const SnackBar(
+                content: Text('Treatment protocol saved & synchronized with pet passport!'),
+                backgroundColor: Color(0xFF137A63),
+              ),
             );
           }
         },
@@ -151,8 +224,19 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
 
     if (existingPlans.isNotEmpty) {
       _diagnosis = existingPlans.first.title;
-      _notes = existingPlans.first.notes ?? _notes;
+      _category = existingPlans.first.category;
       _progress = existingPlans.first.progressPercent;
+      final rawNotes = existingPlans.first.notes ?? '';
+      if (rawNotes.contains('Stages:')) {
+        final parts = rawNotes.split('Stages:');
+        _notes = parts.first.trim();
+        final stageParts = parts.last.split('|');
+        if (stageParts.isNotEmpty) _stage1 = stageParts[0].replaceAll(RegExp(r'^\s*1\.\s*'), '').trim();
+        if (stageParts.length > 1) _stage2 = stageParts[1].replaceAll(RegExp(r'^\s*2\.\s*'), '').trim();
+        if (stageParts.length > 2) _stage3 = stageParts[2].replaceAll(RegExp(r'^\s*3\.\s*'), '').trim();
+      } else {
+        _notes = rawNotes.isNotEmpty ? rawNotes : _notes;
+      }
     }
 
     return Scaffold(
@@ -178,7 +262,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
               ),
             ),
             Text(
-              _diagnosis,
+              '$_diagnosis ($_category)',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -190,7 +274,10 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_document),
-            onPressed: () => _openEditPlanDialog(targetPetId),
+            onPressed: () => _openEditPlanDialog(
+              targetPetId,
+              existingPlans.isNotEmpty ? existingPlans.first.id : null,
+            ),
             tooltip: 'Edit Plan',
           ),
         ],
@@ -467,7 +554,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                                 ),
                                 pw.SizedBox(height: 2),
                                 pw.Text(
-                                  'PetConnect AI Veterinary Network • Attending Clinic Prescription Sheet',
+                                  'PetConnect AI Veterinary Network | Attending Clinic Prescription Sheet',
                                   style: const pw.TextStyle(color: PdfColors.grey700, fontSize: 8.5),
                                 ),
                               ],
@@ -498,7 +585,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                         child: pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('PetConnect AI Veterinary Protocol Sheet • For Guardian Reference', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
+                            pw.Text('PetConnect AI Veterinary Protocol Sheet | For Guardian Reference', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
                             pw.Text('Page ${ctx.pageNumber} of ${ctx.pagesCount}', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
                           ],
                         ),
@@ -523,6 +610,8 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                                   pw.Text('PRIMARY DIAGNOSIS / CLINICAL CONDITION', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
                                   pw.SizedBox(height: 2),
                                   pw.Text(_diagnosis, style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                                  pw.SizedBox(height: 2),
+                                  pw.Text('Specialty: $_category', style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700)),
                                 ],
                               ),
                               pw.Container(
@@ -539,8 +628,8 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                         ),
                         pw.SizedBox(height: 12),
 
-                        // ── 2. PRESCRIBED MEDICATION SCHEDULE ─────────────────
-                        pw.Text('PRESCRIBED MEDICATION SCHEDULE', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                        // ── 2. CLINICAL PROTOCOL STAGES ──────────────────────
+                        pw.Text('CLINICAL PROTOCOL PHASES & TARGETS', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryColor)),
                         pw.SizedBox(height: 6),
                         pw.TableHelper.fromTextArray(
                           border: pw.TableBorder.all(color: borderColor, width: 0.5),
@@ -548,11 +637,11 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                           headerDecoration: pw.BoxDecoration(color: primaryColor),
                           cellStyle: const pw.TextStyle(fontSize: 8),
                           cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                          headers: ['Medication', 'Dosage & Route', 'Frequency', 'Duration', 'Instructions'],
+                          headers: ['Stage', 'Milestone Objective', 'Status'],
                           data: [
-                            ['Amoxicillin / Clavulanate', '250 mg (Oral Tablet)', 'Twice Daily (q12h)', '10 Days', 'Administer with food to prevent gastric upset'],
-                            ['Meloxicam (Metacam)', '0.1 mg/kg (Oral Liquid)', 'Once Daily (q24h)', '5 Days', 'Post-meal administration. Monitor for GI signs'],
-                            ['Chlorhexidine Topical Rinse', '2% Solution (Topical)', 'Twice Daily', '14 Days', 'Gently cleanse affected dermatological area'],
+                            ['Phase 1', _stage1, _progress >= 33 ? 'Completed' : 'Active Stage'],
+                            ['Phase 2', _stage2, _progress >= 66 ? 'Completed' : (_progress >= 33 ? 'Active Stage' : 'Pending')],
+                            ['Phase 3', _stage3, _progress >= 100 ? 'Achieved' : 'Scheduled Goal'],
                           ],
                         ),
                         pw.SizedBox(height: 12),
@@ -574,7 +663,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                               pw.SizedBox(height: 4),
                               pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Hydration & Appetite: Ensure complete water intake and normal food consumption', style: const pw.TextStyle(fontSize: 8.5))]),
                               pw.SizedBox(height: 4),
-                              pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Incision / Wound Inspection: Check daily for redness, swelling, or purulent discharge', style: const pw.TextStyle(fontSize: 8.5))]),
+                              pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Incision / Wound / Skin Inspection: Check daily for redness, swelling, or changes', style: const pw.TextStyle(fontSize: 8.5))]),
                               pw.SizedBox(height: 4),
                               pw.Row(children: [pw.Text('[ ] ', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Elimination Habits: Confirm regular urination and normal stool consistency', style: const pw.TextStyle(fontSize: 8.5))]),
                             ],
@@ -608,9 +697,9 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              pw.Text('🚨 CRITICAL RED FLAGS — CONTACT CLINIC IMMEDIATELY IF OBSERVED:', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#991B1B'))),
+                              pw.Text('[!] CRITICAL RED FLAGS - CONTACT CLINIC IMMEDIATELY IF OBSERVED:', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#991B1B'))),
                               pw.SizedBox(height: 3),
-                              pw.Text('• Persistent vomiting or refusal to drink water for >12 hours.\n• Pale, blue, or muddy gum color.\n• Labored respiration, extreme lethargy, or inability to stand.', style: pw.TextStyle(fontSize: 8, color: PdfColor.fromHex('#7F1D1D'))),
+                              pw.Text('- Persistent vomiting or refusal to drink water for >12 hours.\n- Pale, blue, or muddy gum color.\n- Labored respiration, extreme lethargy, or inability to stand.', style: pw.TextStyle(fontSize: 8, color: PdfColor.fromHex('#7F1D1D'))),
                             ],
                           ),
                         ),

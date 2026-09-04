@@ -223,11 +223,22 @@ class VetRemoteDataSourceImpl implements VetRemoteDataSource {
   ) async {
     try {
       final json = consultation.toJson()..remove('id');
-      final response = await _client
-          .from('consultations')
-          .upsert(json, onConflict: 'appointment_id')
-          .select()
-          .single();
+      final aptId = json['appointment_id'] as String?;
+      final Map<String, dynamic> response;
+      if (aptId != null && aptId.trim().isNotEmpty && aptId.trim().length >= 32) {
+        response = await _client
+            .from('consultations')
+            .upsert(json, onConflict: 'appointment_id')
+            .select()
+            .single();
+      } else {
+        json.remove('appointment_id');
+        response = await _client
+            .from('consultations')
+            .insert(json)
+            .select()
+            .single();
+      }
       return ConsultationModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw ServerException(

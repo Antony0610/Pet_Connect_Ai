@@ -28,6 +28,7 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
   List<Map<String, dynamic>> _healthRecords = [];
   List<Map<String, dynamic>> _vaccines = [];
   List<Map<String, dynamic>> _treatmentPlans = [];
+  Map<String, dynamic>? _pairedCollar;
   bool _isLoading = true;
 
   @override
@@ -60,6 +61,7 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
         final gender = petRes['gender'] as String? ?? 'Companion';
         final ownerName = owner != null ? (owner['full_name'] as String? ?? 'Registered Owner') : 'Registered Owner';
         final ownerPhone = owner != null ? (owner['phone_number'] as String? ?? '+91 98450 12345') : '+91 98450 12345';
+        final realMicrochip = petRes['microchip_id'] as String? ?? (petRes['microchip_number'] as String? ?? 'CHIP-${widget.patientId.substring(0, 6).toUpperCase()}');
 
         _loadedPatient = VetPatient(
           id: widget.patientId,
@@ -72,9 +74,30 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
           status: 'Active Care',
           healthStatus: 'optimal',
           weightKg: weight,
-          microchipId: petRes['microchip_number'] as String? ?? 'CHIP-${widget.patientId.substring(0, 6).toUpperCase()}',
+          microchipId: realMicrochip,
         );
       }
+
+      // Check real smart collar status
+      Map<String, dynamic>? pairedCollar;
+      try {
+        final collarRes = await client
+            .from('registered_collars')
+            .select()
+            .eq('pet_id', widget.patientId)
+            .maybeSingle();
+        pairedCollar = collarRes;
+      } catch (_) {
+        try {
+          final collarRes = await client
+              .from('smart_collars')
+              .select()
+              .eq('pet_id', widget.patientId)
+              .maybeSingle();
+          pairedCollar = collarRes;
+        } catch (_) {}
+      }
+      _pairedCollar = pairedCollar;
 
       // Load health records
       final hrRes = await client
@@ -489,10 +512,74 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
     ColorScheme colorScheme,
     VetPatient patient,
   ) {
-    final isCat = patient.species.toLowerCase().contains('cat') ||
-        patient.species.toLowerCase().contains('feline');
-    final hr = isCat ? '136 BPM' : '82 BPM';
-    final hrDesc = isCat ? 'Resting Feline HR Baseline Normal' : 'Resting Canine HR Baseline Normal';
+    if (_pairedCollar == null) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.6)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.sensors_off_rounded, color: colorScheme.onSurfaceVariant, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Smart Collar Telemetry',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colorScheme.outline.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'NOT CONNECTED',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'No smart collar linked to ${patient.name}. Real-time vitals and GPS telemetry are inactive.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_ios, size: 16),
+              color: colorScheme.primary,
+              tooltip: 'Pair / Track Collar',
+              onPressed: () => context.push(RoutePaths.ownerCollarTracking),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final battery = _pairedCollar!['battery_level'] ?? _pairedCollar!['battery_pct'] ?? '100';
+    final hr = _pairedCollar!['heart_rate'] != null ? '${_pairedCollar!['heart_rate']} BPM' : 'Syncing...';
+    final temp = _pairedCollar!['temperature'] != null ? '${_pairedCollar!['temperature']}°C' : 'Normal';
+    final status = _pairedCollar!['status'] ?? 'Active';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -538,7 +625,7 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$hr • $hrDesc • 38.6°C • Collar Battery: 91% • BLE Active',
+                  '$hr • $temp • Collar Battery: $battery% • BLE Active ($status)',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -549,7 +636,8 @@ class _PatientMedicalRecordScreenState extends ConsumerState<PatientMedicalRecor
           IconButton(
             icon: const Icon(Icons.arrow_forward_ios, size: 16),
             color: colorScheme.tertiary,
-            onPressed: () => context.push('/owner/collar-tracking'),
+            tooltip: 'View Live Collar',
+            onPressed: () => context.push(RoutePaths.ownerCollarTracking),
           ),
         ],
       ),

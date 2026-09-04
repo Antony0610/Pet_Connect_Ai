@@ -411,8 +411,22 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     ),
                   ),
                   data: (entities) {
+                    final filteredEntities = entities.where((e) {
+                      if (widget.portalRole == AppPortal.petOwner) {
+                        final type = e.notificationType.toLowerCase();
+                        final title = e.title.toLowerCase();
+                        // Filter out clinical veterinarian consultation alerts from the Pet Owner portal
+                        if (type == 'vet_consultation' ||
+                            type == 'clinical_alert' ||
+                            (type == 'consultation' && title.contains('new consultation:'))) {
+                          return false;
+                        }
+                      }
+                      return true;
+                    }).toList();
+
                     final allItems =
-                        entities.map(_NotifData.fromEntity).toList();
+                        filteredEntities.map(_NotifData.fromEntity).toList();
                     final visible =
                         _selected == _NotifFilter.all
                             ? allItems

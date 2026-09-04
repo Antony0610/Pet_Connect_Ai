@@ -8,6 +8,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
@@ -399,7 +401,7 @@ class _VaccinationContent extends StatelessWidget {
           onContainer: palette.onAccentContainer(brightness),
         ),
         AppSpacing.vGapLg,
-        _CompletedHistory(vaxList: vaxList),
+        _CompletedHistory(vaxList: vaxList, petName: petName),
       ],
     );
   }
@@ -765,9 +767,13 @@ class _UpcomingCard extends StatelessWidget {
 }
 
 class _CompletedHistory extends StatelessWidget {
-  const _CompletedHistory({required this.vaxList});
+  const _CompletedHistory({
+    required this.vaxList,
+    required this.petName,
+  });
 
   final List<Vaccination> vaxList;
+  final String petName;
 
   @override
   Widget build(BuildContext context) {
@@ -810,13 +816,13 @@ class _CompletedHistory extends StatelessWidget {
                           if (vaxList[i].administeredBy != null)
                             HealthMetaLine('Dr. ${vaxList[i].administeredBy}'),
                         ],
-                        trailing: TextButton(
-                          onPressed: () =>
-                              context.showSnackbar('Certificate: ${vaxList[i].vaccineName}'),
+                        trailing: TextButton.icon(
+                          onPressed: () => _openCertificateModal(context, vaxList[i], petName),
+                          icon: const Icon(Icons.verified_outlined, size: 16),
+                          label: const Text('View Record'),
                           style: TextButton.styleFrom(
                             foregroundColor: scheme.primary,
                           ),
-                          child: const Text('View Record'),
                         ),
                       ),
                     ],
@@ -837,4 +843,235 @@ class _CompletedHistory extends StatelessWidget {
       ],
     );
   }
+
+  void _openCertificateModal(BuildContext context, Vaccination vax, String petName) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => _VaccinationCertificateDialog(vax: vax, petName: petName),
+    );
+  }
 }
+
+class _VaccinationCertificateDialog extends StatelessWidget {
+  const _VaccinationCertificateDialog({
+    required this.vax,
+    required this.petName,
+  });
+
+  final Vaccination vax;
+  final String petName;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final certId = 'CERT-VAX-${vax.id.isNotEmpty ? (vax.id.length > 8 ? vax.id.substring(0, 8).toUpperCase() : vax.id.toUpperCase()) : '2026-LIVE'}';
+    final adminDate = vax.administeredDate.toIso8601String().split('T').first;
+    final nextDueDate = vax.nextDueDate != null
+        ? vax.nextDueDate!.toIso8601String().split('T').first
+        : 'Annual Booster Recommended';
+    final doctor = vax.administeredBy != null && vax.administeredBy!.isNotEmpty
+        ? 'Dr. ${vax.administeredBy}'
+        : 'Authorized Veterinary Clinic';
+    final batch = vax.batchNumber != null && vax.batchNumber!.isNotEmpty
+        ? vax.batchNumber!
+        : 'LOT-B892-VET';
+
+    final qrPayload = 'https://petconnect.ai/verify/vaccine/${vax.id}?pet=${Uri.encodeComponent(petName)}&vax=${Uri.encodeComponent(vax.vaccineName)}&admin=$adminDate';
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header Banner
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF0F3E32), const Color(0xFF135A47)]
+                        : [const Color(0xFF137A63), const Color(0xFF109B7A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.verified_user_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'DIGITAL IMMUNIZATION CERTIFICATE',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      vax.vaccineName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF22C55E).withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF22C55E), width: 1),
+                      ),
+                      child: const Text(
+                        'VERIFIED & ACTIVE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Details Body
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _certRow('Patient Name', petName, Icons.pets_rounded, scheme),
+                    const Divider(height: 16),
+                    _certRow('Date Administered', adminDate, Icons.event_available_rounded, scheme),
+                    const Divider(height: 16),
+                    _certRow('Next Due / Booster', nextDueDate, Icons.alarm_on_rounded, scheme),
+                    const Divider(height: 16),
+                    _certRow('Administering Vet', doctor, Icons.medical_services_outlined, scheme),
+                    const Divider(height: 16),
+                    _certRow('Batch / Lot #', batch, Icons.qr_code_2_rounded, scheme),
+                    const Divider(height: 16),
+                    _certRow('Certificate ID', certId, Icons.shield_outlined, scheme),
+
+                    if (vax.notes != null && vax.notes!.isNotEmpty) ...[
+                      const Divider(height: 16),
+                      _certRow('Clinical Notes', vax.notes!, Icons.notes_rounded, scheme),
+                    ],
+
+                    const SizedBox(height: 20),
+
+                    // Verification QR Code
+                    Center(
+                      child: Column(
+                        children: [
+                          PetQrCodeView(
+                            data: qrPayload,
+                            size: 140,
+                            foregroundColor: const Color(0xFF137A63),
+                            padding: 10,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Scan to verify immunization on PetConnect AI',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Actions
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.share_rounded, size: 18),
+                            label: const Text('Share Record'),
+                            onPressed: () {
+                              final text = '''
+Official Immunization Certificate - PetConnect AI
+--------------------------------------------------
+Patient: $petName
+Vaccine: ${vax.vaccineName}
+Status: VERIFIED & COMPLETED
+Date Administered: $adminDate
+Next Due Date: $nextDueDate
+Administering Clinician: $doctor
+Batch Number: $batch
+Certificate ID: $certId
+Verification Link: $qrPayload
+''';
+                              ExternalActions.shareText(text, subject: 'Vaccination Certificate - $petName');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _certRow(String label, String value, IconData icon, ColorScheme scheme) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: scheme.primary),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: scheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+

@@ -217,16 +217,17 @@ class _AdminContentManagementScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Article'),
+        title: const Text('Delete Content'),
         content: Text('Are you sure you want to remove "${article.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -234,11 +235,22 @@ class _AdminContentManagementScreenState
 
     if (confirmed == true) {
       final repo = ref.read(adminRepositoryProvider);
-      await repo.deleteArticle(article.id);
+      final result = await repo.deleteArticle(article.id);
       ref.invalidate(adminArticlesProvider(null));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Article "${article.title}" removed.')),
+        result.fold(
+          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete: ${failure.message}'),
+              backgroundColor: Colors.red,
+            ),
+          ),
+          (_) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('"${article.title}" removed successfully.'),
+              backgroundColor: Colors.green.shade700,
+            ),
+          ),
         );
       }
     }

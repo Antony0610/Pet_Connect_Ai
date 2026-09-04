@@ -92,7 +92,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   bool _speechEnabled = false;
   final List<Uint8List> _pendingImages = [];
   String? _lastUserPrompt;
-  String _dictationLocale = 'ml_IN'; // Default to Malayalam, toggleable to 'en_IN'
+  String _dictationLocale = 'en_IN'; // Default to English, toggleable to Malayalam 'ml_IN' or Auto
 
   final List<_ChatMessage> _messages = [
     _ChatMessage(
@@ -178,6 +178,12 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
         _activeModelLabel = match.tag == 'Ultra-Fast'
             ? '⚡ Flash 3.1'
             : (match.key == 'gemini-3.7-flash' ? '⚡ Flash 3.7' : '⚡ ${match.label.replaceAll('Gemini ', '')}');
+      });
+    }
+    final savedLocale = prefs.getString('app_voice_dictation_locale');
+    if (savedLocale != null && savedLocale.isNotEmpty) {
+      setState(() {
+        _dictationLocale = savedLocale;
       });
     }
   }
@@ -537,7 +543,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           listenMode: stt.ListenMode.dictation,
           cancelOnError: true,
           partialResults: true,
-          localeId: _dictationLocale,
+          localeId: _dictationLocale == 'auto' ? null : _dictationLocale,
         ),
         onResult: (result) {
           if (mounted) {
@@ -1242,19 +1248,30 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                       onPressed: _toggleDictation,
                     ),
                     InkWell(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
+                      onTap: () async {
+                        await HapticFeedback.selectionClick();
+                        final nextLocale = _dictationLocale == 'en_IN'
+                            ? 'ml_IN'
+                            : (_dictationLocale == 'ml_IN' ? 'auto' : 'en_IN');
                         setState(() {
-                          _dictationLocale = _dictationLocale.startsWith('ml') ? 'en_IN' : 'ml_IN';
+                          _dictationLocale = nextLocale;
                         });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(_dictationLocale.startsWith('ml')
-                                ? '✓ Voice dictation switched to Malayalam (മലയാളം)'
-                                : '✓ Voice dictation switched to English'),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                        await ref.read(sharedPreferencesProvider).setString(
+                              'app_voice_dictation_locale',
+                              nextLocale,
+                            );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(nextLocale == 'ml_IN'
+                                  ? '✓ Voice dictation: Malayalam (മലയാളം)'
+                                  : (nextLocale == 'auto'
+                                      ? '✓ Voice dictation: Auto Detect Language'
+                                      : '✓ Voice dictation: English (Default)')),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
@@ -1266,7 +1283,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                           border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
                         ),
                         child: Text(
-                          _dictationLocale.startsWith('ml') ? 'മലയാളം' : 'EN',
+                          _dictationLocale == 'ml_IN'
+                              ? 'മലയാളം'
+                              : (_dictationLocale == 'auto' ? 'AUTO' : 'EN'),
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

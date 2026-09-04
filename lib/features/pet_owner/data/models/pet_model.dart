@@ -16,6 +16,8 @@ class PetModel implements Model {
     this.microchipId,
     this.imageUrl,
     this.healthStatus = 'optimal',
+    this.allergies = const [],
+    this.chronicConditions = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -31,6 +33,8 @@ class PetModel implements Model {
   final String? microchipId;
   final String? imageUrl;
   final String healthStatus;
+  final List<String> allergies;
+  final List<String> chronicConditions;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -51,6 +55,12 @@ class PetModel implements Model {
       microchipId: json['microchip_id'] as String?,
       imageUrl: json['image_url'] as String?,
       healthStatus: json['health_status'] as String? ?? 'optimal',
+      allergies: json['allergies'] != null
+          ? List<String>.from(json['allergies'] as List)
+          : const [],
+      chronicConditions: json['chronic_conditions'] != null
+          ? List<String>.from(json['chronic_conditions'] as List)
+          : const [],
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
@@ -72,6 +82,8 @@ class PetModel implements Model {
     microchipId: microchipId,
     imageUrl: imageUrl,
     healthStatus: healthStatus,
+    allergies: allergies,
+    chronicConditions: chronicConditions,
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
@@ -88,6 +100,8 @@ class PetModel implements Model {
     microchipId: pet.microchipId,
     imageUrl: pet.imageUrl,
     healthStatus: pet.healthStatus,
+    allergies: pet.allergies,
+    chronicConditions: pet.chronicConditions,
     createdAt: pet.createdAt,
     updatedAt: pet.updatedAt,
   );
@@ -106,6 +120,8 @@ class PetModel implements Model {
     if (microchipId != null) 'microchip_id': microchipId,
     if (imageUrl != null) 'image_url': imageUrl,
     'health_status': healthStatus,
+    'allergies': allergies,
+    'chronic_conditions': chronicConditions,
     if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
   };

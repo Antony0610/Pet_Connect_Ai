@@ -170,7 +170,7 @@ class _DigitalPrescriptionScreenState
     }
 
     final petName = _selectedPatient?.name ?? 'Companion';
-    final speciesBreed = '${_selectedPatient?.species ?? "Pet"} • ${_selectedPatient?.breed ?? "Canine"}';
+    final speciesBreed = '${_selectedPatient?.species ?? "Pet"} | ${_selectedPatient?.breed ?? "Canine"}';
 
     final doc = pw.Document();
     doc.addPage(
@@ -245,7 +245,7 @@ class _DigitalPrescriptionScreenState
               border: pw.Border.all(color: PdfColor.fromHex('#A7F3D0'), width: 0.8),
             ),
             child: pw.Text(
-              '✓ AI Safety Audit: 0 Contraindications Detected. Formulated and verified against hepatic & renal clearance benchmarks.',
+              '[VERIFIED] AI Safety Audit: 0 Contraindications Detected. Formulated and verified against hepatic & renal clearance benchmarks.',
               style: pw.TextStyle(fontSize: 8, color: PdfColor.fromHex('#065F46')),
             ),
           ),
@@ -260,7 +260,7 @@ class _DigitalPrescriptionScreenState
                   pw.Text('Authorized Signature:', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
                   pw.SizedBox(height: 4),
                   pw.Text(doctorName, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#0F766E'))),
-                  pw.Text('Licensed Veterinarian • Cryptographically Verified', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
+                  pw.Text('Licensed Veterinarian | Cryptographically Verified', style: const pw.TextStyle(fontSize: 7.5, color: PdfColors.grey600)),
                 ],
               ),
               pw.Container(
@@ -294,13 +294,13 @@ class _DigitalPrescriptionScreenState
       'created_at': now.toIso8601String(),
     }).catchError((_) => null);
 
-    final medSummary = _medications.map((m) => '${m["name"]} (${m["dosage"]} • ${m["frequency"]})').join(', ');
+    final medSummary = _medications.map((m) => '${m["name"]} (${m["dosage"]} | ${m["frequency"]})').join(', ');
     await client.from('health_records').insert({
       'pet_id': targetPetId,
       'record_date': DateFormat('yyyy-MM-dd').format(now),
       'category': 'Prescription',
       'title': 'Digital Rx #$rxNumber: $petName',
-      'notes': 'Authorized by $doctorName at $clinicName.\nPrescribed Drugs:\n${_medications.map((m) => "• ${m["name"]} - ${m["dosage"]} (${m["frequency"]}) for ${m["duration"]}. Instructions: ${m["instructions"]}").join("\n")}',
+      'notes': 'Authorized by $doctorName at $clinicName.\nPrescribed Drugs:\n${_medications.map((m) => "- ${m["name"]} - ${m["dosage"]} (${m["frequency"]}) for ${m["duration"]}. Instructions: ${m["instructions"]}").join("\n")}',
       'diagnosis': 'Clinical Pharmacotherapy Dispensation',
       'treatment': medSummary,
       'veterinarian_name': doctorName,

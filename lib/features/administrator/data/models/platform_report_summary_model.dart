@@ -20,19 +20,23 @@ class PlatformReportSummaryModel extends PlatformReportSummary {
 
   factory PlatformReportSummaryModel.fromJson(Map<String, dynamic> json) {
     return PlatformReportSummaryModel(
-      reportMonth: DateTime.parse(json['report_month'] as String),
-      totalUsers: (json['total_users'] as num).toInt(),
-      totalPetOwners: (json['total_pet_owners'] as num).toInt(),
-      totalVeterinarians: (json['total_veterinarians'] as num).toInt(),
-      totalRescuers: (json['total_rescuers'] as num).toInt(),
-      totalAdministrators: (json['total_administrators'] as num).toInt(),
-      totalAppointments: (json['total_appointments'] as num).toInt(),
-      completedAppointments: (json['completed_appointments'] as num).toInt(),
-      totalAiConversations: (json['total_ai_conversations'] as num).toInt(),
-      totalAiScans: (json['total_ai_scans'] as num).toInt(),
-      totalRescueMissions: (json['total_rescue_missions'] as num).toInt(),
-      totalLostPetAlerts: (json['total_lost_pet_alerts'] as num).toInt(),
-      refreshedAt: DateTime.parse(json['refreshed_at'] as String),
+      reportMonth: json['report_month'] != null
+          ? DateTime.tryParse(json['report_month'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      totalUsers: (json['total_users'] as num?)?.toInt() ?? 0,
+      totalPetOwners: (json['total_pet_owners'] as num?)?.toInt() ?? 0,
+      totalVeterinarians: (json['total_veterinarians'] as num?)?.toInt() ?? 0,
+      totalRescuers: (json['total_rescuers'] as num?)?.toInt() ?? 0,
+      totalAdministrators: (json['total_administrators'] as num?)?.toInt() ?? 0,
+      totalAppointments: (json['total_appointments'] as num?)?.toInt() ?? 0,
+      completedAppointments: (json['completed_appointments'] as num?)?.toInt() ?? 0,
+      totalAiConversations: (json['total_ai_conversations'] as num?)?.toInt() ?? 0,
+      totalAiScans: (json['total_ai_scans'] as num?)?.toInt() ?? 0,
+      totalRescueMissions: (json['total_rescue_missions'] as num?)?.toInt() ?? 0,
+      totalLostPetAlerts: (json['total_lost_pet_alerts'] as num?)?.toInt() ?? 0,
+      refreshedAt: json['refreshed_at'] != null
+          ? DateTime.tryParse(json['refreshed_at'].toString()) ?? DateTime.now()
+          : DateTime.now(),
     );
   }
 

@@ -861,15 +861,28 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
         'notes': 'Booked by ${widget.ownerName} via Pet Health Passport',
       });
 
-      // Dispatch real alert notification to the veterinarian
+      // Dispatch real clinical alert notification to the veterinarian
       await widget.client.from('user_notifications').insert({
         'user_id': vetId,
         'title': '🩺 New Consultation: ${widget.pet.name}',
         'body': '${widget.pet.name} (${widget.pet.species}) booked on ${DateFormat('MMM d').format(_selectedDate)} at $_selectedTime. Reason: $reason',
-        'notification_type': 'consultation',
+        'notification_type': 'vet_consultation',
         'is_read': false,
         'created_at': DateTime.now().toIso8601String(),
       }).catchError((_) => null);
+
+      // Dispatch real appointment confirmation notification to Pet Owner
+      final currentUserId = widget.client.auth.currentUser?.id;
+      if (currentUserId != null) {
+        await widget.client.from('user_notifications').insert({
+          'user_id': currentUserId,
+          'title': '📅 Appointment Confirmed: ${widget.pet.name}',
+          'body': 'Your consultation for ${widget.pet.name} is booked for ${DateFormat('MMM d, yyyy').format(_selectedDate)} at $_selectedTime.',
+          'notification_type': 'appointment',
+          'is_read': false,
+          'created_at': DateTime.now().toIso8601String(),
+        }).catchError((_) => null);
+      }
 
       if (mounted) {
         Navigator.of(context).pop();

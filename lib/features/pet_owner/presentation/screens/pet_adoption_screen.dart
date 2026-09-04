@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
@@ -41,7 +44,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   List<Map<String, dynamic>> _sentInquiries = [];
   List<Map<String, dynamic>> _receivedInquiries = [];
 
-  final List<String> _categories = const ['All', 'Dogs', 'Cats', 'Puppies'];
+  final List<String> _categories = const ['All', 'Favorites', 'Dogs', 'Cats', 'Puppies'];
 
   static const List<_AdoptionCandidate> _defaultCandidates = [
     _AdoptionCandidate(
@@ -1065,6 +1068,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     final allList = [..._customCandidates, ..._defaultCandidates];
 
     final filteredCandidates = allList.where((pet) {
+      if (_selectedCategory == 'Favorites' && !_favoritePetIds.contains(pet.id)) return false;
       if (_selectedCategory == 'Dogs' && pet.species != 'Dog') return false;
       if (_selectedCategory == 'Cats' && pet.species != 'Cat') return false;
       if (_selectedCategory == 'Puppies' && !pet.age.contains('mos')) return false;
@@ -1111,13 +1115,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
               child: const Icon(Icons.favorite),
             ),
             tooltip: 'Saved Favorites',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${_favoritePetIds.length} pets saved to your adoption favorites'),
-                ),
-              );
-            },
+            onPressed: () => _openFavoritesModal(context),
           ),
         ],
       ),
@@ -1280,44 +1278,49 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     );
   }
 
-  Widget _buildPetImage(String imageUrl, ColorScheme scheme) {
+  Widget _buildPetImage(
+    String imageUrl,
+    ColorScheme scheme, {
+    double? height = 220,
+    BoxFit fit = BoxFit.cover,
+  }) {
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return Image.network(
         imageUrl,
-        height: 220,
+        height: height,
         width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildImageFallback(scheme),
+        fit: fit,
+        errorBuilder: (_, __, ___) => _buildImageFallback(scheme, height: height),
       );
     } else if (imageUrl.startsWith('data:image')) {
       try {
         final base64Data = imageUrl.split(',').last;
         return Image.memory(
           base64Decode(base64Data),
-          height: 220,
+          height: height,
           width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildImageFallback(scheme),
+          fit: fit,
+          errorBuilder: (_, __, ___) => _buildImageFallback(scheme, height: height),
         );
       } catch (_) {
-        return _buildImageFallback(scheme);
+        return _buildImageFallback(scheme, height: height);
       }
     } else if (imageUrl.isNotEmpty && File(imageUrl).existsSync()) {
       return Image.file(
         File(imageUrl),
-        height: 220,
+        height: height,
         width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildImageFallback(scheme),
+        fit: fit,
+        errorBuilder: (_, __, ___) => _buildImageFallback(scheme, height: height),
       );
     } else {
-      return _buildImageFallback(scheme);
+      return _buildImageFallback(scheme, height: height);
     }
   }
 
-  Widget _buildImageFallback(ColorScheme scheme) {
+  Widget _buildImageFallback(ColorScheme scheme, {double? height = 220}) {
     return Container(
-      height: 220,
+      height: height,
       color: scheme.surfaceContainerHigh,
       child: Center(
         child: Icon(Icons.pets, size: 64, color: scheme.primary.withValues(alpha: 0.5)),
@@ -1347,13 +1350,22 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Container(
-                constraints: const BoxConstraints(maxHeight: 450),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.65,
+                ),
                 width: double.infinity,
                 color: Colors.black,
                 child: InteractiveViewer(
                   maxScale: 4.0,
                   minScale: 0.8,
-                  child: _buildPetImage(pet.imageUrl, scheme),
+                  child: Center(
+                    child: _buildPetImage(
+                      pet.imageUrl,
+                      scheme,
+                      height: null,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1389,6 +1401,19 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                       ],
                     ),
                   ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white38),
+                    ),
+                    icon: const Icon(Icons.campaign_outlined, size: 18),
+                    label: const Text('Poster'),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _openAdoptionPosterDialog(context, pet);
+                    },
+                  ),
+                  const SizedBox(width: 8),
                   FilledButton(
                     onPressed: () {
                       Navigator.pop(ctx);
@@ -1402,6 +1427,497 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _openFavoritesModal(BuildContext context) {
+    HapticFeedback.lightImpact();
+    final scheme = context.colorScheme;
+    final allList = [..._customCandidates, ..._defaultCandidates];
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final currentFavs = allList.where((p) => _favoritePetIds.contains(p.id)).toList();
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: scheme.outlineVariant.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.favorite, color: Colors.redAccent, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Saved Favorites (${currentFavs.length})',
+                          style: context.textTheme.titleLarge?.copyWith(
+                            fontWeight: AppTypography.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const Divider(height: 16),
+                if (currentFavs.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.favorite_border, size: 56, color: scheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No Saved Favorites Yet',
+                            style: context.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap the heart icon on any adoptable pet to save them here for quick review!',
+                            textAlign: TextAlign.center,
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: currentFavs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (ctx, i) {
+                        final pet = currentFavs[i];
+                        return Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: SizedBox(
+                                  width: 70,
+                                  height: 70,
+                                  child: _buildPetImage(pet.imageUrl, scheme, height: 70, fit: BoxFit.cover),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${pet.name}, ${pet.age}',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    ),
+                                    Text(
+                                      '${pet.breed} • ${pet.shelter}',
+                                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        FilledButton.tonal(
+                                          style: FilledButton.styleFrom(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                                          ),
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            _showInquireSheet(context, pet);
+                                          },
+                                          child: const Text('Inquire', style: TextStyle(fontSize: 12)),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          ),
+                                          icon: const Icon(Icons.campaign_outlined, size: 14),
+                                          label: const Text('Poster', style: TextStyle(fontSize: 12)),
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            _openAdoptionPosterDialog(context, pet);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.favorite, color: Colors.redAccent),
+                                tooltip: 'Remove from favorites',
+                                onPressed: () async {
+                                  await _toggleFavorite(pet.id);
+                                  setModalState(() {});
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openAdoptionPosterDialog(BuildContext context, _AdoptionCandidate pet) {
+    HapticFeedback.mediumImpact();
+    final GlobalKey posterKey = GlobalKey();
+    bool isGenerating = false;
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RepaintBoundary(
+                    key: posterKey,
+                    child: Container(
+                      width: 360,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F766E)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFF14B8A6), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF14B8A6).withValues(alpha: 0.3),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF14B8A6),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.pets, size: 16, color: Colors.white),
+                                SizedBox(width: 6),
+                                Text(
+                                  'LOOKING FOR A HOME',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            pet.name.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Text(
+                            '${pet.breed} • ${pet.age}',
+                            style: const TextStyle(
+                              color: Color(0xFF99F6E4),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            height: 200,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white30, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: _buildPetImage(
+                                pet.imageUrl,
+                                Theme.of(context).colorScheme,
+                                height: 200,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildPosterSpecItem('Species', pet.species),
+                                    _buildPosterSpecItem('Age', pet.age),
+                                    _buildPosterSpecItem('Health', 'Vaccinated'),
+                                  ],
+                                ),
+                                const Divider(color: Colors.white12, height: 16),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.location_on, color: Color(0xFF2DD4BF), size: 16),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        '${pet.shelter} (${pet.distance})',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            alignment: WrapAlignment.center,
+                            children: pet.personality.map((tag) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F766E).withValues(alpha: 0.8),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF2DD4BF).withValues(alpha: 0.4)),
+                                ),
+                                child: Text(
+                                  '#$tag',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                PetQrCodeView(
+                                  data: 'https://petconnect.ai/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}',
+                                  size: 78,
+                                  padding: 0,
+                                  foregroundColor: const Color(0xFF0F766E),
+                                  backgroundColor: Colors.transparent,
+                                ),
+                                const SizedBox(width: 14),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'SCAN TO ADOPT',
+                                        style: TextStyle(
+                                          color: Color(0xFF0F766E),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Point your camera to view full profile, medical records & submit application.',
+                                        style: TextStyle(
+                                          color: Color(0xFF475569),
+                                          fontSize: 10,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'PETCONNECT AI • ADOPTION INITIATIVE',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 9,
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white38),
+                        ),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Close'),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF14B8A6),
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: isGenerating
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.share_rounded),
+                        label: Text(isGenerating ? 'Exporting...' : 'Share Poster'),
+                        onPressed: isGenerating
+                            ? null
+                            : () async {
+                                setDialogState(() => isGenerating = true);
+                                try {
+                                  final boundary = posterKey.currentContext?.findRenderObject()
+                                      as RenderRepaintBoundary?;
+                                  if (boundary != null) {
+                                    final image = await boundary.toImage(pixelRatio: 3.0);
+                                    final byteData =
+                                        await image.toByteData(format: ui.ImageByteFormat.png);
+                                    if (byteData != null) {
+                                      final pngBytes = byteData.buffer.asUint8List();
+                                      final tempDir = await getTemporaryDirectory();
+                                      final file = File(
+                                          '${tempDir.path}/adopt_${pet.name.toLowerCase()}_poster.png');
+                                      await file.writeAsBytes(pngBytes);
+                                      await ExternalActions.shareFiles(
+                                        [file.path],
+                                        text: '🐾 Adopt ${pet.name}! Scan QR code or contact ${pet.shelter}.',
+                                      );
+                                    }
+                                  }
+                                } catch (e) {
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Poster share notice: $e')),
+                                    );
+                                  }
+                                } finally {
+                                  if (ctx.mounted) {
+                                    setDialogState(() => isGenerating = false);
+                                  }
+                                }
+                              },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPosterSpecItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 
@@ -1537,12 +2053,21 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                   }).toList(),
                 ),
                 AppSpacing.vGapMd,
-                SizedBox(
-                  width: double.infinity,
-                  child: AppButton.filled(
-                    onPressed: () => _showInquireSheet(context, pet),
-                    child: Text('Inquire About ${pet.name}'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton.filled(
+                        onPressed: () => _showInquireSheet(context, pet),
+                        child: Text('Inquire About ${pet.name}'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.campaign_outlined),
+                      tooltip: 'Generate Adoption Poster',
+                      onPressed: () => _openAdoptionPosterDialog(context, pet),
+                    ),
+                  ],
                 ),
               ],
             ),
