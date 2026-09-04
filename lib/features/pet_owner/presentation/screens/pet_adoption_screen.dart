@@ -187,6 +187,21 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     );
   }
 
+  Future<void> _updateCustomCandidate(_AdoptionCandidate candidate) async {
+    final updated = _customCandidates.map((c) {
+      if (c.id == candidate.id) {
+        return candidate;
+      }
+      return c;
+    }).toList();
+    setState(() => _customCandidates = updated);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString(
+      _customPetsKey,
+      jsonEncode(updated.map((e) => e.toJson()).toList()),
+    );
+  }
+
   Future<void> _recordInquiry({
     required _AdoptionCandidate pet,
     required String message,
@@ -240,12 +255,12 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   void _openPostPetDialog() {
     HapticFeedback.lightImpact();
     final nameCtrl = TextEditingController();
-    final ageCtrl = TextEditingController(text: '1 yr');
+    final ageCtrl = TextEditingController();
     final breedCtrl = TextEditingController();
-    final locationCtrl = TextEditingController(text: 'Indiranagar, Bengaluru');
+    final locationCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
-    final shelterCtrl = TextEditingController(text: 'Independent Foster');
+    final shelterCtrl = TextEditingController();
     String species = 'Dog';
     String? selectedImagePath;
 
@@ -1610,12 +1625,78 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     HapticFeedback.mediumImpact();
     final GlobalKey posterKey = GlobalKey();
     bool isGenerating = false;
+    int selectedPalette = 0;
+
+    final palettes = [
+      // 0: Nordic Slate
+      {
+        'name': 'Nordic Slate',
+        'bg': const Color(0xFF1E293B),
+        'accent': const Color(0xFF38BDF8),
+        'badgeBg': const Color(0xFF0F172A),
+        'textColor': Colors.white,
+        'subtextColor': const Color(0xFF94A3B8),
+        'chipBg': const Color(0xFF334155),
+        'chipText': Colors.white,
+        'border': const Color(0xFF475569),
+        'qrFg': const Color(0xFF0F172A),
+      },
+      // 1: Warm Studio Cream
+      {
+        'name': 'Studio Cream',
+        'bg': const Color(0xFFFAF7F2),
+        'accent': const Color(0xFFC2410C),
+        'badgeBg': const Color(0xFFEFE8DD),
+        'textColor': const Color(0xFF1C1917),
+        'subtextColor': const Color(0xFF57534E),
+        'chipBg': const Color(0xFFE7DFD5),
+        'chipText': const Color(0xFF1C1917),
+        'border': const Color(0xFFD6C7B6),
+        'qrFg': const Color(0xFF1C1917),
+      },
+      // 2: Terracotta Sunset
+      {
+        'name': 'Terracotta',
+        'bg': const Color(0xFF7C2D12),
+        'accent': const Color(0xFFFDBA74),
+        'badgeBg': const Color(0xFF431407),
+        'textColor': Colors.white,
+        'subtextColor': const Color(0xFFFFEDD5),
+        'chipBg': const Color(0xFF9A3412),
+        'chipText': Colors.white,
+        'border': const Color(0xFFEA580C),
+        'qrFg': const Color(0xFF431407),
+      },
+      // 3: Forest Sage
+      {
+        'name': 'Forest Sage',
+        'bg': const Color(0xFF064E3B),
+        'accent': const Color(0xFF6EE7B7),
+        'badgeBg': const Color(0xFF022C22),
+        'textColor': Colors.white,
+        'subtextColor': const Color(0xFFA7F3D0),
+        'chipBg': const Color(0xFF047857),
+        'chipText': Colors.white,
+        'border': const Color(0xFF059669),
+        'qrFg': const Color(0xFF022C22),
+      },
+    ];
 
     showDialog<void>(
       context: context,
       barrierColor: Colors.black87,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
+          final palette = palettes[selectedPalette];
+          final pBg = palette['bg'] as Color;
+          final pAccent = palette['accent'] as Color;
+          final pTextColor = palette['textColor'] as Color;
+          final pSubtextColor = palette['subtextColor'] as Color;
+          final pChipBg = palette['chipBg'] as Color;
+          final pChipText = palette['chipText'] as Color;
+          final pBorder = palette['border'] as Color;
+          final pQrFg = palette['qrFg'] as Color;
+
           return Dialog(
             backgroundColor: Colors.transparent,
             insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -1623,22 +1704,60 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // ── Palette Switcher ────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Palette:',
+                          style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        for (int i = 0; i < palettes.length; i++) ...[
+                          GestureDetector(
+                            onTap: () => setDialogState(() => selectedPalette = i),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: selectedPalette == i ? Colors.white : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 11,
+                                backgroundColor: palettes[i]['bg'] as Color,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // ── Poster Canvas ───────────────────────────────────
                   RepaintBoundary(
                     key: posterKey,
                     child: Container(
                       width: 360,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F766E)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFF14B8A6), width: 2),
+                        color: pBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: pBorder, width: 2),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF14B8A6).withValues(alpha: 0.3),
-                            blurRadius: 24,
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
                         ],
@@ -1648,21 +1767,21 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF14B8A6),
+                              color: pAccent,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.pets, size: 16, color: Colors.white),
-                                SizedBox(width: 6),
+                                Icon(Icons.pets, size: 15, color: pBg),
+                                const SizedBox(width: 6),
                                 Text(
                                   'LOOKING FOR A HOME',
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
+                                    color: pBg,
+                                    fontSize: 11.5,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 1.0,
                                   ),
@@ -1673,8 +1792,8 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                           const SizedBox(height: 12),
                           Text(
                             pet.name.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: pTextColor,
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.5,
@@ -1682,8 +1801,8 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                           ),
                           Text(
                             '${pet.breed} • ${pet.age}',
-                            style: const TextStyle(
-                              color: Color(0xFF99F6E4),
+                            style: TextStyle(
+                              color: pSubtextColor,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1693,18 +1812,11 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                             height: 200,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white30, width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.4),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: pBorder, width: 2),
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(12),
                               child: _buildPetImage(
                                 pet.imageUrl,
                                 Theme.of(context).colorScheme,
@@ -1717,29 +1829,29 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.white12),
+                              color: pChipBg.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: pBorder.withValues(alpha: 0.5)),
                             ),
                             child: Column(
                               children: [
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                                   children: [
-                                    _buildPosterSpecItem('Species', pet.species),
-                                    _buildPosterSpecItem('Age', pet.age),
-                                    _buildPosterSpecItem('Health', 'Vaccinated'),
+                                    _buildPosterSpecItem('Species', pet.species, textColor: pTextColor, subColor: pSubtextColor),
+                                    _buildPosterSpecItem('Age', pet.age, textColor: pTextColor, subColor: pSubtextColor),
+                                    _buildPosterSpecItem('Health', 'Vaccinated', textColor: pTextColor, subColor: pSubtextColor),
                                   ],
                                 ),
-                                const Divider(color: Colors.white12, height: 16),
+                                Divider(color: pBorder.withValues(alpha: 0.4), height: 16),
                                 Row(
                                   children: [
-                                    const Icon(Icons.location_on, color: Color(0xFF2DD4BF), size: 16),
+                                    Icon(Icons.location_on, color: pAccent, size: 16),
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
                                         '${pet.shelter} (${pet.distance})',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                        style: TextStyle(color: pSubtextColor, fontSize: 11),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -1749,66 +1861,77 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                             ),
                           ),
                           const SizedBox(height: 14),
+                          // Clean solid pills without '#' hashtags
                           Wrap(
                             spacing: 6,
                             runSpacing: 6,
                             alignment: WrapAlignment.center,
-                            children: pet.personality.map((tag) {
+                            children: pet.personality.map((trait) {
+                              final cleanTrait = trait.replaceAll('#', '').trim();
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0F766E).withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFF2DD4BF).withValues(alpha: 0.4)),
+                                  color: pChipBg,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: pBorder),
                                 ),
                                 child: Text(
-                                  '#$tag',
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  cleanTrait,
+                                  style: TextStyle(
+                                    color: pChipText,
                                     fontSize: 11,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               );
                             }).toList(),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
+                          // ISO Standard QR Code Container
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 PetQrCodeView(
-                                  data: 'https://petconnect.ai/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}',
-                                  size: 78,
+                                  data: 'https://petconnect.ai/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}&phone=${Uri.encodeComponent(pet.contactPhone ?? '')}',
+                                  size: 76,
                                   padding: 0,
-                                  foregroundColor: const Color(0xFF0F766E),
+                                  foregroundColor: pQrFg,
                                   backgroundColor: Colors.transparent,
                                 ),
-                                const SizedBox(width: 14),
-                                const Expanded(
+                                const SizedBox(width: 12),
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'SCAN TO ADOPT',
+                                        'SCAN TO ADOPT OR INQUIRE',
                                         style: TextStyle(
-                                          color: Color(0xFF0F766E),
-                                          fontSize: 13,
+                                          color: pQrFg,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
                                         ),
                                       ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        'Point your camera to view full profile, medical records & submit application.',
+                                      const SizedBox(height: 3),
+                                      const Text(
+                                        'Point phone camera or Google Lens to view full medical history & contact foster.',
                                         style: TextStyle(
                                           color: Color(0xFF475569),
                                           fontSize: 10,
-                                          height: 1.2,
+                                          height: 1.25,
                                         ),
                                       ),
                                     ],
@@ -1818,10 +1941,10 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          const Text(
+                          Text(
                             'PETCONNECT AI • ADOPTION INITIATIVE',
                             style: TextStyle(
-                              color: Colors.white38,
+                              color: pSubtextColor.withValues(alpha: 0.7),
                               fontSize: 9,
                               letterSpacing: 1.5,
                               fontWeight: FontWeight.bold,
@@ -1905,19 +2028,226 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     );
   }
 
-  Widget _buildPosterSpecItem(String label, String value) {
+  Widget _buildPosterSpecItem(String label, String value, {Color? textColor, Color? subColor}) {
     return Column(
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+          style: TextStyle(color: subColor ?? Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+          style: TextStyle(color: textColor ?? Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
         ),
       ],
+    );
+  }
+
+  void _openEditPetDialog(BuildContext context, _AdoptionCandidate pet) {
+    HapticFeedback.lightImpact();
+    final nameCtrl = TextEditingController(text: pet.name);
+    final ageCtrl = TextEditingController(text: pet.age);
+    final breedCtrl = TextEditingController(text: pet.breed);
+    final shelterCtrl = TextEditingController(text: pet.shelter);
+    final locationCtrl = TextEditingController(text: pet.distance);
+    final phoneCtrl = TextEditingController(text: pet.contactPhone);
+    final descCtrl = TextEditingController(text: pet.description);
+    String species = pet.species;
+    String? selectedImagePath = pet.imageUrl;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.edit_note_rounded, color: Color(0xFFEC4899), size: 28),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Edit ${pet.name}\'s Listing',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                InkWell(
+                  onTap: () async {
+                    final picker = ImagePicker();
+                    final picked = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      maxWidth: 1024,
+                      imageQuality: 85,
+                    );
+                    if (picked != null) {
+                      try {
+                        final appDir = await getApplicationDocumentsDirectory();
+                        final persistentPath = '${appDir.path}/adopt_img_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                        await File(picked.path).copy(persistentPath);
+                        setDlgState(() => selectedImagePath = persistentPath);
+                      } catch (_) {
+                        setDlgState(() => selectedImagePath = picked.path);
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: double.infinity,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB), width: 2),
+                    ),
+                    child: (selectedImagePath != null && selectedImagePath!.isNotEmpty)
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: _buildPetImage(selectedImagePath!, Theme.of(context).colorScheme),
+                              ),
+                              const Positioned(
+                                right: 8,
+                                top: 8,
+                                child: CircleAvatar(
+                                  backgroundColor: Colors.black54,
+                                  radius: 16,
+                                  child: Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo_rounded, size: 36, color: Color(0xFFEC4899)),
+                              SizedBox(height: 6),
+                              Text(
+                                'Tap to Update Pet Photo',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Pet Name *',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: species,
+                        decoration: const InputDecoration(
+                          labelText: 'Species',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'Dog', child: Text('Dog')),
+                          DropdownMenuItem(value: 'Cat', child: Text('Cat')),
+                        ],
+                        onChanged: (v) => setDlgState(() => species = v ?? 'Dog'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: ageCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Age *',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: breedCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Breed',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: locationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Location / City',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: phoneCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Contact Phone / WhatsApp',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Description & Personality',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (nameCtrl.text.trim().isEmpty || ageCtrl.text.trim().isEmpty) {
+                  context.showSnackbar('Please enter pet name and age');
+                  return;
+                }
+                final updated = _AdoptionCandidate(
+                  id: pet.id,
+                  name: nameCtrl.text.trim(),
+                  age: ageCtrl.text.trim(),
+                  species: species,
+                  breed: breedCtrl.text.trim().isNotEmpty ? breedCtrl.text.trim() : pet.breed,
+                  matchScore: pet.matchScore,
+                  shelter: shelterCtrl.text.trim().isNotEmpty ? shelterCtrl.text.trim() : pet.shelter,
+                  distance: locationCtrl.text.trim().isNotEmpty ? locationCtrl.text.trim() : pet.distance,
+                  imageUrl: selectedImagePath ?? pet.imageUrl,
+                  personality: pet.personality,
+                  description: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : pet.description,
+                  contactPhone: phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : pet.contactPhone,
+                  isUserListed: true,
+                );
+                _updateCustomCandidate(updated);
+                Navigator.pop(ctx);
+                context.showSnackbar('✓ Updated ${updated.name}\'s listing successfully!');
+              },
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2067,6 +2397,14 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                       tooltip: 'Generate Adoption Poster',
                       onPressed: () => _openAdoptionPosterDialog(context, pet),
                     ),
+                    if (pet.isUserListed) ...[
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Edit Listing',
+                        onPressed: () => _openEditPetDialog(context, pet),
+                      ),
+                    ],
                   ],
                 ),
               ],

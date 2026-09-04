@@ -398,14 +398,46 @@ class _ConsultationWorkspaceScreenState
         'created_at': now.toIso8601String(),
       }).catchError((_) => null);
 
+      String? petOwnerId;
+      try {
+        final petData = await client
+            .from('pets')
+            .select('owner_id')
+            .eq('id', effectivePetId)
+            .maybeSingle();
+        petOwnerId = petData?['owner_id'] as String?;
+      } catch (_) {}
+
+      final ownerRecipient = petOwnerId ?? _vetId;
+
       await client.from('user_notifications').insert({
-        'user_id': _vetId,
+        'user_id': ownerRecipient,
         'title': 'Consultation Finalized: $_petName',
         'body': 'Consultation for $_petName finalized. Digital bill & prescription saved to Health Vault.',
         'notification_type': 'medical',
         'is_read': false,
         'created_at': now.toIso8601String(),
+        'payload': {
+          'pet_id': effectivePetId,
+          'pet_name': _petName,
+          'type': 'consultation_bill',
+        },
       }).catchError((_) => null);
+
+      if (petOwnerId != null && petOwnerId != _vetId) {
+        await client.from('user_notifications').insert({
+          'user_id': _vetId,
+          'title': 'Consultation Completed: $_petName',
+          'body': 'Consultation for patient $_petName archived.',
+          'notification_type': 'clinical_alert',
+          'is_read': false,
+          'created_at': now.toIso8601String(),
+          'payload': {
+            'pet_id': effectivePetId,
+            'pet_name': _petName,
+          },
+        }).catchError((_) => null);
+      }
 
       ref.invalidate(patientQueueStateProvider);
       ref.invalidate(petDocumentsProvider(effectivePetId));

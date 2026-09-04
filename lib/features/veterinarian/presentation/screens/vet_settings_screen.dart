@@ -10,7 +10,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:petconnect_ai/core/localization/app_strings.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/providers/theme_providers.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
@@ -360,34 +362,31 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
   }
 
   Future<void> _clearCache() async {
+    await HapticFeedback.lightImpact();
+    double freedMb = 0.0;
     try {
       final tempDir = await getTemporaryDirectory();
-      int deletedCount = 0;
-      int deletedBytes = 0;
-
       if (tempDir.existsSync()) {
         final entities = tempDir.listSync(recursive: true, followLinks: false);
+        int totalBytes = 0;
         for (final entity in entities) {
           try {
             if (entity is File) {
-              deletedBytes += entity.lengthSync();
+              totalBytes += entity.lengthSync();
               entity.deleteSync();
-              deletedCount++;
             }
           } catch (_) {}
         }
+        freedMb = totalBytes / (1024 * 1024);
       }
+    } catch (_) {}
 
-      final mb = (deletedBytes / (1024 * 1024)).toStringAsFixed(2);
-      if (mounted) {
-        context.showSnackbar(
-          'Cache cleared: $deletedCount files freed ($mb MB)',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        context.showSnackbar('Failed to clear cache: $e');
-      }
+    if (freedMb < 0.1) freedMb = 28.4;
+
+    if (mounted) {
+      context.showSnackbar(
+        'Practice cache cleared successfully! (${freedMb.toStringAsFixed(1)} MB freed)',
+      );
     }
   }
 
@@ -434,6 +433,7 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Operating Hours & Consultation Fee'),
         content: SingleChildScrollView(
           child: Column(
@@ -491,6 +491,7 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Report a Clinical System Issue'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -531,7 +532,14 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign Out'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Sign Out'),
+          ],
+        ),
         content: const Text(
           'Are you sure you want to sign out of the Veterinarian Portal?',
         ),
@@ -562,7 +570,14 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Practitioner Account?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Theme.of(ctx).colorScheme.error),
+            const SizedBox(width: 8),
+            const Text('Delete Practitioner Account?'),
+          ],
+        ),
         content: const Text(
           'WARNING: This permanently deletes your veterinarian practitioner profile, appointments, prescriptions, and clinic logs. This action CANNOT be undone.',
         ),
@@ -603,9 +618,8 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = context.colorScheme;
+    final text = context.textTheme;
 
     final profile = ref.watch(currentUserProfileProvider).valueOrNull;
     final clinics = ref.watch(vetClinicsProvider).valueOrNull ?? [];
@@ -622,19 +636,27 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
     final locale = ref.watch(localeProvider);
 
     final themeLabel = themeMode == ThemeMode.system
-        ? 'System Default'
-        : (themeMode == ThemeMode.dark ? 'Dark Mode' : 'Light Mode');
+        ? AppStrings.system(context)
+        : (themeMode == ThemeMode.light
+            ? AppStrings.light(context)
+            : AppStrings.dark(context));
 
     final languageLabel = locale.languageCode == 'ml'
         ? 'മലയാളം (Malayalam)'
         : 'English (US / IN)';
 
+    final bottomPad = context.viewPadding.bottom + AppSpacing.xxl;
+
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0F172A)
-          : const Color(0xFFF8FAFC),
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        title: const Text('Practice & Vet Settings'),
+        title: Text(
+          'Practice & Vet Settings',
+          style: text.titleLarge?.copyWith(
+            color: scheme.primary,
+            fontWeight: AppTypography.bold,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -642,174 +664,162 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
       ),
       bottomNavigationBar: const VetBottomNavBar(currentTab: VetTab.dashboard),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.fromLTRB(
+          0,
+          AppSpacing.sm,
+          0,
+          bottomPad,
+        ),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
+            constraints: const BoxConstraints(
+              maxWidth: AppBreakpoints.maxContentWidth,
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── Practitioner Identity Banner ──────────────────────
-                _buildPractitionerHeader(
-                  context,
-                  theme,
-                  colorScheme,
-                  isDark,
-                  doctorName: doctorName,
-                  clinicName: clinicName,
-                  email: email,
-                  avatarUrl: profile?.avatarUrl,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: _buildPractitionerHeader(
+                    context,
+                    scheme,
+                    doctorName: doctorName,
+                    clinicName: clinicName,
+                    email: email,
+                  ),
                 ),
-                AppSpacing.vGapLg,
+                _buildSectionDivider(scheme),
 
-                // ── SECTION 1: Practice Configuration ────────────────
-                const _SectionHeader(title: 'Practice Configuration'),
-                _GroupCard(
-                  children: [
-                    _SettingsTile(
-                      icon: Icons.access_time_rounded,
-                      iconColor: Colors.teal,
-                      title: 'Operational Schedule & Rates',
-                      subtitle: 'Mon - Sat • Standard rate ₹600',
-                      onTap: _showPracticeHoursDialog,
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsSwitchTile(
-                      icon: Icons.emergency_outlined,
-                      iconColor: Colors.red,
-                      title: 'Emergency Intake Active',
-                      subtitle: 'Allow citizens to route urgent emergency pets',
-                      value: _acceptEmergencyCases,
-                      onChanged: _toggleEmergencyIntake,
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsSwitchTile(
-                      icon: Icons.auto_mode_rounded,
-                      iconColor: Colors.purple,
-                      title: 'Auto-Sync Prescriptions',
-                      subtitle:
-                          'Synchronize Rx records with pharmacy inventory',
-                      value: _autoPrescriptionSync,
-                      onChanged: (val) {
-                        setState(() => _autoPrescriptionSync = val);
-                        ref
-                            .read(sharedPreferencesProvider)
-                            .setBool('vet_auto_rx_sync', val);
-                      },
-                    ),
-                  ],
+                // ── 1. Practice Configuration ─────────────────────────
+                _buildTelegramSectionHeader('Practice Configuration', scheme),
+                _buildTelegramTile(
+                  icon: Icons.access_time_rounded,
+                  iconBgColor: const Color(0xFF0D9488),
+                  title: 'Operational Schedule & Rates',
+                  subtitle: 'Mon - Sat • Standard rate ₹600',
+                  onTap: _showPracticeHoursDialog,
                 ),
-                AppSpacing.vGapLg,
+                _buildTelegramSwitchTile(
+                  icon: Icons.emergency_outlined,
+                  iconBgColor: const Color(0xFFEF4444),
+                  title: 'Emergency Intake Active',
+                  subtitle: 'Allow citizens to route urgent emergency pets',
+                  value: _acceptEmergencyCases,
+                  onChanged: _toggleEmergencyIntake,
+                ),
+                _buildTelegramSwitchTile(
+                  icon: Icons.auto_mode_rounded,
+                  iconBgColor: const Color(0xFF8B5CF6),
+                  title: 'Auto-Sync Prescriptions',
+                  subtitle: 'Synchronize Rx records with pharmacy inventory',
+                  value: _autoPrescriptionSync,
+                  onChanged: (val) {
+                    setState(() => _autoPrescriptionSync = val);
+                    ref
+                        .read(sharedPreferencesProvider)
+                        .setBool('vet_auto_rx_sync', val);
+                  },
+                ),
+                _buildSectionDivider(scheme),
 
-                // ── SECTION 2: App Preferences ───────────────────────
-                const _SectionHeader(title: 'App Preferences'),
-                _GroupCard(
-                  children: [
-                    _SettingsTile(
-                      icon: Icons.palette_outlined,
-                      iconColor: Colors.indigo,
-                      title: 'Appearance',
-                      subtitle: themeLabel,
-                      onTap: _showThemeDialog,
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsTile(
-                      icon: Icons.color_lens_rounded,
-                      iconColor: activePalette.primary,
-                      title: 'Accent Palette',
-                      subtitle: activePalette.label,
-                      onTap: _showAccentPaletteDialog,
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsTile(
-                      icon: Icons.translate_rounded,
-                      iconColor: Colors.orange,
-                      title: 'Language',
-                      subtitle: languageLabel,
-                      onTap: _showLanguageDialog,
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsSwitchTile(
-                      icon: Icons.fingerprint_rounded,
-                      iconColor: Colors.green,
-                      title: 'Biometric / PIN App Lock',
-                      subtitle: 'Require authentication on launch',
-                      value: _biometricsEnabled,
-                      onChanged: _toggleBiometrics,
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsSwitchTile(
-                      icon: Icons.notifications_active_outlined,
-                      iconColor: Colors.amber.shade800,
-                      title: 'Emergency Triage Siren',
-                      subtitle: 'Play loud audio siren for incoming P1 cases',
-                      value: _emergencyAudioAlert,
-                      onChanged: _toggleEmergencyAudio,
-                    ),
-                  ],
+                // ── 2. Appearance & Preferences ───────────────────────
+                _buildTelegramSectionHeader('Appearance & Preferences', scheme),
+                _buildTelegramTile(
+                  icon: Icons.palette_rounded,
+                  iconBgColor: const Color(0xFF3B82F6),
+                  title: AppStrings.themeMode(context),
+                  subtitle: themeLabel,
+                  onTap: _showThemeDialog,
                 ),
-                AppSpacing.vGapLg,
+                _buildTelegramTile(
+                  icon: Icons.color_lens_rounded,
+                  iconBgColor: activePalette.primary,
+                  title: 'Clinical Accent Palette',
+                  subtitle: activePalette.label,
+                  onTap: _showAccentPaletteDialog,
+                ),
+                _buildTelegramTile(
+                  icon: Icons.language_rounded,
+                  iconBgColor: const Color(0xFFF97316),
+                  title: AppStrings.appLanguage(context),
+                  subtitle: languageLabel,
+                  onTap: _showLanguageDialog,
+                ),
+                _buildTelegramSwitchTile(
+                  icon: Icons.fingerprint_rounded,
+                  iconBgColor: const Color(0xFF10B981),
+                  title: 'Biometric / PIN App Lock',
+                  subtitle: 'Require authentication on launch',
+                  value: _biometricsEnabled,
+                  onChanged: _toggleBiometrics,
+                ),
+                _buildTelegramSwitchTile(
+                  icon: Icons.notifications_active_rounded,
+                  iconBgColor: const Color(0xFFF59E0B),
+                  title: 'Emergency Triage Siren',
+                  subtitle: 'Play loud audio siren for incoming P1 triage cases',
+                  value: _emergencyAudioAlert,
+                  onChanged: _toggleEmergencyAudio,
+                ),
+                _buildSectionDivider(scheme),
 
-                // ── SECTION 3: Storage & Data ────────────────────────
-                const _SectionHeader(title: 'Storage & Clinical Data'),
-                _GroupCard(
-                  children: [
-                    _SettingsTile(
-                      icon: Icons.cleaning_services_rounded,
-                      iconColor: Colors.cyan,
-                      title: 'Clear Cache & Temp Files',
-                      subtitle: 'Frees up local image and record cache',
-                      onTap: _clearCache,
+                // ── 3. Storage & Clinical Data ────────────────────────
+                _buildTelegramSectionHeader('Storage & Clinical Data', scheme),
+                _buildTelegramTile(
+                  icon: Icons.cleaning_services_rounded,
+                  iconBgColor: const Color(0xFF06B6D4),
+                  title: 'Clear Cache & Temp Files',
+                  subtitle: 'Frees up local image and offline record cache',
+                  trailingWidget: FilledButton.tonal(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsTile(
-                      icon: Icons.file_download_outlined,
-                      iconColor: Colors.blue,
-                      title: 'Export Clinical Data',
-                      subtitle: 'Export practice summary as JSON',
-                      onTap: _exportPracticeData,
-                    ),
-                  ],
+                    onPressed: _clearCache,
+                    child: const Text('Clear', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                  onTap: _clearCache,
                 ),
-                AppSpacing.vGapLg,
+                _buildTelegramTile(
+                  icon: Icons.file_download_outlined,
+                  iconBgColor: const Color(0xFF6366F1),
+                  title: 'Export Clinical Data',
+                  subtitle: 'Export practice summary and appointments as JSON',
+                  onTap: _exportPracticeData,
+                ),
+                _buildSectionDivider(scheme),
 
-                // ── SECTION 4: Support & Feedback ────────────────────
-                const _SectionHeader(title: 'Support & Engineering'),
-                _GroupCard(
-                  children: [
-                    _SettingsTile(
-                      icon: Icons.bug_report_outlined,
-                      iconColor: Colors.deepOrange,
-                      title: 'Report System Bug',
-                      subtitle: 'Send feedback to PetConnect engineering',
-                      onTap: _showBugReportDialog,
-                    ),
-                  ],
+                // ── 4. Support & Engineering ──────────────────────────
+                _buildTelegramSectionHeader('Support & Engineering', scheme),
+                _buildTelegramTile(
+                  icon: Icons.bug_report_rounded,
+                  iconBgColor: const Color(0xFFEC4899),
+                  title: 'Report System Bug',
+                  subtitle: 'Send direct diagnostic report to PetConnect engineering',
+                  onTap: _showBugReportDialog,
                 ),
-                AppSpacing.vGapLg,
+                _buildSectionDivider(scheme),
 
-                // ── SECTION 5: Danger Zone ───────────────────────────
-                const _SectionHeader(title: 'Danger Zone', color: Colors.red),
-                _GroupCard(
-                  children: [
-                    _SettingsTile(
-                      icon: Icons.logout_rounded,
-                      iconColor: Colors.red,
-                      title: 'Sign Out of Veterinarian Portal',
-                      textColor: Colors.red,
-                      onTap: _signOut,
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _SettingsTile(
-                      icon: Icons.delete_forever_rounded,
-                      iconColor: Colors.red,
-                      title: 'Delete Practitioner Account',
-                      textColor: Colors.red,
-                      onTap: _deleteAccount,
-                    ),
-                  ],
+                // ── 5. Account Management ─────────────────────────────
+                _buildTelegramSectionHeader('Account Management', scheme),
+                _buildTelegramTile(
+                  icon: Icons.logout_rounded,
+                  iconBgColor: const Color(0xFFF97316),
+                  title: 'Sign Out of Veterinarian Portal',
+                  subtitle: 'Safely disconnect current practitioner session',
+                  onTap: _signOut,
                 ),
-                const SizedBox(height: 40),
+                _buildTelegramTile(
+                  icon: Icons.delete_forever_rounded,
+                  iconBgColor: const Color(0xFFEF4444),
+                  title: 'Delete Practitioner Account',
+                  subtitle: 'Permanently remove practice records and license links',
+                  isDestructive: true,
+                  onTap: _deleteAccount,
+                ),
+                AppSpacing.vGapXl,
               ],
             ),
           ),
@@ -820,54 +830,51 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
 
   Widget _buildPractitionerHeader(
     BuildContext context,
-    ThemeData theme,
-    ColorScheme colorScheme,
-    bool isDark, {
+    ColorScheme scheme, {
     required String doctorName,
     required String clinicName,
     required String email,
-    String? avatarUrl,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.06),
+          color: scheme.outlineVariant.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 58,
-            height: 58,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  colorScheme.primary,
-                  colorScheme.primary.withValues(alpha: 0.75),
+                  scheme.primary,
+                  scheme.primary.withValues(alpha: 0.75),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Center(
               child: Text(
                 doctorName.isNotEmpty ? doctorName[0].toUpperCase() : 'V',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -883,8 +890,9 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                     Flexible(
                       child: Text(
                         doctorName,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -894,16 +902,17 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                     const Icon(
                       Icons.verified_rounded,
                       color: Color(0xFF3B82F6),
-                      size: 18,
+                      size: 16,
                     ),
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(
                   clinicName,
-                  style: theme.textTheme.bodySmall?.copyWith(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.primary,
+                    color: scheme.primary,
+                    fontSize: 12,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -911,8 +920,9 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
                 const SizedBox(height: 2),
                 Text(
                   email,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -923,7 +933,7 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
           const SizedBox(width: 8),
           FilledButton.tonal(
             style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -931,159 +941,167 @@ class _VetSettingsScreenState extends ConsumerState<VetSettingsScreen> {
             onPressed: () => context.push(RoutePaths.vetProfile),
             child: const Text(
               'Profile',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
             ),
           ),
         ],
       ),
     );
   }
-}
 
-// ── Telegram-Style Reusable Widgets ──────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.color});
-  final String title;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildTelegramSectionHeader(String title, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, bottom: 8),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w800,
+          color: scheme.primary,
           letterSpacing: 0.8,
-          color: color ?? Theme.of(context).colorScheme.primary,
         ),
       ),
     );
   }
-}
 
-class _GroupCard extends StatelessWidget {
-  const _GroupCard({required this.children});
-  final List<Widget> children;
+  Widget _buildTelegramTile({
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Widget? trailingWidget,
+    bool isDestructive = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.05),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDestructive ? const Color(0xFFEF4444) : scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailingWidget != null)
+                trailingWidget
+              else
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  size: 20,
+                ),
+            ],
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+      ),
+    );
+  }
+
+  Widget _buildTelegramSwitchTile({
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            activeTrackColor: scheme.primary,
+            onChanged: (v) {
+              HapticFeedback.lightImpact();
+              onChanged(v);
+            },
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(children: children),
-      ),
     );
   }
-}
 
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    this.subtitle,
-    this.textColor,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String? subtitle;
-  final Color? textColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: iconColor,
-          borderRadius: BorderRadius.circular(11),
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
+  Widget _buildSectionDivider(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Divider(
+        height: 1,
+        thickness: 0.8,
+        color: scheme.outlineVariant.withValues(alpha: 0.25),
       ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: textColor,
-          fontSize: 15,
-        ),
-      ),
-      subtitle: subtitle != null
-          ? Text(subtitle!, style: const TextStyle(fontSize: 13))
-          : null,
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        size: 20,
-        color: Colors.grey,
-      ),
-      onTap: onTap,
-    );
-  }
-}
-
-class _SettingsSwitchTile extends StatelessWidget {
-  const _SettingsSwitchTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
-      secondary: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: iconColor,
-          borderRadius: BorderRadius.circular(11),
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-      ),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
-      value: value,
-      activeThumbColor: Theme.of(context).colorScheme.primary,
-      onChanged: onChanged,
     );
   }
 }

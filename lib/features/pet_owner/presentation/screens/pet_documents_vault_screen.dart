@@ -1,10 +1,13 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
@@ -384,24 +387,25 @@ class _PetDocumentsVaultScreenState
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
                   children: [
-                    if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty)
-                      Expanded(
-                        child: FilledButton.icon(
-                          icon: const Icon(Icons.open_in_new, size: 18),
-                          label: const Text('Open in Browser/Viewer'),
-                          onPressed: () {
-                            ExternalActions.openUrl(doc.signedUrl!);
-                          },
-                        ),
-                      ),
-                    if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty)
-                      const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.file_download_outlined, size: 18),
+                      label: const Text('Download'),
+                      onPressed: () => _downloadDocument(context, doc),
+                    ),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.share_rounded, size: 18),
-                      label: const Text('Share'),
+                      label: const Text('Share PDF'),
                       onPressed: () => _shareDocument(context, doc),
+                    ),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: const Text('Open in Viewer'),
+                      onPressed: () => _viewDocument(context, doc),
                     ),
                   ],
                 ),
@@ -417,57 +421,211 @@ class _PetDocumentsVaultScreenState
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.description_rounded, size: 54, color: scheme.primary),
+        Icon(Icons.picture_as_pdf_rounded, size: 54, color: scheme.primary),
         const SizedBox(height: 12),
-        Text(
-          doc.documentName,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            doc.documentName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           'Size: ${(doc.fileSize ?? 0) ~/ 1024} KB • Verified Vault Document',
           style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
         ),
-        const SizedBox(height: 14),
-        if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty)
-          FilledButton.tonalIcon(
-            icon: const Icon(Icons.visibility_rounded, size: 16),
-            label: const Text('Launch Document'),
-            onPressed: () => ExternalActions.openUrl(doc.signedUrl!),
-          ),
+        const SizedBox(height: 16),
+        FilledButton.tonalIcon(
+          icon: const Icon(Icons.visibility_rounded, size: 18),
+          label: const Text('Open in System Viewer'),
+          onPressed: () => _viewDocument(context, doc),
+        ),
       ],
     );
   }
 
-  Future<void> _downloadDocument(BuildContext context, PetDocument doc) async {
-    if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty) {
-      final opened = await ExternalActions.openUrl(doc.signedUrl!);
+  Future<File?> _resolveDocumentFile(PetDocument doc) async {
+    // 1. Check if filePath is already a local file that exists
+    if (doc.filePath.isNotEmpty) {
+      final localFile = File(doc.filePath);
+      if (localFile.existsSync()) {
+        return localFile;
+      }
+    }
+
+    final cleanName = doc.documentName.replaceAll(RegExp(r'[^\w\.-]'), '_');
+    final tempDir = await getTemporaryDirectory();
+    final cachedTarget = File('${tempDir.path}/$cleanName');
+
+    // 2. If already cached in temp dir, return it
+    if (cachedTarget.existsSync() && cachedTarget.lengthSync() > 0) {
+      return cachedTarget;
+    }
+
+    // 3. If signedUrl or public url is present, download it
+    final url = doc.signedUrl;
+    if (url != null && url.isNotEmpty) {
+      try {
+        final dio = Dio();
+        await dio.download(url, cachedTarget.path);
+        if (cachedTarget.existsSync() && cachedTarget.lengthSync() > 0) {
+          return cachedTarget;
+        }
+      } catch (_) {}
+    }
+
+    // 4. Try Supabase storage bucket download
+    try {
+      final client = ref.read(supabaseClientProvider);
+      final bytes = await client.storage.from('pet-documents').download(doc.filePath);
+      await cachedTarget.writeAsBytes(bytes);
+      return cachedTarget;
+    } catch (_) {}
+
+    return null;
+  }
+
+  Future<void> _viewDocument(BuildContext context, PetDocument doc) async {
+    final scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text('Opening ${doc.documentName}...'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    try {
+      final file = await _resolveDocumentFile(doc);
+      if (file != null && file.existsSync()) {
+        final openResult = await OpenFilex.open(file.path);
+        if (openResult.type == ResultType.done) {
+          return;
+        }
+      }
+
+      // Fallback: If local viewer didn't work or file wasn't resolved, open signed URL
+      if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty) {
+        final opened = await ExternalActions.openUrl(doc.signedUrl!);
+        if (!opened && context.mounted) {
+          scaffold.showSnackBar(
+            const SnackBar(content: Text('Could not open document viewer or browser.')),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          scaffold.showSnackBar(
+            const SnackBar(content: Text('Document file could not be retrieved.')),
+          );
+        }
+      }
+    } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffold.showSnackBar(SnackBar(content: Text('Error opening document: $e')));
+      }
+    }
+  }
+
+  Future<void> _downloadDocument(BuildContext context, PetDocument doc) async {
+    final scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text('Saving ${doc.documentName} to Downloads...'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    try {
+      final file = await _resolveDocumentFile(doc);
+      if (file == null || !file.existsSync()) {
+        if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty) {
+          await ExternalActions.openUrl(doc.signedUrl!);
+        } else {
+          scaffold.showSnackBar(
+            const SnackBar(content: Text('Unable to locate document file to download.')),
+          );
+        }
+        return;
+      }
+
+      Directory? targetDir;
+      if (Platform.isAndroid) {
+        final downloadsFolder = Directory('/storage/emulated/0/Download');
+        if (downloadsFolder.existsSync()) {
+          targetDir = downloadsFolder;
+        } else {
+          targetDir = await getExternalStorageDirectory();
+        }
+      } else {
+        targetDir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+      }
+
+      if (targetDir == null) {
+        throw Exception('Could not access downloads directory.');
+      }
+
+      final cleanName = doc.documentName.replaceAll(RegExp(r'[^\w\.-]'), '_');
+      final destFile = File('${targetDir.path}/$cleanName');
+      await file.copy(destFile.path);
+
+      if (context.mounted) {
+        scaffold.showSnackBar(
           SnackBar(
-            content: Text(
-              opened
-                  ? '✓ Opening signed download for ${doc.documentName}...'
-                  : 'Download URL ready: ${doc.signedUrl}',
-            ),
+            content: Text('Saved to Downloads: ${destFile.path.split('/').last}'),
             backgroundColor: Colors.green.shade700,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'OPEN',
+              textColor: Colors.white,
+              onPressed: () => OpenFilex.open(destFile.path),
+            ),
           ),
         );
       }
-    } else {
+    } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Document location: ${doc.filePath}')),
+        scaffold.showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
         );
       }
     }
   }
 
-  void _shareDocument(BuildContext context, PetDocument doc) {
-    final link = doc.signedUrl != null ? '\nLink: ${doc.signedUrl}' : '';
-    final text = 'PetConnect AI Vault Document\n----------------------------\nDocument: ${doc.documentName}\nType: ${doc.documentType}$link';
-    ExternalActions.shareText(text, subject: doc.documentName);
+  Future<void> _shareDocument(BuildContext context, PetDocument doc) async {
+    final scaffold = ScaffoldMessenger.of(context);
+    scaffold.showSnackBar(
+      SnackBar(
+        content: Text('Preparing ${doc.documentName} to share...'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    try {
+      final file = await _resolveDocumentFile(doc);
+      if (file != null && file.existsSync()) {
+        await ExternalActions.shareFiles(
+          [file.path],
+          text: 'PetConnect AI Vault Document: ${doc.documentName}\nType: ${doc.documentType}',
+          subject: doc.documentName,
+        );
+      } else if (doc.signedUrl != null && doc.signedUrl!.isNotEmpty) {
+        await ExternalActions.shareText(
+          'PetConnect AI Vault Document: ${doc.documentName}\nType: ${doc.documentType}\nLink: ${doc.signedUrl}',
+          subject: doc.documentName,
+        );
+      } else {
+        if (context.mounted) {
+          scaffold.showSnackBar(
+            const SnackBar(content: Text('Document file unavailable to share.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        scaffold.showSnackBar(SnackBar(content: Text('Share failed: $e')));
+      }
+    }
   }
 
   Future<void> _confirmDeleteDocument(BuildContext context, PetDocument doc) async {

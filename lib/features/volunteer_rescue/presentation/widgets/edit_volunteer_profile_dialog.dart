@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
@@ -53,6 +54,8 @@ class _EditVolunteerProfileDialogState
   late TextEditingController _bioController;
   late TextEditingController _orgController;
   late TextEditingController _sectorController;
+  late TextEditingController _equipmentController;
+  late TextEditingController _vehicleController;
 
   String? _avatarUrl;
   bool _isUploadingDp = false;
@@ -75,16 +78,29 @@ class _EditVolunteerProfileDialogState
   void initState() {
     super.initState();
     final p = widget.profile;
+    final prefs = ref.read(sharedPreferencesProvider);
+
     _avatarUrl = p.avatarUrl;
     _nameController = TextEditingController(text: p.fullName);
     _phoneController = TextEditingController(text: p.phone ?? '');
-    _cityController = TextEditingController(text: p.city ?? 'Bengaluru');
+    _cityController = TextEditingController(text: p.city ?? '');
     _bioController = TextEditingController(text: p.bio ?? '');
     _orgController = TextEditingController(
-      text: 'PetConnect Rapid Animal Rescue Corps',
+      text: prefs.getString('volunteer_org') ?? 'PetConnect Rapid Animal Rescue Corps',
     );
-    _sectorController = TextEditingController(text: 'Sector 4 • Central Command');
-    _selectedSkills = {'Animal First Aid', 'Search & Rescue', 'Emergency Transport'};
+    _sectorController = TextEditingController(
+      text: prefs.getString('volunteer_sector') ?? 'Central Command • Rapid Dispatch',
+    );
+    _equipmentController = TextEditingController(
+      text: prefs.getString('volunteer_equipment') ?? 'Pet First Aid Kit, Animal Carrier, Microchip Scanner, Safety Gloves, Slip Leash',
+    );
+    _vehicleController = TextEditingController(
+      text: prefs.getString('volunteer_vehicle') ?? 'SUV with Pet Crate & Partition',
+    );
+    final savedSkills = prefs.getStringList('volunteer_skills');
+    _selectedSkills = savedSkills != null && savedSkills.isNotEmpty
+        ? savedSkills.toSet()
+        : {'Animal First Aid', 'Search & Rescue', 'Emergency Transport'};
     _isOnDuty = ref.read(volunteerDutyStatusProvider);
   }
 
@@ -96,6 +112,8 @@ class _EditVolunteerProfileDialogState
     _bioController.dispose();
     _orgController.dispose();
     _sectorController.dispose();
+    _equipmentController.dispose();
+    _vehicleController.dispose();
     super.dispose();
   }
 
@@ -196,6 +214,14 @@ class _EditVolunteerProfileDialogState
       // Persist profile to Supabase
       final upsertProfile = ref.read(upsertUserProfileProvider);
       await upsertProfile(updatedProfile);
+
+      // Persist preferences locally
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setString('volunteer_org', _orgController.text.trim());
+      await prefs.setString('volunteer_sector', _sectorController.text.trim());
+      await prefs.setString('volunteer_equipment', _equipmentController.text.trim());
+      await prefs.setString('volunteer_vehicle', _vehicleController.text.trim());
+      await prefs.setStringList('volunteer_skills', _selectedSkills.toList());
 
       // Update duty status provider
       ref.read(volunteerDutyStatusProvider.notifier).state = _isOnDuty;
@@ -340,7 +366,7 @@ class _EditVolunteerProfileDialogState
                     controller: _cityController,
                     decoration: const InputDecoration(
                       labelText: 'Dispatch Base / City',
-                      hintText: 'e.g. Indiranagar, Bengaluru',
+                      hintText: 'e.g. Koramangala, Bengaluru',
                       prefixIcon: Icon(Icons.location_on_outlined),
                       border: OutlineInputBorder(borderRadius: AppRadius.brCard),
                     ),
@@ -377,6 +403,27 @@ class _EditVolunteerProfileDialogState
                       labelText: 'Assigned Dispatch Sector',
                       hintText: 'e.g. Sector 4 • Central Command',
                       prefixIcon: Icon(Icons.map_outlined),
+                      border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _vehicleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Response Vehicle / Transport',
+                      hintText: 'e.g. SUV with Pet Crate & Partition',
+                      prefixIcon: Icon(Icons.directions_car_outlined),
+                      border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _equipmentController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Emergency Equipment Checklist',
+                      hintText: 'e.g. Pet First Aid Kit, Animal Carrier, Microchip Scanner, Safety Gloves, Slip Leash',
+                      prefixIcon: Icon(Icons.medical_services_outlined),
                       border: OutlineInputBorder(borderRadius: AppRadius.brCard),
                     ),
                   ),

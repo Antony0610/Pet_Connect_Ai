@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_colors.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/administrator/domain/entities/platform_setting.dart';
 import 'package:petconnect_ai/features/administrator/presentation/providers/admin_providers.dart';
 import 'package:petconnect_ai/features/administrator/presentation/widgets/admin_bottom_nav_bar.dart';
@@ -17,7 +21,7 @@ import 'package:petconnect_ai/shared/widgets/states/error_view.dart';
 
 /// Administrator Platform Settings Screen
 ///
-/// Sleek Telegram flat-list styled platform configuration and policy governance hub.
+/// Telegram flat-list styled platform configuration and policy governance hub.
 /// Synchronized in real-time with the Supabase `platform_settings` table.
 class AdminPlatformSettingsScreen extends ConsumerStatefulWidget {
   const AdminPlatformSettingsScreen({super.key});
@@ -126,6 +130,7 @@ class _AdminPlatformSettingsScreenState
     final added = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Add Platform Setting Key'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -192,6 +197,7 @@ class _AdminPlatformSettingsScreenState
     final updated = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Edit Key: ${setting.settingKey}'),
         content: SingleChildScrollView(
           child: Column(
@@ -250,6 +256,7 @@ class _AdminPlatformSettingsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Seed Recommended Defaults'),
         content: const Text(
           'This will ensure all standard platform setting keys (maintenance, backups, AI policies, security, dispatch) exist in Supabase with standard production defaults.',
@@ -392,15 +399,61 @@ class _AdminPlatformSettingsScreenState
     }
   }
 
+  Future<void> _signOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Sign Out'),
+          ],
+        ),
+        content: const Text(
+          'Sign out of Administrator Portal?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(signOutProvider)(const NoParams());
+      if (mounted) context.go(RoutePaths.login);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final scheme = context.colorScheme;
+    final text = context.textTheme;
     final settingsAsync = ref.watch(adminPlatformSettingsProvider);
 
+    final bottomPad = context.viewPadding.bottom + AppSpacing.xxl;
+
     return Scaffold(
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        title: const Text('Platform Governance & Settings'),
+        title: Text(
+          'Platform Governance & Settings',
+          style: text.titleLarge?.copyWith(
+            color: scheme.primary,
+            fontWeight: AppTypography.bold,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(RoutePaths.adminHome),
@@ -440,145 +493,410 @@ class _AdminPlatformSettingsScreenState
           _initLocalState(settings);
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
+            padding: EdgeInsets.fromLTRB(
+              0,
+              AppSpacing.sm,
+              0,
+              bottomPad,
             ),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
+                constraints: const BoxConstraints(
+                  maxWidth: AppBreakpoints.maxContentWidth,
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // ── Active Database Keys Counter ────────────────────
-                    _buildSettingsOverviewBanner(
-                      theme,
-                      colorScheme,
-                      settings.length,
-                    ),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Core Operations & Maintenance ──────────────────
-                    _buildSectionHeader(
-                      'CORE PLATFORM & OPERATIONS',
-                      colorScheme,
-                    ),
-                    _buildOperationsGroup(context, colorScheme),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Emergency & AI Policies ────────────────────────
-                    _buildSectionHeader(
-                      'EMERGENCY DISPATCH & AI POLICIES',
-                      colorScheme,
-                    ),
-                    _buildAiPoliciesGroup(context, colorScheme),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Security & Access Control ──────────────────────
-                    _buildSectionHeader(
-                      'SECURITY & ACCESS CONTROL',
-                      colorScheme,
-                    ),
-                    _buildSecurityGroup(context, colorScheme),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Communication & Relays ────────────────────────
-                    _buildSectionHeader(
-                      'DISPATCH COMMUNICATION RELAYS',
-                      colorScheme,
-                    ),
-                    _buildCommunicationGroup(context, colorScheme),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Veterinary Governance ──────────────────────────
-                    _buildSectionHeader(
-                      'VETERINARY & TELEMEDICINE GOVERNANCE',
-                      colorScheme,
-                    ),
-                    _buildVeterinaryGroup(context, colorScheme),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Dynamic Key Catalog & Custom Inspector ──────────
-                    _buildSectionHeader(
-                      'DATABASE SCHEMA INSPECTOR (${settings.length} KEYS)',
-                      colorScheme,
-                    ),
-                    _buildDynamicKeyCatalogGroup(
-                      context,
-                      colorScheme,
-                      settings,
-                    ),
-
-                    AppSpacing.vGapLg,
-
-                    // ── Save Global Settings Button ─────────────────────
-                    AppButton(
-                      text: _isSaving
-                          ? 'Synchronizing to Supabase...'
-                          : 'Save Global Configurations',
-                      icon: Icons.save,
-                      isLoading: _isSaving,
-                      isFullWidth: true,
-                      onPressed: _isSaving ? null : _saveSettings,
-                      backgroundColor: colorScheme.primary,
-                      textColor: colorScheme.onPrimary,
-                      height: 50,
-                    ),
-
-                    AppSpacing.vGapMd,
-
-                    // ── Sign Out Button ────────────────────────────────
-                    OutlinedButton.icon(
-                      icon: Icon(Icons.logout, color: colorScheme.error),
-                      label: Text(
-                        'Sign Out of Administrator Portal',
-                        style: TextStyle(color: colorScheme.error),
+                    // ── Active Database Keys Counter Banner ───────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: _buildSettingsOverviewBanner(
+                        context,
+                        scheme,
+                        settings.length,
                       ),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                        side: BorderSide(
-                          color: colorScheme.error.withValues(alpha: 0.4),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    ),
+                    _buildSectionDivider(scheme),
+
+                    // ── 1. Core Platform & Operations ──────────────────
+                    _buildTelegramSectionHeader('Core Platform & Operations', scheme),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.construction_rounded,
+                      iconBgColor: const Color(0xFFE11D48),
+                      title: 'Maintenance Mode',
+                      subtitle: 'Restrict citizen and practitioner access during migrations',
+                      value: _isMaintenanceMode ?? false,
+                      onChanged: (val) => setState(() => _isMaintenanceMode = val),
+                    ),
+                    if (_isMaintenanceMode == true)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                        child: TextField(
+                          controller: TextEditingController(text: _maintenanceMessage),
+                          decoration: const InputDecoration(
+                            labelText: 'Citizen Maintenance Banner Message',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          onChanged: (v) => _maintenanceMessage = v,
                         ),
                       ),
-                      onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Sign Out'),
-                            content: const Text(
-                              'Sign out of Administrator Portal?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Cancel'),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.backup_rounded,
+                      iconBgColor: const Color(0xFF2563EB),
+                      title: 'Automated Database Backups',
+                      subtitle: 'Daily snapshot schedule • $_backupRetentionDays days retention',
+                      value: _isAutoBackups ?? true,
+                      onChanged: (val) => setState(() => _isAutoBackups = val),
+                    ),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.developer_mode_rounded,
+                      iconBgColor: const Color(0xFF8B5CF6),
+                      title: 'Verbose Telemetry Logging',
+                      subtitle: 'Gateway diagnostics level: $_telemetryLogLevel',
+                      value: _isDebugTelemetry ?? false,
+                      onChanged: (val) {
+                        setState(() {
+                          _isDebugTelemetry = val;
+                          _telemetryLogLevel = val ? 'DEBUG' : 'INFO';
+                        });
+                      },
+                    ),
+                    _buildSectionDivider(scheme),
+
+                    // ── 2. Emergency Dispatch & AI Policies ───────────
+                    _buildTelegramSectionHeader('Emergency Dispatch & AI Policies', scheme),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0D9488),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.radar_rounded, color: Colors.white, size: 20),
                               ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Emergency Broadcast Radius',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: scheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Maximum alert fanout: ${_broadcastRadiusKm.toStringAsFixed(0)} km',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: scheme.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 child: Text(
-                                  'Sign Out',
-                                  style: TextStyle(color: colorScheme.error),
+                                  '${_broadcastRadiusKm.toStringAsFixed(0)} km',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: scheme.primary,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 6),
+                          Slider.adaptive(
+                            value: _broadcastRadiusKm,
+                            min: 5.0,
+                            max: 100.0,
+                            divisions: 19,
+                            activeColor: scheme.primary,
+                            label: '${_broadcastRadiusKm.toStringAsFixed(0)} km',
+                            onChanged: (val) => setState(() => _broadcastRadiusKm = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD97706),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'AI Visual Sighting Match Threshold',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: scheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Confidence gate: ${_aiMatchThreshold.toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: scheme.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${_aiMatchThreshold.toStringAsFixed(0)}%',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Slider.adaptive(
+                            value: _aiMatchThreshold,
+                            min: 50.0,
+                            max: 95.0,
+                            divisions: 9,
+                            activeColor: scheme.primary,
+                            label: '${_aiMatchThreshold.toStringAsFixed(0)}%',
+                            onChanged: (val) => setState(() => _aiMatchThreshold = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.emergency_share_rounded,
+                      iconBgColor: const Color(0xFFDC2626),
+                      title: 'AI Triage Auto-Escalation',
+                      subtitle: 'Dispatch high-confidence sightings to rescue units immediately',
+                      value: _aiTriageAutoEscalate,
+                      onChanged: (val) => setState(() => _aiTriageAutoEscalate = val),
+                    ),
+                    _buildSectionDivider(scheme),
+
+                    // ── 3. Security & Access Control ──────────────────
+                    _buildTelegramSectionHeader('Security & Access Control', scheme),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.shield_rounded,
+                      iconBgColor: const Color(0xFF16A34A),
+                      title: 'Mandatory 2FA for Staff Accounts',
+                      subtitle: 'Enforce two-factor verification on Veterinarian & Admin logins',
+                      value: _enforce2faForStaff,
+                      onChanged: (val) => setState(() => _enforce2faForStaff = val),
+                    ),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.travel_explore_rounded,
+                      iconBgColor: const Color(0xFF0284C7),
+                      title: 'Public Guest Map Browsing',
+                      subtitle: 'Allow unauthenticated users to view lost pet broadcasts',
+                      value: _allowGuestBrowse,
+                      onChanged: (val) => setState(() => _allowGuestBrowse = val),
+                    ),
+                    _buildTelegramTile(
+                      icon: Icons.lock_clock_rounded,
+                      iconBgColor: const Color(0xFF7C3AED),
+                      title: 'Max Failed Login Lockout',
+                      subtitle: 'Lockout account after $_maxFailedLogins consecutive failures',
+                      onTap: () async {
+                        final val = await showDialog<int>(
+                          context: context,
+                          builder: (ctx) => SimpleDialog(
+                            title: const Text('Failed Login Attempts'),
+                            children: [3, 5, 10]
+                                .map(
+                                  (v) => SimpleDialogOption(
+                                    onPressed: () => Navigator.pop(ctx, v),
+                                    child: Text('$v attempts ${v == 5 ? '(Default)' : ''}'),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                         );
-                        if (confirmed == true && context.mounted) {
-                          await ref.read(signOutProvider)(const NoParams());
-                          if (context.mounted) context.go(RoutePaths.login);
-                        }
+                        if (val != null) setState(() => _maxFailedLogins = val);
                       },
                     ),
+                    _buildTelegramTile(
+                      icon: Icons.timer_rounded,
+                      iconBgColor: const Color(0xFFEA580C),
+                      title: 'Staff Session Timeout',
+                      subtitle: 'Automatic logout after $_sessionTimeoutMinutes minutes inactivity',
+                      onTap: () async {
+                        final val = await showDialog<int>(
+                          context: context,
+                          builder: (ctx) => SimpleDialog(
+                            title: const Text('Session Inactivity Timeout'),
+                            children: [15, 30, 60, 120]
+                                .map(
+                                  (v) => SimpleDialogOption(
+                                    onPressed: () => Navigator.pop(ctx, v),
+                                    child: Text('$v minutes ${v == 60 ? '(Default)' : ''}'),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        );
+                        if (val != null) setState(() => _sessionTimeoutMinutes = val);
+                      },
+                    ),
+                    _buildSectionDivider(scheme),
 
+                    // ── 4. Dispatch Communication Relays ──────────────
+                    _buildTelegramSectionHeader('Dispatch Communication Relays', scheme),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.sms_rounded,
+                      iconBgColor: const Color(0xFF059669),
+                      title: 'Emergency SMS Dispatch Gateway',
+                      subtitle: 'Deliver direct SMS alerts to on-duty field responders',
+                      value: _emergencySmsDispatch,
+                      onChanged: (val) => setState(() => _emergencySmsDispatch = val),
+                    ),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.mail_rounded,
+                      iconBgColor: const Color(0xFF4F46E5),
+                      title: 'Transactional Email Relays',
+                      subtitle: 'Deliver consultation confirmations, receipts, and e-prescriptions',
+                      value: _emailNotificationsEnabled,
+                      onChanged: (val) => setState(() => _emailNotificationsEnabled = val),
+                    ),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.notifications_active_rounded,
+                      iconBgColor: const Color(0xFFD97706),
+                      title: 'FCM Push Notifications',
+                      subtitle: 'Live broadcast alerts to companion mobile apps',
+                      value: _pushNotificationsEnabled,
+                      onChanged: (val) => setState(() => _pushNotificationsEnabled = val),
+                    ),
+                    _buildSectionDivider(scheme),
+
+                    // ── 5. Veterinary & Telemedicine Governance ────────
+                    _buildTelegramSectionHeader('Veterinary & Telemedicine Governance', scheme),
+                    _buildTelegramSwitchTile(
+                      icon: Icons.verified_user_rounded,
+                      iconBgColor: const Color(0xFF0284C7),
+                      title: 'Require Medical License Validation',
+                      subtitle: 'Block e-prescriptions until practitioner license is accredited',
+                      value: _requirePrescriptionLicense,
+                      onChanged: (val) => setState(() => _requirePrescriptionLicense = val),
+                    ),
+                    _buildTelegramTile(
+                      icon: Icons.more_time_rounded,
+                      iconBgColor: const Color(0xFF6366F1),
+                      title: 'Telemedicine Buffer Interval',
+                      subtitle: '$_telemedicineBufferMinutes minutes buffer between consultations',
+                      onTap: () async {
+                        final val = await showDialog<int>(
+                          context: context,
+                          builder: (ctx) => SimpleDialog(
+                            title: const Text('Consultation Buffer Duration'),
+                            children: [5, 10, 15]
+                                .map(
+                                  (v) => SimpleDialogOption(
+                                    onPressed: () => Navigator.pop(ctx, v),
+                                    child: Text('$v minutes transition buffer ${v == 10 ? '(Default)' : ''}'),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        );
+                        if (val != null) setState(() => _telemedicineBufferMinutes = val);
+                      },
+                    ),
+                    _buildSectionDivider(scheme),
+
+                    // ── 6. Database Schema Inspector ──────────────────
+                    _buildTelegramSectionHeader(
+                      'Database Schema Inspector (${settings.length} Keys)',
+                      scheme,
+                    ),
+                    if (settings.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Center(child: Text('No platform keys found in database.')),
+                      )
+                    else
+                      ...settings.map(
+                        (s) => _buildTelegramTile(
+                          icon: Icons.key_rounded,
+                          iconBgColor: scheme.primary,
+                          title: s.settingKey,
+                          subtitle: s.settingValue.toString(),
+                          trailingWidget: const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Colors.grey,
+                          ),
+                          onTap: () => _editKeyDialog(s),
+                        ),
+                      ),
+                    _buildSectionDivider(scheme),
+
+                    // ── 7. Global Actions ─────────────────────────────
+                    _buildTelegramSectionHeader('Governance Actions', scheme),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: AppButton(
+                        text: _isSaving
+                            ? 'Synchronizing to Supabase...'
+                            : 'Save Global Configurations',
+                        icon: Icons.save_rounded,
+                        isLoading: _isSaving,
+                        isFullWidth: true,
+                        onPressed: _isSaving ? null : _saveSettings,
+                        backgroundColor: scheme.primary,
+                        textColor: scheme.onPrimary,
+                        height: 50,
+                      ),
+                    ),
+                    _buildTelegramTile(
+                      icon: Icons.logout_rounded,
+                      iconBgColor: const Color(0xFFEF4444),
+                      title: 'Sign Out of Administrator Portal',
+                      subtitle: 'Safely disconnect executive session',
+                      isDestructive: true,
+                      onTap: _signOut,
+                    ),
                     AppSpacing.vGapXl,
                   ],
                 ),
@@ -593,36 +911,21 @@ class _AdminPlatformSettingsScreenState
     );
   }
 
-  Widget _buildSectionHeader(String title, ColorScheme colorScheme) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8, top: 4),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.8,
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-
   Widget _buildSettingsOverviewBanner(
-    ThemeData theme,
-    ColorScheme colorScheme,
+    BuildContext context,
+    ColorScheme scheme,
     int keysCount,
   ) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
-      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+      color: scheme.primaryContainer.withValues(alpha: 0.35),
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: colorScheme.primary,
+              color: scheme.primary,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -638,14 +941,14 @@ class _AdminPlatformSettingsScreenState
               children: [
                 Text(
                   'Live Supabase Platform Schema',
-                  style: theme.textTheme.titleSmall?.copyWith(
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   '$keysCount platform keys actively synchronized with backend PostgreSQL database.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -661,515 +964,161 @@ class _AdminPlatformSettingsScreenState
     );
   }
 
-  Widget _buildOperationsGroup(BuildContext context, ColorScheme colorScheme) {
-    return _GroupCard(
-      children: [
-        _SettingsSwitchTile(
-          icon: Icons.construction,
-          iconColor: const Color(0xFFE11D48),
-          title: 'Maintenance Mode',
-          subtitle:
-              'Restrict citizen and practitioner access during migrations',
-          value: _isMaintenanceMode ?? false,
-          onChanged: (val) => setState(() => _isMaintenanceMode = val),
+  Widget _buildTelegramSectionHeader(String title, ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: scheme.primary,
+          letterSpacing: 0.8,
         ),
-        if (_isMaintenanceMode == true)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              controller: TextEditingController(text: _maintenanceMessage),
-              decoration: const InputDecoration(
-                labelText: 'Citizen Maintenance Banner Message',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (v) => _maintenanceMessage = v,
-            ),
-          ),
-        const Divider(height: 1, indent: 64),
-        _SettingsSwitchTile(
-          icon: Icons.backup_outlined,
-          iconColor: const Color(0xFF2563EB),
-          title: 'Automated Database Backups',
-          subtitle:
-              'Daily snapshot schedule • $_backupRetentionDays days retention',
-          value: _isAutoBackups ?? true,
-          onChanged: (val) => setState(() => _isAutoBackups = val),
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsSwitchTile(
-          icon: Icons.developer_mode,
-          iconColor: const Color(0xFF8B5CF6),
-          title: 'Verbose Telemetry Logging',
-          subtitle: 'Gateway diagnostics level: $_telemetryLogLevel',
-          value: _isDebugTelemetry ?? false,
-          onChanged: (val) {
-            setState(() {
-              _isDebugTelemetry = val;
-              _telemetryLogLevel = val ? 'DEBUG' : 'INFO';
-            });
-          },
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildAiPoliciesGroup(BuildContext context, ColorScheme colorScheme) {
-    return _GroupCard(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTelegramTile({
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Widget? trailingWidget,
+    bool isDestructive = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D9488),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.radar,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Emergency Broadcast Radius',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                        ),
-                        Text(
-                          'Maximum alert fanout: ${_broadcastRadiusKm.toStringAsFixed(0)} km',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Slider(
-                value: _broadcastRadiusKm,
-                min: 5.0,
-                max: 100.0,
-                divisions: 19,
-                label: '${_broadcastRadiusKm.toStringAsFixed(0)} km',
-                onChanged: (val) => setState(() => _broadcastRadiusKm = val),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1, indent: 64),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD97706),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'AI Visual Sighting Match Threshold',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                        ),
-                        Text(
-                          'Confidence gate: ${_aiMatchThreshold.toStringAsFixed(0)}%',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Slider(
-                value: _aiMatchThreshold,
-                min: 50.0,
-                max: 95.0,
-                divisions: 9,
-                label: '${_aiMatchThreshold.toStringAsFixed(0)}%',
-                onChanged: (val) => setState(() => _aiMatchThreshold = val),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsSwitchTile(
-          icon: Icons.emergency_share,
-          iconColor: const Color(0xFFDC2626),
-          title: 'AI Triage Auto-Escalation',
-          subtitle:
-              'Dispatch high-confidence sightings to rescue units immediately',
-          value: _aiTriageAutoEscalate,
-          onChanged: (val) => setState(() => _aiTriageAutoEscalate = val),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSecurityGroup(BuildContext context, ColorScheme colorScheme) {
-    return _GroupCard(
-      children: [
-        _SettingsSwitchTile(
-          icon: Icons.shield,
-          iconColor: const Color(0xFF16A34A),
-          title: 'Mandatory 2FA for Staff Accounts',
-          subtitle:
-              'Enforce two-factor verification on Veterinarian & Admin logins',
-          value: _enforce2faForStaff,
-          onChanged: (val) => setState(() => _enforce2faForStaff = val),
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsSwitchTile(
-          icon: Icons.travel_explore,
-          iconColor: const Color(0xFF0284C7),
-          title: 'Public Guest Map Browsing',
-          subtitle: 'Allow unauthenticated users to view lost pet broadcasts',
-          value: _allowGuestBrowse,
-          onChanged: (val) => setState(() => _allowGuestBrowse = val),
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsTile(
-          icon: Icons.lock_clock,
-          iconColor: const Color(0xFF7C3AED),
-          title: 'Max Failed Login Lockout',
-          subtitle:
-              'Lockout account after $_maxFailedLogins consecutive failures',
-          onTap: () async {
-            final val = await showDialog<int>(
-              context: context,
-              builder: (ctx) => SimpleDialog(
-                title: const Text('Failed Login Attempts'),
-                children: [3, 5, 10]
-                    .map(
-                      (v) => SimpleDialogOption(
-                        onPressed: () => Navigator.pop(ctx, v),
-                        child: Text('$v attempts ${v == 5 ? '(Default)' : ''}'),
-                      ),
-                    )
-                    .toList(),
-              ),
-            );
-            if (val != null) setState(() => _maxFailedLogins = val);
-          },
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsTile(
-          icon: Icons.timer,
-          iconColor: const Color(0xFFEA580C),
-          title: 'Staff Session Timeout',
-          subtitle:
-              'Automatic logout after $_sessionTimeoutMinutes minutes inactivity',
-          onTap: () async {
-            final val = await showDialog<int>(
-              context: context,
-              builder: (ctx) => SimpleDialog(
-                title: const Text('Session Inactivity Timeout'),
-                children: [15, 30, 60, 120]
-                    .map(
-                      (v) => SimpleDialogOption(
-                        onPressed: () => Navigator.pop(ctx, v),
-                        child: Text('$v minutes ${v == 60 ? '(Default)' : ''}'),
-                      ),
-                    )
-                    .toList(),
-              ),
-            );
-            if (val != null) setState(() => _sessionTimeoutMinutes = val);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCommunicationGroup(
-    BuildContext context,
-    ColorScheme colorScheme,
-  ) {
-    return _GroupCard(
-      children: [
-        _SettingsSwitchTile(
-          icon: Icons.sms_outlined,
-          iconColor: const Color(0xFF059669),
-          title: 'Emergency SMS Dispatch Gateway',
-          subtitle: 'Deliver direct SMS alerts to on-duty field responders',
-          value: _emergencySmsDispatch,
-          onChanged: (val) => setState(() => _emergencySmsDispatch = val),
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsSwitchTile(
-          icon: Icons.mail_outline,
-          iconColor: const Color(0xFF4F46E5),
-          title: 'Transactional Email Relays',
-          subtitle:
-              'Deliver consultation confirmations, receipts, and e-prescriptions',
-          value: _emailNotificationsEnabled,
-          onChanged: (val) => setState(() => _emailNotificationsEnabled = val),
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsSwitchTile(
-          icon: Icons.notifications_active_outlined,
-          iconColor: const Color(0xFFD97706),
-          title: 'FCM Push Notifications',
-          subtitle:
-              'Live broadcast alerts to iOS and Android companion devices',
-          value: _pushNotificationsEnabled,
-          onChanged: (val) => setState(() => _pushNotificationsEnabled = val),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVeterinaryGroup(BuildContext context, ColorScheme colorScheme) {
-    return _GroupCard(
-      children: [
-        _SettingsSwitchTile(
-          icon: Icons.verified_user_outlined,
-          iconColor: const Color(0xFF0284C7),
-          title: 'Require Medical License Validation',
-          subtitle:
-              'Block e-prescriptions until practitioner license is accredited',
-          value: _requirePrescriptionLicense,
-          onChanged: (val) => setState(() => _requirePrescriptionLicense = val),
-        ),
-        const Divider(height: 1, indent: 64),
-        _SettingsTile(
-          icon: Icons.more_time,
-          iconColor: const Color(0xFF6366F1),
-          title: 'Telemedicine Buffer Interval',
-          subtitle:
-              '$_telemedicineBufferMinutes minutes buffer between consultations',
-          onTap: () async {
-            final val = await showDialog<int>(
-              context: context,
-              builder: (ctx) => SimpleDialog(
-                title: const Text('Consultation Buffer Duration'),
-                children: [5, 10, 15]
-                    .map(
-                      (v) => SimpleDialogOption(
-                        onPressed: () => Navigator.pop(ctx, v),
-                        child: Text(
-                          '$v minutes transition buffer ${v == 10 ? '(Default)' : ''}',
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            );
-            if (val != null) setState(() => _telemedicineBufferMinutes = val);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDynamicKeyCatalogGroup(
-    BuildContext context,
-    ColorScheme colorScheme,
-    List<PlatformSetting> settings,
-  ) {
-    return _GroupCard(
-      children: [
-        if (settings.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: Text('No platform keys found in database.')),
-          )
-        else
-          ...settings.map(
-            (s) => Column(
-              children: [
-                ListTile(
-                  leading: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.key, color: Colors.white, size: 18),
-                  ),
-                  title: Text(
-                    s.settingKey,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                    ),
-                  ),
-                  subtitle: Text(
-                    s.settingValue.toString(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  trailing: const Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: Colors.grey,
-                  ),
-                  onTap: () => _editKeyDialog(s),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                if (s != settings.last) const Divider(height: 1, indent: 64),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isDestructive ? const Color(0xFFEF4444) : scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailingWidget != null)
+                trailingWidget
+              else
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  size: 20,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTelegramSwitchTile({
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
-      ],
-    );
-  }
-}
-
-/// Telegram-style card container with subtle shadow and border radius.
-class _GroupCard extends StatelessWidget {
-  const _GroupCard({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+          Switch.adaptive(
+            value: value,
+            activeTrackColor: scheme.primary,
+            onChanged: (v) {
+              HapticFeedback.lightImpact();
+              onChanged(v);
+            },
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Column(children: children),
-      ),
     );
   }
-}
 
-/// Telegram-style list item tile with solid colored squircle and white icon.
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: iconColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
+  Widget _buildSectionDivider(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Divider(
+        height: 1,
+        thickness: 0.8,
+        color: scheme.outlineVariant.withValues(alpha: 0.25),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-      ),
-      subtitle: subtitle != null
-          ? Text(subtitle!, style: const TextStyle(fontSize: 13))
-          : null,
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        size: 20,
-        color: Colors.grey,
-      ),
-      onTap: onTap,
-    );
-  }
-}
-
-/// Telegram-style switch tile with solid colored squircle and white icon.
-class _SettingsSwitchTile extends StatelessWidget {
-  const _SettingsSwitchTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
-      secondary: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: iconColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-      ),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
-      value: value,
-      activeThumbColor: Theme.of(context).colorScheme.primary,
-      onChanged: onChanged,
     );
   }
 }

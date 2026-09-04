@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
@@ -60,6 +61,8 @@ class _EditVetProfileDialogState extends ConsumerState<EditVetProfileDialog> {
   late TextEditingController _clinicNameController;
   late TextEditingController _licenseController;
   late TextEditingController _consultationFeeController;
+  late TextEditingController _hoursController;
+  late TextEditingController _specializationsController;
 
   String? _avatarUrl;
   bool _isUploadingDp = false;
@@ -70,6 +73,7 @@ class _EditVetProfileDialogState extends ConsumerState<EditVetProfileDialog> {
     super.initState();
     final p = widget.profile;
     final c = widget.initialClinic;
+    final prefs = ref.read(sharedPreferencesProvider);
 
     _avatarUrl = p.avatarUrl;
     _nameController = TextEditingController(text: p.fullName);
@@ -77,12 +81,20 @@ class _EditVetProfileDialogState extends ConsumerState<EditVetProfileDialog> {
     _cityController = TextEditingController(text: p.city ?? c?.address ?? '');
     _bioController = TextEditingController(text: p.bio ?? '');
     _clinicNameController = TextEditingController(
-      text: c?.name ?? '${p.fullName.isNotEmpty ? p.fullName : "Veterinary"} Practice',
+      text: c?.name ?? (p.fullName.isNotEmpty ? '${p.fullName} Practice' : 'Veterinary Practice'),
     );
     _licenseController = TextEditingController(
       text: c?.licenseNumber ?? 'VET-${p.id.length >= 6 ? p.id.substring(0, 6).toUpperCase() : "REG-01"}',
     );
-    _consultationFeeController = TextEditingController(text: '500');
+    _consultationFeeController = TextEditingController(
+      text: prefs.getString('vet_consultation_fee') ?? '500',
+    );
+    _hoursController = TextEditingController(
+      text: prefs.getString('vet_operating_hours') ?? 'Mon-Fri: 8:00 AM - 6:00 PM • Sat: 9:00 AM - 1:00 PM',
+    );
+    _specializationsController = TextEditingController(
+      text: prefs.getString('vet_specializations') ?? 'General Surgery, Diagnostic Ultrasound, AI Triage & Telehealth, Emergency Operations',
+    );
   }
 
   @override
@@ -94,6 +106,8 @@ class _EditVetProfileDialogState extends ConsumerState<EditVetProfileDialog> {
     _clinicNameController.dispose();
     _licenseController.dispose();
     _consultationFeeController.dispose();
+    _hoursController.dispose();
+    _specializationsController.dispose();
     super.dispose();
   }
 
@@ -226,6 +240,12 @@ class _EditVetProfileDialogState extends ConsumerState<EditVetProfileDialog> {
         );
         await clinicRepo.createVetClinic(newClinic);
       }
+
+      // Persist preferences locally
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setString('vet_operating_hours', _hoursController.text.trim());
+      await prefs.setString('vet_specializations', _specializationsController.text.trim());
+      await prefs.setString('vet_consultation_fee', _consultationFeeController.text.trim());
 
       // Refresh providers across the app
       ref.invalidate(currentUserProfileProvider);
@@ -416,6 +436,27 @@ class _EditVetProfileDialogState extends ConsumerState<EditVetProfileDialog> {
                       labelText: 'Standard Consultation Fee (₹ INR)',
                       hintText: 'e.g. 500',
                       prefixIcon: Icon(Icons.currency_rupee_rounded),
+                      border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _hoursController,
+                    decoration: const InputDecoration(
+                      labelText: 'Operating Hours',
+                      hintText: 'e.g. Mon-Fri: 8:00 AM - 6:00 PM • Sat: 9:00 AM - 1:00 PM',
+                      prefixIcon: Icon(Icons.schedule_outlined),
+                      border: OutlineInputBorder(borderRadius: AppRadius.brCard),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _specializationsController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Services & Specializations (Comma-separated)',
+                      hintText: 'e.g. General Surgery, Diagnostic Ultrasound, AI Triage, Emergency Operations',
+                      prefixIcon: Icon(Icons.medical_services_outlined),
                       border: OutlineInputBorder(borderRadius: AppRadius.brCard),
                     ),
                   ),

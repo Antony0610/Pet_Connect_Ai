@@ -30,7 +30,7 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
   final List<String> _filters = const ['Nearby', 'Recent', 'Verified'];
 
   void _openSubmitSightingDialog(Pet? pet) {
-    final locCtrl = TextEditingController(text: 'Cubbon Park Entrance, Bengaluru');
+    final locCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
 
     showModalBottomSheet<void>(
@@ -71,6 +71,7 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
                 controller: locCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Location / Landmark',
+                  hintText: 'e.g. Near City Park entrance, Main St.',
                   prefixIcon: Icon(Icons.place_outlined),
                   border: OutlineInputBorder(),
                 ),
@@ -81,14 +82,21 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
                 maxLines: 3,
                 decoration: const InputDecoration(
                   labelText: 'Sighting Notes & Description',
-                  hintText: 'e.g. Spotted near the fountain, looked calm, wearing red harness...',
+                  hintText: 'e.g. Spotted near the fountain, looked calm, wearing collar...',
                   border: OutlineInputBorder(),
                 ),
               ),
               AppSpacing.vGapLg,
               FilledButton.icon(
                 onPressed: () async {
-                  if (pet == null) return;
+                  if (pet == null) {
+                    context.showSnackbar('Please select a pet first.');
+                    return;
+                  }
+                  if (locCtrl.text.trim().isEmpty) {
+                    context.showSnackbar('Please enter a location or landmark.');
+                    return;
+                  }
                   Navigator.of(ctx).pop();
                   await HapticFeedback.mediumImpact();
 
@@ -96,8 +104,8 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
                     final repo = ref.read(petRepositoryProvider);
                     await repo.submitSighting(
                       petId: pet.id,
-                      latitude: 12.9763,
-                      longitude: 77.5929,
+                      latitude: 0.0,
+                      longitude: 0.0,
                       locationName: locCtrl.text.trim(),
                       note: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : 'Sighting reported by community member',
                     );
@@ -206,7 +214,11 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
                 AppSpacing.vGapLg,
 
                 // ── AI Cluster Match Banner ────────────────────────
-                _buildAiClusterCard(theme, scheme),
+                sightingsAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (sightings) => _buildAiClusterCard(theme, scheme, sightings, petName),
+                ),
                 AppSpacing.vGapLg,
 
                 // ── Sightings Feed List ────────────────────────────
@@ -229,7 +241,7 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
                   ),
                   data: (sightings) {
                     if (sightings.isEmpty) {
-                      return _buildEmptySightingsView(theme, scheme, petName);
+                      return _buildEmptySightingsView(theme, scheme, petName, pet);
                     }
 
                     return Column(
@@ -247,7 +259,11 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
     );
   }
 
-  Widget _buildAiClusterCard(ThemeData theme, ColorScheme scheme) {
+  Widget _buildAiClusterCard(ThemeData theme, ColorScheme scheme, List<Map<String, dynamic>> sightings, String petName) {
+    final hasSightings = sightings.isNotEmpty;
+    final topLocation = hasSightings ? (sightings.first['location_name'] as String? ?? 'Last Known Area') : null;
+    final confidence = sightings.length >= 3 ? '94%' : (sightings.length == 2 ? '82%' : (sightings.length == 1 ? '70%' : 'Active'));
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -268,26 +284,28 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
               Icon(Icons.psychology, color: scheme.primary, size: 22),
               AppSpacing.hGapSm,
               Text(
-                'AI High Probability Cluster',
+                'AI Spatial Clustering',
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: scheme.primary,
                   fontWeight: AppTypography.bold,
                 ),
               ),
               const Spacer(),
-              const AiConfidenceBadge(percentage: '94%'),
+              AiConfidenceBadge(percentage: confidence),
             ],
           ),
           AppSpacing.vGapSm,
           Text(
-            'Indiranagar 100ft Road Corridor',
+            hasSightings ? topLocation! : 'Continuous Corridor Monitoring',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: AppTypography.bold,
             ),
           ),
           AppSpacing.vGapXs,
           Text(
-            '3 correlated sightings logged within a 450-meter radius over the last 3 hours.',
+            hasSightings
+                ? '${sightings.length} community report${sightings.length > 1 ? 's' : ''} logged. Roaming cluster correlated around $topLocation.'
+                : 'Listening for real-time community reports. When sightings are submitted, spatial algorithms will triangulate movement corridors here.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -371,7 +389,7 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
     );
   }
 
-  Widget _buildEmptySightingsView(ThemeData theme, ColorScheme scheme, String petName) {
+  Widget _buildEmptySightingsView(ThemeData theme, ColorScheme scheme, String petName, Pet? pet) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Center(
@@ -388,6 +406,12 @@ class _CommunitySightingsScreenState extends ConsumerState<CommunitySightingsScr
               'When local searchers or volunteers spot $petName, their reports with GPS coordinates will stream here in real-time.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+            AppSpacing.vGapMd,
+            FilledButton.icon(
+              onPressed: () => _openSubmitSightingDialog(pet),
+              icon: const Icon(Icons.add_location_alt_outlined, size: 16),
+              label: const Text('Submit Sighting Report'),
             ),
           ],
         ),

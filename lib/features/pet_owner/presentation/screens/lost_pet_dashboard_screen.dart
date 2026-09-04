@@ -414,11 +414,11 @@ class _LostPetDashboardScreenState extends ConsumerState<LostPetDashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '18 Active Volunteer Rescuers Alerted',
+                  'Volunteer Rescue Network Dispatched',
                   style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Emergency push broadcast sent to all registered pet searchers in the $radiusKm km corridor.',
+                  'Emergency push broadcast active to registered searchers in the $radiusKm km corridor.',
                   style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],

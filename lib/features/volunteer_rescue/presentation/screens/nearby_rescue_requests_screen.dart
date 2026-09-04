@@ -29,9 +29,9 @@ class _NearbyRescueRequestsScreenState
   void _openCreateAlertDialog() async {
     final petNameCtrl = TextEditingController();
     final breedCtrl = TextEditingController();
-    final locCtrl = TextEditingController(text: 'Indiranagar 100ft Rd');
+    final locCtrl = TextEditingController();
     final descCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController(text: '+91 98450 12345');
+    final phoneCtrl = TextEditingController();
 
     final created = await showDialog<bool>(
       context: context,

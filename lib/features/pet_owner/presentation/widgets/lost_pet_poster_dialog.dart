@@ -68,16 +68,16 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     super.initState();
     final profile = ref.read(currentUserProfileProvider).valueOrNull;
     _locationController = TextEditingController(
-      text: widget.initialLocation ?? 'Indiranagar 100ft Road / Near Metro Station',
+      text: widget.initialLocation ?? '',
     );
     _rewardController = TextEditingController(
-      text: widget.initialReward ?? 'RS. 5,000',
+      text: widget.initialReward ?? '',
     );
     _phoneController = TextEditingController(
-      text: widget.initialPhone ?? (profile?.phone ?? '8921998733'),
+      text: widget.initialPhone ?? (profile?.phone ?? ''),
     );
     _notesController = TextEditingController(
-      text: widget.initialNotes ?? 'Wearing blue reflective collar. Very friendly, responds to name.',
+      text: widget.initialNotes ?? 'Please help find ${widget.pet.name}. Call immediately if spotted.',
     );
   }
 
@@ -103,14 +103,14 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                 controller: _locationController,
                 decoration: const InputDecoration(
                   labelText: 'Last Seen Location',
-                  hintText: 'e.g. Indiranagar 100ft Road',
+                  hintText: 'e.g. Near City Park, Elm Street',
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _rewardController,
                 decoration: const InputDecoration(
-                  labelText: 'Reward Amount',
+                  labelText: 'Reward Amount (Optional)',
                   hintText: 'e.g. RS. 5,000',
                 ),
               ),
@@ -120,7 +120,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                 keyboardType: TextInputType.phone,
                 decoration: const InputDecoration(
                   labelText: 'Emergency Contact Phone',
-                  hintText: '8921998733',
+                  hintText: 'e.g. +91 9876543210',
                 ),
               ),
             ],
@@ -296,7 +296,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                         ),
                         Expanded(
                           child: Text(
-                            lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Indiranagar 100ft Road / Near Metro Station',
+                            lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Neighborhood / Home Area',
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
                           ),
                         ),
@@ -563,7 +563,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                                   ),
                                                   pw.Expanded(
                                                     child: pw.Text(
-                                                      lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Indiranagar 100ft Road / Near Metro Station',
+                                                      lastSeenLocation.isNotEmpty ? lastSeenLocation : 'Neighborhood / Home Area',
                                                       style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey900),
                                                     ),
                                                   ),

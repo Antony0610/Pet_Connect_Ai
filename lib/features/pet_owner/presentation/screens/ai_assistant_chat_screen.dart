@@ -1551,44 +1551,90 @@ class _RichMarkdownView extends StatelessWidget {
       if (RegExp(r'^#{1,6}\s+').hasMatch(trimmed)) {
         final level = RegExp(r'^(#+)').firstMatch(trimmed)?.group(1)?.length ?? 1;
         final title = trimmed.replaceFirst(RegExp(r'^#+\s*'), '');
-        final fontSize = level == 1
-            ? 17.0
-            : level == 2
-                ? 16.0
-                : level == 3
-                    ? 14.5
-                    : 13.5;
         widgets.add(
-          Padding(
-            padding: EdgeInsets.only(
-              top: level <= 2 ? 10 : 6,
-              bottom: 4,
-            ),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-                color: level <= 2 ? scheme.primary : scheme.onSurface,
-                letterSpacing: 0.1,
-              ),
-            ),
+          _buildSectionHeader(
+            context: context,
+            title: title,
+            isMajor: level <= 2,
           ),
         );
-      } else if (trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+      }
+      // Standalone bold line acting as a title (e.g., **Key Symptoms:** or **Daily Care Plan**)
+      else if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 90 && !trimmed.substring(2, trimmed.length - 2).contains('**')) {
+        final title = trimmed.substring(2, trimmed.length - 2);
+        widgets.add(
+          _buildSectionHeader(
+            context: context,
+            title: title,
+            isMajor: true,
+          ),
+        );
+      }
+      // Numbered heading or list item (e.g., 1) **Heading:** or 1. **Heading** or 1. Detail text)
+      else if (RegExp(r'^\d+[\.\)]\s+').hasMatch(trimmed)) {
+        final match = RegExp(r'^(\d+[\.\)])\s+(.*)$').firstMatch(trimmed);
+        final numPrefix = match?.group(1) ?? '1.';
+        final itemText = match?.group(2) ?? trimmed;
+        
+        final isShortTitle = (itemText.startsWith('**') && itemText.contains('**') && itemText.length < 70) ||
+                             (itemText.endsWith(':') && itemText.length < 50);
+        if (isShortTitle) {
+          widgets.add(
+            _buildSectionHeader(
+              context: context,
+              badgeText: numPrefix,
+              title: itemText,
+              isMajor: true,
+            ),
+          );
+        } else {
+          widgets.add(
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 8, top: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      numPrefix,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildFormattedSpans(itemText, context),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      }
+      // Bullet list items (•, *, -)
+      else if (trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
         final itemText = trimmed.substring(2);
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '• ',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                Container(
+                  margin: const EdgeInsets.only(top: 8, right: 8),
+                  width: 5.5,
+                  height: 5.5,
+                  decoration: BoxDecoration(
                     color: scheme.primary,
+                    shape: BoxShape.circle,
                   ),
                 ),
                 Expanded(
@@ -1598,35 +1644,12 @@ class _RichMarkdownView extends StatelessWidget {
             ),
           ),
         );
-      } else if (RegExp(r'^\d+\.\s').hasMatch(trimmed)) {
-        final match = RegExp(r'^(\d+\.)\s*(.*)$').firstMatch(trimmed);
-        final numPrefix = match?.group(1) ?? '1.';
-        final itemText = match?.group(2) ?? trimmed;
+      }
+      // Normal paragraph
+      else {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$numPrefix ',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: scheme.primary,
-                  ),
-                ),
-                Expanded(
-                  child: _buildFormattedSpans(itemText, context),
-                ),
-              ],
-            ),
-          ),
-        );
-      } else {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: 6),
             child: _buildFormattedSpans(trimmed, context),
           ),
         );
@@ -1641,6 +1664,57 @@ class _RichMarkdownView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: widgets,
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required BuildContext context,
+    String? badgeText,
+    required String title,
+    bool isMajor = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final cleanTitle = title.replaceAll('**', '').trim();
+    return Padding(
+      padding: EdgeInsets.only(
+        top: isMajor ? 12 : 8,
+        bottom: 5,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (badgeText != null && badgeText.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(
+              cleanTitle,
+              style: TextStyle(
+                fontSize: isMajor ? 15.5 : 14.5,
+                fontWeight: FontWeight.bold,
+                color: isMajor ? scheme.primary : scheme.onSurface,
+                letterSpacing: 0.15,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1720,25 +1794,26 @@ class _RichMarkdownView extends StatelessWidget {
 
     for (final match in pattern.allMatches(rawText)) {
       if (match.start > lastIndex) {
+        final slice = rawText.substring(lastIndex, match.start).replaceAll('**', '');
         spans.add(
           TextSpan(
-            text: rawText.substring(lastIndex, match.start),
-            style: TextStyle(color: scheme.onSurface, fontSize: 14, height: 1.45),
+            text: slice,
+            style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
           ),
         );
       }
 
       final matchedText = match.group(0)!;
       if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
-        final content = matchedText.substring(2, matchedText.length - 2);
+        final content = matchedText.substring(2, matchedText.length - 2).replaceAll('**', '');
         spans.add(
           TextSpan(
             text: content,
             style: TextStyle(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: scheme.onSurface,
-              fontSize: 14,
-              height: 1.45,
+              fontSize: 14.5,
+              height: 1.5,
             ),
           ),
         );
@@ -1774,8 +1849,8 @@ class _RichMarkdownView extends StatelessWidget {
             style: TextStyle(
               fontStyle: FontStyle.italic,
               color: scheme.onSurface,
-              fontSize: 14,
-              height: 1.45,
+              fontSize: 14.5,
+              height: 1.5,
             ),
           ),
         );
@@ -1784,10 +1859,11 @@ class _RichMarkdownView extends StatelessWidget {
     }
 
     if (lastIndex < rawText.length) {
+      final slice = rawText.substring(lastIndex).replaceAll('**', '');
       spans.add(
         TextSpan(
-          text: rawText.substring(lastIndex),
-          style: TextStyle(color: scheme.onSurface, fontSize: 14, height: 1.45),
+          text: slice,
+          style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
         ),
       );
     }

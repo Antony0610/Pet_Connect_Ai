@@ -10,6 +10,8 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/features/realtime/domain/entities/user_notification.dart';
 import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
@@ -333,6 +335,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     TextTheme text,
     AsyncValue<List<UserNotification>> notificationsAsync,
   ) {
+    final pets = ref.watch(petsProvider).valueOrNull ?? <Pet>[];
+    final Set<String> ownedPetIds = pets.map((Pet p) => p.id).toSet();
+    final Set<String> ownedPetNames = pets
+        .map((Pet p) => p.name.toLowerCase().trim())
+        .where((String n) => n.isNotEmpty)
+        .toSet();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -376,57 +385,81 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
         AppSpacing.vGapMd,
 
-                // ── Category filter chips ──────────────────────────────
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _NotifFilter.values.length,
-                    separatorBuilder: (_, __) => AppSpacing.hGapSm,
-                    itemBuilder: (context, i) {
-                      final filter = _NotifFilter.values[i];
-                      return _FilterChip(
-                        label: filter.label,
-                        selected: filter == _selected,
-                        onTap: () => setState(() => _selected = filter),
-                      );
-                    },
-                  ),
-                ),
-                AppSpacing.vGapLg,
+        // ── Category filter chips ──────────────────────────────
+        SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _NotifFilter.values.length,
+            separatorBuilder: (_, __) => AppSpacing.hGapSm,
+            itemBuilder: (context, i) {
+              final filter = _NotifFilter.values[i];
+              return _FilterChip(
+                label: filter.label,
+                selected: filter == _selected,
+                onTap: () => setState(() => _selected = filter),
+              );
+            },
+          ),
+        ),
+        AppSpacing.vGapLg,
 
-                // ── Feed ───────────────────────────────────────────────
-                notificationsAsync.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (err, stack) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-                    child: Center(
-                      child: Text(
-                        'Error loading notifications: $err',
-                        style: text.bodyMedium?.copyWith(color: scheme.error),
-                      ),
-                    ),
-                  ),
-                  data: (entities) {
-                    final filteredEntities = entities.where((e) {
-                      if (widget.portalRole == AppPortal.petOwner) {
-                        final type = e.notificationType.toLowerCase();
-                        final title = e.title.toLowerCase();
-                        // Filter out clinical veterinarian consultation alerts from the Pet Owner portal
-                        if (type == 'vet_consultation' ||
-                            type == 'clinical_alert' ||
-                            (type == 'consultation' && title.contains('new consultation:'))) {
-                          return false;
-                        }
-                      }
-                      return true;
-                    }).toList();
+        // ── Feed ───────────────────────────────────────────────
+        notificationsAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (err, stack) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+            child: Center(
+              child: Text(
+                'Error loading notifications: $err',
+                style: text.bodyMedium?.copyWith(color: scheme.error),
+              ),
+            ),
+          ),
+          data: (entities) {
+            final filteredEntities = entities.where((e) {
+              if (widget.portalRole == AppPortal.petOwner) {
+                final type = e.notificationType.toLowerCase();
+                final title = e.title.toLowerCase();
+                final body = e.body.toLowerCase();
 
-                    final allItems =
-                        filteredEntities.map(_NotifData.fromEntity).toList();
+                // 1. Filter out clinical veterinarian consultation alerts from the Pet Owner portal
+                if (type == 'vet_consultation' ||
+                    type == 'clinical_alert' ||
+                    (type == 'consultation' && title.contains('new consultation:'))) {
+                  return false;
+                }
+
+                // 2. Pet-level isolation: if the notification specifies a pet_id, ensure it belongs to this owner
+                final notifPetId = e.payload['pet_id'] ?? e.payload['petId'];
+                if (notifPetId != null && notifPetId.toString().isNotEmpty) {
+                  if (ownedPetIds.isNotEmpty && !ownedPetIds.contains(notifPetId.toString())) {
+                    return false;
+                  }
+                }
+
+                // 3. Name-based isolation for consultation/medical alerts
+                if (ownedPetNames.isNotEmpty &&
+                    (title.contains('consultation') ||
+                        title.contains('prescription') ||
+                        title.contains('medical report') ||
+                        body.contains('consultation for'))) {
+                  final bool mentionsOwnedPet = ownedPetNames.any(
+                    (String name) => title.contains(name) || body.contains(name),
+                  );
+                  if (!mentionsOwnedPet) {
+                    return false;
+                  }
+                }
+              }
+              return true;
+            }).toList();
+
+            final allItems =
+                filteredEntities.map(_NotifData.fromEntity).toList();
                     final visible =
                         _selected == _NotifFilter.all
                             ? allItems

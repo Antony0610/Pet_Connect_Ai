@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
+import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/veterinarian/domain/entities/treatment_plan.dart';
 import 'package:petconnect_ai/features/veterinarian/presentation/providers/vet_providers.dart';
@@ -27,22 +30,30 @@ class VetTreatmentPlanScreen extends ConsumerStatefulWidget {
 }
 
 class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen> {
-  String _diagnosis = 'Seasonal Atopic Dermatitis & Pruritus';
-  String _category = 'Dermatology';
-  String _notes = 'Target complete clinical remission within 3 weeks. Medicated bath protocol and oral therapy.';
-  int _progress = 35;
-  String _stage1 = 'Symptom Relief (Medication) - Active Stage';
-  String _stage2 = 'Allergen Avoidance & Environmental Controls';
-  String _stage3 = 'Re-Evaluation & Tapering Protocol';
+  String _diagnosis = '';
+  String _category = 'General Medicine';
+  String _notes = '';
+  int _progress = 0;
+  String _stage1 = '';
+  String _stage2 = '';
+  String _stage3 = '';
+  DateTime? _targetDate;
 
-  void _openEditPlanDialog(String targetPetId, [String? planId]) async {
-    final diagCtrl = TextEditingController(text: _diagnosis);
-    final notesCtrl = TextEditingController(text: _notes);
-    final stage1Ctrl = TextEditingController(text: _stage1);
-    final stage2Ctrl = TextEditingController(text: _stage2);
-    final stage3Ctrl = TextEditingController(text: _stage3);
-    String selectedCat = _category;
-    int progressVal = _progress;
+  void _openEditPlanDialog(String targetPetId, [TreatmentPlan? existingPlan]) async {
+    final diagCtrl = TextEditingController(text: existingPlan?.title ?? _diagnosis);
+    final notesCtrl = TextEditingController(text: existingPlan != null ? _notes : '');
+    final stage1Ctrl = TextEditingController(
+      text: existingPlan != null ? _stage1 : 'Initial symptom relief and medication',
+    );
+    final stage2Ctrl = TextEditingController(
+      text: existingPlan != null ? _stage2 : 'Monitoring and environmental adjustments',
+    );
+    final stage3Ctrl = TextEditingController(
+      text: existingPlan != null ? _stage3 : 'Clinical re-evaluation and tapering',
+    );
+    String selectedCat = existingPlan?.category ?? _category;
+    int progressVal = existingPlan?.progressPercent ?? _progress;
+    DateTime targetDateVal = existingPlan?.targetDate ?? _targetDate ?? DateTime.now().add(const Duration(days: 21));
 
     final categories = [
       'General Medicine',
@@ -58,7 +69,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) => AlertDialog(
-          title: const Text('Clinical Treatment Protocol Builder'),
+          title: Text(existingPlan != null ? 'Edit Clinical Treatment Plan' : 'Create Treatment Protocol'),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
@@ -87,6 +98,51 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
                     onChanged: (val) {
                       if (val != null) setDlgState(() => selectedCat = val);
                     },
+                  ),
+                  const SizedBox(height: 12),
+                  // Target Date Picker Row
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: targetDateVal,
+                        firstDate: DateTime.now().subtract(const Duration(days: 7)),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setDlgState(() => targetDateVal = picked);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.event_available, color: Color(0xFF137A63), size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Target Completion Date',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                                Text(
+                                  DateFormat('EEEE, MMM dd, yyyy').format(targetDateVal),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.edit_calendar_outlined, size: 18, color: Colors.grey),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -160,30 +216,37 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
     );
 
     if (updated == true) {
+      final newDiag = diagCtrl.text.trim().isNotEmpty ? diagCtrl.text.trim() : 'Prescribed Care Protocol';
+      final newNotes = notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : 'Monitor daily response.';
+      final s1 = stage1Ctrl.text.trim().isNotEmpty ? stage1Ctrl.text.trim() : 'Active medication regimen';
+      final s2 = stage2Ctrl.text.trim().isNotEmpty ? stage2Ctrl.text.trim() : 'Environmental management';
+      final s3 = stage3Ctrl.text.trim().isNotEmpty ? stage3Ctrl.text.trim() : 'Follow-up consultation';
+
       setState(() {
-        _diagnosis = diagCtrl.text.trim().isNotEmpty ? diagCtrl.text.trim() : _diagnosis;
-        _notes = notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : _notes;
-        _stage1 = stage1Ctrl.text.trim().isNotEmpty ? stage1Ctrl.text.trim() : _stage1;
-        _stage2 = stage2Ctrl.text.trim().isNotEmpty ? stage2Ctrl.text.trim() : _stage2;
-        _stage3 = stage3Ctrl.text.trim().isNotEmpty ? stage3Ctrl.text.trim() : _stage3;
+        _diagnosis = newDiag;
+        _notes = newNotes;
+        _stage1 = s1;
+        _stage2 = s2;
+        _stage3 = s3;
         _category = selectedCat;
         _progress = progressVal;
+        _targetDate = targetDateVal;
       });
 
       final plan = TreatmentPlan(
-        id: planId ?? '',
+        id: existingPlan?.id ?? '',
         petId: targetPetId,
-        title: _diagnosis,
-        category: _category,
-        targetDate: DateTime.now().add(const Duration(days: 21)),
-        progressPercent: _progress,
-        status: _progress >= 100 ? 'completed' : 'active',
-        notes: '$_notes\nStages: 1. $_stage1 | 2. $_stage2 | 3. $_stage3',
+        title: newDiag,
+        category: selectedCat,
+        targetDate: targetDateVal,
+        progressPercent: progressVal,
+        status: progressVal >= 100 ? 'completed' : 'active',
+        notes: '$newNotes\nStages: 1. $s1 | 2. $s2 | 3. $s3',
       );
 
       final repo = ref.read(vetRepositoryProvider);
       final result = await repo.saveTreatmentPlan(plan);
-      result.fold(
+      await result.fold(
         (failure) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -191,7 +254,25 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
             );
           }
         },
-        (_) {
+        (_) async {
+          // Log to progress history in SharedPreferences
+          final prefs = ref.read(sharedPreferencesProvider);
+          final historyKey = 'treatment_history_$targetPetId';
+          final raw = prefs.getString(historyKey);
+          final List<dynamic> list = raw != null ? (jsonDecode(raw) as List<dynamic>) : <dynamic>[];
+          final profile = ref.read(currentUserProfileProvider).valueOrNull;
+          final docName = profile?.fullName.isNotEmpty == true
+              ? (profile!.fullName.startsWith('Dr.') ? profile.fullName : 'Dr. ${profile.fullName}')
+              : 'Attending Clinician';
+
+          list.insert(0, {
+            'date': DateTime.now().toIso8601String(),
+            'progress': progressVal,
+            'notes': existingPlan != null ? 'Treatment protocol updated. Goal set to $progressVal%.' : 'Treatment protocol created and initiated.',
+            'clinician': docName,
+          });
+          await prefs.setString(historyKey, jsonEncode(list));
+
           ref.invalidate(treatmentPlansProvider(targetPetId));
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -203,6 +284,140 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
           }
         },
       );
+    }
+  }
+
+  Future<void> _pickTargetDate(TreatmentPlan plan, String targetPetId) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: plan.targetDate ?? _targetDate ?? now.add(const Duration(days: 14)),
+      firstDate: now.subtract(const Duration(days: 7)),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() => _targetDate = picked);
+      final updatedPlan = plan.copyWith(targetDate: picked);
+      final repo = ref.read(vetRepositoryProvider);
+      await repo.saveTreatmentPlan(updatedPlan);
+
+      // Log date update in history
+      final prefs = ref.read(sharedPreferencesProvider);
+      final historyKey = 'treatment_history_$targetPetId';
+      final raw = prefs.getString(historyKey);
+      final List<dynamic> list = raw != null ? (jsonDecode(raw) as List<dynamic>) : <dynamic>[];
+      final profile = ref.read(currentUserProfileProvider).valueOrNull;
+      final docName = profile?.fullName.isNotEmpty == true
+          ? (profile!.fullName.startsWith('Dr.') ? profile.fullName : 'Dr. ${profile.fullName}')
+          : 'Attending Clinician';
+
+      list.insert(0, {
+        'date': DateTime.now().toIso8601String(),
+        'progress': plan.progressPercent,
+        'notes': 'Target completion date shifted to ${DateFormat("MMM dd, yyyy").format(picked)}.',
+        'clinician': docName,
+      });
+      await prefs.setString(historyKey, jsonEncode(list));
+
+      ref.invalidate(treatmentPlansProvider(targetPetId));
+      if (mounted) {
+        context.showSnackbar('✅ Target completion date updated to ${DateFormat("MMM dd, yyyy").format(picked)}');
+      }
+    }
+  }
+
+  void _openLogProgressDialog(TreatmentPlan plan, String targetPetId) async {
+    int newProgress = plan.progressPercent;
+    final noteCtrl = TextEditingController();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.timeline_rounded, color: Color(0xFF137A63)),
+              SizedBox(width: 8),
+              Text('Log Clinical Progress'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Recovery Progress:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text('$newProgress%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF137A63), fontSize: 16)),
+                ],
+              ),
+              Slider(
+                value: newProgress.toDouble(),
+                min: 0,
+                max: 100,
+                divisions: 20,
+                activeColor: const Color(0xFF137A63),
+                label: '$newProgress%',
+                onChanged: (v) => setDlgState(() => newProgress = v.toInt()),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: noteCtrl,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Clinical Notes & Observations *',
+                  hintText: 'e.g. Swelling reduced, appetite restored, continue oral therapy...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save & Record Log'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved == true) {
+      final noteText = noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : 'Progress evaluated at $newProgress%';
+      final updatedPlan = plan.copyWith(
+        progressPercent: newProgress,
+        status: newProgress >= 100 ? 'completed' : 'active',
+      );
+      final repo = ref.read(vetRepositoryProvider);
+      await repo.saveTreatmentPlan(updatedPlan);
+
+      // Save to SharedPreferences history
+      final prefs = ref.read(sharedPreferencesProvider);
+      final historyKey = 'treatment_history_$targetPetId';
+      final raw = prefs.getString(historyKey);
+      final List<dynamic> list = raw != null ? (jsonDecode(raw) as List<dynamic>) : <dynamic>[];
+      final profile = ref.read(currentUserProfileProvider).valueOrNull;
+      final docName = profile?.fullName.isNotEmpty == true
+          ? (profile!.fullName.startsWith('Dr.') ? profile.fullName : 'Dr. ${profile.fullName}')
+          : 'Attending Clinician';
+
+      list.insert(0, {
+        'date': DateTime.now().toIso8601String(),
+        'progress': newProgress,
+        'notes': noteText,
+        'clinician': docName,
+      });
+
+      await prefs.setString(historyKey, jsonEncode(list));
+      ref.invalidate(treatmentPlansProvider(targetPetId));
+      setState(() {
+        _progress = newProgress;
+      });
+      if (mounted) {
+        context.showSnackbar('✅ Clinical progress log recorded successfully!');
+      }
     }
   }
 
@@ -220,24 +435,6 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
         ? widget.patientId!
         : fallbackId;
     final plansAsync = ref.watch(treatmentPlansProvider(targetPetId));
-    final existingPlans = plansAsync.valueOrNull ?? [];
-
-    if (existingPlans.isNotEmpty) {
-      _diagnosis = existingPlans.first.title;
-      _category = existingPlans.first.category;
-      _progress = existingPlans.first.progressPercent;
-      final rawNotes = existingPlans.first.notes ?? '';
-      if (rawNotes.contains('Stages:')) {
-        final parts = rawNotes.split('Stages:');
-        _notes = parts.first.trim();
-        final stageParts = parts.last.split('|');
-        if (stageParts.isNotEmpty) _stage1 = stageParts[0].replaceAll(RegExp(r'^\s*1\.\s*'), '').trim();
-        if (stageParts.length > 1) _stage2 = stageParts[1].replaceAll(RegExp(r'^\s*2\.\s*'), '').trim();
-        if (stageParts.length > 2) _stage3 = stageParts[2].replaceAll(RegExp(r'^\s*3\.\s*'), '').trim();
-      } else {
-        _notes = rawNotes.isNotEmpty ? rawNotes : _notes;
-      }
-    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -246,7 +443,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
-              context.pop();
+              Navigator.of(context).pop();
             } else {
               context.go(RoutePaths.vetHome);
             }
@@ -262,7 +459,7 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
               ),
             ),
             Text(
-              '$_diagnosis ($_category)',
+              _diagnosis.isNotEmpty ? '$_diagnosis ($_category)' : 'Clinical Protocol Workspace',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -273,80 +470,153 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_document),
-            onPressed: () => _openEditPlanDialog(
-              targetPetId,
-              existingPlans.isNotEmpty ? existingPlans.first.id : null,
-            ),
-            tooltip: 'Edit Plan',
+            icon: const Icon(Icons.add_task_rounded),
+            onPressed: () => _openEditPlanDialog(targetPetId, plansAsync.valueOrNull?.firstOrNull),
+            tooltip: 'Create / Edit Plan',
           ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hero Plan Title & Diagnosis Banner
-              _buildPlanHeader(context, theme, colorScheme),
-              const SizedBox(height: 16),
+        child: plansAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error loading treatment plan: $e')),
+          data: (existingPlans) {
+            if (existingPlans.isEmpty) {
+              return _buildEmptyPlanView(context, theme, colorScheme, targetPetId);
+            }
 
-              // Step-by-Step Protocol Timeline
-              Text(
-                'Treatment Protocol Timeline',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 10),
-              _buildProtocolStep(
-                context,
-                theme,
-                colorScheme,
-                stepNumber: '1',
-                badge: 'Active Stage • Current',
-                badgeColor: colorScheme.primary,
-                title: _stage1,
-                desc:
-                    'Administer prescribed therapeutic regimen daily to manage acute symptoms and inflammation. Monitor for tolerance.',
-              ),
-              const SizedBox(height: 10),
-              _buildProtocolStep(
-                context,
-                theme,
-                colorScheme,
-                stepNumber: '2',
-                badge: 'Next Phase',
-                badgeColor: colorScheme.secondary,
-                title: _stage2,
-                desc:
-                    'Implement environmental and dietary controls based on clinical panel results. Maintain hygiene and skin integrity.',
-              ),
-              const SizedBox(height: 10),
-              _buildProtocolStep(
-                context,
-                theme,
-                colorScheme,
-                stepNumber: '3',
-                badge: 'Milestone',
-                badgeColor: colorScheme.tertiary,
-                title: _stage3,
-                desc:
-                    'Clinical re-assessment and scheduled in-clinic follow-up to evaluate response and gradually taper medications.',
-              ),
-              const SizedBox(height: 20),
+            final plan = existingPlans.first;
+            _diagnosis = plan.title;
+            _category = plan.category;
+            _progress = plan.progressPercent;
+            _targetDate = plan.targetDate;
 
-              // Home Care Owner Instructions Card
-              _buildHomeCareCard(context, theme, colorScheme, targetPetId),
-              const SizedBox(height: 16),
+            final rawNotes = plan.notes ?? '';
+            if (rawNotes.contains('Stages:')) {
+              final parts = rawNotes.split('Stages:');
+              _notes = parts.first.trim();
+              final stageParts = parts.last.split('|');
+              if (stageParts.isNotEmpty) _stage1 = stageParts[0].replaceAll(RegExp(r'^\s*1\.\s*'), '').trim();
+              if (stageParts.length > 1) _stage2 = stageParts[1].replaceAll(RegExp(r'^\s*2\.\s*'), '').trim();
+              if (stageParts.length > 2) _stage3 = stageParts[2].replaceAll(RegExp(r'^\s*3\.\s*'), '').trim();
+            } else {
+              _notes = rawNotes.isNotEmpty ? rawNotes : _notes;
+            }
 
-              // AI Prognosis & Recovery Tracking
-              _buildAiPrognosisCard(context, theme, colorScheme),
-              const SizedBox(height: 24),
-            ],
-          ),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hero Plan Title & Diagnosis Banner
+                  _buildPlanHeader(context, theme, colorScheme, plan, targetPetId),
+                  const SizedBox(height: 16),
+
+                  // Step-by-Step Protocol Timeline
+                  Text(
+                    'Treatment Protocol Timeline',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildProtocolStep(
+                    context,
+                    theme,
+                    colorScheme,
+                    stepNumber: '1',
+                    badge: 'Active Stage • Current',
+                    badgeColor: colorScheme.primary,
+                    title: _stage1.isNotEmpty ? _stage1 : 'Therapeutic Stabilization',
+                    desc: 'Administer prescribed regimen daily to manage acute symptoms and inflammation. Monitor for tolerance.',
+                  ),
+                  const SizedBox(height: 10),
+                  _buildProtocolStep(
+                    context,
+                    theme,
+                    colorScheme,
+                    stepNumber: '2',
+                    badge: 'Next Phase',
+                    badgeColor: colorScheme.secondary,
+                    title: _stage2.isNotEmpty ? _stage2 : 'Maintenance & Ongoing Care',
+                    desc: 'Implement environmental and dietary controls based on clinical panel results.',
+                  ),
+                  const SizedBox(height: 10),
+                  _buildProtocolStep(
+                    context,
+                    theme,
+                    colorScheme,
+                    stepNumber: '3',
+                    badge: 'Milestone',
+                    badgeColor: colorScheme.tertiary,
+                    title: _stage3.isNotEmpty ? _stage3 : 'Clinical Discharge Evaluation',
+                    desc: 'Clinical re-assessment and scheduled in-clinic follow-up to evaluate complete remission.',
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Home Care Owner Instructions Card
+                  _buildHomeCareCard(context, theme, colorScheme, targetPetId),
+                  const SizedBox(height: 16),
+
+                  // Clinical Progress History Timeline
+                  _buildProgressHistoryCard(context, theme, colorScheme, plan, targetPetId),
+                  const SizedBox(height: 16),
+
+                  // AI Prognosis & Recovery Tracking
+                  _buildAiPrognosisCard(context, theme, colorScheme),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyPlanView(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    String targetPetId,
+  ) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.assignment_outlined, size: 48, color: colorScheme.primary),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No Active Treatment Protocol',
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'There is currently no published clinical treatment plan for this patient. Create a structured care protocol to track recovery stages, milestones, and target completion dates.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => _openEditPlanDialog(targetPetId, null),
+              icon: const Icon(Icons.add_task_rounded),
+              label: const Text('Create Treatment Protocol'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF137A63),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -356,7 +626,18 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
     BuildContext context,
     ThemeData theme,
     ColorScheme colorScheme,
+    TreatmentPlan plan,
+    String targetPetId,
   ) {
+    final now = DateTime.now();
+    final targetDate = plan.targetDate ?? _targetDate;
+    final daysRemaining = targetDate?.difference(now).inDays;
+    final countdownStr = daysRemaining != null
+        ? (daysRemaining > 0
+            ? '$daysRemaining days remaining'
+            : (daysRemaining == 0 ? 'Target is Today' : 'Overdue by ${-daysRemaining} days'))
+        : 'Set Target Date';
+
     return AppCard(
       padding: const EdgeInsets.all(16),
       color: colorScheme.primaryContainer.withValues(alpha: 0.35),
@@ -367,40 +648,219 @@ class _VetTreatmentPlanScreenState extends ConsumerState<VetTreatmentPlanScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               AppChip(
-                label: 'CLINICAL TREATMENT PLAN',
+                label: plan.category.toUpperCase(),
                 backgroundColor: colorScheme.primary,
                 textColor: colorScheme.onPrimary,
               ),
-              Text(
-                'Goal: $_progress% Complete',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
-                ),
+              Row(
+                children: [
+                  Text(
+                    '${plan.progressPercent}% Complete',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _openLogProgressDialog(plan, targetPetId),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_chart_rounded, size: 14, color: colorScheme.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Log',
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            _diagnosis,
+            plan.title,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            _notes,
+            _notes.isNotEmpty ? _notes : 'Clinical protocol monitored by attending practitioner.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
+
+          // Target Date Chip with edit button
+          InkWell(
+            onTap: () => _pickTargetDate(plan, targetPetId),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 14, color: colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    targetDate != null
+                        ? 'Target: ${DateFormat("MMM dd, yyyy").format(targetDate)} • $countdownStr'
+                        : 'Tap to set Target Completion Date',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.edit, size: 12, color: colorScheme.primary.withValues(alpha: 0.7)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           LinearProgressIndicator(
-            value: _progress / 100,
+            value: plan.progressPercent / 100,
             backgroundColor: colorScheme.surfaceContainerHighest,
             color: colorScheme.primary,
             borderRadius: BorderRadius.circular(4),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressHistoryCard(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TreatmentPlan plan,
+    String targetPetId,
+  ) {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final historyKey = 'treatment_history_$targetPetId';
+    final raw = prefs.getString(historyKey);
+    final List<dynamic> list = raw != null ? (jsonDecode(raw) as List<dynamic>) : <dynamic>[];
+
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.history_rounded, color: colorScheme.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Clinical Progress History',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () => _openLogProgressDialog(plan, targetPetId),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add Entry', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (list.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: Text(
+                  'No milestone progress entries logged yet.\nTap "Add Entry" to record clinician observations.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: list.length > 5 ? 5 : list.length,
+              separatorBuilder: (_, __) => const Divider(height: 16),
+              itemBuilder: (ctx, idx) {
+                final item = list[idx] as Map<String, dynamic>;
+                final dateStr = item['date'] != null
+                    ? DateFormat('MMM dd, yyyy • h:mm a').format(DateTime.tryParse(item['date'] as String? ?? '') ?? DateTime.now())
+                    : 'Recently';
+                final progress = item['progress'] ?? plan.progressPercent;
+                final notes = item['notes']?.toString() ?? 'Clinical observation recorded.';
+                final clinician = item['clinician']?.toString() ?? 'Attending Clinician';
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '$progress%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            notes,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$clinician • $dateStr',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
         ],
       ),
     );
