@@ -193,7 +193,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.ownerHome,
         name: RouteNames.ownerHome,
-        builder: (context, state) => const HomeDashboardScreen(),
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: HomeDashboardScreen(),
+        ),
         routes: [
           GoRoute(
             path: 'notifications',
@@ -203,7 +205,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'pets',
             name: RouteNames.ownerPets,
-            builder: (context, state) => const MyPetsListScreen(),
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: MyPetsListScreen(),
+            ),
             routes: [
               GoRoute(
                 path: 'add',
@@ -346,7 +350,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'collar',
             name: RouteNames.ownerCollar,
-            builder: (context, state) => const SmartCollarDashboardScreen(),
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: SmartCollarDashboardScreen(),
+            ),
             routes: [
               GoRoute(
                 path: 'tracking',
@@ -389,9 +395,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'community',
             name: RouteNames.ownerCommunity,
-            builder: (context, state) => CommunityHubScreen(
-              initialPostId: state.uri.queryParameters['postId'],
-              initialCommentId: state.uri.queryParameters['commentId'],
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: CommunityHubScreen(
+                initialPostId: state.uri.queryParameters['postId'],
+                initialCommentId: state.uri.queryParameters['commentId'],
+              ),
             ),
             routes: [
               GoRoute(
@@ -468,7 +476,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'profile',
             name: RouteNames.ownerProfile,
-            builder: (context, state) => const ProfileScreen(),
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: ProfileScreen(),
+            ),
           ),
           GoRoute(
             path: 'search',

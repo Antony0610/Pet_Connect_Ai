@@ -38,8 +38,11 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   static const String _customPetsKey = 'app_adoption_custom_pets_v3';
 
   String get _currentUserId {
+    final authUser = ref.read(supabaseClientProvider).auth.currentUser?.id;
+    if (authUser != null && authUser.isNotEmpty) return authUser;
     final user = ref.read(currentUserProfileProvider).valueOrNull;
-    return user?.id ?? 'anon';
+    if (user != null && user.id.isNotEmpty && user.id != 'anon') return user.id;
+    return 'baf75c33-a5eb-46e8-ae7f-9f5670533908';
   }
 
   String get _favStorageKey => 'app_adoption_favorites_${_currentUserId}_v4';

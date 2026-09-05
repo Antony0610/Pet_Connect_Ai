@@ -31,7 +31,7 @@ enum OwnerTab {
     routeName: RouteNames.ownerCommunity,
   ),
   collar(
-    label: 'Smart Collar',
+    label: 'Collar',
     icon: Icons.podcasts_outlined,
     activeIcon: Icons.podcasts,
     routeName: RouteNames.ownerCollar,
@@ -161,13 +161,17 @@ class _OwnerNavItem extends StatelessWidget {
                 size: AppIconSizes.md,
               ),
               const SizedBox(height: AppSpacing.base),
-              Text(
-                tab.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  tab.label,
+                  maxLines: 1,
+                  style: context.textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontSize: 10.5,
+                    letterSpacing: -0.2,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],

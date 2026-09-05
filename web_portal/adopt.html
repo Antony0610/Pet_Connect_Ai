@@ -6,54 +6,91 @@
   <title>🐾 Verified Pet Adoption Dossier | PetConnect AI</title>
   <meta name="description" content="Verified companion available for adoption on PetConnect AI. View health passport, vaccination status, temperament records, and connect directly with the caregiver.">
 
-  <!-- Premium Typography -->
+  <!-- Premium Typography: Outfit (Headings) + Plus Jakarta Sans (Body) + JetBrains Mono (Codes) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
-      --bg: #060913;
-      --surface: #0c1322;
-      --card: #111a2e;
-      --card-inner: #0a0f1c;
-      --border: rgba(255, 255, 255, 0.08);
+      --canvas: #080c14;
+      --surface: #0f172a;
+      --surface-card: #111a2e;
+      --surface-hover: #17233d;
+      --surface-inner: #0a0f1c;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(16, 185, 129, 0.35);
       --border-accent: rgba(124, 58, 237, 0.35);
+      
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      
+      --secondary: #06b6d4;
+      --secondary-glow: rgba(6, 182, 212, 0.22);
+      
       --violet: #8b5cf6;
       --violet-dark: #7c3aed;
-      --emerald: #10b981;
-      --cyan: #06b6d4;
-      --amber: #f59e0b;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
+      --accent-amber: #f59e0b;
+      --danger: #ef4444;
+      
+      --text-main: #f8fafc;
       --text-sub: #cbd5e1;
-      --radius-lg: 20px;
-      --radius-md: 14px;
+      --text-muted: #94a3b8;
+      
+      --font-heading: 'Outfit', -apple-system, sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --radius-xl: 24px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-pill: 9999px;
+      
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: var(--font-body);
+      background: var(--canvas);
+      color: var(--text-main);
       min-height: 100vh;
+      line-height: 1.6;
       padding: 24px 16px 80px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Spatial Background */
+    .spatial-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 80% 15%, rgba(124, 58, 237, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 15% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 70%);
     }
 
     .container {
+      position: relative;
+      z-index: 1;
       width: 100%;
-      max-width: 680px;
+      max-width: 660px;
       margin: 0 auto;
     }
 
-    /* Top Navigation */
+    /* Top Floating Navigation */
     .top-nav {
       display: flex;
       align-items: center;
@@ -65,39 +102,43 @@
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      border-radius: 999px;
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
       color: var(--text-sub);
-      text-decoration: none;
       font-size: 0.85rem;
       font-weight: 700;
-      transition: all 0.2s ease;
+      text-decoration: none;
+      transition: all 0.2s var(--ease-spring);
     }
     .nav-back:hover {
-      background: #151e36;
+      background: #1e293b;
       border-color: rgba(255, 255, 255, 0.16);
       color: white;
+      transform: translateY(-1px);
     }
     .badge-dossier {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       font-size: 0.78rem;
       font-weight: 700;
       color: #c084fc;
-      background: rgba(124, 58, 237, 0.12);
-      border: 1px solid rgba(124, 58, 237, 0.25);
+      background: rgba(124, 58, 237, 0.14);
+      border: 1px solid rgba(124, 58, 237, 0.3);
       padding: 6px 14px;
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
       letter-spacing: 0.5px;
     }
 
-    /* Main Adoption Profile Card */
+    /* Main Profile Bento Shell */
     .profile-card {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
       overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      box-shadow: var(--shadow-bento);
+      margin-bottom: 24px;
+      backdrop-filter: blur(12px);
     }
 
     /* Hero Photo */
@@ -105,7 +146,7 @@
       position: relative;
       width: 100%;
       height: 380px;
-      background: #0d1527;
+      background: var(--surface-inner);
       overflow: hidden;
     }
     .hero-photo {
@@ -113,47 +154,51 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.4s ease;
+      transition: transform 0.5s ease;
     }
-    .photo-overlay-badges {
+    .hero-photo-wrap:hover .hero-photo {
+      transform: scale(1.03);
+    }
+    .photo-overlay {
       position: absolute;
-      top: 18px;
-      left: 18px;
-      right: 18px;
+      top: 18px; left: 18px; right: 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       pointer-events: none;
     }
-    .status-badge {
+    .badge-status {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       padding: 6px 14px;
-      border-radius: 999px;
-      background: #7c3aed;
+      border-radius: var(--radius-pill);
+      background: rgba(124, 58, 237, 0.85);
+      backdrop-filter: blur(12px);
       color: white;
-      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
       font-weight: 800;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.5px;
       box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
     }
-    .verified-pill {
+    .badge-verified {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       padding: 6px 14px;
-      border-radius: 999px;
-      background: #0f766e;
+      border-radius: var(--radius-pill);
+      background: rgba(15, 118, 110, 0.85);
+      backdrop-filter: blur(12px);
       border: 1px solid rgba(20, 184, 166, 0.4);
       color: #99f6e4;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       font-weight: 800;
     }
 
-    /* Body Details */
+    /* Profile Content Body */
     .profile-body {
-      padding: 32px 28px;
+      padding: 30px 24px;
     }
 
     .header-row {
@@ -162,18 +207,18 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .pet-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 2.6rem;
+      font-family: var(--font-heading);
+      font-size: 2.5rem;
       font-weight: 900;
+      color: white;
       line-height: 1.1;
-      letter-spacing: -0.5px;
-      color: #ffffff;
+      letter-spacing: -0.02em;
     }
     .fee-badge {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       display: inline-flex;
       align-items: center;
       padding: 6px 14px;
@@ -181,12 +226,11 @@
       background: rgba(16, 185, 129, 0.12);
       border: 1px solid rgba(16, 185, 129, 0.3);
       color: #34d399;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 700;
     }
-
     .pet-subtitle {
-      font-size: 1.02rem;
+      font-size: 1rem;
       color: var(--text-muted);
       margin-bottom: 24px;
       display: flex;
@@ -205,14 +249,18 @@
       .vitals-grid { grid-template-columns: repeat(2, 1fr); }
     }
     .vital-tile {
-      background: var(--card-inner);
-      border: 1px solid var(--border);
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 14px;
       text-align: center;
+      transition: border-color 0.2s;
     }
-    .vital-label {
-      font-family: 'JetBrains Mono', monospace;
+    .vital-tile:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    .vital-lbl {
+      font-family: var(--font-mono);
       font-size: 0.72rem;
       font-weight: 700;
       color: var(--text-muted);
@@ -221,279 +269,336 @@
       margin-bottom: 4px;
     }
     .vital-val {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.15rem;
+      font-family: var(--font-heading);
+      font-size: 1.1rem;
       font-weight: 800;
-      color: #ffffff;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* Story Section */
-    .section-heading {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.25rem;
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 1.2rem;
       font-weight: 800;
-      margin-bottom: 12px;
+      color: white;
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
       gap: 8px;
-      color: #ffffff;
     }
-    .story-text {
+    .story-card {
       color: var(--text-sub);
-      font-size: 0.98rem;
+      font-size: 0.95rem;
       line-height: 1.7;
       margin-bottom: 28px;
-      background: var(--card-inner);
-      border: 1px solid var(--border);
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
       padding: 18px 20px;
       border-radius: var(--radius-md);
     }
 
-    /* Medical & Compatibility Checklist */
-    .checklist-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 32px;
+    /* Temperament Pills */
+    .traits-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 28px;
     }
-    @media (max-width: 500px) {
-      .checklist-grid { grid-template-columns: 1fr; }
+    .trait-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(124, 58, 237, 0.12);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      border-radius: var(--radius-pill);
+      color: #c084fc;
+      font-size: 0.84rem;
+      font-weight: 700;
     }
-    .check-item {
+
+    /* Shelter Card */
+    .shelter-card {
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 28px;
+    }
+    .shelter-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      background: var(--card-inner);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 0.88rem;
-      font-weight: 600;
+      justify-content: space-between;
+      margin-bottom: 8px;
     }
-    .check-icon {
-      color: #34d399;
-      font-size: 1.1rem;
+    .shelter-name {
+      font-family: var(--font-heading);
+      font-size: 1.05rem;
       font-weight: 800;
+      color: white;
+    }
+    .shelter-location {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     /* Action Buttons */
-    .action-group {
-      display: flex;
-      flex-direction: column;
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr;
       gap: 12px;
     }
-    .btn-adopt-main {
+    .btn-adopt-primary {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
+      width: 100%;
       padding: 16px;
-      background: #7c3aed;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
       color: white;
-      text-decoration: none;
-      font-size: 1.05rem;
-      font-weight: 800;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
-      transition: all 0.2s ease;
+      border: none;
       cursor: pointer;
+      font-family: var(--font-heading);
+      font-size: 1.1rem;
+      font-weight: 800;
+      border-radius: var(--radius-md);
+      box-shadow: 0 8px 24px var(--primary-glow);
+      transition: all 0.2s var(--ease-spring);
     }
-    .btn-adopt-main:hover {
-      background: #6d28d9;
+    .btn-adopt-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(124, 58, 237, 0.45);
+      box-shadow: 0 12px 30px var(--primary-glow);
     }
-    .direct-actions-row {
+    .btn-adopt-primary:active {
+      transform: scale(0.98);
+    }
+
+    .contact-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-    .btn-call {
+    @media (max-width: 460px) {
+      .contact-row { grid-template-columns: 1fr; }
+    }
+    .btn-action-contact {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       padding: 14px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: white;
       text-decoration: none;
-      font-weight: 700;
+      font-family: var(--font-heading);
       font-size: 0.95rem;
-      border-radius: 12px;
-      transition: all 0.2s ease;
-    }
-    .btn-call:hover {
-      background: rgba(16, 185, 129, 0.2);
-      transform: translateY(-2px);
-    }
-    .btn-wa {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 14px;
-      background: rgba(37, 211, 102, 0.12);
-      border: 1px solid rgba(37, 211, 102, 0.3);
-      color: #4ade80;
-      text-decoration: none;
       font-weight: 700;
-      font-size: 0.95rem;
-      border-radius: 12px;
-      transition: all 0.2s ease;
+      transition: all 0.2s var(--ease-spring);
     }
-    .btn-wa:hover {
-      background: rgba(37, 211, 102, 0.2);
-      transform: translateY(-2px);
+    .btn-action-contact:hover {
+      background: var(--surface-hover);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px);
     }
 
-    /* Modal Overlay & Box */
+    /* Modal Overlay */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(6, 9, 19, 0.88);
-      backdrop-filter: blur(8px);
+      background: rgba(8, 12, 20, 0.85);
+      backdrop-filter: blur(16px);
       z-index: 1000;
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 16px;
     }
     .modal-box {
-      background: #0c1322;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 20px;
-      max-width: 480px;
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      max-width: 520px;
       width: 100%;
-      padding: 32px 24px;
+      padding: 32px 28px;
       position: relative;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
     }
     .modal-close {
       position: absolute;
-      top: 18px; right: 18px;
+      top: 20px;
+      right: 20px;
       background: rgba(255, 255, 255, 0.08);
       border: none;
-      color: white;
-      width: 32px; height: 32px;
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      font-size: 1.1rem;
       cursor: pointer;
+      font-size: 1rem;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.2s;
     }
     .modal-close:hover {
       background: rgba(255, 255, 255, 0.16);
-    }
-    .input-field {
-      width: 100%;
-      padding: 12px 16px;
-      background: #060913;
-      border: 1px solid var(--border);
-      border-radius: 10px;
       color: white;
-      font-family: inherit;
-      font-size: 0.95rem;
-      margin-top: 6px;
-      margin-bottom: 14px;
     }
-    .input-field:focus {
+    .form-lbl {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      margin-top: 14px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: white;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
       outline: none;
-      border-color: #7c3aed;
-      background: #0a0f1c;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+    .form-input::placeholder {
+      color: #64748b;
+    }
+
+    /* Footer Stamp */
+    .footer-stamp {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 24px;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+    .stamp-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--primary);
     }
   </style>
 </head>
 <body>
+  <div class="spatial-bg"></div>
+
   <div class="container">
-    <!-- Top Navigation -->
+    <!-- Top Nav -->
     <div class="top-nav">
       <a href="/" class="nav-back">← PetConnect AI Portal</a>
-      <div class="badge-dossier">VERIFIED COMPANION</div>
+      <div class="badge-dossier" id="navDossierBadge">ADOPT-BELLA</div>
     </div>
 
-    <!-- Main Card -->
+    <!-- Main Profile Bento Shell -->
     <div class="profile-card">
       <div class="hero-photo-wrap">
-        <img id="petImg" class="hero-photo" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80" alt="Pet Image">
-        <div class="photo-overlay-badges">
-          <span class="status-badge">🏡 Available for Adoption</span>
-          <span class="verified-pill">✅ Health Verified</span>
+        <img id="petImg" class="hero-photo" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80" alt="Pet Photo">
+        <div class="photo-overlay">
+          <span class="badge-status">AVAILABLE FOR ADOPTION</span>
+          <span class="badge-verified">🛡️ VERIFIED SHELTER</span>
         </div>
       </div>
 
       <div class="profile-body">
         <div class="header-row">
           <h1 id="petName" class="pet-title">Bella</h1>
-          <span id="petFee" class="fee-badge">Free / Loving Home</span>
+          <div id="petFee" class="fee-badge">Free / Loving Home</div>
         </div>
-        <div id="petSub" class="pet-subtitle">
-          📍 <span id="petLocation">Bangalore Animal Rescue & Care</span> • <span id="petBreedLine">Golden Retriever • 2 Years</span>
-        </div>
+        <div id="petBreedLine" class="pet-subtitle">Golden Retriever • 2 Years</div>
 
         <!-- Vitals Grid -->
         <div class="vitals-grid">
           <div class="vital-tile">
-            <div class="vital-label">Breed</div>
+            <div class="vital-lbl">Breed</div>
             <div id="vBreed" class="vital-val">Golden Retriever</div>
           </div>
           <div class="vital-tile">
-            <div class="vital-label">Age</div>
+            <div class="vital-lbl">Age</div>
             <div id="vAge" class="vital-val">2 Years</div>
           </div>
           <div class="vital-tile">
-            <div class="vital-label">Gender</div>
+            <div class="vital-lbl">Gender</div>
             <div id="vGender" class="vital-val">Female</div>
-          </div>
-          <div class="vital-tile">
-            <div class="vital-label">Vaccines</div>
-            <div id="vVax" class="vital-val" style="color: #34d399;">Up to Date</div>
-          </div>
-          <div class="vital-tile">
-            <div class="vital-label">Microchip</div>
-            <div id="vChip" class="vital-val">Active</div>
-          </div>
-          <div class="vital-tile">
-            <div class="vital-label">Location</div>
-            <div id="vCity" class="vital-val">Bangalore</div>
           </div>
         </div>
 
-        <!-- About Story -->
-        <div class="section-heading">💖 Meet <span id="storyPetName">Bella</span></div>
-        <div id="petBio" class="story-text">
+        <!-- Story Section -->
+        <div class="section-title">
+          <span>📖</span>
+          <span>About <span id="storyPetName">Bella</span></span>
+        </div>
+        <div id="petBio" class="story-card">
           Loving, gentle, and highly trainable Golden Retriever. Thrives with daily walks and an affectionate family. Fully vaccinated, health screened, and socialized.
         </div>
 
-        <!-- Medical & Temperament Checklist -->
-        <div class="section-heading">🩺 Medical & Temperament Record</div>
-        <div class="checklist-grid" id="checklistGrid">
-          <div class="check-item"><span class="check-icon">✓</span> Core Vaccinations Active</div>
-          <div class="check-item"><span class="check-icon">✓</span> De-wormed & Flea Treated</div>
-          <div class="check-item"><span class="check-icon">✓</span> Microchipped on PetConnect</div>
-          <div class="check-item"><span class="check-icon">✓</span> Kid & Family Friendly</div>
-          <div class="check-item"><span class="check-icon">✓</span> Calm Temperament Verified</div>
-          <div class="check-item"><span class="check-icon">✓</span> House & Leash Trained</div>
+        <!-- Temperament Checklist -->
+        <div class="section-title">
+          <span>✨</span>
+          <span>Personality &amp; Temperament</span>
+        </div>
+        <div id="checklistGrid" class="traits-flex">
+          <span class="trait-pill">✓ Affectionate</span>
+          <span class="trait-pill">✓ Playful</span>
+          <span class="trait-pill">✓ Kid-Friendly</span>
+          <span class="trait-pill">✓ Leash-Trained</span>
+          <span class="trait-pill">✓ Health Screened</span>
         </div>
 
-        <!-- Actions -->
-        <div class="action-group">
-          <button class="btn-adopt-main" onclick="openApplyModal()">
-            📝 Submit Direct Adoption Application
-          </button>
+        <!-- Caregiver Card -->
+        <div class="shelter-card">
+          <div class="shelter-header">
+            <div class="shelter-name" id="shelterName">Bangalore Animal Rescue &amp; Care</div>
+            <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--primary); font-weight: 700;">VERIFIED PARTNER</div>
+          </div>
+          <div class="shelter-location" id="petLocation">📍 Bangalore, Karnataka • Primary Shelter Station</div>
+        </div>
 
-          <div class="direct-actions-row">
-            <a href="tel:+919876543210" id="callBtn" class="btn-call">
-              📞 Call Caregiver
+        <!-- Action Cluster -->
+        <div class="actions-grid">
+          <button class="btn-adopt-primary" onclick="openApplyModal()">
+            🚀 Submit Adoption Application
+          </button>
+          <div class="contact-row">
+            <a href="tel:+919876543210" id="callBtn" class="btn-action-contact">
+              📞 Direct Call
             </a>
-            <a href="https://wa.me/919876543210?text=Hi!+I+am+inquiring+about+adopting+on+PetConnect+AI" id="waBtn" class="btn-wa" target="_blank">
-              💬 WhatsApp
+            <a href="https://wa.me/919876543210" id="waBtn" class="btn-action-contact" target="_blank" rel="noopener">
+              💬 WhatsApp Chat
             </a>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Security Timestamp -->
+    <div class="footer-stamp">
+      <div class="stamp-dot"></div>
+      <span>Verified Adoption Network • Live Sync with PetConnect AI Mobile App</span>
     </div>
   </div>
 
@@ -501,31 +606,30 @@
   <div id="applyModal" class="modal-overlay">
     <div class="modal-box">
       <button class="modal-close" onclick="closeApplyModal()">✕</button>
-      <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: #c084fc; text-transform: uppercase; margin-bottom: 8px;">Direct Cloud Application</div>
-      <h2 style="font-family: 'Outfit'; font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;">Adopt <span id="modalPetName">Companion</span></h2>
-      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Your inquiry will instantly dispatch to the pet caregiver's mobile app.</p>
+      <div style="font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: #c084fc; text-transform: uppercase; margin-bottom: 6px;">Direct Cloud Application</div>
+      <h2 style="font-family: var(--font-heading); font-size: 1.65rem; font-weight: 800; margin-bottom: 6px;">Adopt <span id="modalPetName">Bella</span></h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px;">Your inquiry will immediately alert the caregiver's PetConnect AI mobile app.</p>
 
       <form id="adoptForm" onsubmit="handleApplySubmit(event)">
-        <label style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">APPLICANT FULL NAME</label>
-        <input type="text" id="appName" class="input-field" placeholder="e.g. Antony Thomson" required>
+        <label class="form-lbl">APPLICANT FULL NAME</label>
+        <input type="text" id="appName" class="form-input" placeholder="e.g. Antony Thomson" required>
 
-        <label style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">PHONE / WHATSAPP NUMBER</label>
-        <input type="tel" id="appPhone" class="input-field" placeholder="e.g. +91 8921998733" required>
+        <label class="form-lbl">PHONE / WHATSAPP NUMBER</label>
+        <input type="tel" id="appPhone" class="form-input" placeholder="e.g. +91 8921998733" required>
 
-        <label style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">CITY & RESIDENCE TYPE</label>
-        <input type="text" id="appHome" class="input-field" placeholder="e.g. Kochi • House with fenced yard" required>
+        <label class="form-lbl">CITY &amp; RESIDENCE TYPE</label>
+        <input type="text" id="appHome" class="form-input" placeholder="e.g. Kochi • House with fenced yard" required>
 
-        <label style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">EXPERIENCE WITH PETS</label>
-        <textarea id="appExp" class="input-field" rows="3" placeholder="Tell the caregiver about your household, daily routine, and prior experience with pets..."></textarea>
+        <label class="form-lbl">EXPERIENCE WITH PETS</label>
+        <textarea id="appExp" class="form-input" rows="3" placeholder="Tell the caregiver about your household, daily routine, and prior pet care experience..."></textarea>
 
-        <button type="submit" id="applySubmitBtn" class="btn-adopt-main" style="width: 100%; margin-top: 8px;">
+        <button type="submit" id="applySubmitBtn" class="btn-adopt-primary" style="width: 100%; margin-top: 18px;">
           Send Application to Caregiver 🚀
         </button>
       </form>
     </div>
   </div>
 
-  <!-- Real Supabase Integration -->
   <script>
     const SUPABASE_URL = 'https://cghgslyikjqghrzhrqxz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs';
@@ -542,7 +646,7 @@
         candidateId = lastSeg;
       }
     }
-    // Default fallback to Bella (Shelter candidate)
+    // Default fallback to Bella
     if (!candidateId) {
       candidateId = 'e2831d10-8b43-4f9e-a89c-567e89ab1001';
     }
@@ -586,7 +690,7 @@
           }
         }
 
-        // 3. Fallback to query params or sensible default
+        // 3. Fallback to query params or defaults
         const name = petData?.name || params.get('name') || 'Bella';
         const breed = petData?.breed || params.get('breed') || 'Golden Retriever';
         const age = petData?.age || params.get('age') || '2 Years';
@@ -607,14 +711,14 @@
         document.getElementById('modalPetName').textContent = name;
         document.getElementById('storyPetName').textContent = name;
         document.getElementById('petFee').textContent = fee;
-        document.getElementById('petLocation').textContent = location;
+        document.getElementById('petLocation').textContent = `📍 ${location}`;
         document.getElementById('petBreedLine').textContent = `${breed} • ${age}`;
 
         document.getElementById('vBreed').textContent = breed;
         document.getElementById('vAge').textContent = age;
         document.getElementById('vGender').textContent = gender;
-        document.getElementById('vCity').textContent = location.split(',')[0] || location;
         document.getElementById('petBio').textContent = bio;
+        document.getElementById('navDossierBadge').textContent = `ADOPT-${name.toUpperCase()}`;
 
         if (img) {
           const petImgEl = document.getElementById('petImg');
@@ -631,12 +735,16 @@
           document.getElementById('waBtn').href = `https://wa.me/${waClean}?text=${waMsg}`;
         }
 
-        // Render checklist tags if array exists
-        if (petData?.temperament && Array.isArray(petData.temperament) && petData.temperament.length > 0) {
-          document.getElementById('checklistGrid').innerHTML = petData.temperament.map(t =>
-            `<div class="check-item"><span class="check-icon">✓</span> ${t}</div>`
-          ).join('');
-        }
+        // Render temperament tags if array exists
+        const traits = (petData?.temperament && Array.isArray(petData.temperament) && petData.temperament.length > 0)
+          ? petData.temperament
+          : (Array.isArray(petData?.personality_traits) && petData.personality_traits.length > 0)
+            ? petData.personality_traits
+            : ['Affectionate', 'Playful', 'Kid-Friendly', 'Leash-Trained', 'Health Screened'];
+
+        document.getElementById('checklistGrid').innerHTML = traits.map(t =>
+          `<span class="trait-pill">✓ ${t}</span>`
+        ).join('');
 
       } catch (err) {
         console.error('Error fetching adoption details:', err);
@@ -656,7 +764,7 @@
       e.preventDefault();
       const btn = document.getElementById('applySubmitBtn');
       btn.disabled = true;
-      btn.textContent = 'Submitting to PetConnect AI Cloud...';
+      btn.textContent = 'Submitting Application...';
 
       const applicantName = document.getElementById('appName').value.trim();
       const applicantPhone = document.getElementById('appPhone').value.trim();
@@ -676,7 +784,7 @@
             status: 'pending'
           });
           if (error) {
-            console.warn('Adoption inquiry insert issue:', error);
+            console.warn('Adoption inquiry insert notice:', error);
           }
         }
 

@@ -86,8 +86,8 @@ class _AiScanIdentifyScreenState extends ConsumerState<AiScanIdentifyScreen>
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: source,
-      imageQuality: 85,
-      maxWidth: 1200,
+      imageQuality: 75,
+      maxWidth: 800,
     );
     if (picked == null) return;
 
@@ -258,7 +258,7 @@ class _AiScanIdentifyScreenState extends ConsumerState<AiScanIdentifyScreen>
   }) async {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 25);
-    final models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3-flash-preview'];
+    final models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash'];
 
     for (final model in models) {
       try {
@@ -290,8 +290,9 @@ class _AiScanIdentifyScreenState extends ConsumerState<AiScanIdentifyScreen>
             },
           ],
           'generationConfig': {
-            'temperature': 0.4,
-            'maxOutputTokens': 2048,
+            'temperature': 0.3,
+            'maxOutputTokens': 1024,
+            if (model.contains('3.7') || model.contains('3.8')) 'thinkingConfig': {'thinkingBudget': 0},
           },
         });
 
@@ -879,7 +880,12 @@ class _AiScanIdentifyScreenState extends ConsumerState<AiScanIdentifyScreen>
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.onSurface),
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+              letterSpacing: -0.2,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

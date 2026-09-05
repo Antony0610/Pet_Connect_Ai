@@ -115,26 +115,26 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   ];
 
   String? _activeConversationId;
-  String _selectedModelKey = 'gemini-3.1-flash-lite';
-  String _activeModelLabel = '⚡ Flash-Lite 3.1';
+  String _selectedModelKey = 'gemini-3.8-flash';
+  String _activeModelLabel = '⚡ Flash 3.8';
   bool _showScrollToBottom = false;
 
   static const List<_AiModelOption> _topGeminiModels = [
     _AiModelOption(
-      key: 'gemini-3.1-flash-lite',
-      label: 'Gemini 3.1 Flash-Lite',
-      subtitle: 'Sub-second ~1.5s latency for instant response & rapid triage',
-      tag: 'Ultra-Fast',
-      color: Color(0xFF10B981),
-      icon: Icons.bolt_rounded,
+      key: 'gemini-3.8-flash',
+      label: 'Gemini 3.8 Flash',
+      subtitle: 'Flagship next-gen multimodal model with deep clinical reasoning',
+      tag: 'Flagship',
+      color: Color(0xFF6366F1),
+      icon: Icons.auto_awesome_rounded,
     ),
     _AiModelOption(
       key: 'gemini-3.7-flash',
       label: 'Gemini 3.7 Flash',
-      subtitle: 'Flagship multimodal model with deep clinical reasoning',
-      tag: 'Flagship',
-      color: Color(0xFF6366F1),
-      icon: Icons.auto_awesome_rounded,
+      subtitle: 'High-performance multimodal clinical reasoning & diagnostic triage',
+      tag: 'Advanced',
+      color: Color(0xFF8B5CF6),
+      icon: Icons.psychology_rounded,
     ),
     _AiModelOption(
       key: 'gemini-3.6-flash',
@@ -143,6 +143,14 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       tag: 'Balanced',
       color: Color(0xFF06B6D4),
       icon: Icons.flare_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-3.5-flash-lite',
+      label: 'Gemini 3.5 Flash-Lite',
+      subtitle: 'Sub-second ~1s latency for instant response & rapid triage',
+      tag: 'Ultra-Fast',
+      color: Color(0xFF10B981),
+      icon: Icons.bolt_rounded,
     ),
   ];
 
@@ -176,8 +184,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       setState(() {
         _selectedModelKey = match.key;
         _activeModelLabel = match.tag == 'Ultra-Fast'
-            ? '⚡ Flash 3.1'
-            : (match.key == 'gemini-3.7-flash' ? '⚡ Flash 3.7' : '⚡ ${match.label.replaceAll('Gemini ', '')}');
+            ? '⚡ Flash 3.5'
+            : '⚡ ${match.label.replaceAll('Gemini ', '')}';
       });
     }
     final savedLocale = prefs.getString('app_voice_dictation_locale');

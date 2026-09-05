@@ -52,9 +52,10 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     ..idleTimeout = const Duration(minutes: 5);
 
   static const List<String> _geminiModels = [
-    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
     'gemini-3.7-flash',
     'gemini-3.6-flash',
+    'gemini-3.5-flash-lite',
   ];
 
   @override
@@ -345,7 +346,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         'generationConfig': {
           'temperature': 0.3,
           'maxOutputTokens': 850,
-          if (model.contains('3.7')) 'thinkingConfig': {'thinkingBudget': 0},
+          if (model.contains('3.7') || model.contains('3.8')) 'thinkingConfig': {'thinkingBudget': 0},
         },
       });
 

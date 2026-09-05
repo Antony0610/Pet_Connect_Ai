@@ -194,12 +194,18 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
         currentTab: OwnerTab.community,
         appBar: OwnerGlassAppBar(
           brandIcon: Icons.groups_rounded,
-          title: Text(
-            _portalTitle,
-            style: context.textTheme.headlineSmall?.copyWith(
-              color: portalAccent,
-              fontWeight: AppTypography.bold,
-              letterSpacing: -0.25,
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _portalTitle,
+              maxLines: 1,
+              style: context.textTheme.titleMedium?.copyWith(
+                color: portalAccent,
+                fontWeight: AppTypography.bold,
+                fontSize: 17,
+                letterSpacing: -0.25,
+              ),
             ),
           ),
           actions: [
@@ -207,12 +213,18 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
               icon: const Icon(Icons.chat_bubble_outline_rounded),
               tooltip: 'Direct Messages',
               color: portalAccent,
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
               onPressed: () => context.push(_messagesRoute),
             ),
             IconButton(
               icon: const Icon(Icons.people_alt_outlined),
               tooltip: 'Followers & Activity',
               color: portalAccent,
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
               onPressed: () => _openFollowActivitySheet(context),
             ),
             IconButton(
@@ -222,6 +234,9 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
                 color: portalAccent,
               ),
               tooltip: _isGridView ? 'Feed View' : 'Explore Grid View',
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
               onPressed: () => setState(() => _isGridView = !_isGridView),
             ),
             IconButton(
@@ -231,6 +246,9 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
                 color: scheme.onSurfaceVariant,
               ),
               tooltip: 'Refresh Feed',
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
               onPressed: () => ref.invalidate(communityPostsProvider),
             ),
           ],

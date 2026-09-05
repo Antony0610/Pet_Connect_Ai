@@ -4,213 +4,391 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>✅ Immunization Authenticity Certificate | PetConnect AI</title>
-  <meta name="description" content="Digital Immunization Authenticity Certificate verified on the PetConnect AI Clinical Network.">
+  <meta name="description" content="Digital Immunization Authenticity Certificate verified on the PetConnect AI Clinical Network. Cryptographically signed veterinary records.">
 
-  <!-- Premium Typography: Outfit & Plus Jakarta Sans & JetBrains Mono -->
+  <!-- Premium Typography: Outfit (Headings) + Plus Jakarta Sans (Body) + JetBrains Mono (Codes) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --bg: #060913;
-      --card: #0c1322;
-      --card-inner: #111a2e;
-      --border: #1e293b;
-      --border-accent: rgba(16, 185, 129, 0.3);
-      --emerald: #10b981;
-      --emerald-soft: rgba(16, 185, 129, 0.12);
-      --cyan: #06b6d4;
-      --text-white: #ffffff;
-      --text-body: #cbd5e1;
+      --canvas: #080c14;
+      --surface: #0f172a;
+      --surface-card: #111a2e;
+      --surface-hover: #17233d;
+      --surface-inner: #0a0f1c;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(16, 185, 129, 0.35);
+      --border-accent: rgba(6, 182, 212, 0.35);
+      
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      
+      --secondary: #06b6d4;
+      --secondary-glow: rgba(6, 182, 212, 0.22);
+      
+      --accent-amber: #f59e0b;
+      --danger: #ef4444;
+      
+      --text-main: #f8fafc;
+      --text-sub: #cbd5e1;
       --text-muted: #94a3b8;
+      
+      --font-heading: 'Outfit', -apple-system, sans-serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --radius-xl: 24px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-pill: 9999px;
+      
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: var(--bg);
-      color: var(--text-body);
+      font-family: var(--font-body);
+      background: var(--canvas);
+      color: var(--text-main);
       min-height: 100vh;
-      padding: 24px 16px 56px;
+      line-height: 1.6;
+      padding: 24px 16px 64px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
 
-    .container {
-      width: 100%;
-      max-width: 520px;
+    /* Spatial Background */
+    .spatial-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 50% 12%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 15% 30%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 70%);
     }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 32px 24px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 580px;
+    }
+
+    /* Top Floating Navigation */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .nav-back:hover {
+      background: #1e293b;
+      border-color: rgba(255, 255, 255, 0.16);
+      color: white;
+      transform: translateY(-1px);
+    }
+    .nav-badge {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--primary);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 0.5px;
+    }
+
+    /* Main Certificate Card */
+    .cert-card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 36px 28px;
+      box-shadow: var(--shadow-bento);
+      backdrop-filter: blur(12px);
       text-align: center;
     }
 
-    /* Verified Seal */
+    /* Holographic Verified Seal */
+    .seal-wrap {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 20px;
+    }
     .seal-circle {
-      width: 72px;
-      height: 72px;
-      margin: 0 auto 16px;
-      background: var(--emerald-soft);
-      border: 2px solid var(--emerald);
+      width: 88px;
+      height: 88px;
+      background: radial-gradient(circle at 35% 35%, rgba(16, 185, 129, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 2px solid var(--primary);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
-      box-shadow: 0 0 24px rgba(16, 185, 129, 0.3);
-      animation: pulse-seal 2.5s infinite ease-in-out;
+      font-size: 2.3rem;
+      box-shadow: 0 0 30px var(--primary-glow);
+      animation: pulse-seal 2.8s infinite ease-in-out;
     }
     @keyframes pulse-seal {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.04); }
+      0%, 100% { transform: scale(1); box-shadow: 0 0 25px var(--primary-glow); }
+      50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(16, 185, 129, 0.4); }
+    }
+    .seal-ring {
+      position: absolute;
+      top: -6px; left: -6px; right: -6px; bottom: -6px;
+      border: 1px dashed rgba(16, 185, 129, 0.4);
+      border-radius: 50%;
+      animation: rotate-ring 24s linear infinite;
+    }
+    @keyframes rotate-ring {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
-    .title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.65rem;
+    .cert-title {
+      font-family: var(--font-heading);
+      font-size: 1.85rem;
       font-weight: 800;
-      color: var(--text-white);
+      color: white;
       letter-spacing: -0.02em;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
-    .subtitle {
-      font-family: 'JetBrains Mono', monospace;
+    .cert-sub {
+      font-family: var(--font-mono);
       font-size: 0.8rem;
       font-weight: 700;
-      color: var(--emerald);
-      letter-spacing: 0.5px;
-      margin-bottom: 24px;
+      color: var(--primary);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 26px;
     }
 
-    /* Verification Ribbon */
-    .ribbon {
-      background: var(--card-inner);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 20px;
+    /* Verification Data Ribbon */
+    .data-ribbon {
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-bottom: 24px;
       text-align: left;
     }
-    .row {
+    .data-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
+      padding: 10px 0;
     }
-    .row:not(:last-child) {
+    .data-row:not(:last-child) {
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .lbl {
-      font-size: 0.82rem;
+    .data-lbl {
+      font-size: 0.86rem;
       color: var(--text-muted);
+      font-weight: 500;
     }
-    .val {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 0.95rem;
+    .data-val {
+      font-family: var(--font-body);
+      font-size: 0.98rem;
       font-weight: 700;
-      color: var(--text-white);
+      color: white;
       text-align: right;
     }
-    .val-code {
-      font-family: 'JetBrains Mono', monospace;
+    .data-val-code {
+      font-family: var(--font-mono);
       color: #38bdf8;
+      font-weight: 700;
     }
 
-    /* Verified Hash Box */
-    .hash-box {
-      background: #080f1e;
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      border-radius: 14px;
-      padding: 12px 14px;
+    /* Cryptographic Hash Tile */
+    .hash-tile {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(8, 12, 20, 0.95) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 0.78rem;
+      gap: 12px;
       margin-bottom: 24px;
+      text-align: left;
     }
-    .hash-code {
-      font-family: 'JetBrains Mono', monospace;
+    .hash-text-group {
+      min-width: 0;
+      flex: 1;
+    }
+    .hash-lbl {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
       font-weight: 700;
-      color: var(--emerald);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .hash-val {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hash-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: var(--radius-pill);
+      color: var(--primary);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 800;
+      flex-shrink: 0;
     }
 
-    /* Button */
-    .btn-return {
+    /* Action Buttons */
+    .btn-return-portal {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       width: 100%;
-      padding: 14px;
-      background: #0f172a;
-      border: 1px solid var(--border);
-      color: var(--text-white);
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.95rem;
+      padding: 15px;
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      color: white;
+      font-family: var(--font-heading);
+      font-size: 1.02rem;
       font-weight: 700;
       text-decoration: none;
-      border-radius: 14px;
-      transition: all 0.2s;
+      border-radius: var(--radius-md);
+      transition: all 0.2s var(--ease-spring);
     }
-    .btn-return:hover {
-      background: #1e293b;
+    .btn-return-portal:hover {
+      background: var(--surface-hover);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px);
+    }
+
+    /* Footer Stamp */
+    .footer-stamp {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 24px;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+    .stamp-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--primary);
     }
   </style>
 </head>
 <body>
+  <div class="spatial-bg"></div>
+
   <div class="container">
-    <div class="card">
-      <div class="seal-circle">🛡️</div>
-      <h1 class="title" id="certTitle">Vaccine Authenticity Pass</h1>
-      <div class="subtitle" id="certSub">VERIFIED ON PETCONNECT AI CLINICAL NETWORK</div>
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <a href="/" class="nav-back">← PetConnect AI Portal</a>
+      <div class="nav-badge" id="navHashBadge">PC-AUTH-ACTIVE</div>
+    </div>
 
-      <div class="ribbon">
-        <div class="row">
-          <span class="lbl">Companion Name</span>
-          <strong class="val" id="petName">miavv (Cat)</strong>
+    <!-- Main Card -->
+    <div class="cert-card">
+      <div class="seal-wrap">
+        <div class="seal-ring"></div>
+        <div class="seal-circle">🛡️</div>
+      </div>
+
+      <h1 class="cert-title" id="certTitle">Vaccine Authenticity Pass</h1>
+      <div class="cert-sub" id="certSub">VERIFIED ON PETCONNECT AI CLINICAL NETWORK</div>
+
+      <div class="data-ribbon">
+        <div class="data-row">
+          <span class="data-lbl">Companion Name</span>
+          <strong class="data-val" id="petName">miavv (Cat)</strong>
         </div>
-        <div class="row">
-          <span class="lbl" id="row1Lbl">Vaccine / Protocol</span>
-          <strong class="val" id="vaxName" style="color: var(--emerald);">Rabies Core Immunization</strong>
+        <div class="data-row">
+          <span class="data-lbl" id="row1Lbl">Vaccine / Protocol</span>
+          <strong class="data-val" id="vaxName" style="color: var(--primary);">Rabies Core Immunization</strong>
         </div>
-        <div class="row">
-          <span class="lbl" id="row2Lbl">Batch / Serial Lot</span>
-          <strong class="val val-code" id="vaxBatch">LOT-B892-VET</strong>
+        <div class="data-row">
+          <span class="data-lbl" id="row2Lbl">Batch / Serial Lot</span>
+          <strong class="data-val data-val-code" id="vaxBatch">LOT-B892-VET</strong>
         </div>
-        <div class="row">
-          <span class="lbl" id="row3Lbl">Administered Date</span>
-          <strong class="val" id="vaxDate">18 Aug 2026</strong>
+        <div class="data-row">
+          <span class="data-lbl" id="row3Lbl">Administered Date</span>
+          <strong class="data-val" id="vaxDate">18 Aug 2026</strong>
         </div>
-        <div class="row" id="nextDueRow">
-          <span class="lbl">Next Booster Due</span>
-          <strong class="val val-code" id="nextDueDate" style="color: #f59e0b;">31 Aug 2027</strong>
+        <div class="data-row" id="nextDueRow">
+          <span class="data-lbl">Next Booster Due</span>
+          <strong class="data-val data-val-code" id="nextDueDate" style="color: #f59e0b;">31 Aug 2027</strong>
         </div>
-        <div class="row">
-          <span class="lbl">Attending Clinic</span>
-          <strong class="val" id="clinicName">Veterinary Practice, Mala</strong>
+        <div class="data-row">
+          <span class="data-lbl">Attending Clinic</span>
+          <strong class="data-val" id="clinicName">Veterinary Practice, Mala</strong>
         </div>
-        <div class="row">
-          <span class="lbl">Certified By</span>
-          <strong class="val" id="vaxDoc">Authorized Veterinary Clinic</strong>
+        <div class="data-row">
+          <span class="data-lbl">Certified By</span>
+          <strong class="data-val" id="vaxDoc">Authorized Veterinary Clinic</strong>
         </div>
       </div>
 
-      <div class="hash-box">
-        <span style="color: var(--text-muted);">Security Hash:</span>
-        <span class="hash-code" id="certHash">PC-AUTH-C2DC2092</span>
-        <span style="color: var(--emerald); font-weight: 800;">ACTIVE</span>
+      <!-- Hash Badge -->
+      <div class="hash-tile">
+        <div class="hash-text-group">
+          <div class="hash-lbl">Cryptographic Security Hash</div>
+          <div class="hash-val" id="certHash">PC-AUTH-C2DC2092</div>
+        </div>
+        <div class="hash-badge">
+          <span style="display:inline-block; width:6px; height:6px; background:var(--primary); border-radius:50%;"></span>
+          AUTHENTIC
+        </div>
       </div>
 
-      <a href="/" class="btn-return">← Return to PetConnect AI Portal</a>
+      <a href="/" class="btn-return-portal">← Return to PetConnect AI Portal</a>
+    </div>
+
+    <!-- Security Timestamp -->
+    <div class="footer-stamp">
+      <div class="stamp-dot"></div>
+      <span>Tamper-Evident Ledger • Verified on PetConnect AI Clinical Mesh</span>
     </div>
   </div>
 
@@ -247,8 +425,10 @@
       document.getElementById('vaxDate').textContent = params.get('date') || 'Active Verified';
       document.getElementById('nextDueRow').style.display = 'none';
       document.getElementById('clinicName').textContent = 'PetConnect AI Neural Veterinary Engine';
-      document.getElementById('vaxDoc').textContent = params.get('owner') || 'Antony';
-      document.getElementById('certHash').textContent = `AI-SCAN-${vaccineId.substring(0, 8).toUpperCase()}`;
+      document.getElementById('vaxDoc').textContent = params.get('owner') || 'Antony Thomson';
+      const authHash = `AI-SCAN-${vaccineId.substring(0, 8).toUpperCase()}`;
+      document.getElementById('certHash').textContent = authHash;
+      document.getElementById('navHashBadge').textContent = authHash;
     } else {
       // 2. Immediate Parameter Rendering for Vaccine Cert
       const pPet = params.get('pet') || 'miavv (Cat)';
@@ -257,6 +437,7 @@
       const pAdmin = params.get('admin') || '18 Aug 2026';
       const pNext = params.get('next') || '31 Aug 2027';
       const pDoc = params.get('doc') || 'Authorized Veterinary Clinic';
+      const certCode = `PC-AUTH-${vaccineId.substring(0, 8).toUpperCase()}`;
 
       document.getElementById('petName').textContent = pPet;
       document.getElementById('vaxName').textContent = pVax;
@@ -264,7 +445,8 @@
       document.getElementById('vaxDate').textContent = pAdmin;
       document.getElementById('nextDueDate').textContent = pNext;
       document.getElementById('vaxDoc').textContent = pDoc;
-      document.getElementById('certHash').textContent = `PC-AUTH-${vaccineId.substring(0, 8).toUpperCase()}`;
+      document.getElementById('certHash').textContent = certCode;
+      document.getElementById('navHashBadge').textContent = certCode;
 
       // 3. Fetch Live Vaccine Record from Supabase RPC via native fetch
       async function fetchLiveVaccine() {

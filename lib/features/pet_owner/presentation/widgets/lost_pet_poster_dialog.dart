@@ -135,28 +135,34 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              setState(() {});
+              Navigator.pop(ctx);
+            },
             child: const Text('Save & Update'),
           ),
         ],
       ),
-    ).then((_) => setState(() {}));
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   static String _cleanText(String input) {
     return input
         .replaceAll('₹', 'RS. ')
-        .replaceAll('•', '*')
+        .replaceAll('•', '-')
         .replaceAll('–', '-')
         .replaceAll('—', '-')
         .replaceAll('’', "'")
         .replaceAll('‘', "'")
         .replaceAll('“', '"')
         .replaceAll('”', '"')
-        .replaceAll('\u2022', '*')
+        .replaceAll('\u2022', '-')
         .replaceAll('\u2013', '-')
         .replaceAll('\u2014', '-')
         .replaceAll('\u20B9', 'RS. ')
+        .replaceAll(RegExp(r'[^\x00-\x7F]'), ' ')
         .trim();
   }
 
@@ -385,6 +391,34 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                         ],
                       ),
                     ),
+                  )
+                else
+                  InkWell(
+                    onTap: _openEditDialog,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFD97706), width: 1.2),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_circle_outline, size: 16, color: Color(0xFFB45309)),
+                          SizedBox(width: 8),
+                          Text(
+                            '+ Set Cash Reward (e.g. ₹5,000)',
+                            style: TextStyle(
+                              color: Color(0xFFB45309),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 AppSpacing.vGapMd,
 
@@ -532,7 +566,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                               ),
                                               pw.SizedBox(height: 2),
                                               pw.Text(
-                                                pet.breedLine.toLowerCase(),
+                                                _cleanText(pet.breedLine.toLowerCase()),
                                                 style: const pw.TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: pw.FontWeight.bold,

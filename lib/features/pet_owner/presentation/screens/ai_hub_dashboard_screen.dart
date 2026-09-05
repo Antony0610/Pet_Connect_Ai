@@ -178,6 +178,8 @@ class _AssistantHero extends ConsumerWidget {
                     label: 'Start Conversation',
                     icon: Icons.smart_toy_rounded,
                     borderRadius: AppRadius.brPill,
+                    backgroundColor: const Color(0xFF0F766E),
+                    textColor: Colors.white,
                     onPressed: () => context.goNamed(RouteNames.ownerAiChat),
                   ),
                 ),
