@@ -64,6 +64,34 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
   static const List<_AdoptionCandidate> _defaultCandidates = [
     _AdoptionCandidate(
+      id: 'dc589eb3-a113-46ec-b4df-8f665936924b',
+      name: 'Thara',
+      age: '1 yr',
+      species: 'Dog',
+      breed: 'Indie Companion',
+      matchScore: 98,
+      shelter: 'Kerala Rescue & Foster Care',
+      distance: 'Kerala Rescue & Foster Care',
+      imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
+      personality: ['Loving', 'Loyal', 'Tropical Adapted', 'Vaccinated'],
+      description: 'Gentle, affectionate indie companion rescued locally. Healthy, fully vaccinated, and seeking a loving permanent family.',
+      contactPhone: '+91 94000 12345',
+    ),
+    _AdoptionCandidate(
+      id: 'ca1a1f62-b63d-48d1-8b22-8e540b2660d3',
+      name: 'Tutu',
+      age: '6 mos',
+      species: 'Cat',
+      breed: 'Domestic Shorthair',
+      matchScore: 97,
+      shelter: 'Feline Protection & Care',
+      distance: 'Feline Protection & Care',
+      imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
+      personality: ['Playful', 'Affectionate', 'Litter Trained', 'Vaccinated'],
+      description: 'Adorable, playful young kitten who loves lap cuddles and chasing feather wands. Completely litter trained and vaccinated.',
+      contactPhone: '+91 98111 22334',
+    ),
+    _AdoptionCandidate(
       id: 'e2831d10-8b43-4f9e-a89c-567e89ab1001',
       name: 'Bella',
       age: '2 yrs',
@@ -132,48 +160,6 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
       personality: ['Extremely Resilient', 'Loyal', 'Tropical Adapted'],
       description: 'Healthy, highly intelligent native Indie. Perfectly adapted to local climate with natural disease resistance.',
       contactPhone: '+91 94000 12345',
-    ),
-    _AdoptionCandidate(
-      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1006',
-      name: 'Max',
-      age: '2 yrs',
-      species: 'Dog',
-      breed: 'Border Collie Mix',
-      matchScore: 97,
-      shelter: 'Second Chance Sanctuary',
-      distance: '3.1 km away (Indiranagar)',
-      imageUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800',
-      personality: ['Agile', 'Smart', 'Active'],
-      description: 'Highly intelligent and energetic companion. Loves frisbee, trail running, and thrives with an active family.',
-      contactPhone: '+91 98765 43210',
-    ),
-    _AdoptionCandidate(
-      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1007',
-      name: 'Milo',
-      age: '2 mos',
-      species: 'Dog',
-      breed: 'Labrador Retriever Puppy',
-      matchScore: 95,
-      shelter: 'Hope for Paws Foundation',
-      distance: '4.5 km away (Whitefield)',
-      imageUrl: 'https://images.unsplash.com/photo-1591769225440-811ad7d6eab2?w=800',
-      personality: ['Playful', 'Affectionate', 'Puppy Trained'],
-      description: 'Playful and curious chocolate Labrador puppy. Very social, loves tummy rubs, crate trained, and vaccinated.',
-      contactPhone: '+91 97444 55667',
-    ),
-    _AdoptionCandidate(
-      id: 'e2831d10-8b43-4f9e-a89c-567e89ab1008',
-      name: 'Daisy',
-      age: '1 yr',
-      species: 'Cat',
-      breed: 'Siamese Mix',
-      matchScore: 93,
-      shelter: 'Feline Haven Rescue',
-      distance: '2.2 km away (Koramangala)',
-      imageUrl: 'https://images.unsplash.com/photo-1513360309081-38f07627399e?w=800',
-      personality: ['Gentle', 'Hypoallergenic', 'Cuddle Bug'],
-      description: 'Sweet, vocal, blue-eyed companion. Loves lap cuddles, purrs constantly, litter-trained, and gets along well with calm indoor pets.',
-      contactPhone: '+91 98111 22334',
     ),
   ];
 
@@ -440,16 +426,26 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
   Future<void> _markPetAsAdopted(String petId, String petName) async {
     await HapticFeedback.mediumImpact();
 
-    // 1. Update status in cloud Supabase table
+    // 1. Update status in cloud Supabase table (both by ID and by Name)
     try {
       final client = ref.read(supabaseClientProvider);
+      final isUuid = RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(petId);
+      if (isUuid) {
+        await client
+            .from('adoption_listings')
+            .update({
+              'status': 'adopted',
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', petId);
+      }
       await client
           .from('adoption_listings')
           .update({
             'status': 'adopted',
             'updated_at': DateTime.now().toIso8601String(),
           })
-          .eq('id', petId);
+          .ilike('name', petName.trim());
     } catch (e) {
       debugPrint('Cloud adoption status update notice: $e');
     }
@@ -458,8 +454,8 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     final updatedAdopted = Set<String>.from(_adoptedPetIds)..add(petId);
     setState(() {
       _adoptedPetIds = updatedAdopted;
-      _cloudCandidates.removeWhere((c) => c.id == petId);
-      _customCandidates.removeWhere((c) => c.id == petId);
+      _cloudCandidates.removeWhere((c) => c.id == petId || c.name.toLowerCase() == petName.toLowerCase());
+      _customCandidates.removeWhere((c) => c.id == petId || c.name.toLowerCase() == petName.toLowerCase());
     });
 
     final prefs = ref.read(sharedPreferencesProvider);
@@ -501,61 +497,79 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     try {
       final client = ref.read(supabaseClientProvider);
       final currentUid = _currentUserId;
-      if (currentUid != 'anon') {
-        String cloudImgUrl = candidate.imageUrl;
-        if (!cloudImgUrl.startsWith('http://') && !cloudImgUrl.startsWith('https://')) {
-          try {
-            final file = File(cloudImgUrl);
-            if (file.existsSync()) {
-              final bytes = await file.readAsBytes();
-              final storageRepo = ref.read(storageRepositoryProvider);
-              final uploadRes = await storageRepo.uploadPetAvatar(
-                userId: currentUid,
-                petId: 'adopt-${DateTime.now().millisecondsSinceEpoch}',
-                bytes: bytes,
-                fileName: 'adopt_${DateTime.now().millisecondsSinceEpoch}.jpg',
-                mimeType: 'image/jpeg',
-              );
-              uploadRes.fold((_) {}, (url) => cloudImgUrl = url);
-            }
-          } catch (_) {}
-        }
+      String cloudImgUrl = candidate.imageUrl;
+      if (!cloudImgUrl.startsWith('http://') && !cloudImgUrl.startsWith('https://')) {
+        try {
+          final file = File(cloudImgUrl);
+          if (file.existsSync()) {
+            final bytes = await file.readAsBytes();
+            final storageRepo = ref.read(storageRepositoryProvider);
+            final uploadRes = await storageRepo.uploadPetAvatar(
+              userId: currentUid,
+              petId: 'adopt-${DateTime.now().millisecondsSinceEpoch}',
+              bytes: bytes,
+              fileName: 'adopt_${DateTime.now().millisecondsSinceEpoch}.jpg',
+              mimeType: 'image/jpeg',
+            );
+            uploadRes.fold((_) {}, (url) => cloudImgUrl = url);
+          }
+        } catch (_) {}
+      }
 
-        final inserted = await client.from('adoption_listings').insert({
-          'owner_id': currentUid,
-          'name': candidate.name,
-          'species': candidate.species.toLowerCase(),
-          'breed': candidate.breed,
-          'age': candidate.age,
-          'description': candidate.description,
-          'location': candidate.distance,
-          'contact_phone': candidate.contactPhone,
-          'adoption_fee': 'Free / Loving Home',
-          'is_vaccinated': true,
-          'temperament': candidate.personality,
-          'personality_traits': candidate.personality,
-          'image_url': cloudImgUrl,
-          'images': [cloudImgUrl],
-          'status': 'active',
-        }).select().maybeSingle();
+      // Ensure web-accessible image
+      if (!cloudImgUrl.startsWith('http://') && !cloudImgUrl.startsWith('https://')) {
+        cloudImgUrl = candidate.species.toLowerCase() == 'cat'
+            ? 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800'
+            : 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800';
+      }
 
-        if (inserted != null && inserted['id'] != null) {
-          final cloudId = inserted['id'].toString();
-          final withCloudId = candidate.copyWith(id: cloudId, imageUrl: cloudImgUrl);
-          final List<_AdoptionCandidate> refreshedCustom = _customCandidates.map((c) => c.id == candidate.id ? withCloudId : c).toList();
-          setState(() {
-            _customCandidates = refreshedCustom;
-            _cloudCandidates = [withCloudId, ..._cloudCandidates];
-          });
-          await prefs.setString(
-            _customPetsKey,
-            jsonEncode(refreshedCustom.map((e) => e.toJson()).toList()),
-          );
-        }
+      final insertPayload = <String, dynamic>{
+        'name': candidate.name.trim(),
+        'species': candidate.species.toLowerCase().trim(),
+        'breed': candidate.breed.trim().isNotEmpty ? candidate.breed.trim() : 'Companion',
+        'age': candidate.age.trim(),
+        'description': candidate.description.trim().isNotEmpty 
+            ? candidate.description.trim() 
+            : 'Loving companion ready for adoption.',
+        'location': candidate.distance.trim().isNotEmpty 
+            ? candidate.distance.trim() 
+            : (candidate.shelter.trim().isNotEmpty ? candidate.shelter.trim() : 'Kerala, India'),
+        'contact_phone': candidate.contactPhone?.trim().isNotEmpty == true 
+            ? candidate.contactPhone!.trim() 
+            : '+91 Contact via App',
+        'adoption_fee': 'Free / Loving Home',
+        'is_vaccinated': true,
+        'temperament': candidate.personality.isNotEmpty ? candidate.personality : ['Loving', 'Healthy', 'Vaccinated'],
+        'personality_traits': candidate.personality.isNotEmpty ? candidate.personality : ['Loving', 'Healthy', 'Vaccinated'],
+        'image_url': cloudImgUrl,
+        'images': [cloudImgUrl],
+        'status': 'active',
+      };
+
+      if (currentUid.isNotEmpty && currentUid != 'anon') {
+        insertPayload['owner_id'] = currentUid;
+      }
+
+      final inserted = await client.from('adoption_listings').insert(insertPayload).select().maybeSingle();
+
+      if (inserted != null && inserted['id'] != null) {
+        final cloudId = inserted['id'].toString();
+        final withCloudId = candidate.copyWith(id: cloudId, imageUrl: cloudImgUrl);
+        final List<_AdoptionCandidate> refreshedCustom = _customCandidates.map((c) => c.id == candidate.id ? withCloudId : c).toList();
+        setState(() {
+          _customCandidates = refreshedCustom;
+          _cloudCandidates = [withCloudId, ..._cloudCandidates];
+        });
+        await prefs.setString(
+          _customPetsKey,
+          jsonEncode(refreshedCustom.map((e) => e.toJson()).toList()),
+        );
+        debugPrint('Successfully added ${candidate.name} to cloud database ($cloudId)');
       }
     } catch (e) {
       debugPrint('Listing Supabase sync error: $e');
     }
+    await _syncWithSupabase();
   }
 
   Future<void> _updateCustomCandidate(_AdoptionCandidate candidate) async {
@@ -573,11 +587,11 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     );
   }
 
-  Future<void> _deleteCustomCandidate(String id) async {
-    final updated = _customCandidates.where((c) => c.id != id).toList();
+  Future<void> _deleteCustomCandidate(String id, {String? petName}) async {
+    final updated = _customCandidates.where((c) => c.id != id && (petName == null || c.name.toLowerCase() != petName.toLowerCase())).toList();
     setState(() {
       _customCandidates = updated;
-      _cloudCandidates.removeWhere((c) => c.id == id);
+      _cloudCandidates.removeWhere((c) => c.id == id || (petName != null && c.name.toLowerCase() == petName.toLowerCase()));
     });
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(
@@ -587,8 +601,18 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
     try {
       final client = ref.read(supabaseClientProvider);
-      await client.from('adoption_listings').delete().eq('id', id);
-    } catch (_) {}
+      final isUuid = RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(id);
+      if (isUuid) {
+        await client.from('adoption_listings').delete().eq('id', id);
+      }
+      if (petName != null && petName.trim().isNotEmpty) {
+        await client.from('adoption_listings').delete().ilike('name', petName.trim());
+      }
+      debugPrint('Deleted listing $id / $petName from Supabase adoption_listings');
+    } catch (e) {
+      debugPrint('Error deleting from Supabase: $e');
+    }
+    await _syncWithSupabase();
   }
 
   Future<void> _recordInquiry({
@@ -2844,20 +2868,18 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                       tooltip: 'Mark as Adopted',
                       onPressed: () => _confirmMarkAsAdopted(context, pet),
                     ),
-                    if (pet.isUserListed && (pet.ownerId == null || pet.ownerId == _currentUserId)) ...[
-                      const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        icon: const Icon(Icons.edit_outlined),
-                        tooltip: 'Edit Listing',
-                        onPressed: () => _openEditPetDialog(context, pet),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        icon: Icon(Icons.delete_outline, color: scheme.error),
-                        tooltip: 'Delete Listing',
-                        onPressed: () => _confirmDeletePet(context, pet),
-                      ),
-                    ],
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit Listing',
+                      onPressed: () => _openEditPetDialog(context, pet),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      icon: Icon(Icons.delete_outline, color: scheme.error),
+                      tooltip: 'Delete Listing',
+                      onPressed: () => _confirmDeletePet(context, pet),
+                    ),
                   ],
                 ),
               ],
@@ -2919,7 +2941,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           ],
         ),
         content: Text(
-          'Are you sure you want to remove ${pet.name} from adoption listings? This action cannot be undone.',
+          'Are you sure you want to remove ${pet.name} from adoption listings?\n\nThis will remove ${pet.name} from both the app and the public website.',
         ),
         actions: [
           TextButton(
@@ -2933,8 +2955,8 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
             ),
             onPressed: () {
               Navigator.pop(ctx);
-              _deleteCustomCandidate(pet.id);
-              context.showSnackbar('✓ Removed ${pet.name}\'s listing.');
+              _deleteCustomCandidate(pet.id, petName: pet.name);
+              context.showSnackbar('✓ Removed ${pet.name}\'s listing from app and website.');
             },
             child: const Text('Delete'),
           ),
