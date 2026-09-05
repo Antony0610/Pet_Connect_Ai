@@ -64,48 +64,6 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
   static const List<_AdoptionCandidate> _defaultCandidates = [
     _AdoptionCandidate(
-      id: '16090f54-6eac-4fb5-a897-dd0f15824835',
-      name: 'Andikkanan',
-      age: '1 yr',
-      species: 'Dog',
-      breed: 'Indian Pariaaah',
-      matchScore: 99,
-      shelter: 'Independent Foster • Thrissur Round',
-      distance: 'Independent Foster • Thrissur Round',
-      imageUrl: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/andikkanan_listing.jpg',
-      personality: ['Friendly', 'Healthy', 'Vaccinated'],
-      description: 'Ithrem oombiya oru chekkan',
-      contactPhone: '+91 94000 12345',
-    ),
-    _AdoptionCandidate(
-      id: '90958c15-3951-43c8-9b84-1fdcbec6add6',
-      name: 'tutu',
-      age: '2 yr',
-      species: 'Dog',
-      breed: 'pug',
-      matchScore: 98,
-      shelter: 'Independent Foster • kerala',
-      distance: 'Independent Foster • kerala',
-      imageUrl: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/tutu_listing.jpg',
-      personality: ['Friendly', 'Healthy', 'Vaccinated'],
-      description: 'A wonderful companion waiting for a loving permanent home.',
-      contactPhone: '+91 98111 22334',
-    ),
-    _AdoptionCandidate(
-      id: '70d3efb8-166d-49d9-9808-e12233b859b5',
-      name: 'Thara',
-      age: '2 yr',
-      species: 'Cat',
-      breed: 'local',
-      matchScore: 97,
-      shelter: 'Independent Foster • kochi',
-      distance: 'Independent Foster • kochi',
-      imageUrl: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/thara_listing.jpg',
-      personality: ['Friendly', 'Healthy', 'Vaccinated'],
-      description: 'A wonderful companion waiting for a loving permanent home.',
-      contactPhone: '+91 96555 88990',
-    ),
-    _AdoptionCandidate(
       id: 'e2831d10-8b43-4f9e-a89c-567e89ab1001',
       name: 'Bella',
       age: '2 yrs',
@@ -187,21 +145,26 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     final seenNames = <String>{};
     final List<_AdoptionCandidate> uniqueCandidates = [];
 
-    // 1. Add cloud/default candidates first
-    for (final pet in baseList) {
-      if (adopted.contains(pet.id)) continue;
-      final key = '${pet.name.trim().toLowerCase()}_${pet.species.trim().toLowerCase()}';
-      if (seenIds.add(pet.id) && seenNames.add(key)) {
-        uniqueCandidates.add(pet);
-      }
-    }
-
-    // 2. Add custom/local candidates only if not already present in cloud by id or name
+    // 1. User's OWN created listings (_customCandidates) ALWAYS take top priority!
     for (final pet in _customCandidates) {
       if (adopted.contains(pet.id)) continue;
       final key = '${pet.name.trim().toLowerCase()}_${pet.species.trim().toLowerCase()}';
       if (seenIds.add(pet.id) && seenNames.add(key)) {
-        uniqueCandidates.add(pet);
+        uniqueCandidates.add(pet.copyWith(isUserListed: true));
+      }
+    }
+
+    // 2. Cloud and default shelter candidates
+    for (final pet in baseList) {
+      if (adopted.contains(pet.id)) continue;
+      final key = '${pet.name.trim().toLowerCase()}_${pet.species.trim().toLowerCase()}';
+      final isOwnedByUser = (pet.ownerId != null && pet.ownerId == _currentUserId) ||
+          _customCandidates.any((c) => c.name.trim().toLowerCase() == pet.name.trim().toLowerCase());
+
+      if (seenIds.add(pet.id) && seenNames.add(key)) {
+        uniqueCandidates.add(pet.copyWith(
+          isUserListed: isOwnedByUser || pet.isUserListed,
+        ));
       }
     }
 
@@ -370,7 +333,8 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
             description: desc,
             contactPhone: phone,
             ownerId: owner,
-            isUserListed: owner != null && owner == _currentUserId,
+            isUserListed: (owner != null && owner == _currentUserId) ||
+                _customCandidates.any((c) => c.id == id || c.name.trim().toLowerCase() == name.trim().toLowerCase()),
           ));
         }
 
@@ -381,10 +345,20 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
         // 1b. Auto-sync any local custom candidates to Supabase cloud if not present
         for (final localPet in _customCandidates) {
-          final alreadyInCloud = cloudCandidates.any((c) =>
+          final matchingCloudList = cloudCandidates.where((c) =>
               c.id == localPet.id ||
-              c.name.trim().toLowerCase() == localPet.name.trim().toLowerCase());
-          if (!alreadyInCloud && !_adoptedPetIds.contains(localPet.id)) {
+              c.name.trim().toLowerCase() == localPet.name.trim().toLowerCase()).toList();
+          final alreadyInCloud = matchingCloudList.isNotEmpty;
+
+          if (alreadyInCloud) {
+            final matchingCloud = matchingCloudList.first;
+            if (localPet.id != matchingCloud.id) {
+              final updatedCustom = _customCandidates.map((c) => c.id == localPet.id ? c.copyWith(id: matchingCloud.id) : c).toList();
+              _customCandidates = updatedCustom;
+              final prefs = ref.read(sharedPreferencesProvider);
+              await prefs.setString(_customPetsKey, jsonEncode(updatedCustom.map((e) => e.toJson()).toList()));
+            }
+          } else if (!_adoptedPetIds.contains(localPet.id)) {
             try {
               String uploadedUrl = localPet.imageUrl;
               if (uploadedUrl.isNotEmpty && !uploadedUrl.startsWith('http')) {
