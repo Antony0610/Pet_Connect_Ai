@@ -631,7 +631,6 @@
   <script>
     const SUPABASE_URL = 'https://cghgslyikjqghrzhrqxz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs';
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const params = new URLSearchParams(window.location.search);
     const pathSegments = window.location.pathname.split('/').filter(Boolean);
@@ -653,38 +652,45 @@
     let currentGuardianPhone = '+919876543210';
     let currentPetName = 'Bella';
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      await fetchRealAdoptionDetails();
-    });
-
     async function fetchRealAdoptionDetails() {
       try {
         let petData = null;
 
-        // 1. Fetch from Supabase adoption_listings by ID if UUID format
+        // 1. Fetch from Supabase adoption_listings by ID if UUID format via native fetch
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId);
         if (isUUID) {
-          const { data, error } = await sb
-            .from('adoption_listings')
-            .select('*')
-            .eq('id', candidateId)
-            .maybeSingle();
-
-          if (!error && data) {
-            petData = data;
-          }
+          try {
+            const resp = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?id=eq.${candidateId}&limit=1&select=*`, {
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            if (resp.ok) {
+              const rows = await resp.json();
+              if (Array.isArray(rows) && rows.length > 0) petData = rows[0];
+            }
+          } catch (_) {}
         }
 
         // 2. If not found by ID, try query param name
         if (!petData) {
           const paramName = params.get('name');
           if (paramName) {
-            const { data } = await sb
-              .from('adoption_listings')
-              .select('*')
-              .ilike('name', paramName)
-              .maybeSingle();
-            if (data) petData = data;
+            try {
+              const resp = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?name=ilike.*${encodeURIComponent(paramName)}*&limit=1&select=*`, {
+                headers: {
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (resp.ok) {
+                const rows = await resp.json();
+                if (Array.isArray(rows) && rows.length > 0) petData = rows[0];
+              }
+            } catch (_) {}
           }
         }
 
@@ -772,18 +778,24 @@
       try {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentListingId);
         if (isUUID) {
-          const { error } = await sb.from('adoption_inquiries').insert({
-            listing_id: currentListingId,
-            applicant_name: applicantName,
-            applicant_phone: applicantPhone,
-            living_arrangement: living,
-            pet_experience: exp,
-            message: `Adoption application for ${currentPetName} submitted via Web Portal.`,
-            status: 'pending'
+          await fetch(`${SUPABASE_URL}/rest/v1/adoption_inquiries`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              listing_id: currentListingId,
+              applicant_name: applicantName,
+              applicant_phone: applicantPhone,
+              living_arrangement: living,
+              pet_experience: exp,
+              message: `Adoption application for ${currentPetName} submitted via Web Portal.`,
+              status: 'pending'
+            })
           });
-          if (error) {
-            console.warn('Adoption inquiry insert notice:', error);
-          }
         }
 
         alert(`🎉 Application submitted for ${currentPetName}! The caregiver has been notified on the PetConnect AI mobile app and will contact you directly via ${applicantPhone}.`);
@@ -798,6 +810,9 @@
         btn.textContent = 'Send Application to Caregiver 🚀';
       }
     }
+
+    // Instant execution without blocking
+    fetchRealAdoptionDetails();
   </script>
 </body>
 </html>

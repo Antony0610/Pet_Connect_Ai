@@ -1181,62 +1181,66 @@
       document.getElementById('simQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(cfg.url)}`;
     }
 
-    // Live Supabase Adoption Candidates
+    // Live Supabase Adoption Candidates via Native Fetch
     async function fetchAdoptionPets() {
       const grid = document.getElementById('adoptionGrid');
       try {
-        if (!sb) return;
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?status=neq.adopted&order=created_at.desc&select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-        const { data, error } = await sb
-          .from('adoption_listings')
-          .select('*')
-          .neq('status', 'adopted')
-          .order('created_at', ascending: false);
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            grid.innerHTML = data.map(pet => {
+              const traits = Array.isArray(pet.temperament) && pet.temperament.length > 0 
+                ? pet.temperament 
+                : (Array.isArray(pet.personality_traits) && pet.personality_traits.length > 0
+                  ? pet.personality_traits
+                  : ['Affectionate', 'Vaccinated', 'Trained']);
+              
+              const img = pet.image_url || (pet.images && pet.images[0]) || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800';
+              const nameSafe = escapeHtml(pet.name);
+              const breedSafe = escapeHtml(pet.breed || 'Companion');
+              const locSafe = escapeHtml(pet.location || 'PetConnect Rescue Network');
 
-        if (error || !data || data.length === 0) {
-          renderFallbackPets();
-          return;
+              return `
+                <div class="adopt-card">
+                  <div class="adopt-photo-wrap">
+                    <img class="adopt-photo" src="${img}" alt="${nameSafe}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800'">
+                    <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
+                    <div class="adopt-badge-shelter">📍 ${locSafe}</div>
+                  </div>
+                  <div class="adopt-body">
+                    <div>
+                      <div class="adopt-name-row">
+                        <span class="adopt-name">${nameSafe}</span>
+                        <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">${escapeHtml(pet.age || '1 yr')}</span>
+                      </div>
+                      <div class="adopt-breed">${breedSafe} • ${escapeHtml(pet.gender || 'Companion')}</div>
+                      <div class="adopt-traits">
+                        ${traits.slice(0, 3).map(t => `<span class="trait-pill">${escapeHtml(t)}</span>`).join('')}
+                      </div>
+                    </div>
+                    <div class="adopt-actions">
+                      <button class="btn-adopt-apply" onclick="openInquiryModal('${pet.id}', '${nameSafe}')">Adopt Me</button>
+                      <a href="/adopt/${pet.id}" class="btn-adopt-view">Details</a>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            return;
+          }
         }
-
-        grid.innerHTML = data.map(pet => {
-          const traits = Array.isArray(pet.temperament) && pet.temperament.length > 0 
-            ? pet.temperament 
-            : (Array.isArray(pet.personality_traits) ? pet.personality_traits : ['Affectionate', 'Vaccinated', 'Trained']);
-          
-          const img = pet.image_url || (pet.images && pet.images[0]) || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800';
-          const nameSafe = escapeHtml(pet.name);
-          const breedSafe = escapeHtml(pet.breed || 'Companion');
-          const locSafe = escapeHtml(pet.location || 'Kerala Rescue Network');
-
-          return `
-            <div class="adopt-card">
-              <div class="adopt-photo-wrap">
-                <img class="adopt-photo" src="${img}" alt="${nameSafe}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800'">
-                <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
-                <div class="adopt-badge-shelter">📍 ${locSafe}</div>
-              </div>
-              <div class="adopt-body">
-                <div>
-                  <div class="adopt-name-row">
-                    <span class="adopt-name">${nameSafe}</span>
-                    <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">${escapeHtml(pet.age || '1 yr')}</span>
-                  </div>
-                  <div class="adopt-breed">${breedSafe} • ${escapeHtml(pet.gender || 'Unknown')}</div>
-                  <div class="adopt-traits">
-                    ${traits.slice(0, 3).map(t => `<span class="trait-pill">${escapeHtml(t)}</span>`).join('')}
-                  </div>
-                </div>
-                <div class="adopt-actions">
-                  <button class="btn-adopt-apply" onclick="openInquiryModal('${pet.id}', '${nameSafe}')">Adopt Me</button>
-                  <a href="/adopt/${pet.id}" class="btn-adopt-view">Details</a>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-
+        renderFallbackPets();
       } catch (e) {
-        console.error('Error loading adoption pets:', e);
+        console.warn('Native adoption fetch note:', e);
         renderFallbackPets();
       }
     }
@@ -1341,8 +1345,15 @@
       const exp = document.getElementById('inqExp').value.trim();
 
       try {
-        if (sb) {
-          const { error } = await sb.from('adoption_inquiries').insert([{
+        await fetch(`${SUPABASE_URL}/rest/v1/adoption_inquiries`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
             listing_id: currentSelectedPetId,
             applicant_name: name,
             applicant_phone: phone,
@@ -1350,9 +1361,8 @@
             pet_experience: exp,
             message: `Adoption inquiry for ${currentSelectedPetName} submitted via PetConnect AI Web Portal.`,
             status: 'pending'
-          }]);
-          if (error) console.warn('Inquiry insert notice:', error);
-        }
+          })
+        });
 
         alert(`🎉 Thank you, ${name}! Your application for ${currentSelectedPetName} has been submitted directly to the caregiver's PetConnect AI mobile app.`);
         closeInquiryModal();
@@ -1376,48 +1386,52 @@
         .replace(/"/g, '&quot;');
     }
 
-    // Check for Active Missing Pet Alert in DB
+    // Check for Active Missing Pet Alert in DB via Native Fetch
     async function checkActiveMissingAlert() {
       try {
-        if (!sb) return;
-        const { data } = await sb
-          .from('lost_pet_alerts')
-          .select('*, pets(name, breed)')
-          .eq('status', 'active')
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/lost_pet_alerts?status=eq.active&order=created_at.desc&limit=1&select=*,pets(name,breed)`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const rows = await response.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            const data = rows[0];
+            const banner = document.getElementById('emergencyBanner');
+            const text = document.getElementById('alertBannerText');
+            const btn = document.getElementById('alertBannerBtn');
+            const petName = data.pets?.name || 'Companion';
+            const loc = data.last_seen_location || 'Local Vicinity';
 
-        if (data) {
-          const banner = document.getElementById('emergencyBanner');
-          const text = document.getElementById('alertBannerText');
-          const btn = document.getElementById('alertBannerBtn');
-          const petName = data.pets?.name || 'Companion';
-          const loc = data.last_seen_location || 'Local Vicinity';
-
-          text.textContent = `${petName} reported missing near ${loc}. Passersby can dispatch live coordinates.`;
-          btn.href = `/missing/${data.id}`;
-          banner.style.display = 'flex';
+            text.textContent = `${petName} reported missing near ${loc}. Passersby can dispatch live coordinates.`;
+            btn.href = `/missing/${data.id}`;
+            banner.style.display = 'flex';
+          }
         }
       } catch (_) {}
     }
 
-    // Setup Supabase Realtime for instant adoption updates
+    // Setup Supabase Realtime for instant adoption updates (if client library present)
     function setupRealtime() {
-      if (!sb) return;
-      sb.channel('public:adoption_listings')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'adoption_listings' }, (payload) => {
-          console.log('Realtime adoption change:', payload);
-          fetchAdoptionPets();
-        })
-        .subscribe();
+      try {
+        if (!window.supabase) return;
+        const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        sbClient.channel('public:adoption_listings')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'adoption_listings' }, (payload) => {
+            console.log('Realtime adoption change:', payload);
+            fetchAdoptionPets();
+          })
+          .subscribe();
+      } catch (_) {}
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      fetchAdoptionPets();
-      checkActiveMissingAlert();
-      setupRealtime();
-    });
+    // Instant execution (no blocking or CDN dependency)
+    fetchAdoptionPets();
+    checkActiveMissingAlert();
+    setupRealtime();
   </script>
 </body>
 </html>

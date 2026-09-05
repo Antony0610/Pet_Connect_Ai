@@ -680,13 +680,39 @@
       document.title = `🚨 MISSING: ${fallbackName.toUpperCase()} | PetConnect AI`;
 
       // 2. Fetch live alert data from Supabase only if NOT demo
-      if (isDemo || !supabase || !alertId) return;
+      if (isDemo || !alertId) return;
 
       try {
-        const { data, error } = await supabase.rpc('get_public_lost_pet_alert', { p_id: alertId });
-        if (error || !data) {
-          const { data: aRow } = await supabase.from('lost_pet_alerts').select('*, pets(*)').eq('id', alertId).maybeSingle();
-          if (aRow) {
+        // Try RPC first
+        const rpcResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_lost_pet_alert`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ p_id: alertId })
+        });
+        if (rpcResp.ok) {
+          const data = await rpcResp.json();
+          if (data && (data.pet_name || data.alert_id)) {
+            applyAlertData(data);
+            return;
+          }
+        }
+
+        // Fallback to table query
+        const rowResp = await fetch(`${SUPABASE_URL}/rest/v1/lost_pet_alerts?id=eq.${alertId}&limit=1&select=*,pets(*)`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (rowResp.ok) {
+          const rows = await rowResp.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            const aRow = rows[0];
             applyAlertData({
               alert_id: aRow.id,
               pet_name: aRow.pets?.name,
@@ -700,12 +726,9 @@
               last_seen_time: aRow.last_seen_time
             });
           }
-          return;
         }
-
-        applyAlertData(data);
       } catch (err) {
-        console.error('Error fetching alert data:', err);
+        console.warn('Error fetching alert data:', err);
       }
     }
 
@@ -776,18 +799,36 @@
       submitBtn.disabled = true;
 
       try {
-        if (supabase) {
-          const { data, error } = await supabase.rpc('submit_public_lost_sighting', {
-            p_id: currentAlertId,
-            p_location: loc,
-            p_reporter_name: reporter || 'Passerby Helper',
-            p_reporter_phone: phone || null,
-            p_notes: notes || 'Sighting reported via public web portal QR'
+        let sent = false;
+        try {
+          const rpcResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/submit_public_lost_sighting`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              p_id: currentAlertId,
+              p_location: loc,
+              p_reporter_name: reporter || 'Passerby Helper',
+              p_reporter_phone: phone || null,
+              p_notes: notes || 'Sighting reported via public web portal QR'
+            })
           });
-          if (error) {
-            console.warn('RPC sighting submission note:', error);
-            // Fallback to direct table insertion
-            await supabase.from('lost_pet_sightings').insert([{
+          if (rpcResp.ok) sent = true;
+        } catch (_) {}
+
+        if (!sent) {
+          await fetch(`${SUPABASE_URL}/rest/v1/lost_pet_sightings`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
               alert_id: currentAlertId,
               sighting_location: loc,
               reporter_name: reporter || 'Passerby Helper',
@@ -795,11 +836,11 @@
               notes: notes || 'Sighting reported via public web portal QR',
               sighting_time: new Date().toISOString(),
               status: 'pending'
-            }]);
-          }
+            })
+          });
         }
       } catch (err) {
-        console.error('Error in sighting submission:', err);
+        console.warn('Error in sighting submission:', err);
       }
 
       modal.style.display = 'none';
