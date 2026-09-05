@@ -64,32 +64,46 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
 
   static const List<_AdoptionCandidate> _defaultCandidates = [
     _AdoptionCandidate(
-      id: 'dc589eb3-a113-46ec-b4df-8f665936924b',
-      name: 'Thara',
+      id: '16090f54-6eac-4fb5-a897-dd0f15824835',
+      name: 'Andikkanan',
       age: '1 yr',
       species: 'Dog',
-      breed: 'Indie Companion',
-      matchScore: 98,
-      shelter: 'Kerala Rescue & Foster Care',
-      distance: 'Kerala Rescue & Foster Care',
-      imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
-      personality: ['Loving', 'Loyal', 'Tropical Adapted', 'Vaccinated'],
-      description: 'Gentle, affectionate indie companion rescued locally. Healthy, fully vaccinated, and seeking a loving permanent family.',
+      breed: 'Indian Pariaaah',
+      matchScore: 99,
+      shelter: 'Independent Foster • Thrissur Round',
+      distance: 'Independent Foster • Thrissur Round',
+      imageUrl: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/andikkanan_listing.jpg',
+      personality: ['Friendly', 'Healthy', 'Vaccinated'],
+      description: 'Ithrem oombiya oru chekkan',
       contactPhone: '+91 94000 12345',
     ),
     _AdoptionCandidate(
-      id: 'ca1a1f62-b63d-48d1-8b22-8e540b2660d3',
-      name: 'Tutu',
-      age: '6 mos',
-      species: 'Cat',
-      breed: 'Domestic Shorthair',
-      matchScore: 97,
-      shelter: 'Feline Protection & Care',
-      distance: 'Feline Protection & Care',
-      imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
-      personality: ['Playful', 'Affectionate', 'Litter Trained', 'Vaccinated'],
-      description: 'Adorable, playful young kitten who loves lap cuddles and chasing feather wands. Completely litter trained and vaccinated.',
+      id: '90958c15-3951-43c8-9b84-1fdcbec6add6',
+      name: 'tutu',
+      age: '2 yr',
+      species: 'Dog',
+      breed: 'pug',
+      matchScore: 98,
+      shelter: 'Independent Foster • kerala',
+      distance: 'Independent Foster • kerala',
+      imageUrl: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/tutu_listing.jpg',
+      personality: ['Friendly', 'Healthy', 'Vaccinated'],
+      description: 'A wonderful companion waiting for a loving permanent home.',
       contactPhone: '+91 98111 22334',
+    ),
+    _AdoptionCandidate(
+      id: '70d3efb8-166d-49d9-9808-e12233b859b5',
+      name: 'Thara',
+      age: '2 yr',
+      species: 'Cat',
+      breed: 'local',
+      matchScore: 97,
+      shelter: 'Independent Foster • kochi',
+      distance: 'Independent Foster • kochi',
+      imageUrl: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/thara_listing.jpg',
+      personality: ['Friendly', 'Healthy', 'Vaccinated'],
+      description: 'A wonderful companion waiting for a loving permanent home.',
+      contactPhone: '+91 96555 88990',
     ),
     _AdoptionCandidate(
       id: 'e2831d10-8b43-4f9e-a89c-567e89ab1001',
@@ -364,6 +378,51 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           _cloudCandidates = cloudCandidates;
           _adoptedPetIds = cloudAdoptedIds;
         });
+
+        // 1b. Auto-sync any local custom candidates to Supabase cloud if not present
+        for (final localPet in _customCandidates) {
+          final alreadyInCloud = cloudCandidates.any((c) =>
+              c.id == localPet.id ||
+              c.name.trim().toLowerCase() == localPet.name.trim().toLowerCase());
+          if (!alreadyInCloud && !_adoptedPetIds.contains(localPet.id)) {
+            try {
+              String uploadedUrl = localPet.imageUrl;
+              if (uploadedUrl.isNotEmpty && !uploadedUrl.startsWith('http')) {
+                try {
+                  final file = File(uploadedUrl);
+                  if (file.existsSync()) {
+                    final bytes = await file.readAsBytes();
+                    final fileName = 'pet_${DateTime.now().millisecondsSinceEpoch}_${localPet.name.replaceAll(RegExp(r'\s+'), '_')}.jpg';
+                    await client.storage.from('pet-avatars').uploadBinary(
+                      fileName,
+                      bytes,
+                      fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+                    );
+                    uploadedUrl = client.storage.from('pet-avatars').getPublicUrl(fileName);
+                  }
+                } catch (_) {}
+              }
+              await client.from('adoption_listings').insert({
+                'name': localPet.name.trim(),
+                'species': localPet.species.toLowerCase().trim(),
+                'breed': localPet.breed.trim(),
+                'age': localPet.age.trim(),
+                'description': localPet.description,
+                'location': localPet.distance.isNotEmpty ? localPet.distance : localPet.shelter,
+                'contact_phone': localPet.contactPhone ?? '+91 Contact via App',
+                'adoption_fee': 'Free / Loving Home',
+                'is_vaccinated': true,
+                'temperament': localPet.personality,
+                'personality_traits': localPet.personality,
+                'image_url': uploadedUrl,
+                'images': [uploadedUrl],
+                'status': 'active',
+              });
+            } catch (e) {
+              debugPrint('Auto-migration error: $e');
+            }
+          }
+        }
       }
 
       // 2. Fetch live inquiries for this user's listed pets
