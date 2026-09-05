@@ -69,16 +69,16 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Spatial Background */
+    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
-      background: 
-        radial-gradient(circle at 15% 15%, rgba(239, 68, 68, 0.12) 0%, transparent 45%),
-        radial-gradient(circle at 85% 25%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 70%);
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
 
     .container {
@@ -101,8 +101,7 @@
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(16px);
+      background: #131d31;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-pill);
       color: var(--text-sub);
@@ -129,17 +128,17 @@
       letter-spacing: 0.5px;
     }
 
-    /* Urgent Beacon Header */
+    /* Urgent Beacon Header - Solid Pet Alert */
     .urgent-banner {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(15, 23, 42, 0.7) 100%);
-      border: 1px solid rgba(239, 68, 68, 0.45);
+      background: #181216;
+      border: 1px solid #ef4444;
       border-radius: var(--radius-lg);
       padding: 16px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 20px;
-      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
     .beacon-left {
       display: flex;
@@ -324,7 +323,7 @@
       gap: 10px;
       width: 100%;
       padding: 16px;
-      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
+      background: #ef4444;
       color: white;
       border: none;
       cursor: pointer;
@@ -332,12 +331,12 @@
       font-size: 1.1rem;
       font-weight: 800;
       border-radius: var(--radius-md);
-      box-shadow: 0 8px 24px var(--danger-glow);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
       transition: all 0.2s var(--ease-spring);
     }
     .btn-report-sighting:hover {
+      background: #dc2626;
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px var(--danger-glow);
     }
     .btn-report-sighting:active {
       transform: scale(0.98);
@@ -515,14 +514,14 @@
         <img id="petPhoto" class="pet-photo" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80" alt="Missing Pet">
         <div class="photo-bottom-overlay">
           <div>
-            <h1 id="petName" class="pet-name">Harly</h1>
-            <div id="petSubtitle" class="pet-sub">Dog • German Shepard</div>
+            <h1 id="petName" class="pet-name">Buddy</h1>
+            <div id="petSubtitle" class="pet-sub">Dog • Golden Retriever</div>
           </div>
         </div>
       </div>
 
       <!-- Reward Box -->
-      <div id="rewardBox" class="reward-box" style="display: none;">
+      <div id="rewardBox" class="reward-box" style="display: block;">
         <div id="rewardAmount" class="reward-text">💰 ₹5,000 CASH REWARD OFFERED</div>
         <div class="reward-sub">NO QUESTIONS ASKED • CONFIDENTIAL GUARDIAN RETURN</div>
       </div>
@@ -531,7 +530,7 @@
       <div class="details-grid">
         <div class="detail-card">
           <div class="detail-lbl">Last Seen Location</div>
-          <div id="lastSeen" class="detail-val">Meladoor, Kerala</div>
+          <div id="lastSeen" class="detail-val">Central Park, Zone 4</div>
         </div>
         <div class="detail-card">
           <div class="detail-lbl">Date / Time Missing</div>
@@ -543,7 +542,7 @@
         </div>
         <div class="detail-card">
           <div class="detail-lbl">Guardian</div>
-          <div id="ownerName" class="detail-val">Antony Thomson</div>
+          <div id="ownerName" class="detail-val">Sample Guardian (Prototype)</div>
         </div>
       </div>
 
@@ -562,10 +561,10 @@
         </button>
 
         <div class="contact-buttons-row">
-          <a href="tel:+918921998733" id="callBtn" class="btn-contact">
+          <a href="tel:5550192834" id="callBtn" class="btn-contact">
             📞 Direct Call
           </a>
-          <a href="https://wa.me/918921998733" id="waBtn" class="btn-contact" target="_blank" rel="noopener">
+          <a href="https://wa.me/15550192834" id="waBtn" class="btn-contact" target="_blank" rel="noopener">
             💬 WhatsApp
           </a>
         </div>
@@ -589,13 +588,13 @@
 
       <form id="sightingForm">
         <label class="form-lbl">SIGHTING LOCATION / LANDMARKS</label>
-        <input type="text" id="sightingLocation" class="form-input" placeholder="e.g. Near Mala Market Junction, by the bakery" required>
+        <input type="text" id="sightingLocation" class="form-input" placeholder="e.g. Near West Gate entrance, by the fountain" required>
 
         <label class="form-lbl">YOUR NAME (OPTIONAL)</label>
         <input type="text" id="reporterName" class="form-input" placeholder="e.g. Rahul S.">
 
         <label class="form-lbl">YOUR PHONE NUMBER (OPTIONAL)</label>
-        <input type="tel" id="reporterPhone" class="form-input" placeholder="e.g. +91 98765 43210">
+        <input type="tel" id="reporterPhone" class="form-input" placeholder="e.g. +1 (555) 019-2834">
 
         <label class="form-lbl">ADDITIONAL NOTES / CONDITION OF PET</label>
         <textarea id="sightingNotes" class="form-input" rows="3" placeholder="Describe behavior, heading direction, collar presence, physical condition..."></textarea>
@@ -632,23 +631,21 @@
         alertId = lastSeg;
       }
     }
-    // Default fallback to Harly if not specified
-    if (!alertId) {
-      alertId = 'c590ba41-c8ab-4bc5-985b-e15f817e0b3c';
-    }
 
-    let currentAlertId = alertId;
-    let currentPetName = 'Harly';
-    let currentOwnerPhone = '+91 8921998733';
+    const isDemo = !alertId || alertId === 'demo' || urlParams.get('demo') === 'true';
+
+    let currentAlertId = alertId || 'demo';
+    let currentPetName = isDemo ? 'Buddy' : 'Companion';
+    let currentOwnerPhone = '5550192834';
 
     async function loadAlert() {
-      // 1. Instant fallback rendering from URL parameters
-      const fallbackName = urlParams.get('name') || 'Harly';
+      // 1. Instant fallback rendering from URL parameters (Prototype-Safe)
+      const fallbackName = urlParams.get('name') || (isDemo ? 'Buddy' : 'Companion');
       const fallbackSpecies = urlParams.get('species') || 'Dog';
-      const fallbackBreed = urlParams.get('breed') || 'German Shepard';
-      const fallbackLocation = urlParams.get('location') || 'Meladoor, Kerala';
-      const fallbackPhone = urlParams.get('phone') || '+91 8921998733';
-      const fallbackReward = urlParams.get('reward') || '';
+      const fallbackBreed = urlParams.get('breed') || (isDemo ? 'Golden Retriever' : 'Companion Breed');
+      const fallbackLocation = urlParams.get('location') || (isDemo ? 'Central Park, Zone 4' : 'Local Vicinity');
+      const fallbackPhone = urlParams.get('phone') || '5550192834';
+      const fallbackReward = urlParams.get('reward') || (isDemo ? '5000' : '');
       const fallbackNotes = urlParams.get('notes') || 'Active emergency missing pet poster. Scanning this QR code enables passersby to instantly alert the caregiver with live sighting coordinates.';
       const fallbackImg = urlParams.get('img') || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80';
 
@@ -659,9 +656,11 @@
       document.getElementById('petSubtitle').textContent = `${fallbackSpecies} • ${fallbackBreed}`;
       document.getElementById('lastSeen').textContent = fallbackLocation;
       document.getElementById('petDescription').textContent = fallbackNotes;
-      document.getElementById('navAlertId').textContent = `ALERT-${alertId.substring(0, 8).toUpperCase()}`;
+      const tagCode = isDemo ? 'ALERT-DEMO01' : `ALERT-${alertId.substring(0, 8).toUpperCase()}`;
+      document.getElementById('navAlertId').textContent = tagCode;
       document.getElementById('callBtn').href = `tel:${fallbackPhone.replace(/\s+/g, '')}`;
-      document.getElementById('waBtn').href = `https://wa.me/91${fallbackPhone.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(`Hi, I am contacting you regarding missing pet ${fallbackName} seen on PetConnect AI!`)}`;
+      const cleanOwnerDigits = fallbackPhone.replace(/[^0-9]/g, '');
+      document.getElementById('waBtn').href = `https://wa.me/${cleanOwnerDigits}?text=${encodeURIComponent(`Hi, I am contacting you regarding missing pet ${fallbackName} seen on PetConnect AI!`)}`;
       
       if (fallbackImg) {
         const petPhotoEl = document.getElementById('petPhoto');
@@ -673,15 +672,15 @@
 
       if (fallbackReward && fallbackReward.trim().length > 0) {
         document.getElementById('rewardBox').style.display = 'block';
-        document.getElementById('rewardAmount').textContent = `💰 ${fallbackReward.toUpperCase()} REWARD OFFERED`;
+        document.getElementById('rewardAmount').textContent = `💰 ₹${fallbackReward} CASH REWARD OFFERED`;
       } else {
         document.getElementById('rewardBox').style.display = 'none';
       }
 
       document.title = `🚨 MISSING: ${fallbackName.toUpperCase()} | PetConnect AI`;
 
-      // 2. Fetch live alert data from Supabase
-      if (!supabase) return;
+      // 2. Fetch live alert data from Supabase only if NOT demo
+      if (isDemo || !supabase || !alertId) return;
 
       try {
         const { data, error } = await supabase.rpc('get_public_lost_pet_alert', { p_id: alertId });
@@ -712,8 +711,8 @@
 
     function applyAlertData(alert) {
       currentAlertId = alert.alert_id || alertId;
-      currentPetName = alert.pet_name || 'Harly';
-      currentOwnerPhone = alert.contact_phone || '8921998733';
+      currentPetName = alert.pet_name || 'Buddy';
+      currentOwnerPhone = alert.contact_phone || '5550192834';
 
       document.title = `🚨 MISSING: ${currentPetName.toUpperCase()} | PetConnect AI`;
       document.getElementById('petName').textContent = currentPetName;

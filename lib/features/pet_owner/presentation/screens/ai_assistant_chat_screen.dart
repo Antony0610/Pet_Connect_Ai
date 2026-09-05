@@ -741,13 +741,13 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
             symptomDescription: visualPrompt,
             petId: selectedPet?.id,
             imageBase64: imageBase64,
-            preferredModel: 'gemini-3.1-flash-lite',
+            preferredModel: 'gemini-3.5-flash-lite',
           );
           if (fallbackResult.isRight()) {
             final scan = fallbackResult.getOrElse(() => throw Exception());
             await _streamAiResponse(
               scan.analysisSummary,
-              sources: const ['Gemini 3.1 Multimodal Vision'],
+              sources: const ['Gemini 3.5 Multimodal Vision'],
               urgencyLevel: scan.urgencyLevel,
               recommendations: scan.recommendations.map((e) => e.toString()).toList(),
             );

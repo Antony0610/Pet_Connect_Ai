@@ -16,22 +16,21 @@
 
   <style>
     :root {
-      --canvas: #080c14;
-      --surface: #0f172a;
-      --surface-card: #111a2e;
-      --surface-hover: #17233d;
-      --surface-inner: #0a0f1c;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(16, 185, 129, 0.35);
-      --border-accent: rgba(6, 182, 212, 0.35);
+      --canvas: #0b111e;
+      --surface: #131d31;
+      --surface-card: #18243c;
+      --surface-hover: #1e2c48;
+      --surface-inner: #0d1525;
+      --border-subtle: #1e2c48;
+      --border-hover: #10b981;
+      --border-accent: #0ea5e9;
       
       --primary: #10b981;
       --primary-dark: #059669;
-      --primary-glow: rgba(16, 185, 129, 0.22);
+      --primary-solid: #10b981;
       
-      --secondary: #06b6d4;
-      --secondary-glow: rgba(6, 182, 212, 0.22);
-      
+      --secondary: #0ea5e9;
+      --accent-coral: #f97316;
       --accent-amber: #f59e0b;
       --danger: #ef4444;
       
@@ -43,14 +42,13 @@
       --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
       
-      --radius-xl: 24px;
-      --radius-lg: 16px;
-      --radius-md: 12px;
+      --radius-xl: 20px;
+      --radius-lg: 14px;
+      --radius-md: 10px;
       --radius-pill: 9999px;
       
       --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.55);
-      --shadow-glow: 0 0 40px -10px var(--primary-glow);
+      --shadow-bento: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -66,16 +64,16 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Subtle geometric mesh background */
+    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
-      background: 
-        radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 25%, rgba(6, 182, 212, 0.07) 0%, transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 70%);
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
 
     .wrapper {
@@ -269,9 +267,7 @@
       margin-bottom: 20px;
     }
     .hero-title span {
-      background: linear-gradient(135deg, #34d399, #06b6d4);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #2dd4bf;
     }
 
     .hero-desc {
@@ -292,33 +288,38 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      background: var(--primary);
-      color: #061e16;
+      background: #10b981;
+      color: #06281e;
       font-weight: 800;
       font-size: 0.98rem;
       padding: 14px 28px;
       border-radius: var(--radius-pill);
       text-decoration: none;
-      box-shadow: 0 8px 24px var(--primary-glow);
-      transition: all 0.25s var(--ease-spring);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s var(--ease-spring);
     }
     .btn-primary-hero:hover {
+      background: #059669;
+      color: #ffffff;
       transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.45);
     }
     .btn-secondary-hero {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: var(--surface);
-      color: var(--text-main);
+      background: #18243c;
+      color: #ffffff;
       font-weight: 700;
       font-size: 0.98rem;
       padding: 14px 24px;
       border-radius: var(--radius-pill);
       text-decoration: none;
-      border: 1px solid var(--border-subtle);
+      border: 1px solid #293b5e;
       transition: all 0.2s ease;
+    }
+    .btn-secondary-hero:hover {
+      background: #1e2c48;
+      border-color: rgba(255, 255, 255, 0.25);
     }
     .btn-secondary-hero:hover {
       background: var(--surface-hover);
@@ -884,10 +885,10 @@
         <div class="alert-beacon"></div>
         <div>
           <strong style="color: #fca5a5; font-size: 0.90rem;">ACTIVE EMERGENCY RESCUE ALERT:</strong>
-          <span id="alertBannerText" style="color: #ffffff; font-size: 0.88rem; margin-left: 6px;">Harly (German Shepard) reported missing near Meladoor, Kerala.</span>
+          <span id="alertBannerText" style="color: #ffffff; font-size: 0.88rem; margin-left: 6px;">Buddy (Golden Retriever) reported missing near Central Park, Zone 4.</span>
         </div>
       </div>
-      <a href="/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" class="alert-btn" id="alertBannerBtn">
+      <a href="/missing.html?id=demo" class="alert-btn" id="alertBannerBtn">
         🚨 View Poster & Sighting Form
       </a>
     </div>
@@ -898,7 +899,7 @@
         <div class="hero-copy">
           <div class="status-pill">
             <span class="status-pulse-dot"></span>
-            <span>CLOUD RESCUE PROTOCOL • 100% REAL-TIME</span>
+            <span>🐾 PET HEALTH & RESCUE NETWORK • 100% REAL-TIME</span>
           </div>
 
           <h1 class="hero-title">
@@ -911,11 +912,11 @@
           </p>
 
           <div class="hero-actions">
-            <a href="/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" class="btn-primary-hero">
+            <a href="/emergency.html?id=demo&name=Buddy&species=Dog&breed=Golden%20Retriever&owner=Sample%20Caregiver&phone=5550199&microchip=PC-CHIP-98210&weight=28.5%20kg&health=No%20Known%20Drug%20Allergies%20(NKDA)" class="btn-primary-hero">
               <span>View Emergency Health Pass</span>
               <span>⚡</span>
             </a>
-            <a href="/verify/vaccine/c2dc2092-579d-45aa-9ae7-ec185ab8c0c3" class="btn-secondary-hero">
+            <a href="/verify.html?id=demo&pet=Buddy%20(Dog)&vax=Rabies%20Core%20Immunization&batch=LOT-B892-VET&admin=18%20Aug%202026&next=31%20Aug%202027&doc=PetConnect%20Clinical%20Station" class="btn-secondary-hero">
               <span>Verify Vaccine Certificate</span>
               <span>🛡️</span>
             </a>
@@ -937,13 +938,13 @@
           </div>
         </div>
 
-        <!-- Right: Interactive QR Code Simulator -->
+        <!-- Right: Interactive QR Code Simulator (Prototype Demo - Zero Personal Data) -->
         <div class="simulator-card">
           <div class="sim-header">
             <div class="sim-title">
               <span>Interactive QR Simulator</span>
             </div>
-            <span class="sim-badge" id="simModeTag">EMERGENCY PASS</span>
+            <span class="sim-badge" id="simModeTag">SAMPLE EMERGENCY PASS</span>
           </div>
 
           <div class="sim-tabs">
@@ -956,12 +957,12 @@
           <div class="sim-viewport">
             <div class="laser-scan-line"></div>
             <div class="qr-frame-wrap">
-              <img id="simQrImg" class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fpetconnectai.vercel.app%2Femergency%2Fc590ba41-c8ab-4bc5-985b-e15f817e0b3c" alt="PetConnect QR Code">
+              <img id="simQrImg" class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https%3A%2F%2Fpetconnectai.vercel.app%2Femergency.html%3Fid%3Ddemo%26name%3DBuddy%26species%3DDog%26breed%3DGolden%2520Retriever%26owner%3DSample%2520Caregiver%26phone%3D5550199%26microchip%3DPC-CHIP-98210%26weight%3D28.5%2520kg%26health%3DNo%2520Known%2520Drug%2520Allergies%2520(NKDA)" alt="PetConnect QR Code Prototype">
             </div>
-            <div class="sim-meta-title" id="simTitle">Harly's Emergency Pass</div>
-            <div class="sim-meta-sub" id="simSub">Scan with any phone camera — no app required to contact caregiver Antony (+91 8921998733).</div>
-            <a id="simLink" href="/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" class="sim-open-link" target="_blank">
-              <span>Open Scanned Web Target</span>
+            <div class="sim-meta-title" id="simTitle">Pet Emergency Pass (Prototype)</div>
+            <div class="sim-meta-sub" id="simSub">Scan with any smartphone camera — no app required to preview instant clinical vitals, medical alerts, and guardian contact demo.</div>
+            <a id="simLink" href="/emergency.html?id=demo&name=Buddy&species=Dog&breed=Golden%20Retriever&owner=Sample%20Caregiver&phone=5550199&microchip=PC-CHIP-98210&weight=28.5%20kg&health=No%20Known%20Drug%20Allergies%20(NKDA)" class="sim-open-link" target="_blank">
+              <span>Preview Scanned Web Pass</span>
               <span>↗</span>
             </a>
           </div>
@@ -992,7 +993,7 @@
             </ul>
           </div>
           <div style="margin-top: 24px;">
-            <a href="/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" class="sim-open-link">Test Emergency Pass Demo →</a>
+            <a href="/emergency.html?id=demo" class="sim-open-link">Test Emergency Pass Demo →</a>
           </div>
         </div>
 
@@ -1009,7 +1010,7 @@
             </ul>
           </div>
           <div style="margin-top: 24px;">
-            <a href="/verify/vaccine/c2dc2092-579d-45aa-9ae7-ec185ab8c0c3" class="sim-open-link">Verify Vaccine Cert →</a>
+            <a href="/verify.html?id=demo" class="sim-open-link">Verify Vaccine Cert →</a>
           </div>
         </div>
 
@@ -1022,7 +1023,7 @@
             <p class="bento-card-desc">Missing pet posters with location coordinates and cash reward callouts dispatched in real-time to the owner's mobile app.</p>
           </div>
           <div style="margin-top: 20px;">
-            <a href="/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" class="sim-open-link">View Missing Poster →</a>
+            <a href="/missing.html?id=demo" class="sim-open-link">View Missing Poster →</a>
           </div>
         </div>
 
@@ -1139,31 +1140,31 @@
     let currentSelectedPetId = 'e2831d10-8b43-4f9e-a89c-567e89ab1001';
     let currentSelectedPetName = 'Bella';
 
-    // QR Simulator State
+    // QR Simulator State (Clean Prototype Demo Data - Zero Personal Details)
     const simConfigs = {
       emergency: {
-        tag: 'EMERGENCY PASS',
-        title: "Harly's Emergency Pass",
-        sub: 'Scan with any smartphone camera — no app required to contact guardian Antony (+91 8921998733).',
-        url: 'https://petconnectai.vercel.app/emergency/c590ba41-c8ab-4bc5-985b-e15f817e0b3c'
+        tag: 'SAMPLE EMERGENCY PASS',
+        title: 'Pet Emergency Pass (Prototype)',
+        sub: 'Scan with any smartphone camera — no app required to preview instant clinical vitals, microchip record, drug allergy alert, and guardian contact demo.',
+        url: 'https://petconnectai.vercel.app/emergency.html?id=demo&name=Buddy&species=Dog&breed=Golden%20Retriever&owner=Sample%20Caregiver&phone=5550199&microchip=PC-CHIP-98210&weight=28.5%20kg&health=No%20Known%20Drug%20Allergies%20(NKDA)'
       },
       vaccine: {
-        tag: 'VACCINE CERTIFICATE',
-        title: 'Verified Rabies Certificate',
-        sub: 'Cryptographically authenticated batch LOT-B892-VET from Authorized Veterinary Practice, Mala.',
-        url: 'https://petconnectai.vercel.app/verify/vaccine/c2dc2092-579d-45aa-9ae7-ec185ab8c0c3'
+        tag: 'SAMPLE VACCINE PASS',
+        title: 'Immunization Certificate (Prototype)',
+        sub: 'Scan to verify cryptographic batch serial LOT-B892-VET, rabies core immunization status, and veterinary practice certification seal.',
+        url: 'https://petconnectai.vercel.app/verify.html?id=demo&pet=Buddy%20(Dog)&vax=Rabies%20Core%20Immunization&batch=LOT-B892-VET&admin=18%20Aug%202026&next=31%20Aug%202027&doc=PetConnect%20Clinical%20Station'
       },
       adopt: {
-        tag: 'ADOPTION DOSSIER',
-        title: 'Bella (Golden Retriever)',
-        sub: 'Direct cloud application connects with caregiver Antony Thomson. Verified health records included.',
-        url: 'https://petconnectai.vercel.app/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1001'
+        tag: 'SAMPLE ADOPTION DOSSIER',
+        title: 'Adoption Candidate Profile (Prototype)',
+        sub: 'Preview shelter dossier, vaccination clearance, temperament trait pills, and direct online application dispatch to caregivers.',
+        url: 'https://petconnectai.vercel.app/adopt.html?id=demo&name=Bella&breed=Golden%20Retriever&age=2%20Years&species=Dog&location=Regional%20Animal%20Rescue&fee=Free'
       },
       missing: {
-        tag: 'MISSING PET POSTER',
-        title: 'Missing Dog Alert: Harly',
-        sub: 'Last seen Meladoor, Kerala. Passerby GPS sighting dispatcher sends live coordinates to owner app.',
-        url: 'https://petconnectai.vercel.app/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c'
+        tag: 'SAMPLE RESCUE POSTER',
+        title: 'Missing Pet Alert Poster (Prototype)',
+        sub: 'Scan to test community sighting coordinate dispatcher, bystander landmark reporting, and emergency contact dialer.',
+        url: 'https://petconnectai.vercel.app/missing.html?id=demo&name=Buddy&species=Dog&breed=Golden%20Retriever&location=Central%20Park,%20Zone%204&reward=5000'
       }
     };
 

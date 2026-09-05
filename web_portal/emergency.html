@@ -67,16 +67,16 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Spatial Background */
+    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
-      background: 
-        radial-gradient(circle at 15% 10%, rgba(239, 68, 68, 0.08) 0%, transparent 45%),
-        radial-gradient(circle at 85% 20%, rgba(16, 185, 129, 0.07) 0%, transparent 45%),
-        radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 70%);
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
 
     .container {
@@ -98,8 +98,7 @@
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(16px);
+      background: #131d31;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-pill);
       color: var(--text-sub);
@@ -126,17 +125,17 @@
       letter-spacing: 0.5px;
     }
 
-    /* SOS Alert Banner */
+    /* SOS Alert Banner - Solid Pet App Color */
     .sos-banner {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(15, 23, 42, 0.6) 100%);
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: #181216;
+      border: 1px solid #ef4444;
       border-radius: var(--radius-lg);
       padding: 16px 20px;
       display: flex;
       align-items: center;
       gap: 16px;
       margin-bottom: 20px;
-      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.15);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
     .beacon {
       width: 14px;
@@ -259,10 +258,10 @@
       letter-spacing: 0.5px;
     }
 
-    /* Medical Alert Box */
+    /* Medical Alert Box - Solid Amber */
     .alert-card {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.7) 100%);
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: #1c1917;
+      border: 1px solid #f59e0b;
       border-radius: var(--radius-lg);
       padding: 16px 18px;
       margin-bottom: 20px;
@@ -339,7 +338,7 @@
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: var(--secondary);
+      color: #2dd4bf;
       margin-bottom: 12px;
       display: flex;
       align-items: center;
@@ -370,7 +369,7 @@
       font-weight: 700;
     }
 
-    /* Action Buttons */
+    /* Action Buttons - Solid Tactile */
     .actions-cluster {
       display: flex;
       flex-direction: column;
@@ -383,19 +382,19 @@
       gap: 10px;
       width: 100%;
       padding: 16px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      color: white;
+      background: #10b981;
+      color: #ffffff;
       text-decoration: none;
       font-family: var(--font-heading);
       font-size: 1.08rem;
       font-weight: 800;
       border-radius: var(--radius-md);
-      box-shadow: 0 8px 24px var(--primary-glow);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
       transition: all 0.2s var(--ease-spring);
     }
     .btn-emergency-call:hover {
+      background: #059669;
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px var(--primary-glow);
     }
     .btn-emergency-call:active {
       transform: scale(0.98);
@@ -408,7 +407,7 @@
       gap: 10px;
       width: 100%;
       padding: 15px;
-      background: #128c7e;
+      background: #0f766e;
       color: white;
       text-decoration: none;
       font-family: var(--font-heading);
@@ -418,7 +417,7 @@
       transition: all 0.2s var(--ease-spring);
     }
     .btn-whatsapp-msg:hover {
-      background: #0e7266;
+      background: #115e59;
       transform: translateY(-1px);
     }
     .btn-whatsapp-msg:active {
@@ -452,7 +451,7 @@
     <!-- Top Nav -->
     <div class="top-nav">
       <a href="/" class="nav-back">← PetConnect AI Portal</a>
-      <div class="nav-badge" id="navIdBadge">DOS-HARLY</div>
+      <div class="nav-badge" id="navIdBadge">DOS-BUDDY</div>
     </div>
 
     <!-- SOS Banner -->
@@ -468,15 +467,15 @@
     <div class="bento-card">
       <div class="profile-hero">
         <div class="avatar-wrapper">
-          <img id="petAvatar" class="avatar-img" src="https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/baf75c33-a5eb-46e8-ae7f-9f5670533908/temp_1788279775194/avatar_1788279775194.jpg" alt="Pet Avatar" onerror="handleImageError(this)">
+          <img id="petAvatar" class="avatar-img" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&auto=format&fit=crop&q=80" alt="Pet Avatar" onerror="handleImageError(this)">
           <div class="status-ring"></div>
         </div>
         <div class="profile-info">
           <div class="pet-name-row">
-            <h1 id="petName" class="pet-name">Harly</h1>
+            <h1 id="petName" class="pet-name">Buddy</h1>
             <span class="pet-species-badge" id="petSpeciesBadge">DOG</span>
           </div>
-          <div id="petBreedLine" class="pet-subtitle">German Shepard • Male</div>
+          <div id="petBreedLine" class="pet-subtitle">Golden Retriever • Companion</div>
           <div class="cert-pill">🛡️ VERIFIED PETCONNECT ID</div>
         </div>
       </div>
@@ -494,7 +493,7 @@
       <div class="vitals-grid">
         <div class="vital-cell">
           <div class="vital-lbl">Microchip ID</div>
-          <div id="dChip" class="vital-val" style="font-family: var(--font-mono); font-size: 0.88rem; color: #38bdf8;">Registered &amp; Active</div>
+          <div id="dChip" class="vital-val" style="font-family: var(--font-mono); font-size: 0.88rem; color: #38bdf8;">PC-CHIP-98210</div>
         </div>
         <div class="vital-cell">
           <div class="vital-lbl">Core Vaccination</div>
@@ -502,15 +501,15 @@
         </div>
         <div class="vital-cell">
           <div class="vital-lbl">Weight / Biometrics</div>
-          <div id="dWeight" class="vital-val">35.00 kg</div>
+          <div id="dWeight" class="vital-val">28.50 kg</div>
         </div>
         <div class="vital-cell">
           <div class="vital-lbl">Home Region</div>
-          <div id="dCity" class="vital-val">Meladoor, Kerala</div>
+          <div id="dCity" class="vital-val">Metropolitan Vet District</div>
         </div>
       </div>
 
-      <!-- Primary Caregiver Box -->
+      <!-- Primary Caregiver Box (Clean Prototype Demo) -->
       <div class="guardian-card">
         <div class="guardian-title">
           <span>👤</span>
@@ -518,24 +517,24 @@
         </div>
         <div class="guardian-row">
           <span class="g-lbl">Guardian Name</span>
-          <strong id="ownerName" class="g-val">Antony Thomson</strong>
+          <strong id="ownerName" class="g-val">Sample Guardian (Prototype)</strong>
         </div>
         <div class="guardian-row">
           <span class="g-lbl">Emergency Phone</span>
-          <strong id="ownerPhone" class="g-val g-phone">+91 8921998733</strong>
+          <strong id="ownerPhone" class="g-val g-phone">+1 (555) 019-2834</strong>
         </div>
         <div class="guardian-row">
           <span class="g-lbl">Mesh Dossier ID</span>
-          <code id="dossierId" style="font-family: var(--font-mono); color: #c084fc; font-size: 0.82rem;">DOS-C590BA41</code>
+          <code id="dossierId" style="font-family: var(--font-mono); color: #c084fc; font-size: 0.82rem;">DOS-SAMPLE01</code>
         </div>
       </div>
 
       <!-- Actions -->
       <div class="actions-cluster">
-        <a href="tel:8921998733" id="callBtn" class="btn-emergency-call">
+        <a href="tel:5550192834" id="callBtn" class="btn-emergency-call">
           📞 Contact Guardian Immediately
         </a>
-        <a href="https://wa.me/918921998733" id="waBtn" class="btn-whatsapp-msg" target="_blank" rel="noopener">
+        <a href="https://wa.me/15550192834" id="waBtn" class="btn-whatsapp-msg" target="_blank" rel="noopener">
           💬 Send Direct WhatsApp Message
         </a>
       </div>
@@ -569,19 +568,17 @@
         petId = lastPart;
       }
     }
-    // Default to real dog Harly if not specified
-    if (!petId || petId === 'demo') {
-      petId = 'c590ba41-c8ab-4bc5-985b-e15f817e0b3c';
-    }
 
-    // 1. Immediate Parameter Rendering (Zero Loading Delay)
-    const paramName = urlParams.get('name') || 'Harly';
+    const isDemo = !petId || petId === 'demo' || urlParams.get('demo') === 'true';
+
+    // 1. Immediate Parameter Rendering (Prototype-Safe)
+    const paramName = urlParams.get('name') || (isDemo ? 'Buddy' : 'Companion');
     const paramSpecies = (urlParams.get('species') || 'Dog').toUpperCase();
-    const paramBreed = urlParams.get('breed') || 'German Shepard';
-    const paramOwner = urlParams.get('owner') || 'Antony Thomson';
-    const paramPhone = urlParams.get('phone') || '8921998733';
-    const paramWeight = urlParams.get('weight') || '35.00 kg';
-    const paramChip = urlParams.get('microchip') || 'Registered & Active';
+    const paramBreed = urlParams.get('breed') || (isDemo ? 'Golden Retriever' : 'Companion Breed');
+    const paramOwner = urlParams.get('owner') || (isDemo ? 'Sample Guardian (Prototype)' : 'Verified Caregiver');
+    const paramPhone = urlParams.get('phone') || (isDemo ? '5550192834' : '5550192834');
+    const paramWeight = urlParams.get('weight') || (isDemo ? '28.50 kg' : 'Standard');
+    const paramChip = urlParams.get('microchip') || (isDemo ? 'PC-CHIP-98210' : 'Registered & Active');
     const paramHealth = urlParams.get('health') || 'No Known Drug Allergies (NKDA). Routine vitals optimal.';
     const paramImg = urlParams.get('img');
 
@@ -593,11 +590,12 @@
     document.getElementById('dWeight').textContent = paramWeight;
     document.getElementById('ownerName').textContent = paramOwner;
     const cleanDigits = paramPhone.replace(/[^0-9]/g, '').slice(-10);
-    document.getElementById('ownerPhone').textContent = `+91 ${cleanDigits}`;
-    document.getElementById('navIdBadge').textContent = `DOS-${petId.substring(0, 8).toUpperCase()}`;
-    document.getElementById('dossierId').textContent = `DOS-${petId.substring(0, 8).toUpperCase()}`;
+    document.getElementById('ownerPhone').textContent = isDemo ? '+1 (555) 019-2834' : `+91 ${cleanDigits}`;
+    const badgeCode = isDemo ? 'DOS-SAMPLE01' : `DOS-${petId.substring(0, 8).toUpperCase()}`;
+    document.getElementById('navIdBadge').textContent = badgeCode;
+    document.getElementById('dossierId').textContent = badgeCode;
     document.getElementById('callBtn').href = `tel:${paramPhone}`;
-    document.getElementById('waBtn').href = `https://wa.me/91${cleanDigits}?text=${encodeURIComponent(`Hello ${paramOwner}, I scanned ${paramName}'s PetConnect AI Emergency Pass.`)}`;
+    document.getElementById('waBtn').href = `https://wa.me/${cleanDigits}?text=${encodeURIComponent(`Hello ${paramOwner}, I scanned ${paramName}'s PetConnect AI Emergency Pass.`)}`;
 
     // Sanitize image: only use if valid http/https
     if (paramImg && (paramImg.startsWith('http://') || paramImg.startsWith('https://'))) {
@@ -658,18 +656,20 @@
       if (pet.owner_city) document.getElementById('dCity').textContent = pet.owner_city;
 
       // Guardian contacts
-      const oName = pet.owner_name || 'Antony Thomson';
-      const oPhone = pet.owner_phone || '8921998733';
+      const oName = pet.owner_name || 'Verified Guardian';
+      const oPhone = pet.owner_phone || '5550192834';
       const cleanOwnerDigits = oPhone.replace(/[^0-9]/g, '').slice(-10);
 
       document.getElementById('ownerName').textContent = oName;
       document.getElementById('ownerPhone').textContent = `+91 ${cleanOwnerDigits}`;
       document.getElementById('callBtn').href = `tel:${oPhone}`;
-      document.getElementById('waBtn').href = `https://wa.me/91${cleanOwnerDigits}?text=${encodeURIComponent(`Hello ${oName}, I scanned ${pet.name}'s PetConnect AI Emergency Pass.`)}`;
+      document.getElementById('waBtn').href = `https://wa.me/${cleanOwnerDigits}?text=${encodeURIComponent(`Hello ${oName}, I scanned ${pet.name}'s PetConnect AI Emergency Pass.`)}`;
       document.getElementById('syncStatus').textContent = `Live Verified on PetConnect AI • ID: ${petId.substring(0, 8).toUpperCase()}`;
     }
 
-    fetchLiveDossier();
+    if (!isDemo && petId) {
+      fetchLiveDossier();
+    }
   </script>
 </body>
 </html>

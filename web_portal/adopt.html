@@ -70,16 +70,16 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Spatial Background */
+    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
-      background: 
-        radial-gradient(circle at 80% 15%, rgba(124, 58, 237, 0.12) 0%, transparent 45%),
-        radial-gradient(circle at 15% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 70%);
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
 
     .container {
@@ -102,8 +102,7 @@
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(16px);
+      background: #131d31;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-pill);
       color: var(--text-sub);
@@ -122,9 +121,9 @@
       font-family: var(--font-mono);
       font-size: 0.78rem;
       font-weight: 700;
-      color: #c084fc;
-      background: rgba(124, 58, 237, 0.14);
-      border: 1px solid rgba(124, 58, 237, 0.3);
+      color: #2dd4bf;
+      background: rgba(45, 212, 191, 0.12);
+      border: 1px solid rgba(45, 212, 191, 0.3);
       padding: 6px 14px;
       border-radius: var(--radius-pill);
       letter-spacing: 0.5px;
@@ -138,7 +137,6 @@
       overflow: hidden;
       box-shadow: var(--shadow-bento);
       margin-bottom: 24px;
-      backdrop-filter: blur(12px);
     }
 
     /* Hero Photo */
@@ -312,10 +310,10 @@
       align-items: center;
       gap: 6px;
       padding: 6px 14px;
-      background: rgba(124, 58, 237, 0.12);
-      border: 1px solid rgba(124, 58, 237, 0.25);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.28);
       border-radius: var(--radius-pill);
-      color: #c084fc;
+      color: #34d399;
       font-size: 0.84rem;
       font-weight: 700;
     }
@@ -348,7 +346,7 @@
       gap: 6px;
     }
 
-    /* Action Buttons */
+    /* Action Buttons - Solid Tactile */
     .actions-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -361,7 +359,7 @@
       gap: 10px;
       width: 100%;
       padding: 16px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      background: #10b981;
       color: white;
       border: none;
       cursor: pointer;
@@ -369,12 +367,12 @@
       font-size: 1.1rem;
       font-weight: 800;
       border-radius: var(--radius-md);
-      box-shadow: 0 8px 24px var(--primary-glow);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
       transition: all 0.2s var(--ease-spring);
     }
     .btn-adopt-primary:hover {
+      background: #059669;
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px var(--primary-glow);
     }
     .btn-adopt-primary:active {
       transform: scale(0.98);
@@ -612,13 +610,13 @@
 
       <form id="adoptForm" onsubmit="handleApplySubmit(event)">
         <label class="form-lbl">APPLICANT FULL NAME</label>
-        <input type="text" id="appName" class="form-input" placeholder="e.g. Antony Thomson" required>
+        <input type="text" id="appName" class="form-input" placeholder="e.g. Alex Morgan" required>
 
         <label class="form-lbl">PHONE / WHATSAPP NUMBER</label>
-        <input type="tel" id="appPhone" class="form-input" placeholder="e.g. +91 8921998733" required>
+        <input type="tel" id="appPhone" class="form-input" placeholder="e.g. +1 (555) 019-2834" required>
 
         <label class="form-lbl">CITY &amp; RESIDENCE TYPE</label>
-        <input type="text" id="appHome" class="form-input" placeholder="e.g. Kochi • House with fenced yard" required>
+        <input type="text" id="appHome" class="form-input" placeholder="e.g. Seattle, WA • House with fenced yard" required>
 
         <label class="form-lbl">EXPERIENCE WITH PETS</label>
         <textarea id="appExp" class="form-input" rows="3" placeholder="Tell the caregiver about your household, daily routine, and prior pet care experience..."></textarea>

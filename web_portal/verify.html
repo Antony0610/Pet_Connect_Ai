@@ -65,16 +65,16 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Spatial Background */
+    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
-      background: 
-        radial-gradient(circle at 50% 12%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
-        radial-gradient(circle at 15% 30%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 70%);
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
 
     .container {
@@ -96,8 +96,7 @@
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(16px);
+      background: #131d31;
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-pill);
       color: var(--text-sub);
@@ -131,11 +130,10 @@
       border-radius: var(--radius-xl);
       padding: 36px 28px;
       box-shadow: var(--shadow-bento);
-      backdrop-filter: blur(12px);
       text-align: center;
     }
 
-    /* Holographic Verified Seal */
+    /* Verified Seal - Solid Accent */
     .seal-wrap {
       position: relative;
       width: 88px;
@@ -145,19 +143,14 @@
     .seal-circle {
       width: 88px;
       height: 88px;
-      background: radial-gradient(circle at 35% 35%, rgba(16, 185, 129, 0.25) 0%, rgba(15, 23, 42, 0.8) 100%);
-      border: 2px solid var(--primary);
+      background: #10b981;
+      border: 3px solid #059669;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 2.3rem;
-      box-shadow: 0 0 30px var(--primary-glow);
-      animation: pulse-seal 2.8s infinite ease-in-out;
-    }
-    @keyframes pulse-seal {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 25px var(--primary-glow); }
-      50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(16, 185, 129, 0.4); }
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
     }
     .seal-ring {
       position: absolute;
@@ -342,7 +335,7 @@
       <div class="data-ribbon">
         <div class="data-row">
           <span class="data-lbl">Companion Name</span>
-          <strong class="data-val" id="petName">miavv (Cat)</strong>
+          <strong class="data-val" id="petName">Buddy (Dog)</strong>
         </div>
         <div class="data-row">
           <span class="data-lbl" id="row1Lbl">Vaccine / Protocol</span>
@@ -362,7 +355,7 @@
         </div>
         <div class="data-row">
           <span class="data-lbl">Attending Clinic</span>
-          <strong class="data-val" id="clinicName">Veterinary Practice, Mala</strong>
+          <strong class="data-val" id="clinicName">Metropolitan Veterinary Station</strong>
         </div>
         <div class="data-row">
           <span class="data-lbl">Certified By</span>
@@ -374,7 +367,7 @@
       <div class="hash-tile">
         <div class="hash-text-group">
           <div class="hash-lbl">Cryptographic Security Hash</div>
-          <div class="hash-val" id="certHash">PC-AUTH-C2DC2092</div>
+          <div class="hash-val" id="certHash">PC-AUTH-DEMO01</div>
         </div>
         <div class="hash-badge">
           <span style="display:inline-block; width:6px; height:6px; background:var(--primary); border-radius:50%;"></span>
@@ -407,9 +400,7 @@
         vaccineId = lastPart;
       }
     }
-    if (!vaccineId || vaccineId === 'demo') {
-      vaccineId = 'c2dc2092-579d-45aa-9ae7-ec185ab8c0c3';
-    }
+    const isDemo = !vaccineId || vaccineId === 'demo' || params.get('demo') === 'true';
 
     // 1. Check if AI Clinical Report verification
     if (isReport) {
@@ -425,19 +416,19 @@
       document.getElementById('vaxDate').textContent = params.get('date') || 'Active Verified';
       document.getElementById('nextDueRow').style.display = 'none';
       document.getElementById('clinicName').textContent = 'PetConnect AI Neural Veterinary Engine';
-      document.getElementById('vaxDoc').textContent = params.get('owner') || 'Antony Thomson';
-      const authHash = `AI-SCAN-${vaccineId.substring(0, 8).toUpperCase()}`;
+      document.getElementById('vaxDoc').textContent = params.get('owner') || 'Verified Pet Guardian';
+      const authHash = isDemo ? 'AI-SCAN-DEMO01' : `AI-SCAN-${vaccineId.substring(0, 8).toUpperCase()}`;
       document.getElementById('certHash').textContent = authHash;
       document.getElementById('navHashBadge').textContent = authHash;
     } else {
-      // 2. Immediate Parameter Rendering for Vaccine Cert
-      const pPet = params.get('pet') || 'miavv (Cat)';
+      // 2. Immediate Parameter Rendering for Vaccine Cert (Prototype-Safe)
+      const pPet = params.get('pet') || 'Buddy (Dog)';
       const pVax = params.get('vax') || 'Rabies Core Immunization';
       const pBatch = params.get('batch') || 'LOT-B892-VET';
       const pAdmin = params.get('admin') || '18 Aug 2026';
       const pNext = params.get('next') || '31 Aug 2027';
       const pDoc = params.get('doc') || 'Authorized Veterinary Clinic';
-      const certCode = `PC-AUTH-${vaccineId.substring(0, 8).toUpperCase()}`;
+      const certCode = isDemo ? 'PC-AUTH-DEMO01' : `PC-AUTH-${vaccineId.substring(0, 8).toUpperCase()}`;
 
       document.getElementById('petName').textContent = pPet;
       document.getElementById('vaxName').textContent = pVax;
@@ -448,8 +439,9 @@
       document.getElementById('certHash').textContent = certCode;
       document.getElementById('navHashBadge').textContent = certCode;
 
-      // 3. Fetch Live Vaccine Record from Supabase RPC via native fetch
+      // 3. Fetch Live Vaccine Record from Supabase RPC if not demo
       async function fetchLiveVaccine() {
+        if (isDemo || !vaccineId) return;
         try {
           const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_vaccine_certificate`, {
             method: 'POST',
