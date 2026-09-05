@@ -19,7 +19,6 @@ import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
-import 'package:petconnect_ai/features/storage/presentation/providers/storage_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -2834,11 +2833,22 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                   ownerId: pet.ownerId ?? _currentUserId,
                   isUserListed: true,
                 );
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.pop(ctx);
-                context.showSnackbar('Updating ${updated.name}\'s photo & details...');
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Updating ${updated.name}\'s photo & details...'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
                 _updateCustomCandidate(updated, oldName: pet.name).then((_) {
                   if (mounted) {
-                    context.showSnackbar('✓ Successfully updated ${updated.name}\'s listing!');
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('✓ Successfully updated ${updated.name}\'s listing!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                   }
                 });
               },
