@@ -873,6 +873,22 @@
 
     // Instant execution without blocking
     fetchRealAdoptionDetails();
+
+    // Supabase Realtime channel for live profile & photo updates
+    try {
+      if (window.supabase) {
+        const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        sbClient.channel('public:adoption_profile_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'adoption_listings' }, (payload) => {
+            console.log('Realtime adoption detail update:', payload);
+            fetchRealAdoptionDetails();
+          })
+          .subscribe();
+      }
+    } catch (_) {}
+
+    // Resilient 3s continuous sync so updates in mobile app reflect immediately on web page
+    setInterval(fetchRealAdoptionDetails, 3000);
   </script>
 </body>
 </html>

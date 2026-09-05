@@ -536,15 +536,14 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
           final file = File(cloudImgUrl);
           if (file.existsSync()) {
             final bytes = await file.readAsBytes();
-            final storageRepo = ref.read(storageRepositoryProvider);
-            final uploadRes = await storageRepo.uploadPetAvatar(
-              userId: currentUid,
-              petId: 'adopt-${DateTime.now().millisecondsSinceEpoch}',
-              bytes: bytes,
-              fileName: 'adopt_${DateTime.now().millisecondsSinceEpoch}.jpg',
-              mimeType: 'image/jpeg',
+            final cleanName = candidate.name.trim().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
+            final fileName = 'adopt_${DateTime.now().millisecondsSinceEpoch}_$cleanName.jpg';
+            await client.storage.from('pet-avatars').uploadBinary(
+              fileName,
+              bytes,
+              fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
             );
-            uploadRes.fold((_) {}, (url) => cloudImgUrl = url);
+            cloudImgUrl = client.storage.from('pet-avatars').getPublicUrl(fileName);
           }
         } catch (_) {}
       }
@@ -605,19 +604,97 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
     await _syncWithSupabase();
   }
 
-  Future<void> _updateCustomCandidate(_AdoptionCandidate candidate) async {
+  Future<void> _updateCustomCandidate(_AdoptionCandidate candidate, {String? oldName}) async {
+    final client = ref.read(supabaseClientProvider);
+    String publicImageUrl = candidate.imageUrl;
+
+    // 1. If photo is a local file path, upload directly to Supabase Storage bucket 'pet-avatars'
+    if (publicImageUrl.isNotEmpty && !publicImageUrl.startsWith('http://') && !publicImageUrl.startsWith('https://')) {
+      try {
+        final file = File(publicImageUrl);
+        if (file.existsSync()) {
+          final bytes = await file.readAsBytes();
+          final cleanName = candidate.name.trim().replaceAll(RegExp(r'\s+'), '_').replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
+          final fileName = 'adopt_${DateTime.now().millisecondsSinceEpoch}_$cleanName.jpg';
+          await client.storage.from('pet-avatars').uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+          );
+          publicImageUrl = client.storage.from('pet-avatars').getPublicUrl(fileName);
+          debugPrint('Uploaded updated pet image to Supabase storage: $publicImageUrl');
+        }
+      } catch (e) {
+        debugPrint('Error uploading updated pet image to Supabase: $e');
+      }
+    }
+
+    final candidateWithPublicImg = candidate.copyWith(imageUrl: publicImageUrl);
+
+    // 2. Update local state & SharedPreferences immediately
     final updated = _customCandidates.map((c) {
-      if (c.id == candidate.id) {
-        return candidate;
+      final matchesId = c.id == candidate.id;
+      final matchesOldName = oldName != null && c.name.trim().toLowerCase() == oldName.trim().toLowerCase();
+      final matchesNewName = c.name.trim().toLowerCase() == candidate.name.trim().toLowerCase();
+      if (matchesId || matchesOldName || matchesNewName) {
+        return candidateWithPublicImg;
       }
       return c;
     }).toList();
-    setState(() => _customCandidates = updated);
+
+    if (!updated.any((c) => c.id == candidate.id || c.name.trim().toLowerCase() == candidate.name.trim().toLowerCase())) {
+      updated.insert(0, candidateWithPublicImg);
+    }
+
+    setState(() {
+      _customCandidates = updated;
+      _cloudCandidates = _cloudCandidates.map((c) {
+        final matchesId = c.id == candidate.id;
+        final matchesOldName = oldName != null && c.name.trim().toLowerCase() == oldName.trim().toLowerCase();
+        final matchesNewName = c.name.trim().toLowerCase() == candidate.name.trim().toLowerCase();
+        if (matchesId || matchesOldName || matchesNewName) {
+          return candidateWithPublicImg;
+        }
+        return c;
+      }).toList();
+    });
+
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(
       _customPetsKey,
       jsonEncode(updated.map((e) => e.toJson()).toList()),
     );
+
+    // 3. Update Supabase table adoption_listings in REALTIME
+    try {
+      final updateData = <String, dynamic>{
+        'name': candidateWithPublicImg.name.trim(),
+        'species': candidateWithPublicImg.species.toLowerCase().trim(),
+        'breed': candidateWithPublicImg.breed.trim().isNotEmpty ? candidateWithPublicImg.breed.trim() : 'Companion',
+        'age': candidateWithPublicImg.age.trim(),
+        'description': candidateWithPublicImg.description.trim(),
+        'location': candidateWithPublicImg.distance.trim().isNotEmpty
+            ? candidateWithPublicImg.distance.trim()
+            : candidateWithPublicImg.shelter.trim(),
+        'contact_phone': candidateWithPublicImg.contactPhone ?? '+91 Contact via App',
+        'image_url': publicImageUrl,
+        'images': [publicImageUrl],
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      final isUuid = RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(candidate.id);
+      if (isUuid) {
+        await client.from('adoption_listings').update(updateData).eq('id', candidate.id);
+      }
+      
+      final targetName = (oldName != null && oldName.trim().isNotEmpty) ? oldName.trim() : candidate.name.trim();
+      await client.from('adoption_listings').update(updateData).ilike('name', targetName);
+      debugPrint('Successfully updated ${candidate.name} in Supabase adoption_listings with photo $publicImageUrl');
+    } catch (e) {
+      debugPrint('Supabase adoption listing update error: $e');
+    }
+
+    await _syncWithSupabase();
   }
 
   Future<void> _deleteCustomCandidate(String id, {String? petName}) async {
@@ -2578,8 +2655,28 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                 InkWell(
                   onTap: () async {
                     final picker = ImagePicker();
+                    final source = await showModalBottomSheet<ImageSource>(
+                      context: context,
+                      builder: (bCtx) => SafeArea(
+                        child: Wrap(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.photo_library_rounded, color: Color(0xFFEC4899)),
+                              title: const Text('Choose from Gallery'),
+                              onTap: () => Navigator.pop(bCtx, ImageSource.gallery),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF10B981)),
+                              title: const Text('Take Photo with Camera'),
+                              onTap: () => Navigator.pop(bCtx, ImageSource.camera),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                    if (source == null) return;
                     final picked = await picker.pickImage(
-                      source: ImageSource.gallery,
+                      source: source,
                       maxWidth: 1024,
                       imageQuality: 85,
                     );
@@ -2737,9 +2834,13 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                   ownerId: pet.ownerId ?? _currentUserId,
                   isUserListed: true,
                 );
-                _updateCustomCandidate(updated);
                 Navigator.pop(ctx);
-                context.showSnackbar('✓ Updated ${updated.name}\'s listing successfully!');
+                context.showSnackbar('Updating ${updated.name}\'s photo & details...');
+                _updateCustomCandidate(updated, oldName: pet.name).then((_) {
+                  if (mounted) {
+                    context.showSnackbar('✓ Successfully updated ${updated.name}\'s listing!');
+                  }
+                });
               },
               child: const Text('Save Changes'),
             ),
