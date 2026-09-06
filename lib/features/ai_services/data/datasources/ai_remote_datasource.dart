@@ -166,7 +166,36 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           '3. TONE & FORMATTING:\n'
           '   - Friendly, natural, empathetic, highly intelligent, and engaging.\n'
           '   - Use clean Markdown: bold headers (###), bold key terms (**word**), clear bullet points, numbered steps, or code blocks (```) where appropriate.\n'
-          '   - NEVER output canned template disclaimers (e.g. "I am an AI..." or "Regarding your inquiry: Knowledge & Insights..."). Give direct, high-value answers immediately.';
+          '   - NEVER output canned template disclaimers (e.g. "I am an AI..." or "Regarding your inquiry: Knowledge & Insights..."). Give direct, high-value answers immediately.\n'
+          '4. IN-APP ACTION PROTOCOL & COMMAND EXECUTION:\n'
+          '   When the user requests an action (or when an action is the natural, logical resolution to their pet issue), provide a friendly response followed by an executable action envelope at the very bottom of your response:\n'
+          '   ```app_action\n'
+          '   {\n'
+          '     "action": "<action_name>",\n'
+          '     "parameters": { ... }\n'
+          '   }\n'
+          '   ```\n'
+          '   Supported Actions:\n'
+          '   - "book_consultation": {"vet_name": "...", "date": "...", "reason": "..."}\n'
+          '   - "collar_lost_mode": {"enable": true/false}\n'
+          '   - "emergency_sos": {"reason": "..."}\n'
+          '   - "calculate_toxicity": {"substance": "...", "amount": "...", "species": "..."}\n'
+          '   - "calculate_nutrition": {"weight_kg": ..., "target": "maintenance"}\n'
+          '   - "log_weight": {"weight_kg": ..., "notes": "..."}\n'
+          '   - "record_vaccination": {"vaccine_name": "...", "clinic": "..."}\n'
+          '   - "collar_buzzer": {"duration_sec": 15}\n'
+          '   - "geofence_alert": {"radius_meters": 150}\n'
+          '   - "medication_reminder": {"title": "...", "dosage": "...", "time": "08:00 AM"}\n'
+          '   - "navigate_screen": {"route": "health" | "vaccinations" | "collar" | "lost_mode" | "reports" | "community"}\n'
+          '   - "generate_poster": {"poster_type": "lost" | "adoption"}\n'
+          '5. MULTI-WAY NATURAL LANGUAGE TRAINING & COMPREHENSION MATRIX:\n'
+          '   Seamlessly understand and respond across diverse phrasing styles and languages:\n'
+          '   - SLANG / CASUAL: "ring my doggo collar buzzer rn", "bro book a vet ASAP", "dog lost activate tracker pls", "ping my collar" -> emit corresponding action.\n'
+          '   - FORMAL / CLINICAL: "I would like to schedule a veterinary consultation for my companion tomorrow at 10:00 AM", "Please log a weight measurement of 14.5 kg" -> emit corresponding action.\n'
+          '   - MANGLISH (Malayalam + English): "ente pattikku oru vet appointment book cheyyamo", "collar buzzer ring cheyyu bro", "weight 12kg log cheyy", "lost mode on aakku", "oru missing poster undakko" -> understand perfectly and emit action.\n'
+          '   - HINGLISH (Hindi + English): "mere dog ka appointment book kardo kal", "collar buzzer bajao", "weight log karo 14kg", "lost mode chalu karo", "poster bana do" -> emit corresponding action.\n'
+          '   - MALAYALAM SCRIPT (മലയാളം): "എന്റെ പട്ടിയുടെ ഡോക്ടർ അപ്പോയിന്റ്മെന്റ് ബുക്ക് ചെയ്യുക", "കോളർ റിംഗ് ചെയ്യുക", "ഭാരം 10 കിലോഗ്രാം രേഖപ്പെടുത്തുക" -> reply warmly in Malayalam and emit action.\n'
+          '   - IMPLICIT SYMPTOM & HAZARD INFERENCE: If user mentions toxic ingestion (chocolate, grapes, paracetamol, etc.), provide immediate triage and emit "calculate_toxicity" or "emergency_sos". If user mentions "remind me to give medicine at 9pm", emit "medication_reminder".';
 
       if (ragContext != null && ragContext.trim().isNotEmpty) {
         systemPrompt +=
@@ -298,10 +327,10 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       try {
         final isLite = model.contains('lite');
         final timeoutDuration = isImage
-            ? const Duration(milliseconds: 15000)
+            ? const Duration(milliseconds: 12000)
             : (isLite
-                ? const Duration(milliseconds: 4000)
-                : const Duration(milliseconds: 3500));
+                ? const Duration(milliseconds: 2200)
+                : const Duration(milliseconds: 2500));
 
         final result = await _executeGeminiRequest(
           client: _httpClient,
@@ -320,7 +349,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         // High latency or 503 error on active model: cascade immediately to next model
       }
     }
-    return (null, 'unknown');
+    return (null, 'offline');
   }
 
   Future<String?> _executeGeminiRequest({
@@ -352,9 +381,10 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         },
         'contents': contents,
         'generationConfig': {
-          'temperature': 0.3,
-          'maxOutputTokens': 850,
-          if (model.contains('3.7') || model.contains('3.8')) 'thinkingConfig': {'thinkingBudget': 0},
+          'temperature': 0.25,
+          'maxOutputTokens': 800,
+          if (model.contains('3.7') || model.contains('3.8') || model.contains('flash'))
+            'thinkingConfig': {'thinkingBudget': 0},
         },
       });
 

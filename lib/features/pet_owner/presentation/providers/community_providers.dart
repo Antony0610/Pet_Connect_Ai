@@ -12,7 +12,8 @@ final communityRepositoryProvider = Provider<CommunityRepository>((ref) {
 final selectedCommunityCategoryProvider = StateProvider<String>((ref) => 'All Topics');
 
 final communityPostsProvider =
-    FutureProvider.autoDispose.family<List<CommunityPost>, String?>((ref, category) async {
+    FutureProvider.family<List<CommunityPost>, String?>((ref, category) async {
+  ref.keepAlive();
   final repo = ref.watch(communityRepositoryProvider);
   final result = await repo.getCommunityPosts(category: category);
   return result.fold(

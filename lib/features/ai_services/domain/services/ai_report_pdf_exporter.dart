@@ -65,10 +65,13 @@ class AiReportPdfExporter {
       calculatedScore = score.clamp(70, 99);
     }
 
-    // Dynamic collar rest calculation based on species
-    final isCat = pet.species.toLowerCase().contains('cat');
-    final dynamicSleep = collarRestHours ?? (isCat ? '14.2 hrs avg' : '11.6 hrs avg');
-    final dynamicActivity = activityStatus ?? (isCat ? 'Indoor Active' : 'Daily Goal Met (45 min)');
+    // Dynamic collar rest or honest manual monitoring notice
+    final dynamicSleep = collarRestHours?.isNotEmpty == true
+        ? collarRestHours!
+        : 'Manual Observation (No Collar)';
+    final dynamicActivity = activityStatus?.isNotEmpty == true
+        ? activityStatus!
+        : 'Manual Activity Logging';
 
     final doc = pw.Document(
       title: '${pet.name} AI Clinical Health Assessment',
@@ -92,9 +95,7 @@ class AiReportPdfExporter {
     final cleanGender = _cleanText(pet.gender?.toUpperCase() ?? 'UNKNOWN');
     final cleanScope = _cleanText('$reportTitle ($reportRange)');
 
-    final cleanPetName = _cleanText(pet.name);
-    final cleanSpecies = _cleanText(pet.species);
-    final qrPayload = '${Env.webBaseUrl}/verify/report?id=${pet.id}&pet=${Uri.encodeComponent(cleanPetName)}&species=${Uri.encodeComponent(cleanSpecies)}&breed=${Uri.encodeComponent(cleanBreed)}&owner=${Uri.encodeComponent(cleanOwnerName)}&date=${Uri.encodeComponent(nowStr)}&score=$calculatedScore';
+    final qrPayload = '${Env.webBaseUrl}/verify.html?id=${pet.id}&t=r';
 
     doc.addPage(
       pw.MultiPage(
@@ -403,17 +404,17 @@ class AiReportPdfExporter {
                   ),
                   pw.SizedBox(width: 14),
                   pw.Container(
-                    padding: const pw.EdgeInsets.all(4),
+                    padding: const pw.EdgeInsets.all(5),
                     decoration: pw.BoxDecoration(
                       color: PdfColors.white,
                       borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
-                      border: pw.Border.all(color: borderColor, width: 0.8),
+                      border: pw.Border.all(color: primaryColor, width: 1.2),
                     ),
                     child: pw.BarcodeWidget(
                       data: qrPayload,
                       barcode: pw.Barcode.qrCode(),
-                      width: 66,
-                      height: 66,
+                      width: 90,
+                      height: 90,
                     ),
                   ),
                 ],

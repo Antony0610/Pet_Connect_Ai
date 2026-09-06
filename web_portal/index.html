@@ -26,60 +26,69 @@
 
   <style>
     :root[data-theme="dark"] {
-      --canvas: #080c14;
-      --surface: #0f172a;
-      --surface-card: #111a2e;
-      --surface-hover: #17233d;
-      --surface-inner: #0a0f1c;
+      --canvas: #090a10;
+      --canvas-mesh: radial-gradient(circle at 20% 15%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+                     radial-gradient(circle at 85% 75%, rgba(16, 185, 129, 0.07) 0%, transparent 45%),
+                     radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
+      --surface: #10131d;
+      --surface-card: rgba(18, 22, 34, 0.82);
+      --surface-hover: rgba(26, 32, 50, 0.92);
+      --surface-inner: #0b0e17;
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(16, 185, 129, 0.4);
-      --border-accent: rgba(6, 182, 212, 0.35);
+      --border-hover: rgba(245, 158, 11, 0.45);
+      --border-accent: rgba(16, 185, 129, 0.4);
       
       --primary: #10b981;
       --primary-dark: #059669;
       --primary-solid: #10b981;
-      --primary-glow: rgba(16, 185, 129, 0.22);
+      --primary-glow: rgba(16, 185, 129, 0.25);
       
       --secondary: #06b6d4;
       --secondary-glow: rgba(6, 182, 212, 0.2);
-      --accent-coral: #f43f5e;
+      --accent-coral: #ff6b6b;
       --accent-amber: #f59e0b;
+      --iris: #6366f1;
       --danger: #ef4444;
       
       --text-main: #f8fafc;
       --text-sub: #cbd5e1;
       --text-muted: #94a3b8;
-      --nav-bg: rgba(15, 23, 42, 0.85);
-      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --nav-bg: rgba(16, 19, 29, 0.85);
+      --shadow-bento: 0 20px 45px -12px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+      --shadow-card: 0 20px 45px -12px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.08);
       --grid-opacity: 0.03;
     }
 
     :root[data-theme="light"] {
-      --canvas: #f8fafc;
+      --canvas: #fcfbf9;
+      --canvas-mesh: radial-gradient(circle at 15% 15%, rgba(245, 158, 11, 0.06) 0%, transparent 40%),
+                     radial-gradient(circle at 85% 85%, rgba(13, 148, 136, 0.06) 0%, transparent 45%);
       --surface: #ffffff;
       --surface-card: #ffffff;
-      --surface-hover: #f1f5f9;
-      --surface-inner: #f8fafc;
-      --border-subtle: #e2e8f0;
-      --border-hover: #10b981;
-      --border-accent: #06b6d4;
+      --surface-hover: #f9f7f2;
+      --surface-inner: #f6f3eb;
+      --border-subtle: #e8e2d7;
+      --border-hover: #d97706;
+      --border-accent: #0d9488;
       
       --primary: #0d9488;
       --primary-dark: #0f766e;
       --primary-solid: #0d9488;
-      --primary-glow: rgba(13, 148, 136, 0.16);
+      --primary-glow: rgba(13, 148, 136, 0.18);
       
       --secondary: #0891b2;
       --secondary-glow: rgba(8, 145, 178, 0.16);
       --accent-coral: #e11d48;
       --accent-amber: #d97706;
+      --iris: #4f46e5;
       --danger: #dc2626;
       
-      --text-main: #0f172a;
-      --text-sub: #334155;
-      --text-muted: #64748b;
-      --nav-bg: rgba(255, 255, 255, 0.90);
-      --shadow-bento: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+      --text-main: #18181b;
+      --text-sub: #3f3f46;
+      --text-muted: #71717a;
+      --nav-bg: rgba(255, 255, 255, 0.88);
+      --shadow-bento: 0 16px 36px -10px rgba(24, 24, 27, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      --shadow-card: 0 16px 36px -10px rgba(24, 24, 27, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
       --grid-opacity: 0.05;
     }
 
@@ -88,7 +97,7 @@
       --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
       
-      --radius-xl: 20px;
+      --radius-xl: 24px;
       --radius-lg: 14px;
       --radius-md: 10px;
       --radius-pill: 9999px;
@@ -102,6 +111,8 @@
     body {
       font-family: var(--font-body);
       background: var(--canvas);
+      background-image: var(--canvas-mesh);
+      background-attachment: fixed;
       color: var(--text-main);
       min-height: 100vh;
       line-height: 1.6;
@@ -648,29 +659,73 @@
     }
 
     /* REALTIME ADOPTION SECTION */
+    .adoption-filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-sub);
+      padding: 9px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+    .filter-chip:hover {
+      border-color: var(--border-hover);
+      color: var(--text-main);
+      transform: translateY(-2px);
+    }
+    .filter-chip.active {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(16, 185, 129, 0.18));
+      border-color: var(--amber);
+      color: #ffffff;
+      box-shadow: 0 4px 16px var(--amber-glow);
+    }
     .adoption-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
+      gap: 26px;
       margin-bottom: 40px;
+    }
+    @media (max-width: 1024px) {
+      .adoption-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .adoption-grid { grid-template-columns: 1fr; }
     }
     .adopt-card {
       background: var(--surface-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
+      border-radius: 24px;
       overflow: hidden;
-      box-shadow: var(--shadow-bento);
-      transition: transform 0.25s var(--ease-spring), border-color 0.25s ease;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     .adopt-card:hover {
-      transform: translateY(-4px);
+      transform: translateY(-6px);
       border-color: var(--border-hover);
+      box-shadow: 0 24px 50px -10px rgba(0, 0, 0, 0.7), 0 0 20px rgba(245, 158, 11, 0.15);
     }
     .adopt-photo-wrap {
       width: 100%;
-      height: 220px;
+      height: 230px;
       background: var(--surface-inner);
       overflow: hidden;
       position: relative;
@@ -680,40 +735,56 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.35s ease;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .adopt-card:hover .adopt-photo {
-      transform: scale(1.04);
+      transform: scale(1.06);
     }
     .adopt-badge-status {
       position: absolute;
       top: 14px;
       left: 14px;
-      background: rgba(16, 185, 129, 0.90);
-      color: #061e16;
+      background: rgba(16, 185, 129, 0.92);
+      backdrop-filter: blur(8px);
+      color: #042116;
       font-family: var(--font-mono);
-      font-size: 0.70rem;
+      font-size: 0.68rem;
       font-weight: 800;
-      padding: 3px 10px;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
       border-radius: var(--radius-pill);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .adopt-badge-status::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #042116;
+      box-shadow: 0 0 6px #042116;
     }
     .adopt-badge-shelter {
       position: absolute;
       bottom: 12px;
       left: 14px;
       right: 14px;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(10px);
-      padding: 4px 10px;
-      border-radius: 6px;
+      background: rgba(11, 14, 23, 0.88);
+      backdrop-filter: blur(12px);
+      padding: 6px 12px;
+      border-radius: 10px;
       font-size: 0.74rem;
-      font-weight: 700;
+      font-weight: 600;
       color: #e2e8f0;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .adopt-body {
       padding: 22px;
@@ -721,59 +792,90 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      gap: 14px;
     }
     .adopt-name-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 6px;
+      margin-bottom: 2px;
     }
     .adopt-name {
       font-family: var(--font-heading);
-      font-size: 1.4rem;
+      font-size: 1.45rem;
       font-weight: 800;
       color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+    .adopt-vitals-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .vital-badge {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+    .vital-badge.vax {
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.1);
     }
     .adopt-breed {
-      font-size: 0.86rem;
+      font-size: 0.88rem;
       color: var(--text-muted);
-      margin-bottom: 14px;
+      margin-bottom: 6px;
+      font-weight: 500;
     }
     .adopt-traits {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 20px;
+      margin-bottom: 6px;
     }
     .trait-pill {
       font-size: 0.74rem;
-      font-weight: 700;
+      font-weight: 600;
       color: var(--text-sub);
       background: var(--surface-inner);
-      padding: 3px 8px;
-      border-radius: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
       border: 1px solid var(--border-subtle);
+      transition: border-color 0.2s;
+    }
+    .trait-pill:hover {
+      border-color: rgba(245, 158, 11, 0.3);
     }
     .adopt-actions {
       display: flex;
       gap: 10px;
+      margin-top: auto;
     }
     .btn-adopt-apply {
-      flex: 2;
-      background: var(--primary);
-      color: white;
+      flex: 1.4;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
       border: none;
-      font-weight: 800;
+      font-weight: 700;
       font-size: 0.88rem;
-      padding: 10px 14px;
+      padding: 11px 16px;
       border-radius: var(--radius-pill);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       text-align: center;
+      box-shadow: 0 4px 14px var(--primary-glow);
     }
     .btn-adopt-apply:hover {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
     }
     .btn-adopt-view {
       flex: 1;
@@ -782,16 +884,21 @@
       border: 1px solid var(--border-subtle);
       font-weight: 700;
       font-size: 0.84rem;
-      padding: 10px 12px;
+      padding: 11px 14px;
       border-radius: var(--radius-pill);
       cursor: pointer;
       text-decoration: none;
       text-align: center;
-      transition: background 0.2s ease;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
     }
     .btn-adopt-view:hover {
       background: var(--surface-hover);
-      border-color: var(--border-hover);
+      border-color: var(--amber);
+      color: var(--amber);
     }
 
     /* INQUIRY MODAL */
@@ -1119,11 +1226,22 @@
         <p class="section-desc">All candidates are health screened, temperament evaluated, and up-to-date on essential vaccinations.</p>
       </div>
 
+      <!-- Category Filter Chips -->
+      <div class="adoption-filter-bar">
+        <button class="filter-chip active" data-filter="all" onclick="filterAdoptions('all', this)">🐾 All Companions</button>
+        <button class="filter-chip" data-filter="dog" onclick="filterAdoptions('dog', this)">🐕 Dogs</button>
+        <button class="filter-chip" data-filter="cat" onclick="filterAdoptions('cat', this)">🐈 Cats</button>
+        <button class="filter-chip" data-filter="urgent" onclick="filterAdoptions('urgent', this)">🚨 Urgent / Priority</button>
+      </div>
+
       <div class="adoption-grid" id="adoptionGrid">
         <!-- Rendered dynamically by Supabase query with realtime updates -->
         <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
           Loading verified adoption candidates from PetConnect AI Cloud Mesh...
         </div>
+      </div>
+      <div id="filterEmptyMsg" style="display: none; text-align: center; padding: 32px; color: var(--text-muted); font-size: 0.95rem;">
+        No companions match this filter right now. Try selecting <strong>🐾 All Companions</strong>!
       </div>
     </section>
 
@@ -1250,6 +1368,50 @@
       document.getElementById('simQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(cfg.url)}`;
     }
 
+    // Filter state for adoption mesh
+    let currentAdoptionFilter = 'all';
+
+    function filterAdoptions(filter, btn) {
+      currentAdoptionFilter = filter;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      if (btn) {
+        btn.classList.add('active');
+      } else {
+        const matchingBtn = document.querySelector(`.filter-chip[data-filter="${filter}"]`);
+        if (matchingBtn) matchingBtn.classList.add('active');
+      }
+
+      const cards = document.querySelectorAll('#adoptionGrid .adopt-card');
+      let visibleCount = 0;
+      cards.forEach(card => {
+        const species = (card.getAttribute('data-species') || '').toLowerCase();
+        const isUrgent = card.getAttribute('data-urgent') === 'true';
+
+        let show = false;
+        if (filter === 'all') {
+          show = true;
+        } else if (filter === 'dog') {
+          show = species === 'dog';
+        } else if (filter === 'cat') {
+          show = species === 'cat';
+        } else if (filter === 'urgent') {
+          show = isUrgent;
+        }
+
+        if (show) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const emptyEl = document.getElementById('filterEmptyMsg');
+      if (emptyEl) {
+        emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+    }
+
     // Live Supabase Adoption Candidates via Native Fetch
     async function fetchAdoptionPets() {
       const grid = document.getElementById('adoptionGrid');
@@ -1277,33 +1439,48 @@
               const nameSafe = escapeHtml(pet.name);
               const breedSafe = escapeHtml(pet.breed || 'Companion');
               const locSafe = escapeHtml(pet.location || 'PetConnect Rescue Network');
+              const ageSafe = escapeHtml(pet.age || '1 yr');
+              const genderSafe = escapeHtml(pet.gender || 'Companion');
+
+              // Species & Urgency inference for filter bar
+              const rawSpecies = (pet.species || '').toLowerCase();
+              const rawBreed = (pet.breed || '').toLowerCase();
+              const isCat = rawSpecies.includes('cat') || rawBreed.includes('cat') || rawBreed.includes('tabby') || rawBreed.includes('calico');
+              const speciesAttr = isCat ? 'cat' : 'dog';
+              const isUrgent = pet.is_urgent === true || pet.status === 'urgent' || (pet.notes && pet.notes.toLowerCase().includes('urgent'));
 
               return `
-                <div class="adopt-card">
+                <div class="adopt-card" data-species="${speciesAttr}" data-urgent="${isUrgent}">
                   <div class="adopt-photo-wrap">
                     <img class="adopt-photo" src="${img}" alt="${nameSafe}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800'">
-                    <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
+                    <span class="adopt-badge-status">${isUrgent ? 'URGENT RESCUE' : 'AVAILABLE FOR ADOPTION'}</span>
                     <div class="adopt-badge-shelter">📍 ${locSafe}</div>
                   </div>
                   <div class="adopt-body">
                     <div>
                       <div class="adopt-name-row">
                         <span class="adopt-name">${nameSafe}</span>
-                        <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">${escapeHtml(pet.age || '1 yr')}</span>
+                        <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">${ageSafe}</span>
                       </div>
-                      <div class="adopt-breed">${breedSafe} • ${escapeHtml(pet.gender || 'Companion')}</div>
+                      <div class="adopt-vitals-row">
+                        <span class="vital-badge">${ageSafe}</span>
+                        <span class="vital-badge">${genderSafe}</span>
+                        <span class="vital-badge vax">✓ Vet Verified</span>
+                      </div>
+                      <div class="adopt-breed">${breedSafe} • ${genderSafe}</div>
                       <div class="adopt-traits">
                         ${traits.slice(0, 3).map(t => `<span class="trait-pill">${escapeHtml(t)}</span>`).join('')}
                       </div>
                     </div>
                     <div class="adopt-actions">
                       <button class="btn-adopt-apply" onclick="openInquiryModal('${pet.id}', '${nameSafe}', '${pet.owner_id || ''}')">Adopt Me</button>
-                      <a href="/adopt/${pet.id}" class="btn-adopt-view">Details</a>
+                      <a href="/adopt.html?id=${pet.id}" class="btn-adopt-view">Details ↗</a>
                     </div>
                   </div>
                 </div>
               `;
             }).join('');
+            filterAdoptions(currentAdoptionFilter);
             return;
           }
         }
@@ -1317,7 +1494,7 @@
     function renderFallbackPets() {
       const grid = document.getElementById('adoptionGrid');
       grid.innerHTML = `
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="dog" data-urgent="false">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=800" alt="Bella">
             <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
@@ -1329,19 +1506,24 @@
                 <span class="adopt-name">Bella</span>
                 <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">2 yrs</span>
               </div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">2 yrs</span>
+                <span class="vital-badge">Female</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
               <div class="adopt-breed">Golden Retriever • Female</div>
               <div class="adopt-traits">
-                <span class="trait-pill">Loving</span><span class="trait-pill">Playful</span><span class="trait-pill">Vaccinated</span>
+                <span class="trait-pill">Loving</span><span class="trait-pill">Playful</span><span class="trait-pill">Leash Trained</span>
               </div>
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('e2831d10-8b43-4f9e-a89c-567e89ab1001', 'Bella')">Adopt Me</button>
-              <a href="/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1001" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=e2831d10-8b43-4f9e-a89c-567e89ab1001" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
 
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="cat" data-urgent="false">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800" alt="Oliver">
             <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
@@ -1353,6 +1535,11 @@
                 <span class="adopt-name">Oliver</span>
                 <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">3 mos</span>
               </div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">3 mos</span>
+                <span class="vital-badge">Male</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
               <div class="adopt-breed">Short-hair Tabby • Male</div>
               <div class="adopt-traits">
                 <span class="trait-pill">Curious</span><span class="trait-pill">Cuddly</span><span class="trait-pill">Litter-trained</span>
@@ -1360,15 +1547,15 @@
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('e2831d10-8b43-4f9e-a89c-567e89ab1002', 'Oliver')">Adopt Me</button>
-              <a href="/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1002" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=e2831d10-8b43-4f9e-a89c-567e89ab1002" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
 
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="dog" data-urgent="true">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?w=800" alt="Charlie">
-            <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
+            <span class="adopt-badge-status">URGENT RESCUE</span>
             <div class="adopt-badge-shelter">📍 Hope for Paws Foundation</div>
           </div>
           <div class="adopt-body">
@@ -1377,6 +1564,11 @@
                 <span class="adopt-name">Charlie</span>
                 <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">4 mos</span>
               </div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">4 mos</span>
+                <span class="vital-badge">Male</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
               <div class="adopt-breed">Beagle Mix Puppy • Male</div>
               <div class="adopt-traits">
                 <span class="trait-pill">Energetic</span><span class="trait-pill">Friendly</span><span class="trait-pill">Socialized</span>
@@ -1384,15 +1576,15 @@
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('e2831d10-8b43-4f9e-a89c-567e89ab1003', 'Charlie')">Adopt Me</button>
-              <a href="/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1003" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=e2831d10-8b43-4f9e-a89c-567e89ab1003" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
 
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="cat" data-urgent="true">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800" alt="Luna">
-            <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
+            <span class="adopt-badge-status">URGENT RESCUE</span>
             <div class="adopt-badge-shelter">📍 Community Pet Welfare</div>
           </div>
           <div class="adopt-body">
@@ -1401,6 +1593,11 @@
                 <span class="adopt-name">Luna</span>
                 <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">1 yr</span>
               </div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">1 yr</span>
+                <span class="vital-badge">Female</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
               <div class="adopt-breed">Calico Cat • Female</div>
               <div class="adopt-traits">
                 <span class="trait-pill">Calm</span><span class="trait-pill">Independent</span><span class="trait-pill">Cuddle Bug</span>
@@ -1408,12 +1605,12 @@
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('e2831d10-8b43-4f9e-a89c-567e89ab1004', 'Luna')">Adopt Me</button>
-              <a href="/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1004" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=e2831d10-8b43-4f9e-a89c-567e89ab1004" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
 
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="dog" data-urgent="false">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800" alt="Rocky">
             <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
@@ -1425,6 +1622,11 @@
                 <span class="adopt-name">Rocky</span>
                 <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">1.5 yrs</span>
               </div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">1.5 yrs</span>
+                <span class="vital-badge">Male</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
               <div class="adopt-breed">Indian Pariah (Indie) • Male</div>
               <div class="adopt-traits">
                 <span class="trait-pill">Extremely Resilient</span><span class="trait-pill">Loyal</span><span class="trait-pill">Trained</span>
@@ -1432,12 +1634,12 @@
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('e2831d10-8b43-4f9e-a89c-567e89ab1005', 'Rocky')">Adopt Me</button>
-              <a href="/adopt/e2831d10-8b43-4f9e-a89c-567e89ab1005" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=e2831d10-8b43-4f9e-a89c-567e89ab1005" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
 
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="dog" data-urgent="false">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/andikkanan_listing.jpg" alt="Andikkanan">
             <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
@@ -1449,66 +1651,82 @@
                 <span class="adopt-name">Andikkanan</span>
                 <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">1 yr</span>
               </div>
-              <div class="adopt-breed">Indian Pariaaah • Male</div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">1 yr</span>
+                <span class="vital-badge">Male</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
+              <div class="adopt-breed">Indian Pariah • Male</div>
               <div class="adopt-traits">
-                <span class="trait-pill">Friendly</span><span class="trait-pill">Healthy</span><span class="trait-pill">Vaccinated</span>
+                <span class="trait-pill">Friendly</span><span class="trait-pill">Healthy</span><span class="trait-pill">Playful</span>
               </div>
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('16090f54-6eac-4fb5-a897-dd0f15824835', 'Andikkanan')">Adopt Me</button>
-              <a href="/adopt/16090f54-6eac-4fb5-a897-dd0f15824835" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=16090f54-6eac-4fb5-a897-dd0f15824835" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
 
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="dog" data-urgent="false">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/tutu_listing.jpg" alt="tutu">
             <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
-            <div class="adopt-badge-shelter">📍 Independent Foster • kerala</div>
+            <div class="adopt-badge-shelter">📍 Independent Foster • Kerala</div>
           </div>
           <div class="adopt-body">
             <div>
               <div class="adopt-name-row">
                 <span class="adopt-name">tutu</span>
-                <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">2 yr</span>
+                <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">2 yrs</span>
               </div>
-              <div class="adopt-breed">pug • Male</div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">2 yrs</span>
+                <span class="vital-badge">Male</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
+              <div class="adopt-breed">Pug • Male</div>
               <div class="adopt-traits">
-                <span class="trait-pill">Friendly</span><span class="trait-pill">Healthy</span><span class="trait-pill">Vaccinated</span>
+                <span class="trait-pill">Affectionate</span><span class="trait-pill">Calm</span><span class="trait-pill">Good with Kids</span>
               </div>
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('90958c15-3951-43c8-9b84-1fdcbec6add6', 'tutu')">Adopt Me</button>
-              <a href="/adopt/90958c15-3951-43c8-9b84-1fdcbec6add6" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=90958c15-3951-43c8-9b84-1fdcbec6add6" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
 
-        <div class="adopt-card">
+        <div class="adopt-card" data-species="dog" data-urgent="true">
           <div class="adopt-photo-wrap">
             <img class="adopt-photo" src="https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/thara_listing.jpg" alt="Thara">
-            <span class="adopt-badge-status">AVAILABLE FOR ADOPTION</span>
-            <div class="adopt-badge-shelter">📍 Independent Foster • kochi</div>
+            <span class="adopt-badge-status">URGENT RESCUE</span>
+            <div class="adopt-badge-shelter">📍 Independent Foster • Kochi</div>
           </div>
           <div class="adopt-body">
             <div>
               <div class="adopt-name-row">
                 <span class="adopt-name">Thara</span>
-                <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">2 yr</span>
+                <span style="font-family: var(--font-mono); font-size: 0.80rem; font-weight: 700; color: #34d399;">2 yrs</span>
               </div>
-              <div class="adopt-breed">local • Female</div>
+              <div class="adopt-vitals-row">
+                <span class="vital-badge">2 yrs</span>
+                <span class="vital-badge">Female</span>
+                <span class="vital-badge vax">✓ Vaccinated</span>
+              </div>
+              <div class="adopt-breed">Indian Rescue • Female</div>
               <div class="adopt-traits">
-                <span class="trait-pill">Friendly</span><span class="trait-pill">Healthy</span><span class="trait-pill">Vaccinated</span>
+                <span class="trait-pill">Gentle</span><span class="trait-pill">Healthy</span><span class="trait-pill">Needs Quiet Home</span>
               </div>
             </div>
             <div class="adopt-actions">
               <button class="btn-adopt-apply" onclick="openInquiryModal('70d3efb8-166d-49d9-9808-e12233b859b5', 'Thara')">Adopt Me</button>
-              <a href="/adopt/70d3efb8-166d-49d9-9808-e12233b859b5" class="btn-adopt-view">Details</a>
+              <a href="/adopt.html?id=70d3efb8-166d-49d9-9808-e12233b859b5" class="btn-adopt-view">Details ↗</a>
             </div>
           </div>
         </div>
       `;
+      filterAdoptions(currentAdoptionFilter);
     }
 
     // Theme toggle handling

@@ -23,57 +23,62 @@
 
   <style>
     :root[data-theme="dark"] {
-      --canvas: #080c14;
-      --surface: #0f172a;
-      --surface-card: #111a2e;
-      --surface-hover: #17233d;
-      --surface-inner: #0a0f1c;
+      --canvas: #090a10;
+      --canvas-mesh: radial-gradient(circle at 20% 15%, rgba(239, 68, 68, 0.12) 0%, transparent 45%),
+                     radial-gradient(circle at 85% 75%, rgba(245, 158, 11, 0.08) 0%, transparent 45%),
+                     radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+      --surface: #10131d;
+      --surface-card: rgba(18, 22, 34, 0.86);
+      --surface-hover: rgba(26, 32, 50, 0.95);
+      --surface-inner: #0b0e17;
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(239, 68, 68, 0.4);
-      --border-accent: rgba(239, 68, 68, 0.35);
+      --border-hover: rgba(239, 68, 68, 0.5);
+      --border-accent: rgba(239, 68, 68, 0.4);
       
       --danger: #ef4444;
       --danger-dark: #dc2626;
-      --danger-bg: #1f1315;
-      --danger-glow: rgba(239, 68, 68, 0.25);
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --danger-glow: rgba(239, 68, 68, 0.3);
       
       --primary: #10b981;
       --primary-dark: #059669;
-      --primary-glow: rgba(16, 185, 129, 0.22);
+      --primary-glow: rgba(16, 185, 129, 0.25);
       
       --secondary: #06b6d4;
       --accent-amber: #f59e0b;
-      --reward-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(15, 23, 42, 0.7) 100%);
-      --reward-border: rgba(245, 158, 11, 0.45);
+      --reward-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(18, 22, 34, 0.85) 100%);
+      --reward-border: rgba(245, 158, 11, 0.55);
       --reward-text: #fbbf24;
       --reward-sub: #fde68a;
       
       --text-main: #f8fafc;
       --text-sub: #cbd5e1;
       --text-muted: #94a3b8;
-      --nav-bg: #131d31;
-      --shadow-card: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --nav-bg: rgba(16, 19, 29, 0.88);
+      --shadow-card: 0 20px 45px -12px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.08);
       --grid-opacity: 0.03;
     }
 
     :root[data-theme="light"] {
-      --canvas: #f8fafc;
+      --canvas: #fcfbf9;
+      --canvas-mesh: radial-gradient(circle at 15% 15%, rgba(239, 68, 68, 0.08) 0%, transparent 40%),
+                     radial-gradient(circle at 85% 85%, rgba(217, 119, 6, 0.06) 0%, transparent 45%);
       --surface: #ffffff;
       --surface-card: #ffffff;
-      --surface-hover: #f1f5f9;
-      --surface-inner: #f8fafc;
-      --border-subtle: #e2e8f0;
+      --surface-hover: #f9f7f2;
+      --surface-inner: #f6f3eb;
+      --border-subtle: #e8e2d7;
       --border-hover: #ef4444;
       --border-accent: #f87171;
       
       --danger: #dc2626;
       --danger-dark: #b91c1c;
       --danger-bg: #fef2f2;
-      --danger-glow: rgba(220, 38, 38, 0.15);
+      --danger-glow: rgba(220, 38, 38, 0.18);
       
       --primary: #0d9488;
       --primary-dark: #0f766e;
-      --primary-glow: rgba(13, 148, 136, 0.16);
+      --primary-glow: rgba(13, 148, 136, 0.18);
       
       --secondary: #0891b2;
       --accent-amber: #d97706;
@@ -82,11 +87,11 @@
       --reward-text: #b45309;
       --reward-sub: #92400e;
       
-      --text-main: #0f172a;
-      --text-sub: #334155;
-      --text-muted: #64748b;
-      --nav-bg: #ffffff;
-      --shadow-card: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+      --text-main: #18181b;
+      --text-sub: #3f3f46;
+      --text-muted: #71717a;
+      --nav-bg: rgba(255, 255, 255, 0.9);
+      --shadow-card: 0 16px 36px -10px rgba(24, 24, 27, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
       --grid-opacity: 0.05;
     }
 
@@ -96,6 +101,8 @@
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       background: var(--canvas);
+      background-image: var(--canvas-mesh);
+      background-attachment: fixed;
       color: var(--text-main);
       min-height: 100vh;
       display: flex;

@@ -13,11 +13,14 @@ import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:petconnect_ai/features/ai_services/domain/services/ai_report_pdf_exporter.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/health_record.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet_weight_log.dart';
+import 'package:petconnect_ai/features/pet_owner/domain/entities/vaccination.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_widgets.dart';
+import 'package:petconnect_ai/features/smart_collar/presentation/providers/smart_collar_providers.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
 
 /// A generated AI report entry in the archive.
@@ -85,7 +88,49 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
     final currentWeekRange = '${dateFormat.format(weekStart)} – ${dateFormat.format(now)}, ${yearFormat.format(now)}';
     final lastMonthName = DateFormat('MMMM yyyy').format(DateTime(now.year, now.month - 1));
 
-    final List<PetWeightLog> weightLogs = pet != null ? (ref.watch(petWeightLogsProvider(pet.id)).valueOrNull ?? const []) : const [];
+    final List<PetWeightLog> weightLogs = pet != null ? (ref.watch(petWeightLogsProvider(pet.id)).valueOrNull ?? const <PetWeightLog>[]) : const <PetWeightLog>[];
+    final List<Vaccination> vaxList = pet != null ? (ref.watch(vaccinationsProvider(pet.id)).valueOrNull ?? const <Vaccination>[]) : const <Vaccination>[];
+    final List<HealthRecord> healthRecords = pet != null ? (ref.watch(healthRecordsProvider(pet.id)).valueOrNull ?? const <HealthRecord>[]) : const <HealthRecord>[];
+
+    final collars = ref.watch(registeredCollarsProvider).valueOrNull ?? const [];
+    final pairedCollar = pet != null
+        ? (collars.where((c) => c.petId == pet.id).firstOrNull ?? (collars.isNotEmpty ? collars.first : null))
+        : null;
+    final summaries = pairedCollar != null
+        ? ref.watch(collarActivitySummariesProvider(pairedCollar.id)).valueOrNull
+        : null;
+
+    final hasCollar = pairedCollar != null;
+    final int realSteps = summaries != null && summaries.isNotEmpty
+        ? summaries.fold<int>(0, (sum, item) => sum + item.stepCount)
+        : 0;
+    final int realActiveMin = summaries != null && summaries.isNotEmpty
+        ? summaries.fold<int>(0, (sum, item) => sum + item.activeMinutes)
+        : 0;
+
+    final collarStatusText = hasCollar
+        ? 'Collar Connected • $realSteps steps • ${realActiveMin}m active'
+        : 'No Collar Paired (Manual Care Logging)';
+
+    final dynamicSleep = hasCollar
+        ? '${(24.0 - (realActiveMin / 60.0).clamp(1.0, 7.0)).toStringAsFixed(1)} hrs/day'
+        : 'Manual Observation';
+    final dynamicActivity = hasCollar
+        ? '$realSteps steps ($realActiveMin min)'
+        : 'Manual Activity Logging';
+
+    // Dynamic verified wellness score (20-100)
+    int calculatedScore = 50;
+    if (vaxList.isNotEmpty) calculatedScore += 20;
+    if (weightLogs.isNotEmpty) calculatedScore += 12;
+    if (healthRecords.isNotEmpty) calculatedScore += 8;
+    if (hasCollar && realSteps > 1000) calculatedScore += 10;
+    if (pet?.healthStatus.toLowerCase().contains('healthy') == true ||
+        pet?.healthStatus.toLowerCase().contains('optimal') == true) {
+      calculatedScore += 10;
+    }
+    calculatedScore = calculatedScore.clamp(35, 98);
+
     final latestWeight = pet?.weightKg != null
         ? '${pet!.weightKg!.toStringAsFixed(1)} kg'
         : (weightLogs.isNotEmpty ? '${weightLogs.first.weightKg.toStringAsFixed(1)} kg' : 'Optimal');
@@ -96,28 +141,30 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
         'Weekly Wellness',
         currentWeekRange,
         _isGenerating ? _ReportStatus.generating : _ReportStatus.ready,
-        details: '$petName had an active, healthy week — consistent sleep quality, optimal mobility, and steady hydration. Activity score is well-aligned with ${pet?.breed ?? 'breed'} targets.',
+        details: hasCollar
+            ? '$petName logged $realSteps steps and ${realActiveMin}m of activity via Smart Collar. Wellness index is $calculatedScore/100.'
+            : '$petName has verified vaccination and medical records on file. Wellness index is $calculatedScore/100 with manual care logging.',
       ),
       _Report(
         Icons.calendar_month_rounded,
         'Monthly Summary',
         lastMonthName,
         _ReportStatus.ready,
-        details: 'Comprehensive monthly health overview for $petName: Weight maintained at $latestWeight, zero emergency triage incidents logged.',
+        details: 'Comprehensive monthly health overview for $petName: Weight maintained at $latestWeight. $collarStatusText.',
       ),
       _Report(
         Icons.vaccines_rounded,
         'Vaccination & Immunity Report',
         'Updated ${DateFormat('MMM yyyy').format(now)}',
         _ReportStatus.ready,
-        details: 'Core immunization tracking for $petName. All primary vaccinations and parasite preventative treatments are recorded in the Health Passport.',
+        details: '${vaxList.length} core vaccinations and preventive care treatments recorded for $petName.',
       ),
       _Report(
         Icons.insights_rounded,
         'Quarterly Health Trends',
         'Last 90 Days Telemetry',
         _ReportStatus.ready,
-        details: '90-day telemetry, sleep progression, and weight stability trends for $petName: Body weight maintained at $latestWeight, wellness index is optimal.',
+        details: '90-day telemetry for $petName: Body weight at $latestWeight, wellness index verified at $calculatedScore/100.',
       ),
     ];
 
@@ -164,9 +211,18 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
                     petName: petName,
                     petBreed: pet?.breed ?? pet?.species ?? 'Companion',
                     dateRange: currentWeekRange,
+                    wellnessScore: calculatedScore,
+                    collarStatus: collarStatusText,
                     isGenerating: _isGenerating,
                     onGenerate: () => _generateReport(pet),
-                    onView: () => _showReportModal(context, reports.first, pet),
+                    onView: () => _showReportModal(
+                      context,
+                      reports.first,
+                      pet,
+                      calculatedScore,
+                      dynamicSleep,
+                      dynamicActivity,
+                    ),
                   ),
                   AppSpacing.vGapLg,
                   Row(
@@ -200,7 +256,14 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
                             ),
                           _ReportRow(
                             report: filteredReports[i],
-                            onTap: () => _showReportModal(context, filteredReports[i], pet),
+                            onTap: () => _showReportModal(
+                              context,
+                              filteredReports[i],
+                              pet,
+                              calculatedScore,
+                              dynamicSleep,
+                              dynamicActivity,
+                            ),
                           ),
                         ],
                       ],
@@ -215,7 +278,14 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
     );
   }
 
-  void _showReportModal(BuildContext context, _Report report, Pet? pet) {
+  void _showReportModal(
+    BuildContext context,
+    _Report report,
+    Pet? pet,
+    int wellnessScore,
+    String dynamicSleep,
+    String dynamicActivity,
+  ) {
     if (pet == null) {
       context.showSnackbar('Please select a pet to view health reports.');
       return;
@@ -304,7 +374,7 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
               ),
               AppSpacing.vGapMd,
               Text(
-                'Clinical Metrics & Biometrics',
+                'Verified Clinical Metrics',
                 style: context.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -322,17 +392,17 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
                   AppSpacing.hGapSm,
                   Expanded(
                     child: _MetricBadge(
-                      label: 'Vaccines',
-                      value: '${vaxList.length} Recorded',
-                      icon: Icons.vaccines_rounded,
+                      label: 'Wellness Score',
+                      value: '$wellnessScore/100',
+                      icon: Icons.speed_rounded,
                     ),
                   ),
                   AppSpacing.hGapSm,
                   Expanded(
                     child: _MetricBadge(
-                      label: 'Clinical State',
-                      value: pet.healthStatus.toUpperCase(),
-                      icon: Icons.health_and_safety_outlined,
+                      label: 'Vaccines',
+                      value: '${vaxList.length} Recorded',
+                      icon: Icons.vaccines_rounded,
                     ),
                   ),
                 ],
@@ -356,6 +426,9 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
                           vaccinations: vaxList,
                           healthRecords: healthRecords,
                           weightLogs: weightLogs,
+                          healthScore: wellnessScore,
+                          collarRestHours: dynamicSleep,
+                          activityStatus: dynamicActivity,
                         );
                       },
                     ),
@@ -377,6 +450,9 @@ class _AiReportsScreenState extends ConsumerState<AiReportsScreen> {
                           vaccinations: vaxList,
                           healthRecords: healthRecords,
                           weightLogs: weightLogs,
+                          healthScore: wellnessScore,
+                          collarRestHours: dynamicSleep,
+                          activityStatus: dynamicActivity,
                         );
                       },
                     ),
@@ -444,6 +520,8 @@ class _FeaturedReport extends StatelessWidget {
     required this.petName,
     required this.petBreed,
     required this.dateRange,
+    required this.wellnessScore,
+    required this.collarStatus,
     required this.isGenerating,
     required this.onGenerate,
     required this.onView,
@@ -452,6 +530,8 @@ class _FeaturedReport extends StatelessWidget {
   final String petName;
   final String petBreed;
   final String dateRange;
+  final int wellnessScore;
+  final String collarStatus;
   final bool isGenerating;
   final VoidCallback onGenerate;
   final VoidCallback onView;
@@ -503,7 +583,7 @@ class _FeaturedReport extends StatelessWidget {
           ),
           AppSpacing.vGapMd,
           Text(
-            '$petName ($petBreed) had an active, healthy week — activity aligned with targets, consistent sleep, and stable vital signs. Full breakdown inside.',
+            '$petName ($petBreed) • Score: $wellnessScore/100\n$collarStatus',
             style: context.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurface,
             ),

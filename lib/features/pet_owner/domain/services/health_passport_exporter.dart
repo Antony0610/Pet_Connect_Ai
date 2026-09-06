@@ -64,11 +64,7 @@ class HealthPassportExporter {
     final lightGrey = PdfColor.fromHex('#F8FAFC');
     final borderColor = PdfColor.fromHex('#CBD5E1');
 
-    final cleanPetName = pet.name.replaceAll(RegExp(r'[^\w\s]+'), '').trim();
-    final cleanSpecies = pet.species.replaceAll(RegExp(r'[^\w\s]+'), '').trim();
-    final cleanBreed = (pet.breed ?? 'Standard').replaceAll(RegExp(r'[^\w\s]+'), '').trim();
-    final cleanOwner = (owner?.fullName ?? 'Registered Guardian').replaceAll(RegExp(r'[^\w\s]+'), '').trim();
-    final qrPayload = '${Env.webBaseUrl}/verify/passport?id=${pet.id}&pet=${Uri.encodeComponent(cleanPetName)}&species=${Uri.encodeComponent(cleanSpecies)}&breed=${Uri.encodeComponent(cleanBreed)}&owner=${Uri.encodeComponent(cleanOwner)}&auth=verified';
+    final qrPayload = '${Env.webBaseUrl}/verify.html?id=${pet.id}&t=p';
 
     final petImgBytes = await _fetchImageBytes(pet.imageUrl);
 
@@ -459,17 +455,17 @@ class HealthPassportExporter {
                   ),
                   pw.SizedBox(width: 10),
                   pw.Container(
-                    padding: const pw.EdgeInsets.all(4),
+                    padding: const pw.EdgeInsets.all(5),
                     decoration: pw.BoxDecoration(
                       color: PdfColors.white,
                       borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
-                      border: pw.Border.all(color: borderColor, width: 0.8),
+                      border: pw.Border.all(color: primaryColor, width: 1.2),
                     ),
                     child: pw.BarcodeWidget(
                       data: qrPayload,
                       barcode: pw.Barcode.qrCode(),
-                      width: 66,
-                      height: 66,
+                      width: 90,
+                      height: 90,
                     ),
                   ),
                 ],

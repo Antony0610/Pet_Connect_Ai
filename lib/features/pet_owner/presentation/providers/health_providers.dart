@@ -20,6 +20,7 @@ final healthRepositoryProvider = Provider<HealthRepository>((ref) {
 
 final healthRecordsProvider = FutureProvider.family<List<HealthRecord>, String>(
   (ref, petId) async {
+    ref.keepAlive();
     final repo = ref.watch(healthRepositoryProvider);
     final result = await repo.getHealthRecords(petId);
     return result.fold(
@@ -33,6 +34,7 @@ final vaccinationsProvider = FutureProvider.family<List<Vaccination>, String>((
   ref,
   petId,
 ) async {
+  ref.keepAlive();
   final repo = ref.watch(healthRepositoryProvider);
   final result = await repo.getVaccinations(petId);
   return result.fold(
@@ -46,6 +48,7 @@ final healthTimelineEventsProvider =
       ref,
       petId,
     ) async {
+      ref.keepAlive();
       final repo = ref.watch(healthRepositoryProvider);
       final result = await repo.getTimelineEvents(petId);
       return result.fold(
@@ -56,6 +59,7 @@ final healthTimelineEventsProvider =
 
 final petWeightLogsProvider = FutureProvider.family<List<PetWeightLog>, String>(
   (ref, petId) async {
+    ref.keepAlive();
     final repo = ref.watch(healthRepositoryProvider);
     final result = await repo.getWeightLogs(petId);
     return result.fold(
@@ -67,6 +71,7 @@ final petWeightLogsProvider = FutureProvider.family<List<PetWeightLog>, String>(
 
 final treatmentPlansProvider =
     FutureProvider.family<List<TreatmentPlan>, String>((ref, petId) async {
+      ref.keepAlive();
       final repo = ref.watch(healthRepositoryProvider);
       final result = await repo.getTreatmentPlans(petId);
       return result.fold(

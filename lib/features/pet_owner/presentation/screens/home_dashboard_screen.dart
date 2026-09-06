@@ -12,6 +12,7 @@ import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
+import 'package:petconnect_ai/features/pet_owner/presentation/providers/health_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/widgets.dart';
 import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
@@ -54,6 +55,15 @@ class _HomeDashboardScreenState
     final width = context.screenWidth;
     final isWide = AppBreakpoints.isDesktop(width);
     final margin = _horizontalMargin(width);
+
+    // Pre-warm health data for instant zero-lag screen transitions
+    ref.listen<Pet?>(selectedPetProvider, (_, pet) {
+      if (pet != null) {
+        ref.read(vaccinationsProvider(pet.id));
+        ref.read(healthRecordsProvider(pet.id));
+        ref.read(petWeightLogsProvider(pet.id));
+      }
+    });
 
     final avatarUrl =
         ref.watch(currentUserProfileProvider).valueOrNull?.avatarUrl;
@@ -911,7 +921,6 @@ class _QuickActionsGrid extends StatelessWidget {
   ];
 
   void _navigate(BuildContext context, String path) {
-    HapticFeedback.lightImpact();
     context.push(path);
   }
 

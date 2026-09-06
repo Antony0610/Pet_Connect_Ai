@@ -12,7 +12,9 @@ import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
 import 'package:petconnect_ai/core/utils/external_actions.dart';
+import 'package:petconnect_ai/features/ai_services/domain/entities/ai_action_model.dart';
 import 'package:petconnect_ai/features/ai_services/presentation/providers/ai_providers.dart';
+import 'package:petconnect_ai/features/ai_services/presentation/services/ai_action_dispatcher.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_mascot_companion.dart';
@@ -32,6 +34,7 @@ class _ChatMessage {
     this.urgencyLevel,
     this.recommendations = const [],
     this.isStreaming = false,
+    this.action,
   });
 
   final _Role role;
@@ -41,6 +44,7 @@ class _ChatMessage {
   final String? urgencyLevel;
   final List<String> recommendations;
   bool isStreaming;
+  AppAction? action;
 }
 
 /// **AI Assistant Chat** — `/owner/ai/chat`.
@@ -660,6 +664,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     String? urgencyLevel,
     List<String> recommendations = const [],
   }) async {
+    final extractedAction = AppAction.extractFromText(fullResponse);
+    final cleanResponse = AppAction.cleanDisplayText(fullResponse);
+
     final aiMsg = _ChatMessage(
       _Role.ai,
       '',
@@ -667,13 +674,14 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       urgencyLevel: urgencyLevel,
       recommendations: recommendations,
       isStreaming: true,
+      action: extractedAction,
     );
 
     setState(() {
       _messages.add(aiMsg);
     });
 
-    final words = fullResponse.split(' ');
+    final words = cleanResponse.split(' ');
     final buffer = StringBuffer();
     const batchSize = 3; // Multi-word batched streaming for instantaneous fluid rendering
 
@@ -1064,6 +1072,18 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                                 urgencyLevel: m.urgencyLevel,
                                 recommendations: m.recommendations,
                                 isStreaming: m.isStreaming,
+                                action: m.action,
+                                onExecuteAction: m.action != null
+                                    ? () async {
+                                        setState(() {});
+                                        await AiActionDispatcher.execute(
+                                          context: context,
+                                          ref: ref,
+                                          action: m.action!,
+                                        );
+                                        if (mounted) setState(() {});
+                                      }
+                                    : null,
                                 onRegenerate: _lastUserPrompt != null && i == _messages.length - 1
                                     ? () => _sendPrompt(_lastUserPrompt!)
                                     : null,
@@ -1404,6 +1424,8 @@ class _AiCard extends StatelessWidget {
     this.recommendations = const [],
     this.isStreaming = false,
     this.onRegenerate,
+    this.action,
+    this.onExecuteAction,
   });
 
   final String text;
@@ -1412,6 +1434,8 @@ class _AiCard extends StatelessWidget {
   final List<String> recommendations;
   final bool isStreaming;
   final VoidCallback? onRegenerate;
+  final AppAction? action;
+  final VoidCallback? onExecuteAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1514,9 +1538,129 @@ class _AiCard extends StatelessWidget {
                   }
                 },
               ),
+              if (action != null && !isStreaming) ...[
+                AppSpacing.vGapSm,
+                _AiActionCard(
+                  action: action!,
+                  onExecute: onExecuteAction,
+                ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AiActionCard extends StatelessWidget {
+  const _AiActionCard({
+    required this.action,
+    this.onExecute,
+  });
+
+  final AppAction action;
+  final VoidCallback? onExecute;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final accent = action.type.accentColor;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(action.type.icon, color: accent, size: 18),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      action.type.displayName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      action.summary,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (action.status == ActionExecutionStatus.pending) ...[
+                FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accent.withValues(alpha: 0.2),
+                    foregroundColor: accent,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                  label: const Text('Execute Action', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  onPressed: onExecute,
+                ),
+              ] else if (action.status == ActionExecutionStatus.executing) ...[
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+                const Text('Executing...', style: TextStyle(fontSize: 12)),
+              ] else if (action.status == ActionExecutionStatus.completed) ...[
+                const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  action.statusMessage ?? 'Action completed',
+                  style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ] else if (action.status == ActionExecutionStatus.failed) ...[
+                const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  action.statusMessage ?? 'Execution failed',
+                  style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                ),
+                TextButton(
+                  onPressed: onExecute,
+                  child: const Text('Retry', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

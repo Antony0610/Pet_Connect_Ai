@@ -424,10 +424,30 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
     final scheme = context.colorScheme;
 
     return postsAsync.when(
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.xl),
-          child: CircularProgressIndicator(),
+      loading: () => Column(
+        children: List.generate(
+          2,
+          (i) => Container(
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            height: 200,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.primary.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
       error: (e, _) => Center(

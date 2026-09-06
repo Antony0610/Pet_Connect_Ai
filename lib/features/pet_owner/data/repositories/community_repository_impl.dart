@@ -12,12 +12,44 @@ class CommunityRepositoryImpl implements CommunityRepository {
 
   final SupabaseClient _supabase;
   final List<CommunityPost> _localPosts = [];
+  final Map<String, List<CommunityPost>> _cachedRemotePosts = {};
+  final Map<String, DateTime> _cacheTimestamps = {};
+
+  List<CommunityPost> _mergePosts(List<CommunityPost> remotePosts, String? category) {
+    final allPosts = <CommunityPost>[];
+    final seenIds = <String>{};
+
+    for (final post in _localPosts) {
+      if (category == null || category == 'All' || category == 'All Topics' || post.category == category) {
+        allPosts.add(post);
+        seenIds.add(post.id);
+      }
+    }
+
+    for (final post in remotePosts) {
+      if (!seenIds.contains(post.id)) {
+        allPosts.add(post);
+        seenIds.add(post.id);
+      }
+    }
+
+    return allPosts;
+  }
 
   @override
   ResultFuture<List<CommunityPost>> getCommunityPosts({
     String? category,
     int limit = 30,
   }) async {
+    final cacheKey = category ?? 'All';
+    final cached = _cachedRemotePosts[cacheKey];
+    final lastTime = _cacheTimestamps[cacheKey];
+
+    // If cache is fresh (< 2 minutes old), return immediately
+    if (cached != null && lastTime != null && DateTime.now().difference(lastTime).inMinutes < 2) {
+      return Right(_mergePosts(cached, category));
+    }
+
     try {
       var query = _supabase
           .from('community_posts')
@@ -27,32 +59,24 @@ class CommunityRepositoryImpl implements CommunityRepository {
         query = query.eq('category', category);
       }
 
-      final data = await query.order('created_at', ascending: false).limit(limit);
+      final data = await query
+          .order('created_at', ascending: false)
+          .limit(limit)
+          .timeout(const Duration(seconds: 4));
+
       final remotePosts = (data as List<dynamic>)
           .map((json) => CommunityPost.fromJson(json as Map<String, dynamic>))
           .toList();
 
-      // Merge any locally created posts that may not yet be in remote
-      final allPosts = <CommunityPost>[];
-      final seenIds = <String>{};
+      _cachedRemotePosts[cacheKey] = remotePosts;
+      _cacheTimestamps[cacheKey] = DateTime.now();
 
-      for (final post in _localPosts) {
-        if (category == null || category == 'All' || category == 'All Topics' || post.category == category) {
-          allPosts.add(post);
-          seenIds.add(post.id);
-        }
-      }
-
-      for (final post in remotePosts) {
-        if (!seenIds.contains(post.id)) {
-          allPosts.add(post);
-          seenIds.add(post.id);
-        }
-      }
-
-      return Right(allPosts);
+      return Right(_mergePosts(remotePosts, category));
     } catch (e) {
-      // Return local posts on offline / query issues
+      // If network times out or fails, return cached posts or local drafts
+      if (cached != null) {
+        return Right(_mergePosts(cached, category));
+      }
       return Right(_localPosts);
     }
   }

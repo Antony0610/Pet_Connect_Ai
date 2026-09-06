@@ -553,15 +553,16 @@ class _WellnessCard extends ConsumerWidget {
           SizedBox(
             width: 176,
             height: 176,
-            child: CustomPaint(
-              painter: _WellnessGaugePainter(
-                progress: score / 100,
-                track: scheme.outlineVariant.withValues(alpha: 0.4),
-                accent: accent,
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _WellnessGaugePainter(
+                  progress: score / 100,
+                  track: scheme.outlineVariant.withValues(alpha: 0.4),
+                  accent: accent,
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       '$score',
@@ -582,8 +583,9 @@ class _WellnessCard extends ConsumerWidget {
               ),
             ),
           ),
-          AppSpacing.vGapLg,
-          HealthCategoryChip(
+        ),
+        AppSpacing.vGapLg,
+        HealthCategoryChip(
             label: statusLabel,
             icon: Icons.verified_rounded,
             background: container,
