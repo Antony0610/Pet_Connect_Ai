@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,26 +11,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
-  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <script>
+    // Theme initializer to prevent flash
+    (function() {
+      const saved = localStorage.getItem('petconnect_theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
   <style>
-    :root {
+    :root[data-theme="dark"] {
       --canvas: #080c14;
       --surface: #0f172a;
       --surface-card: #111a2e;
       --surface-hover: #17233d;
       --surface-inner: #0a0f1c;
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(16, 185, 129, 0.35);
+      --border-hover: rgba(16, 185, 129, 0.4);
       --border-accent: rgba(124, 58, 237, 0.35);
       
       --primary: #10b981;
       --primary-dark: #059669;
-      --primary-glow: rgba(16, 185, 129, 0.25);
+      --primary-glow: rgba(16, 185, 129, 0.22);
       
       --secondary: #06b6d4;
-      --secondary-glow: rgba(6, 182, 212, 0.22);
+      --secondary-glow: rgba(6, 182, 212, 0.2);
       
       --violet: #8b5cf6;
       --violet-dark: #7c3aed;
@@ -40,25 +49,46 @@
       --text-main: #f8fafc;
       --text-sub: #cbd5e1;
       --text-muted: #94a3b8;
+      --nav-bg: #131d31;
+      --shadow-card: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --grid-opacity: 0.03;
+    }
+
+    :root[data-theme="light"] {
+      --canvas: #f8fafc;
+      --surface: #ffffff;
+      --surface-card: #ffffff;
+      --surface-hover: #f1f5f9;
+      --surface-inner: #f8fafc;
+      --border-subtle: #e2e8f0;
+      --border-hover: #10b981;
+      --border-accent: #8b5cf6;
       
-      --font-heading: 'Outfit', -apple-system, sans-serif;
-      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-glow: rgba(13, 148, 136, 0.16);
       
-      --radius-xl: 24px;
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --radius-pill: 9999px;
+      --secondary: #0891b2;
+      --secondary-glow: rgba(8, 145, 178, 0.16);
       
-      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --violet: #7c3aed;
+      --violet-dark: #6d28d9;
+      --accent-amber: #d97706;
+      --danger: #dc2626;
+      
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --text-muted: #64748b;
+      --nav-bg: #ffffff;
+      --shadow-card: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+      --grid-opacity: 0.05;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: var(--font-body);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       background: var(--canvas);
       color: var(--text-main);
       min-height: 100vh;
@@ -68,18 +98,18 @@
       flex-direction: column;
       align-items: center;
       -webkit-font-smoothing: antialiased;
+      transition: background 0.25s ease, color 0.25s ease;
     }
 
-    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
       background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 48px 48px;
+        linear-gradient(to right, rgba(120, 144, 156, var(--grid-opacity)) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(120, 144, 156, var(--grid-opacity)) 1px, transparent 1px);
+      background-size: 44px 44px;
     }
 
     .container {
@@ -97,46 +127,78 @@
       justify-content: space-between;
       margin-bottom: 24px;
     }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .nav-back {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      background: #131d31;
+      background: var(--nav-bg);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
+      border-radius: 9999px;
       color: var(--text-sub);
       font-size: 0.85rem;
       font-weight: 700;
       text-decoration: none;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .nav-back:hover {
-      background: #1e293b;
-      border-color: rgba(255, 255, 255, 0.16);
-      color: white;
+      border-color: var(--primary);
+      color: var(--primary);
       transform: translateY(-1px);
     }
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--nav-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      cursor: pointer;
+      color: var(--text-main);
+      font-size: 1.1rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
     .badge-dossier {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
       font-weight: 700;
-      color: #2dd4bf;
-      background: rgba(45, 212, 191, 0.12);
-      border: 1px solid rgba(45, 212, 191, 0.3);
+      color: var(--primary);
+      background: var(--primary-glow);
+      border: 1px solid var(--primary);
       padding: 6px 14px;
-      border-radius: var(--radius-pill);
+      border-radius: 9999px;
       letter-spacing: 0.5px;
     }
 
     /* Main Profile Bento Shell */
     .profile-card {
-      background: var(--surface);
+      background: var(--surface-card);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
+      border-radius: 24px;
       overflow: hidden;
-      box-shadow: var(--shadow-bento);
+      box-shadow: var(--shadow-card);
       margin-bottom: 24px;
+      position: relative;
+    }
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
     }
 
     /* Hero Photo */
@@ -170,11 +232,11 @@
       align-items: center;
       gap: 6px;
       padding: 6px 14px;
-      border-radius: var(--radius-pill);
+      border-radius: 9999px;
       background: rgba(124, 58, 237, 0.85);
       backdrop-filter: blur(12px);
       color: white;
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
       font-weight: 800;
       letter-spacing: 0.5px;
@@ -185,8 +247,8 @@
       align-items: center;
       gap: 6px;
       padding: 6px 14px;
-      border-radius: var(--radius-pill);
-      background: rgba(15, 118, 110, 0.85);
+      border-radius: 9999px;
+      background: rgba(15, 118, 110, 0.88);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(20, 184, 166, 0.4);
       color: #99f6e4;
@@ -198,7 +260,6 @@
     .profile-body {
       padding: 30px 24px;
     }
-
     .header-row {
       display: flex;
       align-items: baseline;
@@ -208,22 +269,22 @@
       margin-bottom: 6px;
     }
     .pet-title {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 2.5rem;
       font-weight: 900;
-      color: white;
+      color: var(--text-main);
       line-height: 1.1;
       letter-spacing: -0.02em;
     }
     .fee-badge {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       display: inline-flex;
       align-items: center;
       padding: 6px 14px;
       border-radius: 10px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
+      background: var(--primary-glow);
+      border: 1px solid var(--primary);
+      color: var(--primary);
       font-size: 0.85rem;
       font-weight: 700;
     }
@@ -249,16 +310,16 @@
     .vital-tile {
       background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
+      border-radius: 14px;
       padding: 14px;
       text-align: center;
       transition: border-color 0.2s;
     }
     .vital-tile:hover {
-      border-color: rgba(255, 255, 255, 0.16);
+      border-color: var(--border-hover);
     }
     .vital-lbl {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.72rem;
       font-weight: 700;
       color: var(--text-muted);
@@ -267,10 +328,10 @@
       margin-bottom: 4px;
     }
     .vital-val {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 1.1rem;
       font-weight: 800;
-      color: white;
+      color: var(--text-main);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -278,10 +339,10 @@
 
     /* Story Section */
     .section-title {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 1.2rem;
       font-weight: 800;
-      color: white;
+      color: var(--text-main);
       margin-bottom: 10px;
       display: flex;
       align-items: center;
@@ -295,7 +356,7 @@
       background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
       padding: 18px 20px;
-      border-radius: var(--radius-md);
+      border-radius: 14px;
     }
 
     /* Temperament Pills */
@@ -310,10 +371,10 @@
       align-items: center;
       gap: 6px;
       padding: 6px 14px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.28);
-      border-radius: var(--radius-pill);
-      color: #34d399;
+      background: var(--primary-glow);
+      border: 1px solid var(--primary);
+      border-radius: 9999px;
+      color: var(--primary);
       font-size: 0.84rem;
       font-weight: 700;
     }
@@ -322,7 +383,7 @@
     .shelter-card {
       background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
+      border-radius: 16px;
       padding: 20px;
       margin-bottom: 28px;
     }
@@ -333,10 +394,10 @@
       margin-bottom: 8px;
     }
     .shelter-name {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 1.05rem;
       font-weight: 800;
-      color: white;
+      color: var(--text-main);
     }
     .shelter-location {
       font-size: 0.88rem;
@@ -346,7 +407,7 @@
       gap: 6px;
     }
 
-    /* Action Buttons - Solid Tactile */
+    /* Action Buttons */
     .actions-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -359,19 +420,19 @@
       gap: 10px;
       width: 100%;
       padding: 16px;
-      background: #10b981;
+      background: var(--primary);
       color: white;
       border: none;
       cursor: pointer;
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 1.1rem;
       font-weight: 800;
-      border-radius: var(--radius-md);
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-      transition: all 0.2s var(--ease-spring);
+      border-radius: 14px;
+      box-shadow: 0 4px 14px var(--primary-glow);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-adopt-primary:hover {
-      background: #059669;
+      background: var(--primary-dark);
       transform: translateY(-2px);
     }
     .btn-adopt-primary:active {
@@ -394,17 +455,17 @@
       padding: 14px;
       background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      color: white;
+      border-radius: 14px;
+      color: var(--text-main);
       text-decoration: none;
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 0.95rem;
       font-weight: 700;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-action-contact:hover {
       background: var(--surface-hover);
-      border-color: rgba(255, 255, 255, 0.16);
+      border-color: var(--border-hover);
       transform: translateY(-1px);
     }
 
@@ -412,8 +473,8 @@
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(8, 12, 20, 0.85);
-      backdrop-filter: blur(16px);
+      background: rgba(8, 12, 20, 0.75);
+      backdrop-filter: blur(12px);
       z-index: 1000;
       display: none;
       align-items: center;
@@ -421,21 +482,22 @@
       padding: 16px;
     }
     .modal-box {
-      background: var(--surface);
+      background: var(--surface-card);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
+      border-radius: 20px;
       max-width: 520px;
       width: 100%;
       padding: 32px 28px;
       position: relative;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+      box-shadow: var(--shadow-card);
+      color: var(--text-main);
     }
     .modal-close {
       position: absolute;
       top: 20px;
       right: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      border: none;
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
       color: var(--text-muted);
       width: 34px;
       height: 34px;
@@ -448,12 +510,12 @@
       transition: all 0.2s;
     }
     .modal-close:hover {
-      background: rgba(255, 255, 255, 0.16);
-      color: white;
+      border-color: var(--primary);
+      color: var(--primary);
     }
     .form-lbl {
       display: block;
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.74rem;
       font-weight: 700;
       color: var(--text-muted);
@@ -467,9 +529,9 @@
       padding: 13px 16px;
       background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      color: white;
-      font-family: var(--font-body);
+      border-radius: 12px;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       font-size: 0.95rem;
       outline: none;
       transition: border-color 0.2s;
@@ -478,27 +540,23 @@
       border-color: var(--primary);
       box-shadow: 0 0 12px var(--primary-glow);
     }
-    .form-input::placeholder {
-      color: #64748b;
-    }
 
-    /* Footer Stamp */
+    /* Verification Badge Footer */
     .footer-stamp {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      margin-top: 24px;
-      font-family: var(--font-mono);
-      font-size: 0.76rem;
+      gap: 8px;
+      padding-top: 18px;
+      font-size: 0.78rem;
       color: var(--text-muted);
+      text-align: center;
     }
     .stamp-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--primary);
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--primary);
+      background: var(--primary);
     }
   </style>
 </head>
@@ -507,121 +565,141 @@
 
   <div class="container">
     <!-- Top Nav -->
-    <div class="top-nav">
-      <a href="/" class="nav-back">← PetConnect AI Portal</a>
-      <div class="badge-dossier" id="navDossierBadge">ADOPT-BELLA</div>
-    </div>
+    <header class="top-nav">
+      <a href="/" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Portal Home</span>
+      </a>
+      <div class="nav-actions">
+        <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">
+          <span id="themeIcon">☀️</span>
+        </button>
+        <div class="badge-dossier" id="navDossierBadge">ADOPT-DOSSIER</div>
+      </div>
+    </header>
 
-    <!-- Main Profile Bento Shell -->
-    <div class="profile-card">
+    <!-- Main Profile Card -->
+    <main class="profile-card">
       <div class="hero-photo-wrap">
         <img id="petImg" class="hero-photo" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80" alt="Pet Photo">
         <div class="photo-overlay">
-          <span class="badge-status">AVAILABLE FOR ADOPTION</span>
-          <span class="badge-verified">🛡️ VERIFIED SHELTER</span>
+          <div class="badge-status">AVAILABLE FOR ADOPTION</div>
+          <div class="badge-verified">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>HEALTH SCREENED</span>
+          </div>
         </div>
       </div>
 
       <div class="profile-body">
         <div class="header-row">
-          <h1 id="petName" class="pet-title">Bella</h1>
-          <div id="petFee" class="fee-badge">Free / Loving Home</div>
+          <h1 class="pet-title" id="petName">Loading...</h1>
+          <div class="fee-badge" id="petFee">Free / Loving Home</div>
         </div>
-        <div id="petBreedLine" class="pet-subtitle">Golden Retriever • 2 Years</div>
+        <div class="pet-subtitle">
+          <span id="petBreedLine">Golden Retriever • 2 Years</span>
+        </div>
 
         <!-- Vitals Grid -->
         <div class="vitals-grid">
           <div class="vital-tile">
             <div class="vital-lbl">Breed</div>
-            <div id="vBreed" class="vital-val">Golden Retriever</div>
+            <div class="vital-val" id="vBreed">Retrieval</div>
           </div>
           <div class="vital-tile">
-            <div class="vital-lbl">Age</div>
-            <div id="vAge" class="vital-val">2 Years</div>
+            <div class="vital-lbl">Estimated Age</div>
+            <div class="vital-val" id="vAge">2 Years</div>
           </div>
           <div class="vital-tile">
             <div class="vital-lbl">Gender</div>
-            <div id="vGender" class="vital-val">Female</div>
+            <div class="vital-val" id="vGender">Female</div>
           </div>
         </div>
 
-        <!-- Story Section -->
+        <!-- Biography Story -->
         <div class="section-title">
           <span>📖</span>
-          <span>About <span id="storyPetName">Bella</span></span>
+          <span>About <span id="storyPetName">Companion</span></span>
         </div>
-        <div id="petBio" class="story-card">
-          Loving, gentle, and highly trainable Golden Retriever. Thrives with daily walks and an affectionate family. Fully vaccinated, health screened, and socialized.
+        <div class="story-card" id="petBio">
+          Loading detailed profile and verified medical overview from PetConnect AI network...
         </div>
 
-        <!-- Temperament Checklist -->
+        <!-- Temperament & Habits Checklist -->
         <div class="section-title">
           <span>✨</span>
-          <span>Personality &amp; Temperament</span>
+          <span>Temperament &amp; Habits</span>
         </div>
-        <div id="checklistGrid" class="traits-flex">
+        <div class="traits-flex" id="checklistGrid">
           <span class="trait-pill">✓ Affectionate</span>
-          <span class="trait-pill">✓ Playful</span>
-          <span class="trait-pill">✓ Kid-Friendly</span>
           <span class="trait-pill">✓ Leash-Trained</span>
-          <span class="trait-pill">✓ Health Screened</span>
+          <span class="trait-pill">✓ Kid-Friendly</span>
+          <span class="trait-pill">✓ Fully Vaccinated</span>
         </div>
 
-        <!-- Caregiver Card -->
+        <!-- Shelter / Caregiver Profile -->
         <div class="shelter-card">
           <div class="shelter-header">
-            <div class="shelter-name" id="shelterName">Bangalore Animal Rescue &amp; Care</div>
-            <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--primary); font-weight: 700;">VERIFIED PARTNER</div>
+            <div>
+              <div class="shelter-name" id="shelterTitle">Caregiver / Shelter Registry</div>
+              <div class="shelter-location" id="petLocation">📍 Verified Caregiver</div>
+            </div>
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--primary); background: var(--primary-glow); padding: 4px 10px; border-radius: 9999px;">VERIFIED PROVIDER</span>
           </div>
-          <div class="shelter-location" id="petLocation">📍 Bangalore, Karnataka • Primary Shelter Station</div>
         </div>
 
-        <!-- Action Cluster -->
+        <!-- Actions -->
         <div class="actions-grid">
           <button class="btn-adopt-primary" onclick="openApplyModal()">
-            🚀 Submit Adoption Application
+            <span>📝 Submit Adoption Application</span>
           </button>
           <div class="contact-row">
-            <a href="tel:+919876543210" id="callBtn" class="btn-action-contact">
-              📞 Direct Call
+            <a href="tel:" id="callBtn" class="btn-action-contact">
+              <span>📞 Direct Phone Call</span>
             </a>
-            <a href="https://wa.me/919876543210" id="waBtn" class="btn-action-contact" target="_blank" rel="noopener">
-              💬 WhatsApp Chat
+            <a href="https://wa.me/" id="waBtn" class="btn-action-contact" target="_blank" rel="noopener noreferrer">
+              <span>💬 Message via WhatsApp</span>
             </a>
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <!-- Security Timestamp -->
-    <div class="footer-stamp">
+    <!-- Footer Security Stamp -->
+    <footer class="footer-stamp">
       <div class="stamp-dot"></div>
-      <span>Verified Adoption Network • Live Sync with PetConnect AI Mobile App</span>
-    </div>
+      <span>PetConnect AI Ethical Adoption Ledger • Zero Commercial Breeding Policy</span>
+    </footer>
   </div>
 
-  <!-- Interactive Adoption Modal -->
+  <!-- Apply Modal -->
   <div id="applyModal" class="modal-overlay">
     <div class="modal-box">
       <button class="modal-close" onclick="closeApplyModal()">✕</button>
-      <div style="font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; color: #c084fc; text-transform: uppercase; margin-bottom: 6px;">Direct Cloud Application</div>
-      <h2 style="font-family: var(--font-heading); font-size: 1.65rem; font-weight: 800; margin-bottom: 6px;">Adopt <span id="modalPetName">Bella</span></h2>
-      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px;">Your inquiry will immediately alert the caregiver's PetConnect AI mobile app.</p>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 6px;">Caregiver Inquiries Hub</div>
+      <h2 style="font-family: 'Outfit', -apple-system, sans-serif; font-size: 1.6rem; font-weight: 800; margin-bottom: 6px;">Apply to Adopt <span id="modalPetName">Companion</span></h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px;">Your application dispatches directly to the guardian's PetConnect AI mobile app.</p>
 
       <form id="adoptForm" onsubmit="handleApplySubmit(event)">
-        <label class="form-lbl">APPLICANT FULL NAME</label>
-        <input type="text" id="appName" class="form-input" placeholder="e.g. Alex Morgan" required>
+        <label class="form-lbl">YOUR FULL NAME</label>
+        <input type="text" id="appName" class="form-input" placeholder="e.g. Ananya Sharma" required>
 
-        <label class="form-lbl">PHONE / WHATSAPP NUMBER</label>
-        <input type="tel" id="appPhone" class="form-input" placeholder="e.g. +1 (555) 019-2834" required>
+        <label class="form-lbl">YOUR PHONE NUMBER / WHATSAPP</label>
+        <input type="tel" id="appPhone" class="form-input" placeholder="e.g. +91 98765 43210" required>
 
-        <label class="form-lbl">CITY &amp; RESIDENCE TYPE</label>
-        <input type="text" id="appHome" class="form-input" placeholder="e.g. Seattle, WA • House with fenced yard" required>
+        <label class="form-lbl">HOME &amp; LIVING ARRANGEMENT</label>
+        <input type="text" id="appHome" class="form-input" placeholder="e.g. Apartment with private balcony, Fenced house" required>
 
-        <label class="form-lbl">EXPERIENCE WITH PETS</label>
-        <textarea id="appExp" class="form-input" rows="3" placeholder="Tell the caregiver about your household, daily routine, and prior pet care experience..."></textarea>
+        <label class="form-lbl">PRIOR PET EXPERIENCE</label>
+        <input type="text" id="appExp" class="form-input" placeholder="e.g. Raised dogs for 6 years, First time parent" required>
 
-        <button type="submit" id="applySubmitBtn" class="btn-adopt-primary" style="width: 100%; margin-top: 18px;">
+        <button type="submit" id="applySubmitBtn" class="btn-adopt-primary" style="margin-top: 20px;">
           Send Application to Caregiver 🚀
         </button>
       </form>
@@ -629,72 +707,56 @@
   </div>
 
   <script>
+    // Theme toggle handling
+    const toggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    
+    function updateThemeIcon(theme) {
+      themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    updateThemeIcon(document.documentElement.getAttribute('data-theme'));
+
+    toggleBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('petconnect_theme', next);
+      updateThemeIcon(next);
+    });
+
     const SUPABASE_URL = 'https://cghgslyikjqghrzhrqxz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs';
 
     const params = new URLSearchParams(window.location.search);
-    const pathSegments = window.location.pathname.split('/').filter(Boolean);
-    
-    // Resolve petId from query params (?id=...) or path segment (/adopt/:id)
-    let candidateId = params.get('id');
-    if (!candidateId && pathSegments.length > 0) {
-      const lastSeg = pathSegments[pathSegments.length - 1];
-      if (lastSeg !== 'adopt' && lastSeg !== 'adopt.html') {
-        candidateId = lastSeg;
-      }
-    }
-    // Default fallback to Bella
-    if (!candidateId) {
-      candidateId = 'e2831d10-8b43-4f9e-a89c-567e89ab1001';
-    }
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const pathCandidate = pathParts.pop();
+    const candidateId = params.get('id') || (pathCandidate && pathCandidate !== 'adopt' && pathCandidate !== 'adopt.html' ? pathCandidate : 'e2831d10-8b43-4f9e-a89c-567e89ab1001');
 
     let currentListingId = candidateId;
-    let currentGuardianPhone = '+919876543210';
-    let currentPetName = 'Bella';
+    let currentPetName = 'Companion';
+    let currentGuardianPhone = '+91 98765 43210';
+    let currentOwnerId = null;
 
     async function fetchRealAdoptionDetails() {
       try {
         let petData = null;
-
-        // 1. Fetch from Supabase adoption_listings by ID if UUID format via native fetch
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId);
-        if (isUUID) {
-          try {
-            const resp = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?id=eq.${candidateId}&limit=1&select=*`, {
-              headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            if (resp.ok) {
-              const rows = await resp.json();
-              if (Array.isArray(rows) && rows.length > 0) petData = rows[0];
-            }
-          } catch (_) {}
-        }
 
-        // 2. If not found by ID, try query param name
-        if (!petData) {
-          const paramName = params.get('name');
-          if (paramName) {
-            try {
-              const resp = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?name=ilike.*${encodeURIComponent(paramName)}*&limit=1&select=*`, {
-                headers: {
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                  'Content-Type': 'application/json'
-                }
-              });
-              if (resp.ok) {
-                const rows = await resp.json();
-                if (Array.isArray(rows) && rows.length > 0) petData = rows[0];
-              }
-            } catch (_) {}
+        if (isUUID) {
+          const resp = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?id=eq.${candidateId}&limit=1&select=*`, {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+          });
+          if (resp.ok) {
+            const list = await resp.json();
+            if (Array.isArray(list) && list.length > 0) {
+              petData = list[0];
+            }
           }
         }
 
-        // 3. Fallback to catalog, query params or defaults
         const fallbackCatalog = {
           'e2831d10-8b43-4f9e-a89c-567e89ab1001': {
             name: 'Bella', breed: 'Golden Retriever', age: '2 Years', gender: 'Female',
@@ -703,51 +765,23 @@
             bio: 'Loving, gentle, and highly trainable Golden Retriever. Thrives with daily walks and an affectionate family. Fully vaccinated, health screened, and socialized.',
             traits: ['Affectionate', 'Playful', 'Kid-Friendly', 'Leash-Trained', 'Vaccinated']
           },
-          'e2831d10-8b43-4f9e-a89c-567e89ab1002': {
-            name: 'Oliver', breed: 'Short-hair Tabby', age: '3 Months', gender: 'Male',
-            location: 'Feline Haven Rescue', fee: 'Free / Loving Home', phone: '+91 98111 22334',
-            img: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
-            bio: 'Energetic kitten who loves climbing, chasing laser toys, and cuddles. Gets along great with other pets and is completely litter trained.',
-            traits: ['Curious', 'Affectionate', 'Litter-Trained', 'Playful', 'Socialized']
-          },
-          'e2831d10-8b43-4f9e-a89c-567e89ab1003': {
-            name: 'Charlie', breed: 'Beagle Mix Puppy', age: '4 Months', gender: 'Male',
-            location: 'Hope for Paws Foundation', fee: 'Free / Loving Home', phone: '+91 97444 55667',
-            img: 'https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?w=800',
-            bio: 'Sweet Beagle puppy with a keen nose for adventure. Vaccinated, dewormed, food motivated, and ready for a loving home.',
-            traits: ['Energetic', 'Friendly', 'Socialized', 'Puppy-Trained', 'Healthy']
-          },
-          'e2831d10-8b43-4f9e-a89c-567e89ab1004': {
-            name: 'Luna', breed: 'Calico Cat', age: '1 Year', gender: 'Female',
-            location: 'Community Pet Welfare', fee: 'Free / Loving Home', phone: '+91 96555 88990',
-            img: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=800',
-            bio: 'Quiet and sweet companion who enjoys sunny window sills and gentle scratches. Calm, independent, and completely vaccinated.',
-            traits: ['Calm', 'Independent', 'Cuddle Bug', 'Litter-Trained', 'Vaccinated']
-          },
-          'e2831d10-8b43-4f9e-a89c-567e89ab1005': {
-            name: 'Rocky', breed: 'Indian Pariah (Indie)', age: '1.5 Years', gender: 'Male',
-            location: 'CUPA Bangalore', fee: 'Free / Loving Home', phone: '+91 94000 12345',
-            img: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
-            bio: 'Healthy, highly intelligent native Indie. Perfectly adapted to local climate with natural disease resistance. Alert, protective, and extremely loyal.',
-            traits: ['Extremely Resilient', 'Loyal', 'Tropical Adapted', 'Trained', 'Vaccinated']
-          },
           '16090f54-6eac-4fb5-a897-dd0f15824835': {
             name: 'Andikkanan', breed: 'Indian Pariaaah', age: '1 Year', gender: 'Male',
             location: 'Independent Foster • Thrissur Round', fee: 'Free / Loving Home', phone: '+91 94000 12345',
             img: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/andikkanan_listing.jpg',
-            bio: 'Ithrem oombiya oru chekkan. Friendly, healthy, and vaccinated.',
+            bio: 'A wonderful companion waiting for a loving permanent home. Friendly, healthy, and vaccinated.',
             traits: ['Friendly', 'Healthy', 'Vaccinated']
           },
           '90958c15-3951-43c8-9b84-1fdcbec6add6': {
             name: 'tutu', breed: 'pug', age: '2 Years', gender: 'Male',
-            location: 'Independent Foster • kerala', fee: 'Free / Loving Home', phone: '+91 98111 22334',
+            location: 'Independent Foster • Kerala', fee: 'Free / Loving Home', phone: '+91 98111 22334',
             img: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/tutu_listing.jpg',
             bio: 'A wonderful companion waiting for a loving permanent home. Friendly, healthy, and vaccinated.',
             traits: ['Friendly', 'Healthy', 'Vaccinated']
           },
           '70d3efb8-166d-49d9-9808-e12233b859b5': {
-            name: 'Thara', breed: 'local', age: '2 Years', gender: 'Female',
-            location: 'Independent Foster • kochi', fee: 'Free / Loving Home', phone: '+91 96555 88990',
+            name: 'Thara', breed: 'Local', age: '2 Years', gender: 'Female',
+            location: 'Independent Foster • Kochi', fee: 'Free / Loving Home', phone: '+91 96555 88990',
             img: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/thara_listing.jpg',
             bio: 'A wonderful companion waiting for a loving permanent home. Friendly, healthy, and vaccinated.',
             traits: ['Friendly', 'Healthy', 'Vaccinated']
@@ -768,6 +802,7 @@
         currentListingId = petData?.id || candidateId;
         currentPetName = name;
         currentGuardianPhone = phone;
+        currentOwnerId = petData?.owner_id || null;
 
         // Render to DOM
         document.title = `🐾 Adopt ${name} | PetConnect AI`;
@@ -799,7 +834,7 @@
           document.getElementById('waBtn').href = `https://wa.me/${waClean}?text=${waMsg}`;
         }
 
-        // Render temperament tags if array exists
+        // Render temperament tags
         const traits = (petData?.temperament && Array.isArray(petData.temperament) && petData.temperament.length > 0)
           ? petData.temperament
           : (Array.isArray(petData?.personality_traits) && petData.personality_traits.length > 0)
@@ -823,7 +858,7 @@
       document.getElementById('applyModal').style.display = 'none';
     }
 
-    // Submit Real Application to Supabase
+    // Submit Real Application to Supabase with Instant User Notification Dispatch
     async function handleApplySubmit(e) {
       e.preventDefault();
       const btn = document.getElementById('applySubmitBtn');
@@ -838,6 +873,7 @@
       try {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentListingId);
         if (isUUID) {
+          // 1. Insert into adoption_inquiries
           await fetch(`${SUPABASE_URL}/rest/v1/adoption_inquiries`, {
             method: 'POST',
             headers: {
@@ -856,6 +892,34 @@
               status: 'pending'
             })
           });
+
+          // 2. Dispatch directly into user_notifications for realtime phone OS notification
+          if (currentOwnerId) {
+            await fetch(`${SUPABASE_URL}/rest/v1/user_notifications`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+              },
+              body: JSON.stringify({
+                user_id: currentOwnerId,
+                title: `🐾 New Adoption Inquiry: ${currentPetName}`,
+                body: `${applicantName} (${applicantPhone}) applied to adopt ${currentPetName}. Tap to view.`,
+                notification_type: 'ADOPTION',
+                is_read: false,
+                payload: {
+                  listing_id: currentListingId,
+                  pet_name: currentPetName,
+                  applicant_name: applicantName,
+                  applicant_phone: applicantPhone,
+                  living_arrangement: living,
+                  pet_experience: exp
+                }
+              })
+            }).catch(err => console.warn('User notification insert note:', err));
+          }
         }
 
         alert(`🎉 Application submitted for ${currentPetName}! The caregiver has been notified on the PetConnect AI mobile app and will contact you directly via ${applicantPhone}.`);
@@ -871,7 +935,6 @@
       }
     }
 
-    // Instant execution without blocking
     fetchRealAdoptionDetails();
 
     // Supabase Realtime channel for live profile & photo updates
@@ -887,7 +950,7 @@
       }
     } catch (_) {}
 
-    // Resilient 3s continuous sync so updates in mobile app reflect immediately on web page
+    // 3s continuous sync for instant mobile-to-web sync
     setInterval(fetchRealAdoptionDetails, 3000);
   </script>
 </body>

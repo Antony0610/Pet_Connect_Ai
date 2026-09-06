@@ -202,16 +202,8 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     final baseUrl = Env.webBaseUrl;
     final petNameEnc = Uri.encodeComponent(pet.name);
     final phoneEnc = Uri.encodeComponent(ownerPhone);
-    final locEnc = Uri.encodeComponent(lastSeenLocation);
-    final rewardEnc = Uri.encodeComponent(rewardAmount);
-    final notesEnc = Uri.encodeComponent(_cleanText(_notesController.text));
-    final cleanImg = (pet.imageUrl != null &&
-            (pet.imageUrl!.startsWith('http://') || pet.imageUrl!.startsWith('https://')))
-        ? pet.imageUrl!
-        : '';
-    final imgEnc = Uri.encodeComponent(cleanImg);
 
-    final qrPayload = '$baseUrl/missing/${pet.id}?name=$petNameEnc&species=${Uri.encodeComponent(pet.species)}&breed=${Uri.encodeComponent(pet.breed ?? "")}&phone=$phoneEnc&location=$locEnc&reward=$rewardEnc&notes=$notesEnc&img=$imgEnc';
+    final qrPayload = '$baseUrl/missing/${pet.id}?phone=$phoneEnc&name=$petNameEnc';
 
     const creamBg = Color(0xFFFAF6EE);
     const crimsonColor = Color(0xFFB91C1C);
@@ -464,12 +456,19 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    PetQrCodeView(
-                      data: qrPayload,
-                      size: 80,
-                      padding: 2,
-                      foregroundColor: Colors.black,
-                      backgroundColor: Colors.white,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFD1D5DB), width: 1.0),
+                      ),
+                      child: PetQrCodeView(
+                        data: qrPayload,
+                        size: 96,
+                        padding: 4,
+                        foregroundColor: Colors.black,
+                        backgroundColor: Colors.white,
+                      ),
                     ),
                   ],
                 ),

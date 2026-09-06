@@ -53,9 +53,9 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
   static const List<String> _geminiModels = [
     'gemini-3.8-flash',
+    'gemini-3.5-flash-lite',
     'gemini-3.7-flash',
     'gemini-3.6-flash',
-    'gemini-3.5-flash-lite',
   ];
 
   @override
@@ -293,14 +293,16 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     }
 
     final isImage = imageBase64 != null && imageBase64.isNotEmpty;
-    final timeoutDuration = isImage
-        ? const Duration(milliseconds: 15000)
-        : (preferredModel != null && preferredModel.isNotEmpty
-            ? const Duration(milliseconds: 10000)
-            : const Duration(milliseconds: 4500));
 
     for (final model in modelsToTry) {
       try {
+        final isLite = model.contains('lite');
+        final timeoutDuration = isImage
+            ? const Duration(milliseconds: 15000)
+            : (isLite
+                ? const Duration(milliseconds: 4000)
+                : const Duration(milliseconds: 3500));
+
         final result = await _executeGeminiRequest(
           client: _httpClient,
           model: model,
@@ -315,7 +317,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
           return (result, model);
         }
       } catch (_) {
-        // Cascade to next active Gemini model
+        // High latency or 503 error on active model: cascade immediately to next model
       }
     }
     return (null, 'unknown');
@@ -329,6 +331,12 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     required List<Map<String, dynamic>> contents,
   }) async {
     try {
+      final modelFriendlyName = model.replaceAll('gemini-', 'Gemini ');
+      final groundedSystemPrompt =
+          '$systemPrompt\n\n'
+          'CRITICAL ARCHITECTURE DIRECTIVE: You are PetConnect AI running directly on Google\'s $model ($modelFriendlyName) model. '
+          'When asked which specific model, version, or architecture you are, you must state clearly and proudly that you are powered by Google Gemini ($modelFriendlyName).';
+
       final request = await client.postUrl(
         Uri.parse(
           'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
@@ -339,7 +347,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       final body = jsonEncode({
         'system_instruction': {
           'parts': [
-            {'text': systemPrompt},
+            {'text': groundedSystemPrompt},
           ],
         },
         'contents': contents,

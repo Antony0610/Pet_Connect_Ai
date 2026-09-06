@@ -92,7 +92,9 @@ class AiReportPdfExporter {
     final cleanGender = _cleanText(pet.gender?.toUpperCase() ?? 'UNKNOWN');
     final cleanScope = _cleanText('$reportTitle ($reportRange)');
 
-    final qrPayload = '${Env.webBaseUrl}/verify/report?id=${pet.id}&owner=${Uri.encodeComponent(cleanOwnerName)}&date=${Uri.encodeComponent(nowStr)}&score=$calculatedScore';
+    final cleanPetName = _cleanText(pet.name);
+    final cleanSpecies = _cleanText(pet.species);
+    final qrPayload = '${Env.webBaseUrl}/verify/report?id=${pet.id}&pet=${Uri.encodeComponent(cleanPetName)}&species=${Uri.encodeComponent(cleanSpecies)}&breed=${Uri.encodeComponent(cleanBreed)}&owner=${Uri.encodeComponent(cleanOwnerName)}&date=${Uri.encodeComponent(nowStr)}&score=$calculatedScore';
 
     doc.addPage(
       pw.MultiPage(
@@ -400,11 +402,19 @@ class AiReportPdfExporter {
                     ),
                   ),
                   pw.SizedBox(width: 14),
-                  pw.BarcodeWidget(
-                    data: qrPayload,
-                    barcode: pw.Barcode.qrCode(),
-                    width: 55,
-                    height: 55,
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                      border: pw.Border.all(color: borderColor, width: 0.8),
+                    ),
+                    child: pw.BarcodeWidget(
+                      data: qrPayload,
+                      barcode: pw.Barcode.qrCode(),
+                      width: 66,
+                      height: 66,
+                    ),
                   ),
                 ],
               ),

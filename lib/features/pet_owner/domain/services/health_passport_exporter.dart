@@ -64,8 +64,13 @@ class HealthPassportExporter {
     final lightGrey = PdfColor.fromHex('#F8FAFC');
     final borderColor = PdfColor.fromHex('#CBD5E1');
 
+    final cleanPetName = pet.name.replaceAll(RegExp(r'[^\w\s]+'), '').trim();
+    final cleanSpecies = pet.species.replaceAll(RegExp(r'[^\w\s]+'), '').trim();
+    final cleanBreed = (pet.breed ?? 'Standard').replaceAll(RegExp(r'[^\w\s]+'), '').trim();
+    final cleanOwner = (owner?.fullName ?? 'Registered Guardian').replaceAll(RegExp(r'[^\w\s]+'), '').trim();
+    final qrPayload = '${Env.webBaseUrl}/verify/passport?id=${pet.id}&pet=${Uri.encodeComponent(cleanPetName)}&species=${Uri.encodeComponent(cleanSpecies)}&breed=${Uri.encodeComponent(cleanBreed)}&owner=${Uri.encodeComponent(cleanOwner)}&auth=verified';
+
     final petImgBytes = await _fetchImageBytes(pet.imageUrl);
-    final qrPayload = '${Env.webBaseUrl}/passport/${pet.id}?auth=verified';
 
     doc.addPage(
       pw.MultiPage(
@@ -453,11 +458,19 @@ class HealthPassportExporter {
                     ),
                   ),
                   pw.SizedBox(width: 10),
-                  pw.BarcodeWidget(
-                    data: qrPayload,
-                    barcode: pw.Barcode.qrCode(),
-                    width: 50,
-                    height: 50,
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                      border: pw.Border.all(color: borderColor, width: 0.8),
+                    ),
+                    child: pw.BarcodeWidget(
+                      data: qrPayload,
+                      barcode: pw.Barcode.qrCode(),
+                      width: 66,
+                      height: 66,
+                    ),
                   ),
                 ],
               ),

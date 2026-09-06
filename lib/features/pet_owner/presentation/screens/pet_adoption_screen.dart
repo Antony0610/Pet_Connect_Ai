@@ -2478,9 +2478,9 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 PetQrCodeView(
-                                  data: '${Env.webBaseUrl}/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}&breed=${Uri.encodeComponent(pet.breed)}&age=${Uri.encodeComponent(pet.age)}&species=${Uri.encodeComponent(pet.species)}&location=${Uri.encodeComponent(pet.shelter)}&phone=${Uri.encodeComponent(pet.contactPhone ?? '')}&fee=Free&img=${Uri.encodeComponent(pet.imageUrl)}&bio=${Uri.encodeComponent(pet.description)}',
-                                  size: 76,
-                                  padding: 0,
+                                  data: '${Env.webBaseUrl}/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}&breed=${Uri.encodeComponent(pet.breed)}',
+                                  size: 88,
+                                  padding: 2,
                                   foregroundColor: pQrFg,
                                   backgroundColor: Colors.transparent,
                                 ),

@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/providers/theme_providers.dart';
+import 'package:petconnect_ai/core/services/notification_service.dart';
 import 'package:petconnect_ai/core/theme/theme.dart';
+import 'package:petconnect_ai/features/realtime/domain/entities/user_notification.dart';
+import 'package:petconnect_ai/features/realtime/presentation/providers/realtime_providers.dart';
 import 'package:petconnect_ai/l10n/app_localizations.dart';
 import 'package:petconnect_ai/router/app_router.dart';
 
@@ -17,6 +20,25 @@ class App extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // App-wide live listener for notifications to dispatch real Android OS status-bar notifications
+    ref.listen<AsyncValue<UserNotification>>(
+      liveUserNotificationsStreamProvider,
+      (previous, next) {
+        next.whenData((notif) {
+          ref.read(userNotificationsProvider.notifier).addLiveNotification(notif);
+          final id = DateTime.now().millisecondsSinceEpoch.remainder(100000);
+          final type = notif.notificationType.toUpperCase();
+          final isUrgent = type == 'LOST_PET' || type == 'EMERGENCY' || type == 'CRITICAL';
+          NotificationService.instance.showNotification(
+            id: id,
+            title: notif.title,
+            body: notif.body,
+            isUrgent: isUrgent,
+          );
+        });
+      },
+    );
+
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
     final accent = ref.watch(accentPaletteProvider);

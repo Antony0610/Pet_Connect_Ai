@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,30 +14,76 @@
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <script>
+    // Theme initializer to prevent flash
+    (function() {
+      const saved = localStorage.getItem('petconnect_theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
   <style>
-    :root {
-      --canvas: #0b111e;
-      --surface: #131d31;
-      --surface-card: #18243c;
-      --surface-hover: #1e2c48;
-      --surface-inner: #0d1525;
-      --border-subtle: #1e2c48;
-      --border-hover: #10b981;
-      --border-accent: #0ea5e9;
+    :root[data-theme="dark"] {
+      --canvas: #080c14;
+      --surface: #0f172a;
+      --surface-card: #111a2e;
+      --surface-hover: #17233d;
+      --surface-inner: #0a0f1c;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(16, 185, 129, 0.4);
+      --border-accent: rgba(6, 182, 212, 0.35);
       
       --primary: #10b981;
       --primary-dark: #059669;
       --primary-solid: #10b981;
+      --primary-glow: rgba(16, 185, 129, 0.22);
       
-      --secondary: #0ea5e9;
-      --accent-coral: #f97316;
+      --secondary: #06b6d4;
+      --secondary-glow: rgba(6, 182, 212, 0.2);
+      --accent-coral: #f43f5e;
       --accent-amber: #f59e0b;
       --danger: #ef4444;
       
       --text-main: #f8fafc;
       --text-sub: #cbd5e1;
       --text-muted: #94a3b8;
+      --nav-bg: rgba(15, 23, 42, 0.85);
+      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --grid-opacity: 0.03;
+    }
+
+    :root[data-theme="light"] {
+      --canvas: #f8fafc;
+      --surface: #ffffff;
+      --surface-card: #ffffff;
+      --surface-hover: #f1f5f9;
+      --surface-inner: #f8fafc;
+      --border-subtle: #e2e8f0;
+      --border-hover: #10b981;
+      --border-accent: #06b6d4;
       
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-solid: #0d9488;
+      --primary-glow: rgba(13, 148, 136, 0.16);
+      
+      --secondary: #0891b2;
+      --secondary-glow: rgba(8, 145, 178, 0.16);
+      --accent-coral: #e11d48;
+      --accent-amber: #d97706;
+      --danger: #dc2626;
+      
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --text-muted: #64748b;
+      --nav-bg: rgba(255, 255, 255, 0.90);
+      --shadow-bento: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+      --grid-opacity: 0.05;
+    }
+
+    :root {
       --font-heading: 'Outfit', -apple-system, sans-serif;
       --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
@@ -48,7 +94,6 @@
       --radius-pill: 9999px;
       
       --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-      --shadow-bento: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -182,6 +227,26 @@
       box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
     }
 
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      cursor: pointer;
+      color: var(--text-main);
+      font-size: 1.05rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
+
     /* Live Missing Emergency Alert Banner */
     .live-alert-banner {
       display: none;
@@ -307,23 +372,20 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: #18243c;
-      color: #ffffff;
+      background: var(--surface-card);
+      color: var(--text-main);
       font-weight: 700;
       font-size: 0.98rem;
       padding: 14px 24px;
       border-radius: var(--radius-pill);
       text-decoration: none;
-      border: 1px solid #293b5e;
+      border: 1px solid var(--border-subtle);
       transition: all 0.2s ease;
     }
     .btn-secondary-hero:hover {
-      background: #1e2c48;
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-    .btn-secondary-hero:hover {
       background: var(--surface-hover);
-      border-color: rgba(255, 255, 255, 0.18);
+      border-color: var(--border-hover);
+      color: var(--primary);
     }
 
     .hero-stats-row {
@@ -336,7 +398,7 @@
       font-family: var(--font-heading);
       font-size: 1.6rem;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--text-main);
     }
     .stat-item .stat-lbl {
       font-size: 0.80rem;
@@ -365,7 +427,7 @@
       font-family: var(--font-heading);
       font-size: 1.15rem;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--text-main);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -406,14 +468,14 @@
       text-align: center;
     }
     .sim-tab-btn.active {
-      background: var(--surface);
-      color: #ffffff;
+      background: var(--surface-card);
+      color: var(--text-main);
       border: 1px solid var(--border-subtle);
     }
 
     /* Viewport Frame with Scanner Laser */
     .sim-viewport {
-      background: #060913;
+      background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       padding: 24px;
@@ -441,7 +503,7 @@
       padding: 16px;
       background: #ffffff;
       border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       margin-bottom: 16px;
     }
     .qr-img {
@@ -453,7 +515,7 @@
       font-family: var(--font-heading);
       font-size: 1.10rem;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--text-main);
       margin-bottom: 4px;
     }
     .sim-meta-sub {
@@ -502,7 +564,7 @@
       font-size: 2.5rem;
       font-weight: 900;
       letter-spacing: -0.8px;
-      color: #ffffff;
+      color: var(--text-main);
       margin-bottom: 14px;
     }
     .section-desc {
@@ -519,7 +581,7 @@
       margin-bottom: 80px;
     }
     .bento-card {
-      background: var(--surface);
+      background: var(--surface-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-xl);
       padding: 30px;
@@ -550,13 +612,13 @@
     .bento-icon-pill svg {
       width: 24px;
       height: 24px;
-      fill: #34d399;
+      fill: var(--primary);
     }
     .bento-card-title {
       font-family: var(--font-heading);
       font-size: 1.35rem;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--text-main);
       margin-bottom: 10px;
       letter-spacing: -0.3px;
     }
@@ -593,7 +655,7 @@
       margin-bottom: 40px;
     }
     .adopt-card {
-      background: var(--surface);
+      background: var(--surface-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-xl);
       overflow: hidden;
@@ -609,7 +671,7 @@
     .adopt-photo-wrap {
       width: 100%;
       height: 220px;
-      background: #0d1527;
+      background: var(--surface-inner);
       overflow: hidden;
       position: relative;
     }
@@ -670,7 +732,7 @@
       font-family: var(--font-heading);
       font-size: 1.4rem;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--text-main);
     }
     .adopt-breed {
       font-size: 0.86rem;
@@ -686,11 +748,11 @@
     .trait-pill {
       font-size: 0.74rem;
       font-weight: 700;
-      color: #cbd5e1;
-      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-sub);
+      background: var(--surface-inner);
       padding: 3px 8px;
       border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
     }
     .adopt-actions {
       display: flex;
@@ -699,7 +761,7 @@
     .btn-adopt-apply {
       flex: 2;
       background: var(--primary);
-      color: #061e16;
+      color: white;
       border: none;
       font-weight: 800;
       font-size: 0.88rem;
@@ -710,7 +772,7 @@
       text-align: center;
     }
     .btn-adopt-apply:hover {
-      background: #34d399;
+      background: var(--primary-dark);
       transform: translateY(-1px);
     }
     .btn-adopt-view {
@@ -729,6 +791,7 @@
     }
     .btn-adopt-view:hover {
       background: var(--surface-hover);
+      border-color: var(--border-hover);
     }
 
     /* INQUIRY MODAL */
@@ -744,14 +807,15 @@
       padding: 16px;
     }
     .modal-card {
-      background: var(--surface);
+      background: var(--surface-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-xl);
       width: 100%;
       max-width: 480px;
       padding: 32px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
       position: relative;
+      color: var(--text-main);
     }
     .modal-close {
       position: absolute;
@@ -763,21 +827,21 @@
       font-size: 1.2rem;
       cursor: pointer;
     }
-    .modal-close:hover { color: #ffffff; }
+    .modal-close:hover { color: var(--text-main); }
     .input-field {
       width: 100%;
       padding: 12px 14px;
       background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      color: #ffffff;
+      color: var(--text-main);
       font-family: var(--font-body);
       font-size: 0.92rem;
       margin-bottom: 14px;
     }
     .input-field:focus {
-      outline: none;
       border-color: var(--primary);
+      outline: none;
     }
 
     /* FOOTER */
@@ -872,10 +936,15 @@
           <li><a href="/missing/c590ba41-c8ab-4bc5-985b-e15f817e0b3c" class="nav-link" style="color: #fca5a5;">Lost Pet Alerts</a></li>
         </ul>
 
-        <a href="#adoption" class="nav-cta-btn">
-          <span>Explore Adoptions</span>
-          <span>→</span>
-        </a>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">
+            <span id="themeIcon">☀️</span>
+          </button>
+          <a href="#adoption" class="nav-cta-btn">
+            <span>Explore Adoptions</span>
+            <span>→</span>
+          </a>
+        </div>
       </nav>
     </header>
 
@@ -1228,7 +1297,7 @@
                       </div>
                     </div>
                     <div class="adopt-actions">
-                      <button class="btn-adopt-apply" onclick="openInquiryModal('${pet.id}', '${nameSafe}')">Adopt Me</button>
+                      <button class="btn-adopt-apply" onclick="openInquiryModal('${pet.id}', '${nameSafe}', '${pet.owner_id || ''}')">Adopt Me</button>
                       <a href="/adopt/${pet.id}" class="btn-adopt-view">Details</a>
                     </div>
                   </div>
@@ -1442,9 +1511,31 @@
       `;
     }
 
-    function openInquiryModal(petId, petName) {
+    // Theme toggle handling
+    const toggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    function updateThemeIcon(theme) {
+      if (themeIcon) {
+        themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      }
+    }
+    updateThemeIcon(document.documentElement.getAttribute('data-theme'));
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('petconnect_theme', next);
+        updateThemeIcon(next);
+      });
+    }
+
+    let currentSelectedOwnerId = null;
+
+    function openInquiryModal(petId, petName, ownerId) {
       currentSelectedPetId = petId;
       currentSelectedPetName = petName;
+      currentSelectedOwnerId = ownerId || null;
       document.getElementById('modalPetName').textContent = petName;
       document.getElementById('inquiryModal').style.display = 'flex';
     }
@@ -1465,6 +1556,7 @@
       const exp = document.getElementById('inqExp').value.trim();
 
       try {
+        // 1. Insert into adoption_inquiries
         await fetch(`${SUPABASE_URL}/rest/v1/adoption_inquiries`, {
           method: 'POST',
           headers: {
@@ -1483,6 +1575,34 @@
             status: 'pending'
           })
         });
+
+        // 2. Dispatch directly into user_notifications for realtime phone OS notification
+        if (currentSelectedOwnerId) {
+          await fetch(`${SUPABASE_URL}/rest/v1/user_notifications`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              user_id: currentSelectedOwnerId,
+              title: `🐾 New Adoption Inquiry: ${currentSelectedPetName}`,
+              body: `${name} (${phone}) applied to adopt ${currentSelectedPetName}. Tap to view application.`,
+              notification_type: 'ADOPTION',
+              is_read: false,
+              payload: {
+                listing_id: currentSelectedPetId,
+                pet_name: currentSelectedPetName,
+                applicant_name: name,
+                applicant_phone: phone,
+                living_arrangement: home,
+                pet_experience: exp
+              }
+            })
+          }).catch(err => console.warn('User notification insert note:', err));
+        }
 
         alert(`🎉 Thank you, ${name}! Your application for ${currentSelectedPetName} has been submitted directly to the caregiver's PetConnect AI mobile app.`);
         closeInquiryModal();

@@ -37,6 +37,31 @@ class NotificationService {
           // Handle notification tap
         },
       );
+
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImpl != null) {
+        await androidImpl.requestNotificationsPermission();
+        await androidImpl.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'petconnect_urgent_channel',
+            'Urgent Pet Alerts',
+            description: 'Critical geofence breach, lost pet sightings, and emergency alerts',
+            importance: Importance.max,
+            enableVibration: true,
+            playSound: true,
+          ),
+        );
+        await androidImpl.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'petconnect_general_channel',
+            'General Notifications',
+            description: 'Community activity, adoption inquiries, appointments, and care reminders',
+            importance: Importance.high,
+            enableVibration: true,
+            playSound: true,
+          ),
+        );
+      }
       _initialized = true;
     } catch (_) {
       // Gracefully continue in test/mock environments

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,15 +11,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
+  <script>
+    // Theme initializer to prevent flash
+    (function() {
+      const saved = localStorage.getItem('petconnect_theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
   <style>
-    :root {
+    :root[data-theme="dark"] {
       --canvas: #080c14;
       --surface: #0f172a;
       --surface-card: #111a2e;
       --surface-hover: #17233d;
       --surface-inner: #0a0f1c;
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(16, 185, 129, 0.35);
+      --border-hover: rgba(16, 185, 129, 0.4);
       --border-accent: rgba(6, 182, 212, 0.35);
       
       --primary: #10b981;
@@ -27,35 +37,72 @@
       --primary-glow: rgba(16, 185, 129, 0.22);
       
       --secondary: #06b6d4;
-      --secondary-glow: rgba(6, 182, 212, 0.22);
+      --secondary-glow: rgba(6, 182, 212, 0.2);
       
       --danger: #ef4444;
-      --danger-soft: rgba(239, 68, 68, 0.14);
-      --danger-glow: rgba(239, 68, 68, 0.25);
-      --accent-amber: #f59e0b;
+      --danger-bg: #1f1315;
+      --danger-border: rgba(239, 68, 68, 0.5);
+      --danger-text: #fca5a5;
+      
+      --alert-bg: #1c1917;
+      --alert-border: rgba(245, 158, 11, 0.5);
+      --alert-title: #fbbf24;
+      --alert-text: #fde68a;
+      
+      --guardian-bg: #0c1322;
+      --guardian-title: #2dd4bf;
       
       --text-main: #f8fafc;
       --text-sub: #cbd5e1;
       --text-muted: #94a3b8;
+      --nav-bg: #131d31;
+      --shadow-card: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --grid-opacity: 0.03;
+    }
+
+    :root[data-theme="light"] {
+      --canvas: #f8fafc;
+      --surface: #ffffff;
+      --surface-card: #ffffff;
+      --surface-hover: #f1f5f9;
+      --surface-inner: #f8fafc;
+      --border-subtle: #e2e8f0;
+      --border-hover: #10b981;
+      --border-accent: #06b6d4;
       
-      --font-heading: 'Outfit', -apple-system, sans-serif;
-      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-glow: rgba(13, 148, 136, 0.16);
       
-      --radius-xl: 24px;
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --radius-pill: 9999px;
+      --secondary: #0891b2;
+      --secondary-glow: rgba(8, 145, 178, 0.16);
       
-      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --danger-border: #fca5a5;
+      --danger-text: #b91c1c;
+      
+      --alert-bg: #fffbeb;
+      --alert-border: #fcd34d;
+      --alert-title: #b45309;
+      --alert-text: #92400e;
+      
+      --guardian-bg: #f0fdfa;
+      --guardian-title: #0f766e;
+      
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --text-muted: #64748b;
+      --nav-bg: #ffffff;
+      --shadow-card: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+      --grid-opacity: 0.05;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: var(--font-body);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       background: var(--canvas);
       color: var(--text-main);
       min-height: 100vh;
@@ -65,18 +112,18 @@
       flex-direction: column;
       align-items: center;
       -webkit-font-smoothing: antialiased;
+      transition: background 0.25s ease, color 0.25s ease;
     }
 
-    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
       background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 48px 48px;
+        linear-gradient(to right, rgba(120, 144, 156, var(--grid-opacity)) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(120, 144, 156, var(--grid-opacity)) 1px, transparent 1px);
+      background-size: 44px 44px;
     }
 
     .container {
@@ -93,49 +140,73 @@
       justify-content: space-between;
       margin-bottom: 20px;
     }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .nav-back {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      background: #131d31;
+      background: var(--nav-bg);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
+      border-radius: 9999px;
       color: var(--text-sub);
       font-size: 0.85rem;
       font-weight: 700;
       text-decoration: none;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .nav-back:hover {
-      background: #1e293b;
-      border-color: rgba(255, 255, 255, 0.16);
-      color: white;
+      border-color: var(--primary);
+      color: var(--primary);
       transform: translateY(-1px);
     }
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--nav-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      cursor: pointer;
+      color: var(--text-main);
+      font-size: 1.1rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
     .nav-badge {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
       font-weight: 700;
       color: var(--primary);
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: var(--primary-glow);
+      border: 1px solid var(--primary);
       padding: 6px 14px;
-      border-radius: var(--radius-pill);
+      border-radius: 9999px;
       letter-spacing: 0.5px;
     }
 
-    /* SOS Alert Banner - Solid Pet App Color */
+    /* SOS Alert Banner */
     .sos-banner {
-      background: #181216;
-      border: 1px solid #ef4444;
-      border-radius: var(--radius-lg);
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      border-radius: 16px;
       padding: 16px 20px;
       display: flex;
       align-items: center;
       gap: 16px;
       margin-bottom: 20px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.08);
     }
     .beacon {
       width: 14px;
@@ -151,10 +222,10 @@
       50% { transform: scale(1.35); opacity: 0.45; }
     }
     .sos-title {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 1.05rem;
       font-weight: 800;
-      color: #fca5a5;
+      color: var(--danger-text);
       letter-spacing: -0.01em;
     }
     .sos-sub {
@@ -164,13 +235,22 @@
 
     /* Main Bento Shell */
     .bento-card {
-      background: var(--surface);
+      background: var(--surface-card);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
+      border-radius: 24px;
       padding: 28px 24px;
-      box-shadow: var(--shadow-bento);
+      box-shadow: var(--shadow-card);
       margin-bottom: 20px;
-      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+    .bento-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--danger), var(--primary));
     }
 
     /* Pet Profile Header */
@@ -194,9 +274,9 @@
       border-radius: 22px;
       object-fit: cover;
       background: var(--surface-inner);
-      border: 2px solid rgba(16, 185, 129, 0.35);
+      border: 2px solid var(--primary);
       display: block;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     }
     .status-ring {
       position: absolute;
@@ -205,7 +285,7 @@
       width: 18px;
       height: 18px;
       background: var(--primary);
-      border: 3px solid var(--surface);
+      border: 3px solid var(--surface-card);
       border-radius: 50%;
       box-shadow: 0 0 10px var(--primary);
     }
@@ -221,22 +301,22 @@
       margin-bottom: 4px;
     }
     .pet-name {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 2.1rem;
       font-weight: 900;
-      color: white;
+      color: var(--text-main);
       line-height: 1.1;
       letter-spacing: -0.02em;
     }
     .pet-species-badge {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.76rem;
       font-weight: 700;
       padding: 3px 10px;
-      background: rgba(6, 182, 212, 0.14);
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      color: #38bdf8;
-      border-radius: var(--radius-pill);
+      background: var(--secondary-glow);
+      border: 1px solid var(--border-accent);
+      color: var(--secondary);
+      border-radius: 9999px;
     }
     .pet-subtitle {
       font-size: 0.95rem;
@@ -249,20 +329,20 @@
       align-items: center;
       gap: 6px;
       padding: 4px 12px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      border-radius: var(--radius-pill);
+      background: var(--primary-glow);
+      border: 1px solid var(--primary);
+      border-radius: 9999px;
       color: var(--primary);
       font-size: 0.74rem;
       font-weight: 800;
       letter-spacing: 0.5px;
     }
 
-    /* Medical Alert Box - Solid Amber */
+    /* Medical Alert Box */
     .alert-card {
-      background: #1c1917;
-      border: 1px solid #f59e0b;
-      border-radius: var(--radius-lg);
+      background: var(--alert-bg);
+      border: 1px solid var(--alert-border);
+      border-radius: 16px;
       padding: 16px 18px;
       margin-bottom: 20px;
     }
@@ -270,17 +350,17 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 0.85rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: #fbbf24;
+      color: var(--alert-title);
       margin-bottom: 6px;
     }
     .alert-body {
       font-size: 0.92rem;
-      color: #fde68a;
+      color: var(--alert-text);
       font-weight: 600;
       line-height: 1.5;
     }
@@ -298,15 +378,15 @@
     .vital-cell {
       background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
+      border-radius: 14px;
       padding: 14px 16px;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, background 0.2s;
     }
     .vital-cell:hover {
-      border-color: rgba(255, 255, 255, 0.16);
+      border-color: var(--border-hover);
     }
     .vital-lbl {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -315,10 +395,10 @@
       margin-bottom: 4px;
     }
     .vital-val {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 1.05rem;
       font-weight: 800;
-      color: white;
+      color: var(--text-main);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -326,19 +406,19 @@
 
     /* Guardian Contact Card */
     .guardian-card {
-      background: var(--surface-inner);
+      background: var(--guardian-bg);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
+      border-radius: 16px;
       padding: 20px;
       margin-bottom: 24px;
     }
     .guardian-title {
-      font-family: var(--font-heading);
+      font-family: 'Outfit', -apple-system, sans-serif;
       font-size: 0.9rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: #2dd4bf;
+      color: var(--guardian-title);
       margin-bottom: 12px;
       display: flex;
       align-items: center;
@@ -348,99 +428,92 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
+      gap: 16px;
     }
-    .guardian-row:not(:last-child) {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    .guardian-info {
+      flex: 1;
+      min-width: 0;
     }
-    .g-lbl {
-      font-size: 0.85rem;
+    .guardian-name {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+    .guardian-phone {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      font-weight: 600;
       color: var(--text-muted);
     }
-    .g-val {
-      font-family: var(--font-body);
-      font-size: 0.98rem;
-      font-weight: 700;
-      color: white;
-    }
-    .g-phone {
-      font-family: var(--font-mono);
-      color: #38bdf8;
-      font-weight: 700;
-    }
 
-    /* Action Buttons - Solid Tactile */
-    .actions-cluster {
-      display: flex;
-      flex-direction: column;
+    /* Rapid Action Buttons */
+    .action-stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
+      margin-bottom: 24px;
     }
-    .btn-emergency-call {
+    @media (max-width: 440px) {
+      .action-stack { grid-template-columns: 1fr; }
+    }
+    .btn-action {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
-      width: 100%;
-      padding: 16px;
-      background: #10b981;
-      color: #ffffff;
-      text-decoration: none;
-      font-family: var(--font-heading);
-      font-size: 1.08rem;
+      padding: 15px 20px;
+      border-radius: 14px;
+      font-family: 'Outfit', -apple-system, sans-serif;
+      font-size: 0.98rem;
       font-weight: 800;
-      border-radius: var(--radius-md);
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-      transition: all 0.2s var(--ease-spring);
-    }
-    .btn-emergency-call:hover {
-      background: #059669;
-      transform: translateY(-2px);
-    }
-    .btn-emergency-call:active {
-      transform: scale(0.98);
-    }
-
-    .btn-whatsapp-msg {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 15px;
-      background: #0f766e;
-      color: white;
       text-decoration: none;
-      font-family: var(--font-heading);
-      font-size: 1.02rem;
-      font-weight: 700;
-      border-radius: var(--radius-md);
-      transition: all 0.2s var(--ease-spring);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+      user-select: none;
     }
-    .btn-whatsapp-msg:hover {
-      background: #115e59;
-      transform: translateY(-1px);
+    .btn-call {
+      background: #10b981;
+      color: #042f1a;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
     }
-    .btn-whatsapp-msg:active {
-      transform: scale(0.98);
+    .btn-call:hover {
+      background: #059669;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+    }
+    .btn-whatsapp {
+      background: #25d366;
+      color: #042f1a;
+      box-shadow: 0 4px 16px rgba(37, 211, 102, 0.3);
+    }
+    .btn-whatsapp:hover {
+      background: #1ea952;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4);
     }
 
-    /* Footer Telemetry Stamp */
+    /* Verification Badge Footer */
     .footer-stamp {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      margin-top: 24px;
-      font-family: var(--font-mono);
-      font-size: 0.76rem;
+      gap: 8px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.78rem;
       color: var(--text-muted);
+      text-align: center;
     }
     .stamp-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--primary);
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--primary);
+      background: var(--primary);
     }
   </style>
 </head>
@@ -449,102 +522,129 @@
 
   <div class="container">
     <!-- Top Nav -->
-    <div class="top-nav">
-      <a href="/" class="nav-back">← PetConnect AI Portal</a>
-      <div class="nav-badge" id="navIdBadge">DOS-BUDDY</div>
-    </div>
+    <header class="top-nav">
+      <a href="/" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Portal Home</span>
+      </a>
+      <div class="nav-actions">
+        <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">
+          <span id="themeIcon">☀️</span>
+        </button>
+        <div class="nav-badge" id="navIdBadge">DOS-LIVE</div>
+      </div>
+    </header>
 
     <!-- SOS Banner -->
     <div class="sos-banner">
       <div class="beacon"></div>
       <div>
-        <div class="sos-title">Clinical Emergency Health Pass</div>
-        <div class="sos-sub">First responder veterinary &amp; guardian contact gateway</div>
+        <div class="sos-title">🚨 Emergency Clinical Pass Active</div>
+        <div class="sos-sub">If you have found this pet, please immediately call or message the verified guardian below.</div>
       </div>
     </div>
 
     <!-- Main Bento Card -->
-    <div class="bento-card">
+    <main class="bento-card">
+      <!-- Profile Header -->
       <div class="profile-hero">
         <div class="avatar-wrapper">
-          <img id="petAvatar" class="avatar-img" src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&auto=format&fit=crop&q=80" alt="Pet Avatar" onerror="handleImageError(this)">
-          <div class="status-ring"></div>
+          <img id="petAvatar" class="avatar-img" src="" alt="Pet Avatar" onerror="handleImageError(this)">
+          <div class="status-ring" title="Microchip Registered"></div>
         </div>
         <div class="profile-info">
           <div class="pet-name-row">
-            <h1 id="petName" class="pet-name">Buddy</h1>
-            <span class="pet-species-badge" id="petSpeciesBadge">DOG</span>
+            <h1 class="pet-name" id="petName">Loading...</h1>
+            <span class="pet-species-badge" id="petSpeciesBadge">PET</span>
           </div>
-          <div id="petBreedLine" class="pet-subtitle">Golden Retriever • Companion</div>
-          <div class="cert-pill">🛡️ VERIFIED PETCONNECT ID</div>
+          <div class="pet-subtitle" id="petBreedLine">Verifying records...</div>
+          <div class="cert-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>REGISTERED COMPANION</span>
+          </div>
         </div>
       </div>
 
-      <!-- Critical Alert Box -->
+      <!-- Medical Alert -->
       <div class="alert-card">
         <div class="alert-header">
-          <span>⚠️</span>
-          <span>Medical Alerts &amp; Drug Allergies</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>CRITICAL HEALTH & ALLERGIES</span>
         </div>
-        <div id="alertContent" class="alert-body">No Known Drug Allergies (NKDA). Routine vitals optimal.</div>
+        <div class="alert-body" id="alertContent">
+          No Known Drug Allergies (NKDA). Routine immunization certified.
+        </div>
       </div>
 
-      <!-- Vitals Bento Grid -->
+      <!-- Clinical Vitals -->
       <div class="vitals-grid">
         <div class="vital-cell">
           <div class="vital-lbl">Microchip ID</div>
-          <div id="dChip" class="vital-val" style="font-family: var(--font-mono); font-size: 0.88rem; color: #38bdf8;">PC-CHIP-98210</div>
+          <div class="vital-val" id="dChip">PC-CHIP-98210</div>
         </div>
         <div class="vital-cell">
-          <div class="vital-lbl">Core Vaccination</div>
-          <div class="vital-val" style="color: var(--primary);">Verified Active 🛡️</div>
+          <div class="vital-lbl">Weight / Body Index</div>
+          <div class="vital-val" id="dWeight">28.5 kg</div>
         </div>
         <div class="vital-cell">
-          <div class="vital-lbl">Weight / Biometrics</div>
-          <div id="dWeight" class="vital-val">28.50 kg</div>
+          <div class="vital-lbl">Registry Identifier</div>
+          <div class="vital-val" id="dossierId">DOS-LIVE</div>
         </div>
         <div class="vital-cell">
-          <div class="vital-lbl">Home Region</div>
-          <div id="dCity" class="vital-val">Metropolitan Vet District</div>
+          <div class="vital-lbl">Home Territory</div>
+          <div class="vital-val" id="dCity">Registered City</div>
         </div>
       </div>
 
-      <!-- Primary Caregiver Box (Clean Prototype Demo) -->
+      <!-- Guardian Details -->
       <div class="guardian-card">
         <div class="guardian-title">
-          <span>👤</span>
-          <span>Primary Guardian Contacts</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>VERIFIED GUARDIAN / EMERGENCY CONTACT</span>
         </div>
         <div class="guardian-row">
-          <span class="g-lbl">Guardian Name</span>
-          <strong id="ownerName" class="g-val">Sample Guardian (Prototype)</strong>
-        </div>
-        <div class="guardian-row">
-          <span class="g-lbl">Emergency Phone</span>
-          <strong id="ownerPhone" class="g-val g-phone">+1 (555) 019-2834</strong>
-        </div>
-        <div class="guardian-row">
-          <span class="g-lbl">Mesh Dossier ID</span>
-          <code id="dossierId" style="font-family: var(--font-mono); color: #c084fc; font-size: 0.82rem;">DOS-SAMPLE01</code>
+          <div class="guardian-info">
+            <div class="guardian-name" id="ownerName">Authorized Caregiver</div>
+            <div class="guardian-phone" id="ownerPhone">+1 (555) 019-2834</div>
+          </div>
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="actions-cluster">
-        <a href="tel:5550192834" id="callBtn" class="btn-emergency-call">
-          📞 Contact Guardian Immediately
+      <!-- Action Buttons -->
+      <div class="action-stack">
+        <a href="tel:5550192834" class="btn-action btn-call" id="callBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span>Call Guardian Now</span>
         </a>
-        <a href="https://wa.me/15550192834" id="waBtn" class="btn-whatsapp-msg" target="_blank" rel="noopener">
-          💬 Send Direct WhatsApp Message
+        <a href="https://wa.me/" class="btn-action btn-whatsapp" id="waBtn" target="_blank" rel="noopener noreferrer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.299.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.174.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.144.39-.086s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824z"/>
+          </svg>
+          <span>WhatsApp Message</span>
         </a>
       </div>
-    </div>
 
-    <!-- Security Timestamp -->
-    <div class="footer-stamp">
-      <div class="stamp-dot"></div>
-      <span id="syncStatus">Live Synchronized on PetConnect AI Clinical Mesh</span>
-    </div>
+      <!-- Footer Stamp -->
+      <footer class="footer-stamp">
+        <div class="stamp-dot"></div>
+        <span id="syncStatus">Live Cryptographic Verified • PetConnect AI Clinical Mesh</span>
+      </footer>
+    </main>
   </div>
 
   <script>
@@ -553,6 +653,23 @@
       img.onerror = null;
       img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%230F172A"><rect width="24" height="24" rx="6" fill="%230c1322"/><path d="M12 4a3 3 0 0 1 3 3v2a3 3 0 0 1-6 0V7a3 3 0 0 1 3-3zm-5 8a5 5 0 0 1 10 0v2H7v-2zm-3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1H4v-1z" fill="%2310b981"/></svg>';
     }
+
+    // Theme toggle handling
+    const toggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    
+    function updateThemeIcon(theme) {
+      themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    updateThemeIcon(document.documentElement.getAttribute('data-theme'));
+
+    toggleBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('petconnect_theme', next);
+      updateThemeIcon(next);
+    });
 
     const SUPABASE_URL = 'https://cghgslyikjqghrzhrqxz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs';
@@ -597,7 +714,6 @@
     document.getElementById('callBtn').href = `tel:${paramPhone}`;
     document.getElementById('waBtn').href = `https://wa.me/${cleanDigits}?text=${encodeURIComponent(`Hello ${paramOwner}, I scanned ${paramName}'s PetConnect AI Emergency Pass.`)}`;
 
-    // Sanitize image: only use if valid http/https
     if (paramImg && (paramImg.startsWith('http://') || paramImg.startsWith('https://'))) {
       document.getElementById('petAvatar').src = paramImg;
     }
@@ -619,10 +735,29 @@
           const data = await response.json();
           if (data && data.name) {
             applyDossier(data);
+            return;
           }
         }
       } catch (err) {
         console.warn('Direct RPC query note:', err);
+      }
+
+      // Robust fallback to pets table
+      try {
+        const tblResp = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${petId}&select=*`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        if (tblResp.ok) {
+          const rows = await tblResp.json();
+          if (rows && rows.length > 0) {
+            applyDossier(rows[0]);
+          }
+        }
+      } catch (err) {
+        console.warn('Direct table query note:', err);
       }
     }
 

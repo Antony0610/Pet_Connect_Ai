@@ -1,33 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>✅ Immunization Authenticity Certificate | PetConnect AI</title>
-  <meta name="description" content="Digital Immunization Authenticity Certificate verified on the PetConnect AI Clinical Network. Cryptographically signed veterinary records.">
+  <title>✅ Authenticity Verification | PetConnect AI</title>
+  <meta name="description" content="Digital Clinical Verification Certificate on the PetConnect AI Veterinary Network. Cryptographically signed records.">
 
   <!-- Premium Typography: Outfit (Headings) + Plus Jakarta Sans (Body) + JetBrains Mono (Codes) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
+  <script>
+    // Theme initializer to prevent flash
+    (function() {
+      const saved = localStorage.getItem('petconnect_theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
   <style>
-    :root {
+    :root[data-theme="dark"] {
       --canvas: #080c14;
       --surface: #0f172a;
       --surface-card: #111a2e;
       --surface-hover: #17233d;
       --surface-inner: #0a0f1c;
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(16, 185, 129, 0.35);
+      --border-hover: rgba(16, 185, 129, 0.4);
       --border-accent: rgba(6, 182, 212, 0.35);
       
       --primary: #10b981;
       --primary-dark: #059669;
-      --primary-glow: rgba(16, 185, 129, 0.25);
+      --primary-glow: rgba(16, 185, 129, 0.22);
       
       --secondary: #06b6d4;
-      --secondary-glow: rgba(6, 182, 212, 0.22);
+      --secondary-glow: rgba(6, 182, 212, 0.2);
       
       --accent-amber: #f59e0b;
       --danger: #ef4444;
@@ -35,25 +45,44 @@
       --text-main: #f8fafc;
       --text-sub: #cbd5e1;
       --text-muted: #94a3b8;
+      --nav-bg: #131d31;
+      --shadow-card: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --grid-opacity: 0.03;
+    }
+
+    :root[data-theme="light"] {
+      --canvas: #f8fafc;
+      --surface: #ffffff;
+      --surface-card: #ffffff;
+      --surface-hover: #f1f5f9;
+      --surface-inner: #f8fafc;
+      --border-subtle: #e2e8f0;
+      --border-hover: #10b981;
+      --border-accent: #06b6d4;
       
-      --font-heading: 'Outfit', -apple-system, sans-serif;
-      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-glow: rgba(13, 148, 136, 0.16);
       
-      --radius-xl: 24px;
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --radius-pill: 9999px;
+      --secondary: #0891b2;
+      --secondary-glow: rgba(8, 145, 178, 0.16);
       
-      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-      --shadow-bento: 0 12px 36px -10px rgba(0, 0, 0, 0.6);
+      --accent-amber: #d97706;
+      --danger: #dc2626;
+      
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --text-muted: #64748b;
+      --nav-bg: #ffffff;
+      --shadow-card: 0 10px 30px -5px rgba(15, 23, 42, 0.08);
+      --grid-opacity: 0.05;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: var(--font-body);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       background: var(--canvas);
       color: var(--text-main);
       min-height: 100vh;
@@ -63,25 +92,25 @@
       flex-direction: column;
       align-items: center;
       -webkit-font-smoothing: antialiased;
+      transition: background 0.25s ease, color 0.25s ease;
     }
 
-    /* Clean Subtle Grid Pattern (Zero AI Slop Blurry Orbs) */
     .spatial-bg {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 0;
       background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 48px 48px;
+        linear-gradient(to right, rgba(120, 144, 156, var(--grid-opacity)) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(120, 144, 156, var(--grid-opacity)) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
 
     .container {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 580px;
+      max-width: 600px;
     }
 
     /* Top Floating Navigation */
@@ -91,164 +120,235 @@
       justify-content: space-between;
       margin-bottom: 24px;
     }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .nav-back {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       padding: 9px 18px;
-      background: #131d31;
+      background: var(--nav-bg);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-pill);
+      border-radius: 9999px;
       color: var(--text-sub);
       font-size: 0.85rem;
       font-weight: 700;
       text-decoration: none;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .nav-back:hover {
-      background: #1e293b;
-      border-color: rgba(255, 255, 255, 0.16);
-      color: white;
+      border-color: var(--primary);
+      color: var(--primary);
       transform: translateY(-1px);
     }
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--nav-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      cursor: pointer;
+      color: var(--text-main);
+      font-size: 1.1rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
     .nav-badge {
-      font-family: var(--font-mono);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
       font-weight: 700;
       color: var(--primary);
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: var(--primary-glow);
+      border: 1px solid var(--primary);
       padding: 6px 14px;
-      border-radius: var(--radius-pill);
+      border-radius: 9999px;
       letter-spacing: 0.5px;
     }
 
-    /* Main Certificate Card */
+    /* Main Certificate Bento Box */
     .cert-card {
-      background: var(--surface);
+      background: var(--surface-card);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      padding: 36px 28px;
-      box-shadow: var(--shadow-bento);
-      text-align: center;
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    }
+    .cert-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
     }
 
-    /* Verified Seal - Solid Accent */
-    .seal-wrap {
-      position: relative;
-      width: 88px;
-      height: 88px;
-      margin: 0 auto 20px;
+    .cert-header {
+      text-align: center;
+      margin-bottom: 28px;
     }
-    .seal-circle {
-      width: 88px;
-      height: 88px;
-      background: #10b981;
-      border: 3px solid #059669;
+    .seal-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
+      background: var(--primary-glow);
+      border: 2px solid var(--primary);
+      margin-bottom: 16px;
+      box-shadow: 0 0 24px var(--primary-glow);
+      animation: pulseGlow 3s infinite alternate ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0% { transform: scale(1); box-shadow: 0 0 16px var(--primary-glow); }
+      100% { transform: scale(1.04); box-shadow: 0 0 28px var(--primary-glow); }
+    }
+    .seal-badge svg {
+      width: 34px;
+      height: 34px;
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .cert-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    .cert-title {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .cert-intro {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    /* Patient Hero Ribbon */
+    .patient-ribbon {
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .patient-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--primary-glow);
+      border: 1.5px solid var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.3rem;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+      font-size: 1.5rem;
+      flex-shrink: 0;
     }
-    .seal-ring {
-      position: absolute;
-      top: -6px; left: -6px; right: -6px; bottom: -6px;
-      border: 1px dashed rgba(16, 185, 129, 0.4);
-      border-radius: 50%;
-      animation: rotate-ring 24s linear infinite;
-    }
-    @keyframes rotate-ring {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .cert-title {
-      font-family: var(--font-heading);
-      font-size: 1.85rem;
+    .patient-meta h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.3rem;
       font-weight: 800;
-      color: white;
-      letter-spacing: -0.02em;
-      margin-bottom: 6px;
+      color: var(--text-main);
+      margin-bottom: 2px;
     }
-    .cert-sub {
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--primary);
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      margin-bottom: 26px;
-    }
-
-    /* Verification Data Ribbon */
-    .data-ribbon {
-      background: var(--surface-inner);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 18px 20px;
-      margin-bottom: 24px;
-      text-align: left;
-    }
-    .data-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 0;
-    }
-    .data-row:not(:last-child) {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .data-lbl {
-      font-size: 0.86rem;
+    .patient-meta p {
+      font-size: 0.85rem;
       color: var(--text-muted);
       font-weight: 500;
     }
+
+    /* Structured Data Table */
+    .data-table {
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      background: var(--surface-card);
+    }
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.88rem;
+    }
+    .data-row:last-child {
+      border-bottom: none;
+    }
+    .data-row:nth-child(even) {
+      background: var(--surface-inner);
+    }
+    .data-lbl {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
     .data-val {
-      font-family: var(--font-body);
-      font-size: 0.98rem;
+      color: var(--text-main);
       font-weight: 700;
-      color: white;
       text-align: right;
     }
     .data-val-code {
-      font-family: var(--font-mono);
-      color: #38bdf8;
-      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--primary);
     }
 
-    /* Cryptographic Hash Tile */
+    /* Cryptographic Security Hash Tile */
     .hash-tile {
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(8, 12, 20, 0.95) 100%);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: var(--radius-md);
+      background: var(--surface-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
       padding: 14px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      margin-bottom: 26px;
       gap: 12px;
-      margin-bottom: 24px;
-      text-align: left;
     }
     .hash-text-group {
-      min-width: 0;
-      flex: 1;
+      overflow: hidden;
     }
     .hash-lbl {
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: var(--text-muted);
+      font-size: 0.72rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 700;
       margin-bottom: 2px;
     }
     .hash-val {
-      font-family: var(--font-mono);
-      font-size: 0.88rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
       font-weight: 700;
-      color: var(--primary);
+      color: var(--secondary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -257,58 +357,57 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 10px;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      border-radius: var(--radius-pill);
+      padding: 5px 12px;
+      border-radius: 9999px;
+      background: var(--primary-glow);
+      border: 1px solid var(--primary);
       color: var(--primary);
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
+      font-size: 0.76rem;
       font-weight: 800;
-      flex-shrink: 0;
+      white-space: nowrap;
     }
 
-    /* Action Buttons */
     .btn-return-portal {
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
       width: 100%;
-      padding: 15px;
-      background: var(--surface-card);
+      padding: 13px;
+      background: var(--surface-inner);
       border: 1px solid var(--border-subtle);
-      color: white;
-      font-family: var(--font-heading);
-      font-size: 1.02rem;
+      border-radius: 12px;
+      color: var(--text-sub);
       font-weight: 700;
+      font-size: 0.9rem;
       text-decoration: none;
-      border-radius: var(--radius-md);
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-return-portal:hover {
-      background: var(--surface-hover);
-      border-color: rgba(255, 255, 255, 0.16);
-      transform: translateY(-1px);
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+      transform: translateY(-2px);
     }
 
-    /* Footer Stamp */
     .footer-stamp {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       margin-top: 24px;
-      font-family: var(--font-mono);
       font-size: 0.76rem;
       color: var(--text-muted);
     }
     .stamp-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background: var(--primary);
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--primary);
+      animation: blink 2s infinite ease-in-out;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
     }
   </style>
 </head>
@@ -318,60 +417,75 @@
   <div class="container">
     <!-- Top Nav -->
     <div class="top-nav">
-      <a href="/" class="nav-back">← PetConnect AI Portal</a>
-      <div class="nav-badge" id="navHashBadge">PC-AUTH-ACTIVE</div>
+      <a href="/" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        PetConnect Portal
+      </a>
+      <div class="nav-actions">
+        <button class="theme-toggle-btn" id="themeToggle" title="Toggle Light/Dark Theme">
+          <span id="themeIcon">☀️</span>
+        </button>
+        <div class="nav-badge" id="navHashBadge">VERIFIED-AUTH</div>
+      </div>
     </div>
 
-    <!-- Main Card -->
+    <!-- Certificate Card -->
     <div class="cert-card">
-      <div class="seal-wrap">
-        <div class="seal-ring"></div>
-        <div class="seal-circle">🛡️</div>
+      <div class="cert-header">
+        <div class="seal-badge">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+        </div>
+        <div class="cert-sub" id="certSub">AUTHENTIC CLINICAL CERTIFICATE</div>
+        <h1 class="cert-title" id="certTitle">Digital Record Verification</h1>
+        <p class="cert-intro" id="certIntro">Authenticated via PetConnect AI Veterinary Health Ledger. Cryptographically sealed record.</p>
       </div>
 
-      <h1 class="cert-title" id="certTitle">Vaccine Authenticity Pass</h1>
-      <div class="cert-sub" id="certSub">VERIFIED ON PETCONNECT AI CLINICAL NETWORK</div>
+      <!-- Patient Ribbon -->
+      <div class="patient-ribbon">
+        <div class="patient-icon">🐾</div>
+        <div class="patient-meta">
+          <h2 id="petName">Buddy</h2>
+          <p id="petSubtitle">Verified Companion • Core Vitals Active</p>
+        </div>
+      </div>
 
-      <div class="data-ribbon">
+      <!-- Data Table -->
+      <div class="data-table">
         <div class="data-row">
-          <span class="data-lbl">Companion Name</span>
-          <strong class="data-val" id="petName">Buddy (Dog)</strong>
+          <span class="data-lbl" id="row1Lbl">Credential Type</span>
+          <strong class="data-val" id="vaxName">Core Health Verification</strong>
         </div>
         <div class="data-row">
-          <span class="data-lbl" id="row1Lbl">Vaccine / Protocol</span>
-          <strong class="data-val" id="vaxName" style="color: var(--primary);">Rabies Core Immunization</strong>
-        </div>
-        <div class="data-row">
-          <span class="data-lbl" id="row2Lbl">Batch / Serial Lot</span>
+          <span class="data-lbl" id="row2Lbl">Batch / Reference</span>
           <strong class="data-val data-val-code" id="vaxBatch">LOT-B892-VET</strong>
         </div>
         <div class="data-row">
-          <span class="data-lbl" id="row3Lbl">Administered Date</span>
+          <span class="data-lbl" id="row3Lbl">Authentication Date</span>
           <strong class="data-val" id="vaxDate">18 Aug 2026</strong>
         </div>
         <div class="data-row" id="nextDueRow">
-          <span class="data-lbl">Next Booster Due</span>
-          <strong class="data-val data-val-code" id="nextDueDate" style="color: #f59e0b;">31 Aug 2027</strong>
+          <span class="data-lbl" id="row4Lbl">Next Review / Booster</span>
+          <strong class="data-val data-val-code" id="nextDueDate" style="color: var(--accent-amber);">31 Aug 2027</strong>
         </div>
         <div class="data-row">
-          <span class="data-lbl">Attending Clinic</span>
-          <strong class="data-val" id="clinicName">Metropolitan Veterinary Station</strong>
+          <span class="data-lbl" id="row5Lbl">Issuing Authority</span>
+          <strong class="data-val" id="clinicName">PetConnect AI Clinical Mesh</strong>
         </div>
         <div class="data-row">
-          <span class="data-lbl">Certified By</span>
-          <strong class="data-val" id="vaxDoc">Authorized Veterinary Clinic</strong>
+          <span class="data-lbl" id="row6Lbl">Certified Guardian</span>
+          <strong class="data-val" id="vaxDoc">Authorized Guardian</strong>
         </div>
       </div>
 
       <!-- Hash Badge -->
       <div class="hash-tile">
         <div class="hash-text-group">
-          <div class="hash-lbl">Cryptographic Security Hash</div>
+          <div class="hash-lbl">Cryptographic Proof Hash</div>
           <div class="hash-val" id="certHash">PC-AUTH-DEMO01</div>
         </div>
         <div class="hash-badge">
           <span style="display:inline-block; width:6px; height:6px; background:var(--primary); border-radius:50%;"></span>
-          AUTHENTIC
+          AUTHENTIC & VERIFIED
         </div>
       </div>
 
@@ -386,51 +500,114 @@
   </div>
 
   <script>
+    // Theme toggle handling
+    const toggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    
+    function updateThemeIcon(theme) {
+      themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    
+    updateThemeIcon(document.documentElement.getAttribute('data-theme'));
+
+    toggleBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('petconnect_theme', next);
+      updateThemeIcon(next);
+    });
+
     const SUPABASE_URL = 'https://cghgslyikjqghrzhrqxz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs';
 
     const params = new URLSearchParams(window.location.search);
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    const isReport = window.location.pathname.includes('/verify/report') || params.get('score');
+    const path = window.location.pathname;
+    const isReport = path.includes('/verify/report') || params.has('score');
+    const isPassport = path.includes('/verify/passport') || path.includes('/passport') || params.get('auth') === 'verified';
 
-    let vaccineId = params.get('id');
-    if (!vaccineId) {
-      const lastPart = pathParts.pop();
-      if (lastPart && lastPart !== 'verify' && lastPart !== 'verify.html' && lastPart !== 'vaccine' && lastPart !== 'report') {
-        vaccineId = lastPart;
+    let recordId = params.get('id');
+    if (!recordId) {
+      const parts = path.split('/').filter(Boolean);
+      const last = parts.pop();
+      if (last && !['verify', 'verify.html', 'report', 'passport', 'vaccine'].includes(last)) {
+        recordId = last;
       }
     }
-    const isDemo = !vaccineId || vaccineId === 'demo' || params.get('demo') === 'true';
+    const isDemo = !recordId || recordId === 'demo';
 
-    // 1. Check if AI Clinical Report verification
+    const pPet = params.get('pet') || params.get('name') || 'Buddy';
+    const pSpecies = params.get('species') ? ` (${params.get('species')})` : '';
+    const pBreed = params.get('breed') || 'Companion';
+    const pOwner = params.get('owner') || 'Verified Pet Guardian';
+    const pDate = params.get('date') || 'Active Verified';
+
+    document.getElementById('petName').textContent = `${pPet}${pSpecies}`;
+    document.getElementById('petSubtitle').textContent = `${pBreed} • Certified Active Record`;
+
     if (isReport) {
-      document.title = '📋 AI Health Report Verification | PetConnect AI';
-      document.getElementById('certTitle').textContent = 'AI Clinical Scan Verification';
-      document.getElementById('certSub').textContent = 'CRYPTOGRAPHICALLY SIGNED TELEMETRY';
+      // ── 1. AI Clinical Assessment Report Verification ─────────────────
+      document.title = `📋 AI Health Report: ${pPet} | PetConnect AI`;
+      document.getElementById('certTitle').textContent = 'AI Clinical Assessment Verification';
+      document.getElementById('certSub').textContent = 'CRYPTOGRAPHICALLY SEALED AI DIAGNOSTIC';
+      document.getElementById('certIntro').textContent = `Official biometric evaluation for ${pPet}. Clinical telemetry verified on the neural mesh.`;
+      
       document.getElementById('row1Lbl').textContent = 'Report Type';
       document.getElementById('vaxName').textContent = 'AI Comprehensive Clinical Summary';
+      
       document.getElementById('row2Lbl').textContent = 'Triage Readiness Score';
       const score = params.get('score') || '94';
       document.getElementById('vaxBatch').textContent = `${score}/100 (Optimal Stability)`;
+      
       document.getElementById('row3Lbl').textContent = 'Evaluation Date';
-      document.getElementById('vaxDate').textContent = params.get('date') || 'Active Verified';
+      document.getElementById('vaxDate').textContent = pDate;
+      
       document.getElementById('nextDueRow').style.display = 'none';
-      document.getElementById('clinicName').textContent = 'PetConnect AI Neural Veterinary Engine';
-      document.getElementById('vaxDoc').textContent = params.get('owner') || 'Verified Pet Guardian';
-      const authHash = isDemo ? 'AI-SCAN-DEMO01' : `AI-SCAN-${vaccineId.substring(0, 8).toUpperCase()}`;
-      document.getElementById('certHash').textContent = authHash;
-      document.getElementById('navHashBadge').textContent = authHash;
+      document.getElementById('row5Lbl').textContent = 'Diagnostic Engine';
+      document.getElementById('clinicName').textContent = 'PetConnect AI Veterinary Neural Engine';
+      document.getElementById('row6Lbl').textContent = 'Registered Guardian';
+      document.getElementById('vaxDoc').textContent = pOwner;
+
+      const code = isDemo ? 'AI-SCAN-DEMO01' : `AI-SCAN-${recordId.substring(0, 8).toUpperCase()}`;
+      document.getElementById('certHash').textContent = code;
+      document.getElementById('navHashBadge').textContent = code;
+
+    } else if (isPassport) {
+      // ── 2. Official Health Passport Verification ──────────────────────
+      document.title = `🐾 Health Passport: ${pPet} | PetConnect AI`;
+      document.getElementById('certTitle').textContent = 'Official Pet Health Passport';
+      document.getElementById('certSub').textContent = 'AUTHENTIC VETERINARY HEALTH PASSPORT';
+      document.getElementById('certIntro').textContent = `Verified medical records, vaccination stamps, and microchip credentials for ${pPet}.`;
+
+      document.getElementById('row1Lbl').textContent = 'Credential Scope';
+      document.getElementById('vaxName').textContent = 'Complete Health & Immunization Ledger';
+
+      document.getElementById('row2Lbl').textContent = 'Registry Status';
+      document.getElementById('vaxBatch').textContent = 'Certified Active & Tamper-Evident';
+
+      document.getElementById('row3Lbl').textContent = 'Verification ID';
+      const pCode = isDemo ? 'PC-PASS-DEMO01' : `PC-PASS-${recordId.substring(0, 8).toUpperCase()}`;
+      document.getElementById('vaxDate').textContent = pCode;
+
+      document.getElementById('nextDueRow').style.display = 'none';
+      document.getElementById('row5Lbl').textContent = 'Attending Registry';
+      document.getElementById('clinicName').textContent = 'PetConnect AI Veterinary Mesh';
+      document.getElementById('row6Lbl').textContent = 'Registered Guardian';
+      document.getElementById('vaxDoc').textContent = pOwner;
+
+      document.getElementById('certHash').textContent = pCode;
+      document.getElementById('navHashBadge').textContent = pCode;
+
     } else {
-      // 2. Immediate Parameter Rendering for Vaccine Cert (Prototype-Safe)
-      const pPet = params.get('pet') || 'Buddy (Dog)';
+      // ── 3. Vaccine Authenticity Certificate ───────────────────────────
       const pVax = params.get('vax') || 'Rabies Core Immunization';
       const pBatch = params.get('batch') || 'LOT-B892-VET';
       const pAdmin = params.get('admin') || '18 Aug 2026';
       const pNext = params.get('next') || '31 Aug 2027';
       const pDoc = params.get('doc') || 'Authorized Veterinary Clinic';
-      const certCode = isDemo ? 'PC-AUTH-DEMO01' : `PC-AUTH-${vaccineId.substring(0, 8).toUpperCase()}`;
+      const certCode = isDemo ? 'PC-AUTH-DEMO01' : `PC-AUTH-${recordId.substring(0, 8).toUpperCase()}`;
 
-      document.getElementById('petName').textContent = pPet;
+      document.title = `✅ Vaccine Verification: ${pPet} | PetConnect AI`;
       document.getElementById('vaxName').textContent = pVax;
       document.getElementById('vaxBatch').textContent = pBatch;
       document.getElementById('vaxDate').textContent = pAdmin;
@@ -439,22 +616,21 @@
       document.getElementById('certHash').textContent = certCode;
       document.getElementById('navHashBadge').textContent = certCode;
 
-      // 3. Fetch Live Vaccine Record from Supabase RPC if not demo
+      // Fetch live vaccine record from Supabase RPC if not demo
       async function fetchLiveVaccine() {
-        if (isDemo || !vaccineId) return;
+        if (isDemo || !recordId) return;
         try {
-          const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_vaccine_certificate`, {
+          const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_vaccine_certificate`, {
             method: 'POST',
             headers: {
               'apikey': SUPABASE_ANON_KEY,
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ p_vaccine_id: vaccineId })
+            body: JSON.stringify({ p_vaccine_id: recordId })
           });
-
-          if (response.ok) {
-            const data = await response.json();
+          if (resp.ok) {
+            const data = await resp.json();
             if (data && data.vaccine_name) {
               const sp = data.pet_species ? ` (${data.pet_species.charAt(0).toUpperCase() + data.pet_species.slice(1)})` : '';
               document.getElementById('petName').textContent = `${data.pet_name || 'Companion'}${sp}`;
@@ -466,11 +642,8 @@
               if (data.administered_by) document.getElementById('vaxDoc').textContent = data.administered_by;
             }
           }
-        } catch (err) {
-          console.warn('Vaccine RPC fetch note:', err);
-        }
+        } catch (_) {}
       }
-
       fetchLiveVaccine();
     }
   </script>

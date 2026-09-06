@@ -258,7 +258,7 @@ class _AiScanIdentifyScreenState extends ConsumerState<AiScanIdentifyScreen>
   }) async {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 25);
-    final models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash'];
+    final models = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
 
     for (final model in models) {
       try {
