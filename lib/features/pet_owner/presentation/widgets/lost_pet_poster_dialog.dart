@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import 'package:petconnect_ai/core/utils/qr_generator_helper.dart';
 import 'package:petconnect_ai/features/auth/presentation/providers/auth_providers.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/pet.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Modal dialog for generating and exporting high-impact Lost Pet Posters.
 /// Designed after the classic cream-and-crimson missing pet poster template.
@@ -132,7 +134,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
       'badgeText': Colors.white,
       'rewardBg': Color(0xFFEFF6FF),
       'rewardBorder': Color(0xFF3B82F6),
-      'qrFg': Color(0xFF1D4ED8),
+      'qrFg': Colors.black,
       'pdfBg': '#FFFFFF',
       'pdfBanner': '#1D4ED8',
       'pdfBorder': '#3B82F6',
@@ -144,6 +146,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     if (_isGeneratingImage) return;
     setState(() => _isGeneratingImage = true);
     await HapticFeedback.mediumImpact();
+    _syncAlertToDatabase();
     try {
       final boundary = _posterKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
@@ -198,6 +201,40 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     _notesController = TextEditingController(
       text: widget.initialNotes ?? 'Please help find ${widget.pet.name}. Call immediately if spotted.',
     );
+    _syncAlertToDatabase();
+  }
+
+  void _syncAlertToDatabase() {
+    try {
+      final pet = widget.pet;
+      final profile = ref.read(currentUserProfileProvider).valueOrNull;
+      final ownerId = profile?.id ?? pet.ownerId;
+      if (ownerId.isEmpty) return;
+
+      final location = _locationController.text.trim().isNotEmpty
+          ? _locationController.text.trim()
+          : (profile?.city ?? 'Meladoor, Kerala');
+      final phone = _phoneController.text.trim().isNotEmpty
+          ? _phoneController.text.trim()
+          : (profile?.phone ?? '8921998733');
+      final reward = _rewardController.text.trim();
+      final notes = _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : 'Active emergency missing pet poster. Scanning this QR code enables passersby to instantly alert the caregiver with live sighting coordinates.';
+
+      unawaited(
+        Supabase.instance.client.from('lost_pet_alerts').upsert({
+          'pet_id': pet.id,
+          'owner_id': ownerId,
+          'alert_status': 'active',
+          'last_seen_location': location,
+          'last_seen_time': DateTime.now().toIso8601String(),
+          'contact_phone': phone,
+          'reward_amount': reward,
+          'description': notes,
+        }, onConflict: 'pet_id').catchError((_) => null),
+      );
+    } catch (_) {}
   }
 
   @override
@@ -310,11 +347,36 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     final lastSeenLocation = _cleanText(_locationController.text);
     final rewardAmount = _cleanText(_rewardController.text);
     final todayStr = DateFormat('dd MMM').format(DateTime.now());
-    final baseUrl = Env.webBaseUrl;
-    final petNameEnc = Uri.encodeComponent(pet.name);
-    final phoneEnc = Uri.encodeComponent(ownerPhone);
+    final rawBaseUrl = Env.webBaseUrl.isNotEmpty
+        ? Env.webBaseUrl
+        : 'https://petconnectai.vercel.app';
+    final baseUrl = (rawBaseUrl.startsWith('http://') || rawBaseUrl.startsWith('https://'))
+        ? rawBaseUrl
+        : 'https://$rawBaseUrl';
 
-    final qrPayload = '$baseUrl/missing/${pet.id}?phone=$phoneEnc&name=$petNameEnc';
+    final cleanLocation = lastSeenLocation.isNotEmpty ? lastSeenLocation : (profile?.city ?? 'Meladoor, Kerala');
+    final cleanOwnerName = profile?.fullName ?? 'Antony';
+
+    // Omit local file paths or large base64 data URIs so QR payload stays compact and scannable
+    final hasWebImg = pet.imageUrl != null &&
+        (pet.imageUrl!.startsWith('http://') || pet.imageUrl!.startsWith('https://')) &&
+        pet.imageUrl!.length < 250;
+    final cleanImg = hasWebImg ? pet.imageUrl! : '';
+
+    final queryParams = <String, String>{
+      'name': pet.name,
+      'phone': ownerPhone,
+      if (cleanOwnerName.isNotEmpty) 'owner': cleanOwnerName,
+      if (cleanLocation.isNotEmpty) 'location': cleanLocation,
+      if (todayStr.isNotEmpty) 'date': todayStr,
+      if (rewardAmount.isNotEmpty) 'reward': rewardAmount,
+      if (pet.species.isNotEmpty) 'species': pet.species,
+      if (pet.breedLine.isNotEmpty) 'breed': pet.breedLine,
+      if (cleanImg.isNotEmpty) 'img': cleanImg,
+    };
+    final qrPayload = Uri.parse('$baseUrl/missing/${pet.id}')
+        .replace(queryParameters: queryParams)
+        .toString();
     final palette = _palettes[_selectedPalette];
     final pBg = palette['bg'] as Color;
     final pBanner = palette['banner'] as Color;
@@ -325,7 +387,6 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
     final pBadgeText = palette['badgeText'] as Color;
     final pRewardBg = palette['rewardBg'] as Color;
     final pRewardBorder = palette['rewardBorder'] as Color;
-    final pQrFg = palette['qrFg'] as Color;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -510,32 +571,74 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                       Divider(height: 12, thickness: 1.0, color: pBorder),
                       AppSpacing.vGapSm,
 
-                      // ── REWARD BOX ──────────────────────────────────
+                      // ── HIGH-IMPACT EMERGENCY REWARD BANNER ──────────
                       if (rewardAmount.isNotEmpty)
                         InkWell(
                           onTap: _openEditDialog,
                           child: Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                             decoration: BoxDecoration(
-                              color: pRewardBg,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: pRewardBorder, width: 1.5),
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFFBEB),
+                                  Color(0xFFFEF3C7),
+                                  Color(0xFFFDE68A),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFD97706), width: 2.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFD97706).withValues(alpha: 0.25),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.stars_rounded, color: pAccent, size: 20),
-                                const SizedBox(width: 8),
+                                const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.stars_rounded, color: Color(0xFFB45309), size: 18),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      '★ CASH REWARD OFFERED ★',
+                                      style: TextStyle(
+                                        color: Color(0xFFB45309),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 13,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    SizedBox(width: 6),
+                                    Icon(Icons.stars_rounded, color: Color(0xFFB45309), size: 18),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'REWARD: $rewardAmount',
-                                  style: TextStyle(
-                                    color: pAccent,
+                                  rewardAmount.startsWith('₹') ? rewardAmount : '₹$rewardAmount',
+                                  style: const TextStyle(
+                                    color: Color(0xFF78350F),
                                     fontWeight: FontWeight.w900,
-                                    fontSize: 16,
-                                    letterSpacing: 1.0,
+                                    fontSize: 26,
+                                    letterSpacing: 1.2,
                                     fontFamily: 'serif',
                                   ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Guaranteed for safe return or verified sighting • No questions asked',
+                                  style: TextStyle(
+                                    color: Color(0xFF92400E),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 10.5,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ),
@@ -588,16 +691,6 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                     letterSpacing: 0.5,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  ownerPhone,
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w900,
-                                    color: pTextHeader,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'Email: $ownerEmail',
@@ -617,15 +710,16 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: pBorder, width: 1.0),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: pBorder, width: 1.5),
                             ),
                             child: PetQrCodeView(
                               data: qrPayload,
-                              size: 72,
-                              padding: 2,
-                              foregroundColor: pQrFg,
+                              size: 86,
+                              padding: 3,
+                              foregroundColor: Colors.black,
                               backgroundColor: Colors.white,
+                              interactive: true,
                             ),
                           ),
                         ],
@@ -680,6 +774,7 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                 ? null
                                 : () async {
                                     setState(() => _isGeneratingPdf = true);
+                                    _syncAlertToDatabase();
                                     try {
                                       final imgBytes = await _fetchImageBytes(pet.imageUrl);
 
@@ -820,22 +915,42 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                                                   if (rewardAmount.isNotEmpty)
                                                     pw.Container(
                                                       width: double.infinity,
-                                                      padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                                      padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 14),
                                                       decoration: pw.BoxDecoration(
                                                         color: PdfColor.fromHex('#FEF3C7'),
                                                         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-                                                        border: pw.Border.all(color: PdfColor.fromHex('#D97706'), width: 2),
+                                                        border: pw.Border.all(color: PdfColor.fromHex('#D97706'), width: 2.2),
                                                       ),
-                                                      child: pw.Row(
-                                                        mainAxisAlignment: pw.MainAxisAlignment.center,
+                                                      child: pw.Column(
+                                                        mainAxisSize: pw.MainAxisSize.min,
+                                                        crossAxisAlignment: pw.CrossAxisAlignment.center,
                                                         children: [
                                                           pw.Text(
-                                                            'REWARD: $rewardAmount',
+                                                            '★ CASH REWARD OFFERED ★',
+                                                            style: pw.TextStyle(
+                                                              color: PdfColor.fromHex('#B45309'),
+                                                              fontWeight: pw.FontWeight.bold,
+                                                              fontSize: 13,
+                                                              letterSpacing: 1.5,
+                                                            ),
+                                                          ),
+                                                          pw.SizedBox(height: 4),
+                                                          pw.Text(
+                                                            rewardAmount.startsWith('RS.') || rewardAmount.startsWith('INR') ? rewardAmount : 'RS. $rewardAmount',
                                                             style: pw.TextStyle(
                                                               color: PdfColor.fromHex('#78350F'),
                                                               fontWeight: pw.FontWeight.bold,
-                                                              fontSize: 16,
-                                                              letterSpacing: 1.0,
+                                                              fontSize: 24,
+                                                              letterSpacing: 1.2,
+                                                            ),
+                                                          ),
+                                                          pw.SizedBox(height: 2),
+                                                          pw.Text(
+                                                            'Guaranteed for safe return or verified sighting • No questions asked',
+                                                            style: pw.TextStyle(
+                                                              color: PdfColor.fromHex('#92400E'),
+                                                              fontSize: 9.5,
+                                                              fontWeight: pw.FontWeight.bold,
                                                             ),
                                                           ),
                                                         ],
@@ -912,6 +1027,30 @@ class _LostPetPosterDialogState extends ConsumerState<LostPetPosterDialog> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: pAccent,
+                              side: BorderSide(color: pAccent.withValues(alpha: 0.5), width: 1.5),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                            label: const Text(
+                              'Test QR Code / Open Sighting Web Page',
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                            ),
+                            onPressed: () => PetQrCodeView.showQrActionSheet(
+                              context,
+                              qrPayload,
+                              title: '🚨 Missing Pet Sighting Alert: ${pet.name}',
+                            ),
+                          ),
                         ),
                       ],
                     ),

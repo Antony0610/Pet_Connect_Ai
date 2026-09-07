@@ -35,8 +35,14 @@ class RouteGuard {
         location == RoutePaths.welcomeSuccess ||
         location == RoutePaths.initialPetSetup;
 
-    // Splash screen handles its own deferred navigation
-    if (isSplash) return null;
+    final isPublicQrRoute =
+        location.startsWith('/missing') ||
+        location.startsWith('/emergency') ||
+        location.startsWith('/adopt') ||
+        location.startsWith('/verify');
+
+    // Splash screen handles its own deferred navigation; public QR landings bypass guards
+    if (isSplash || isPublicQrRoute) return null;
 
     // 1. Unauthenticated user accessing protected portal route → redirect to Login
     if (!isAuthenticated) {

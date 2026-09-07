@@ -73,7 +73,9 @@ class RealtimeRepositoryImpl implements RealtimeRepository {
 
   @override
   Stream<UserNotification> subscribeToNotifications() {
-    return _remote.subscribeToNotifications(_currentUserId);
+    final uid = _currentUserId;
+    if (uid.isEmpty) return const Stream.empty();
+    return _remote.subscribeToNotifications(uid);
   }
 
   @override

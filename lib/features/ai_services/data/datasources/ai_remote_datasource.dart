@@ -325,12 +325,9 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
     for (final model in modelsToTry) {
       try {
-        final isLite = model.contains('lite');
         final timeoutDuration = isImage
-            ? const Duration(milliseconds: 12000)
-            : (isLite
-                ? const Duration(milliseconds: 2200)
-                : const Duration(milliseconds: 2500));
+            ? const Duration(seconds: 20)
+            : const Duration(seconds: 14);
 
         final result = await _executeGeminiRequest(
           client: _httpClient,
@@ -383,7 +380,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         'generationConfig': {
           'temperature': 0.25,
           'maxOutputTokens': 800,
-          if (model.contains('3.7') || model.contains('3.8') || model.contains('flash'))
+          if (model == 'gemini-3.7-flash' || model == 'gemini-3.8-flash')
             'thinkingConfig': {'thinkingBudget': 0},
         },
       });

@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:petconnect_ai/core/config/env.dart';
 import 'package:petconnect_ai/core/providers/core_providers.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
@@ -1857,7 +1858,7 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                       return _buildCandidateCard(context, candidate);
                     },
                   ),
-                const SizedBox(height: 80),
+                SizedBox(height: AppSpacing.bottomNavScrollInset(context)),
               ],
             ),
           ),
@@ -2481,8 +2482,9 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                                   data: '${Env.webBaseUrl}/adopt/${pet.id}?name=${Uri.encodeComponent(pet.name)}&breed=${Uri.encodeComponent(pet.breed)}',
                                   size: 88,
                                   padding: 2,
-                                  foregroundColor: pQrFg,
-                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.black,
+                                  backgroundColor: Colors.white,
+                                  interactive: true,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -2992,40 +2994,127 @@ class _PetAdoptionScreenState extends ConsumerState<PetAdoptionScreen> {
                   }).toList(),
                 ),
                 AppSpacing.vGapMd,
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton.filled(
-                        onPressed: () => _showInquireSheet(context, pet),
-                        child: Text('Inquire About ${pet.name}'),
+                if (AppBreakpoints.isMobile(MediaQuery.sizeOf(context).width))
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppButton.filled(
+                          onPressed: () => _showInquireSheet(context, pet),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Inquire About ${pet.name}',
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.campaign_outlined),
-                      tooltip: 'Generate Adoption Poster',
-                      onPressed: () => _openAdoptionPosterDialog(context, pet),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.check_circle_outline, color: Color(0xFF10B981)),
-                      tooltip: 'Mark as Adopted',
-                      onPressed: () => _confirmMarkAsAdopted(context, pet),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Edit Listing',
-                      onPressed: () => _openEditPetDialog(context, pet),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      icon: Icon(Icons.delete_outline, color: scheme.error),
-                      tooltip: 'Delete Listing',
-                      onPressed: () => _confirmDeletePet(context, pet),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        tooltip: 'Listing Options',
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'poster':
+                              _openAdoptionPosterDialog(context, pet);
+                              break;
+                            case 'adopted':
+                              _confirmMarkAsAdopted(context, pet);
+                              break;
+                            case 'edit':
+                              _openEditPetDialog(context, pet);
+                              break;
+                            case 'delete':
+                              _confirmDeletePet(context, pet);
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'poster',
+                            child: Row(
+                              children: [
+                                Icon(Icons.campaign_outlined, size: 20),
+                                SizedBox(width: 10),
+                                Text('Generate Poster'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'adopted',
+                            child: Row(
+                              children: [
+                                Icon(Icons.check_circle_outline, color: Color(0xFF10B981), size: 20),
+                                SizedBox(width: 10),
+                                Text('Mark as Adopted'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 20),
+                                SizedBox(width: 10),
+                                Text('Edit Listing'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline, color: scheme.error, size: 20),
+                                const SizedBox(width: 10),
+                                Text('Delete Listing', style: TextStyle(color: scheme.error)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppButton.filled(
+                          onPressed: () => _showInquireSheet(context, pet),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Inquire About ${pet.name}',
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.campaign_outlined),
+                        tooltip: 'Generate Adoption Poster',
+                        onPressed: () => _openAdoptionPosterDialog(context, pet),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.check_circle_outline, color: Color(0xFF10B981)),
+                        tooltip: 'Mark as Adopted',
+                        onPressed: () => _confirmMarkAsAdopted(context, pet),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Edit Listing',
+                        onPressed: () => _openEditPetDialog(context, pet),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        icon: Icon(Icons.delete_outline, color: scheme.error),
+                        tooltip: 'Delete Listing',
+                        onPressed: () => _confirmDeletePet(context, pet),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

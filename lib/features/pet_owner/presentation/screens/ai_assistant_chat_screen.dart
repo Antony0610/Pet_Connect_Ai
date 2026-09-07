@@ -819,11 +819,14 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           },
           (aiMsg) async {
             if (aiMsg.metadata['model'] != null) {
-              final mName = (aiMsg.metadata['model'] as String).replaceAll('gemini-', '');
-              if (mounted) {
-                setState(() {
-                  _activeModelLabel = '⚡ $mName';
-                });
+              final rawModel = aiMsg.metadata['model'] as String;
+              if (rawModel != 'offline' && rawModel.trim().isNotEmpty) {
+                final mName = rawModel.replaceAll('gemini-', '');
+                if (mounted) {
+                  setState(() {
+                    _activeModelLabel = '⚡ $mName';
+                  });
+                }
               }
             }
             final reply = aiMsg.messageText.trim().isNotEmpty

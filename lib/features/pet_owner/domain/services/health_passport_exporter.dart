@@ -41,6 +41,17 @@ class HealthPassportExporter {
     return null;
   }
 
+  static String _cleanText(String text) {
+    return text
+        .replaceAll('“', '"')
+        .replaceAll('”', '"')
+        .replaceAll('\u2022', '*')
+        .replaceAll('\u2013', '-')
+        .replaceAll('\u2014', '-')
+        .replaceAll('\u20B9', 'RS. ')
+        .trim();
+  }
+
   /// Generates a structured Health Passport PDF document and opens the native device share sheet.
   static Future<void> exportAndShare({
     required BuildContext context,
@@ -64,7 +75,12 @@ class HealthPassportExporter {
     final lightGrey = PdfColor.fromHex('#F8FAFC');
     final borderColor = PdfColor.fromHex('#CBD5E1');
 
-    final qrPayload = '${Env.webBaseUrl}/verify.html?id=${pet.id}&t=p';
+    final qrPayload = '${Env.webBaseUrl}/verify.html?id=${pet.id}&t=p'
+        '&pet=${Uri.encodeComponent(pet.name)}'
+        '&breed=${Uri.encodeComponent(_cleanText(pet.breedLine))}'
+        '&species=${Uri.encodeComponent(pet.species)}'
+        '&owner=${Uri.encodeComponent(_cleanText(owner?.fullName ?? 'Registered Guardian'))}'
+        '&date=${Uri.encodeComponent(nowStr)}';
 
     final petImgBytes = await _fetchImageBytes(pet.imageUrl);
 

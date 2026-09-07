@@ -148,6 +148,10 @@ class UserNotificationsNotifier extends AsyncNotifier<List<UserNotification>> {
   }
 
   void addLiveNotification(UserNotification notification) {
+    final currentUserId = ref.read(supabaseClientProvider).auth.currentUser?.id;
+    if (currentUserId == null || currentUserId.isEmpty || notification.userId != currentUserId) {
+      return;
+    }
     state.whenData((currentList) {
       if (!currentList.any((n) => n.id == notification.id)) {
         state = AsyncValue.data([notification, ...currentList]);

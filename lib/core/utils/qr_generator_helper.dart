@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:petconnect_ai/core/utils/external_actions.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 /// A self-contained, high-performance QR code generator and custom painter.
@@ -211,14 +213,17 @@ class QrCodePainter extends CustomPainter {
 
 /// A ready-to-use widget for displaying real, standard-compliant ISO/IEC 18004 QR codes.
 /// Scannable by 100% of smartphone cameras, Google Lens, and barcode readers.
+/// Supports interactive tap to preview, copy, or launch the QR payload URL.
 class PetQrCodeView extends StatelessWidget {
   const PetQrCodeView({
     super.key,
     required this.data,
     this.size = 200,
-    this.foregroundColor = const Color(0xFF137A63),
+    this.foregroundColor = Colors.black,
     this.backgroundColor = Colors.white,
-    this.padding = 16.0,
+    this.padding = 6.0,
+    this.interactive = false,
+    this.onTap,
   });
 
   final String data;
@@ -226,33 +231,133 @@ class PetQrCodeView extends StatelessWidget {
   final Color foregroundColor;
   final Color backgroundColor;
   final double padding;
+  final bool interactive;
+  final VoidCallback? onTap;
+
+  static void showQrActionSheet(BuildContext context, String payload, {String? title}) {
+    final cleanPayload = payload.trim();
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.qr_code_2_rounded, color: Color(0xFF10B981), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title ?? 'Scannable QR Pass Link',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const Text(
+                          'Verified live web link encoded in this QR code',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: SelectableText(
+                  cleanPayload,
+                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                  maxLines: 4,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text('Copy Link'),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: cleanPayload));
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('QR Link copied to clipboard!')),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+                      label: const Text('Open Web Page'),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        ExternalActions.openUrl(cleanPayload);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final cleanData = data.trim().isNotEmpty
+        ? data.trim()
+        : 'https://petconnectai.vercel.app';
     final effectiveSize = (size - padding * 2).clamp(24.0, 1000.0);
 
-    return Container(
+    final Widget qrCard = Container(
       width: size,
       height: size,
       padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: backgroundColor == Colors.transparent
             ? null
             : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
               ],
       ),
       child: Center(
         child: QrImageView(
-          data: data,
+          data: cleanData,
           version: QrVersions.auto,
           size: effectiveSize,
+          padding: EdgeInsets.zero,
+          gapless: true,
           eyeStyle: QrEyeStyle(
             eyeShape: QrEyeShape.square,
             color: foregroundColor,
@@ -263,8 +368,24 @@ class PetQrCodeView extends StatelessWidget {
           ),
           errorCorrectionLevel: QrErrorCorrectLevel.M,
           backgroundColor: Colors.transparent,
+          errorStateBuilder: (ctx, err) => Center(
+            child: Icon(Icons.qr_code_2_rounded, size: effectiveSize * 0.6, color: foregroundColor),
+          ),
         ),
       ),
     );
+
+    if (interactive || onTap != null) {
+      return Tooltip(
+        message: 'Tap to test or copy QR link',
+        child: InkWell(
+          onTap: onTap ?? () => showQrActionSheet(context, cleanData),
+          borderRadius: BorderRadius.circular(10),
+          child: qrCard,
+        ),
+      );
+    }
+
+    return qrCard;
   }
 }

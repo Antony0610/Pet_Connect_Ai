@@ -44,7 +44,7 @@ class AiHubDashboardScreen extends StatelessWidget {
                 margin,
                 AppSpacing.md,
                 margin,
-                AppSpacing.xxl,
+                AppSpacing.bottomNavScrollInset(context),
               ),
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -186,12 +186,12 @@ class _AssistantHero extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           // 3D Mascot Companion Avatar with Live Floating, Waving & Emotes
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: 6),
             child: AiMascotCompanion(
-              size: 82,
+              size: AppBreakpoints.isMobile(context.screenWidth) ? 56 : 82,
               showSpeechBubble: true,
               showSwitcherBadge: true,
               onTap: () => context.goNamed(RouteNames.ownerAiChat),

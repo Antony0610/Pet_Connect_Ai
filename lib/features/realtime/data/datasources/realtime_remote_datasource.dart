@@ -174,6 +174,10 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
   Stream<UserNotificationModel> subscribeToNotifications(String userId) {
     final controller = StreamController<UserNotificationModel>.broadcast();
 
+    if (userId.isEmpty) {
+      return controller.stream;
+    }
+
     final channel = _client
         .channel('public:user_notifications:$userId')
         .onPostgresChanges(
@@ -186,7 +190,11 @@ class RealtimeRemoteDataSourceImpl implements RealtimeRemoteDataSource {
             value: userId,
           ),
           callback: (payload) {
-            controller.add(UserNotificationModel.fromJson(payload.newRecord));
+            final rec = payload.newRecord;
+            final targetUserId = rec['user_id'] as String?;
+            if (targetUserId != null && targetUserId == userId) {
+              controller.add(UserNotificationModel.fromJson(rec));
+            }
           },
         )
         .subscribe();

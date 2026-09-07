@@ -108,6 +108,7 @@ import 'package:petconnect_ai/router/route_guard.dart';
 import 'package:petconnect_ai/router/route_observer.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/placeholder_screen.dart';
+import 'package:petconnect_ai/shared/widgets/screens/public_qr_landing_screen.dart';
 
 /// The app's [GoRouter], exposed via Riverpod.
 ///
@@ -150,6 +151,53 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.globalSearch,
         name: RouteNames.globalSearch,
         builder: (context, state) => const GlobalSearchScreen(),
+      ),
+
+      // ── Public QR Landing Destinations ────────────────────────────
+      GoRoute(
+        path: RoutePaths.publicMissing,
+        name: RouteNames.publicMissing,
+        builder: (context, state) => PublicQrLandingScreen(
+          type: 'missing',
+          id: state.pathParameters['id'] ?? '',
+          queryParams: state.uri.queryParameters,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.publicEmergency,
+        name: RouteNames.publicEmergency,
+        builder: (context, state) => PublicQrLandingScreen(
+          type: 'emergency',
+          id: state.pathParameters['id'] ?? '',
+          queryParams: state.uri.queryParameters,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.publicAdopt,
+        name: RouteNames.publicAdopt,
+        builder: (context, state) => PublicQrLandingScreen(
+          type: 'adopt',
+          id: state.pathParameters['id'] ?? '',
+          queryParams: state.uri.queryParameters,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.publicVerifyVaccine,
+        name: RouteNames.publicVerifyVaccine,
+        builder: (context, state) => PublicQrLandingScreen(
+          type: 'verify',
+          id: state.pathParameters['id'] ?? '',
+          queryParams: state.uri.queryParameters,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.publicVerify,
+        name: RouteNames.publicVerify,
+        builder: (context, state) => PublicQrLandingScreen(
+          type: 'verify',
+          id: state.pathParameters['id'] ?? '',
+          queryParams: state.uri.queryParameters,
+        ),
       ),
 
       // ── Auth ───────────────────────────────────────────────────

@@ -95,7 +95,13 @@ class AiReportPdfExporter {
     final cleanGender = _cleanText(pet.gender?.toUpperCase() ?? 'UNKNOWN');
     final cleanScope = _cleanText('$reportTitle ($reportRange)');
 
-    final qrPayload = '${Env.webBaseUrl}/verify.html?id=${pet.id}&t=r';
+    final qrPayload = '${Env.webBaseUrl}/verify.html?id=${pet.id}&t=r'
+        '&pet=${Uri.encodeComponent(pet.name)}'
+        '&breed=${Uri.encodeComponent(cleanBreed)}'
+        '&species=${Uri.encodeComponent(pet.species)}'
+        '&owner=${Uri.encodeComponent(cleanOwnerName)}'
+        '&score=$calculatedScore'
+        '&date=${Uri.encodeComponent(nowStr)}';
 
     doc.addPage(
       pw.MultiPage(

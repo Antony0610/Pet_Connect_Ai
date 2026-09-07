@@ -69,7 +69,14 @@ class OwnerGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Icon(brandIcon, color: scheme.primary, size: AppIconSizes.md),
                 AppSpacing.hGapSm,
               ],
-              if (title != null) Expanded(child: title!),
+              if (title != null)
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: title!,
+                  ),
+                ),
               if (title == null) const Spacer(),
               ...actions,
             ],
@@ -150,6 +157,9 @@ class OwnerAppBarAction extends StatelessWidget {
       icon: Icon(icon),
       color: color ?? scheme.onSurfaceVariant,
       iconSize: AppIconSizes.md,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      padding: const EdgeInsets.all(6),
+      visualDensity: VisualDensity.compact,
     );
 
     if (!showBadge) return button;

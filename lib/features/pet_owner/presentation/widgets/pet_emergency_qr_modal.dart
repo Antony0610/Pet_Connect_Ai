@@ -65,13 +65,27 @@ class PetEmergencyQrModal extends ConsumerWidget {
         : 'Adult';
 
     final cleanImg = (pet.imageUrl != null &&
-            (pet.imageUrl!.startsWith('http://') || pet.imageUrl!.startsWith('https://')))
+            (pet.imageUrl!.startsWith('http://') || pet.imageUrl!.startsWith('https://')) &&
+            !pet.imageUrl!.startsWith('data:') &&
+            pet.imageUrl!.length < 250)
         ? pet.imageUrl!
         : '';
 
     // Direct camera-scannable live emergency URL with comprehensive clinical query fallbacks
-    final qrPayload =
-        '${Env.webBaseUrl}/emergency/${pet.id}?name=${Uri.encodeComponent(pet.name)}&species=${Uri.encodeComponent(pet.species)}&breed=${Uri.encodeComponent(pet.breed ?? "Standard Breed")}&owner=${Uri.encodeComponent(ownerName)}&phone=${Uri.encodeComponent(ownerPhone ?? "")}&microchip=${Uri.encodeComponent(pet.microchipId ?? "")}&health=${Uri.encodeComponent(pet.healthStatus)}&age=${Uri.encodeComponent(ageStr)}&weight=${Uri.encodeComponent(pet.weightKg != null ? "${pet.weightKg} kg" : "")}&img=${Uri.encodeComponent(cleanImg)}';
+    final qrPayload = Uri.parse('${Env.webBaseUrl}/emergency/${pet.id}').replace(
+      queryParameters: {
+        'name': pet.name,
+        'species': pet.species,
+        'breed': pet.breed ?? 'Standard Breed',
+        'owner': ownerName,
+        if (ownerPhone != null && ownerPhone.isNotEmpty) 'phone': ownerPhone,
+        if (pet.microchipId != null && pet.microchipId!.isNotEmpty) 'microchip': pet.microchipId!,
+        'health': pet.healthStatus,
+        'age': ageStr,
+        if (pet.weightKg != null) 'weight': '${pet.weightKg} kg',
+        if (cleanImg.isNotEmpty) 'img': cleanImg,
+      },
+    ).toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -193,12 +207,14 @@ class PetEmergencyQrModal extends ConsumerWidget {
                 PetQrCodeView(
                   data: qrPayload,
                   size: 190,
-                  foregroundColor: const Color(0xFF137A63),
-                  padding: 8,
+                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.white,
+                  padding: 4,
+                  interactive: true,
                 ),
                 AppSpacing.vGapSm,
                 Text(
-                  'Scan with any phone camera to view vital pet info & notify owner',
+                  'Tap to test or scan with any camera to view emergency profile',
                   textAlign: TextAlign.center,
                   style: context.textTheme.bodySmall?.copyWith(
                     color: Colors.black87,
@@ -271,6 +287,30 @@ class PetEmergencyQrModal extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+          AppSpacing.vGapSm,
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: scheme.primary,
+                side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+              label: const Text(
+                'Test QR Code / Open Emergency Web Page',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              onPressed: () => PetQrCodeView.showQrActionSheet(
+                context,
+                qrPayload,
+                title: '🚨 Emergency Pass: ${pet.name}',
+              ),
+            ),
           ),
         ],
       ),

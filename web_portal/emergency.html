@@ -751,7 +751,7 @@
 
       // Robust fallback to pets table
       try {
-        const tblResp = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${petId}&select=*`, {
+        const tblResp = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${petId}&select=*,profiles:owner_id(full_name,city,phone)&limit=1`, {
           headers: {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
@@ -795,11 +795,11 @@
       // Vitals & chip
       if (pet.microchip_id) document.getElementById('dChip').textContent = pet.microchip_id;
       if (pet.weight_kg) document.getElementById('dWeight').textContent = `${pet.weight_kg} kg`;
-      if (pet.owner_city) document.getElementById('dCity').textContent = pet.owner_city;
+      if (pet.owner_city || pet.profiles?.city) document.getElementById('dCity').textContent = pet.owner_city || pet.profiles?.city;
 
       // Guardian contacts
-      const oName = pet.owner_name || 'Verified Guardian';
-      const oPhone = pet.owner_phone || '5550192834';
+      const oName = pet.emergency_contact_name || pet.owner_name || pet.profiles?.full_name || paramOwner;
+      const oPhone = pet.emergency_contact_phone || pet.owner_phone || pet.profiles?.phone || paramPhone;
       const cleanOwnerDigits = oPhone.replace(/[^0-9]/g, '').slice(-10);
 
       document.getElementById('ownerName').textContent = oName;

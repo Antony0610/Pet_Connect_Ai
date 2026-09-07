@@ -878,7 +878,16 @@ class _VaccinationCertificateDialog extends StatelessWidget {
         ? vax.batchNumber!
         : 'LOT-B892-VET';
 
-    final qrPayload = '${Env.webBaseUrl}/verify/vaccine/${vax.id}?pet=${Uri.encodeComponent(petName)}&vax=${Uri.encodeComponent(vax.vaccineName)}&admin=$adminDate&batch=$batch&doc=${Uri.encodeComponent(doctor)}&next=$nextDueDate';
+    final qrPayload = Uri.parse('${Env.webBaseUrl}/verify/vaccine/${vax.id}').replace(
+      queryParameters: {
+        'pet': petName,
+        'vax': vax.vaccineName,
+        'admin': adminDate,
+        'batch': batch,
+        'doc': doctor,
+        'next': nextDueDate,
+      },
+    ).toString();
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -988,12 +997,14 @@ class _VaccinationCertificateDialog extends StatelessWidget {
                           PetQrCodeView(
                             data: qrPayload,
                             size: 140,
-                            foregroundColor: const Color(0xFF137A63),
-                            padding: 10,
+                            foregroundColor: Colors.black,
+                            backgroundColor: Colors.white,
+                            padding: 4,
+                            interactive: true,
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Scan to verify immunization on PetConnect AI',
+                            'Tap to test or scan to verify immunization certificate',
                             style: TextStyle(
                               fontSize: 11,
                               color: scheme.onSurfaceVariant,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/ai_mascot_companion.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,12 +107,8 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _bubbleController, curve: Curves.easeOutBack));
 
-    // Initial greeting after 1.5s & recurring wave greeting every 8s
+    // Warm initial greeting after 1.5s (no aggressive repeating timer)
     Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) _triggerEmoteWave();
-    });
-
-    _greetingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       if (mounted) _triggerEmoteWave();
     });
   }
@@ -121,15 +118,17 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
     _greetingIndex = (_greetingIndex + 1) % greetings.length;
     _emoteCycleIndex = (_emoteCycleIndex + 1) % _digitalEmotes.length;
 
-    setState(() {
-      _currentGreeting = greetings[_greetingIndex];
-    });
+    if (mounted) {
+      setState(() {
+        _currentGreeting = greetings[_greetingIndex];
+      });
+    }
 
     _waveController.forward(from: 0.0);
     _bubbleController.forward(from: 0.0);
 
-    // Auto-dismiss bubble after 3.2 seconds
-    Future.delayed(const Duration(milliseconds: 3200), () {
+    // Auto-dismiss bubble after 2.5 seconds
+    Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
         _bubbleController.reverse();
       }
@@ -194,6 +193,12 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final glowColor = _selectedMascot.glowColor;
     final currentEmote = _digitalEmotes[_emoteCycleIndex];
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.sizeOf(context).width);
+    final botSize = isMobile ? 50.0 : 68.0;
+    final pulseSize = isMobile ? 54.0 : 78.0;
+    final shadowWidth = isMobile ? 38.0 : 52.0;
+    final bubbleMaxWidth = isMobile ? 140.0 : 200.0;
+    final bubbleBottom = isMobile ? 58.0 : 86.0;
 
     return RepaintBoundary(
       child: Stack(
@@ -202,7 +207,7 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
         children: [
           // ── Floating Animated Speech Bubble Greeting ─────────────
           Positioned(
-            bottom: 86,
+            bottom: bubbleBottom,
             right: 0,
             child: IgnorePointer(
               ignoring: true,
@@ -211,7 +216,7 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
                 child: FadeTransition(
                   opacity: _bubbleFade,
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 200),
+                    constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                     decoration: BoxDecoration(
                       color: const Color(0xFF0F172A),
@@ -281,7 +286,7 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
                       Positioned(
                         bottom: -10,
                         child: Container(
-                          width: 52,
+                          width: shadowWidth,
                           height: 14,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
@@ -305,8 +310,8 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
                       Transform.scale(
                         scale: _pulseScale.value,
                         child: Container(
-                          width: 78,
-                          height: 78,
+                          width: pulseSize,
+                          height: pulseSize,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -337,7 +342,7 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
                         child: Transform.scale(
                           scale: _pressed ? 0.90 : _waveScale.value,
                           child: FreestandingBotCharacter(
-                            size: 76,
+                            size: botSize,
                             style: _selectedMascot,
                             glowColor: glowColor,
                             waveRotation: _waveRotation.value * 2.8,

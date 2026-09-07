@@ -70,14 +70,17 @@ class AdminBottomNavBar extends StatelessWidget {
     final scheme = context.colorScheme;
     final isDark = context.theme.brightness == Brightness.dark;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.md,
-      ),
-      child: DecoratedBox(
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          0,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        child: DecoratedBox(
         decoration: const BoxDecoration(
           borderRadius: AppRadius.brPill,
           boxShadow: [
@@ -123,8 +126,9 @@ class AdminBottomNavBar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _AdminNavItem extends StatelessWidget {
@@ -193,8 +197,10 @@ class _AdminNavItem extends StatelessWidget {
                   letterSpacing: -0.2,
                 ),
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                child: Text(tab.label),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(tab.label),
+                ),
               ),
             ],
           ),

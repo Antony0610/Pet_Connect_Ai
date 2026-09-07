@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:petconnect_ai/core/error/failures.dart';
-import 'package:petconnect_ai/core/services/notification_service.dart';
 import 'package:petconnect_ai/core/utils/typedefs.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/community_post.dart';
 import 'package:petconnect_ai/features/pet_owner/domain/entities/community_post_comment.dart';
@@ -201,12 +200,6 @@ class CommunityRepositoryImpl implements CommunityRepository {
               'payload': {'post_id': postId},
             });
           }
-
-          // Trigger local tray notification
-          await NotificationService.instance.showCommunityLikeNotification(
-            authorName: currentUserName,
-            postTitle: postTitle,
-          );
         }
       } catch (_) {}
 
@@ -420,25 +413,11 @@ class CommunityRepositoryImpl implements CommunityRepository {
                 },
               });
             }
-
-            // Trigger local notification
-            await NotificationService.instance.showCommunityCommentNotification(
-              commenterName: authorName,
-              commentSnippet: '$authorName commented on "$postTitle": $content',
-            );
           }
         } catch (_) {}
 
         return Right(remoteComment);
       } catch (_) {
-        // Even offline or local fallback, trigger notification for UI responsiveness
-        try {
-          final authorName = authUser?.userMetadata?['full_name'] as String? ?? 'You';
-          await NotificationService.instance.showCommunityCommentNotification(
-            commenterName: authorName,
-            commentSnippet: '$authorName commented: $content',
-          );
-        } catch (_) {}
         return Right(newComment);
       }
     } catch (e) {

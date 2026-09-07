@@ -133,6 +133,13 @@ abstract final class RoutePaths {
   static const String adminContent = '/admin/content';
   static const String adminSettings = '/admin/settings';
 
+  // ── Public QR Landing Destinations ────────────────────────────
+  static const String publicMissing = '/missing/:id';
+  static const String publicEmergency = '/emergency/:id';
+  static const String publicAdopt = '/adopt/:id';
+  static const String publicVerifyVaccine = '/verify/vaccine/:id';
+  static const String publicVerify = '/verify/:id';
+
   // ── Error ──────────────────────────────────────────────────────
   static const String notFound = '/404';
 }
@@ -152,6 +159,13 @@ abstract final class RouteNames {
   static const String otpVerification = 'otpVerification';
   static const String welcomeSuccess = 'welcomeSuccess';
   static const String initialPetSetup = 'initialPetSetup';
+
+  // ── Public QR Landing Destinations ────────────────────────────
+  static const String publicMissing = 'publicMissing';
+  static const String publicEmergency = 'publicEmergency';
+  static const String publicAdopt = 'publicAdopt';
+  static const String publicVerifyVaccine = 'publicVerifyVaccine';
+  static const String publicVerify = 'publicVerify';
 
   static const String ownerHome = 'ownerHome';
   static const String ownerPets = 'ownerPets';

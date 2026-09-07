@@ -56,8 +56,7 @@ class ProfileScreen extends ConsumerWidget {
     );
 
     final topPad = context.viewPadding.top + appBar.preferredSize.height;
-    final bottomPad =
-        context.viewPadding.bottom + AppSpacing.xxl * 2 + AppSpacing.md;
+    final bottomPad = AppSpacing.bottomNavScrollInset(context);
 
     return OwnerScaffold(
       currentTab: OwnerTab.profile,

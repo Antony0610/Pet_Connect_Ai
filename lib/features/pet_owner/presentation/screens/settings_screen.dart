@@ -493,7 +493,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
 
-    final bottomPad = context.viewPadding.bottom + AppSpacing.xxl;
+    final bottomPad = AppSpacing.bottomNavScrollInset(context);
 
     return Scaffold(
       backgroundColor: scheme.surface,

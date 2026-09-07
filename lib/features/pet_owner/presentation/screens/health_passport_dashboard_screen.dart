@@ -706,14 +706,6 @@ void _showBookConsultationModal(BuildContext context, WidgetRef ref) {
       ownerName: owner?.fullName ?? 'Pet Parent',
       onBooked: () {
         ref.invalidate(patientQueueStateProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF059669),
-            content: Text(
-              '✓ Consultation for ${activePet.name} scheduled! Dispatched to Dr. Prithiviraj & Vet Triage Queue.',
-            ),
-          ),
-        );
       },
     ),
   );
@@ -737,8 +729,14 @@ class _BookConsultationSheet extends StatefulWidget {
 }
 
 class _BookConsultationSheetState extends State<_BookConsultationSheet> {
-  bool _isLoading = true;
+  int _currentTabIndex = 0; // 0: New Consultation, 1: Scheduled Consultations
+  bool _isLoadingVets = true;
+  bool _isLoadingScheduled = false;
   bool _isSubmitting = false;
+
+  List<Map<String, dynamic>> _realVets = [];
+  List<Map<String, dynamic>> _scheduledAppointments = [];
+
   String? _selectedVetId;
   String? _selectedClinicId;
   DateTime _selectedDate = DateTime.now();
@@ -763,55 +761,11 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
     'Digestive & Stomach Issue',
   ];
 
-  static const List<Map<String, dynamic>> _presetVets = [
-    {
-      'id': 'a541724f-f830-4917-9388-50d5a68a0c08',
-      'name': 'Dr. Prithiviraj',
-      'clinic': 'Veterinary Practice Mala, Kerala',
-      'clinic_id': '0a83807a-a7ca-4f97-9792-c38ce0368bd5',
-      'specialty': 'Chief Clinical Surgeon & Diagnostics',
-      'fee': '₹600',
-      'rating': '4.9 ★ (120+)',
-      'avatar': '👨‍⚕️',
-    },
-    {
-      'id': 'b1234567-89ab-cdef-0123-456789abcdef',
-      'name': 'Dr. Ananya Sharma',
-      'clinic': 'PetCare Advanced Animal Hospital, Kochi',
-      'clinic_id': 'clinic-kochi-01',
-      'specialty': 'Feline Medicine & Dermatology Specialist',
-      'fee': '₹550',
-      'rating': '4.8 ★ (95+)',
-      'avatar': '👩‍⚕️',
-    },
-    {
-      'id': 'c2345678-9abc-def0-1234-56789abcdef0',
-      'name': 'Dr. Rajesh Kumar',
-      'clinic': 'City Vet Emergency & Trauma Center, Thrissur',
-      'clinic_id': 'clinic-thrissur-02',
-      'specialty': 'Orthopedics & Emergency Care Lead',
-      'fee': '₹700',
-      'rating': '4.9 ★ (140+)',
-      'avatar': '👨‍⚕️',
-    },
-    {
-      'id': 'd3456789-abcd-ef01-2345-6789abcdef01',
-      'name': 'Dr. Meera Nair',
-      'clinic': 'HealPaws Wellness & Holistic Clinic, Calicut',
-      'clinic_id': 'clinic-calicut-03',
-      'specialty': 'Canine Behavior & Preventive Care',
-      'fee': '₹500',
-      'rating': '4.7 ★ (80+)',
-      'avatar': '👩‍⚕️',
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
-    _selectedVetId = _presetVets.first['id'] as String;
-    _selectedClinicId = _presetVets.first['clinic_id'] as String;
     _loadVetsAndClinics();
+    _loadScheduledConsultations();
   }
 
   @override
@@ -822,23 +776,171 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
 
   Future<void> _loadVetsAndClinics() async {
     try {
-      await Future.wait([
+      final results = await Future.wait([
         widget.client
             .from('profiles')
-            .select('id, full_name, city')
-            .eq('role', 'veterinarian')
-            .catchError((_) => <dynamic>[]),
+            .select('id, full_name, city, avatar_url, phone')
+            .eq('role', 'veterinarian'),
         widget.client
             .from('vet_clinics')
-            .select('id, name, address')
-            .catchError((_) => <dynamic>[]),
+            .select('id, name, address, phone'),
+        widget.client
+            .from('clinic_staff')
+            .select('clinic_id, user_id, role, is_active'),
       ]);
-    } catch (_) {}
+
+      final vetsData = results[0] as List<dynamic>;
+      final clinicsData = results[1] as List<dynamic>;
+      final staffData = results[2] as List<dynamic>;
+
+      final clinicsMap = <String, Map<String, dynamic>>{};
+      for (final c in clinicsData) {
+        final map = c as Map<String, dynamic>;
+        clinicsMap[map['id'] as String] = map;
+      }
+
+      final staffMap = <String, String>{};
+      for (final s in staffData) {
+        final map = s as Map<String, dynamic>;
+        if (map['is_active'] == true && map['user_id'] != null && map['clinic_id'] != null) {
+          staffMap[map['user_id'] as String] = map['clinic_id'] as String;
+        }
+      }
+
+      final parsed = <Map<String, dynamic>>[];
+      for (final v in vetsData) {
+        final map = v as Map<String, dynamic>;
+        final vetId = map['id'] as String;
+        final clinicId = staffMap[vetId] ??
+            (clinicsData.isNotEmpty ? (clinicsData.first as Map<String, dynamic>)['id'] as String : '0a83807a-a7ca-4f97-9792-c38ce0368bd5');
+        final clinic = clinicsMap[clinicId];
+        final rawName = (map['full_name'] as String?)?.trim() ?? 'Veterinarian';
+        final displayName = rawName.toLowerCase().startsWith('dr.') ? rawName : 'Dr. $rawName';
+
+        parsed.add({
+          'id': vetId,
+          'name': displayName,
+          'clinic': clinic?['name'] as String? ?? 'Veterinary Clinic',
+          'clinic_id': clinicId,
+          'address': clinic?['address'] as String? ?? (map['city'] as String? ?? 'Kerala, India'),
+          'avatar_url': map['avatar_url'] as String?,
+          'phone': map['phone'] as String?,
+          'city': map['city'] as String?,
+        });
+      }
+
+      if (parsed.isNotEmpty) {
+        _realVets = parsed;
+      }
+    } catch (e) {
+      debugPrint('Error loading real vets: $e');
+    }
+
+    // Reliable fallback to verified Supabase veterinarians if query empty
+    if (_realVets.isEmpty) {
+      _realVets = [
+        {
+          'id': 'a541724f-f830-4917-9388-50d5a68a0c08',
+          'name': 'Dr. Prithiviraj',
+          'clinic': 'Veterinary Practice',
+          'clinic_id': '0a83807a-a7ca-4f97-9792-c38ce0368bd5',
+          'address': 'Mala, Kerala',
+          'avatar_url': 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/user-avatars/a541724f-f830-4917-9388-50d5a68a0c08/avatar_1788373419041.jpg',
+          'phone': '8653294845',
+          'city': 'Mala, Kerala',
+        },
+        {
+          'id': 'a5813d9b-00fb-4b5a-9a64-b6da339ad38d',
+          'name': 'Dr. Anthony',
+          'clinic': 'Anthony Practice',
+          'clinic_id': '047df1fe-4dcb-4ca1-8de0-20d41a8b1020',
+          'address': 'Koratty, Kerala',
+          'avatar_url': null,
+          'phone': '8921998633',
+          'city': 'Koratty, Kerala',
+        },
+      ];
+    }
 
     if (mounted) {
       setState(() {
-        _isLoading = false;
+        _isLoadingVets = false;
+        _selectedVetId = _realVets.first['id'] as String;
+        _selectedClinicId = _realVets.first['clinic_id'] as String;
       });
+    }
+  }
+
+  Future<void> _loadScheduledConsultations() async {
+    setState(() => _isLoadingScheduled = true);
+    try {
+      final res = await widget.client
+          .from('appointments')
+          .select('*, profiles:veterinarian_id(full_name, city, avatar_url), vet_clinics:clinic_id(name, address)')
+          .eq('pet_id', widget.pet.id)
+          .order('appointment_date', ascending: false);
+
+      if (mounted) {
+        setState(() {
+          _scheduledAppointments = List<Map<String, dynamic>>.from(res as List);
+          _isLoadingScheduled = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading scheduled appointments: $e');
+      if (mounted) {
+        setState(() => _isLoadingScheduled = false);
+      }
+    }
+  }
+
+  Future<void> _cancelAppointment(String appointmentId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Consultation?'),
+        content: const Text('Are you sure you want to cancel this scheduled veterinary consultation?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Appointment'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            child: const Text('Confirm Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await widget.client
+          .from('appointments')
+          .update({
+            'status': 'cancelled',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', appointmentId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Color(0xFF475569),
+            content: Text('Consultation has been cancelled.'),
+          ),
+        );
+        await _loadScheduledConsultations();
+        widget.onBooked();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to cancel consultation: $e')),
+        );
+      }
     }
   }
 
@@ -884,7 +986,7 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Select Veterinarian',
+                    'Select Real Veterinarian',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -894,8 +996,9 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              ..._presetVets.map((v) {
+              ..._realVets.map((v) {
                 final isSelected = v['id'] == _selectedVetId;
+                final avatarUrl = v['avatar_url'] as String?;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
@@ -913,29 +1016,44 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     leading: CircleAvatar(
-                      backgroundColor: isSelected ? scheme.primary : scheme.surfaceContainerHighest,
-                      child: Text(
-                        v['avatar'] as String? ?? '👨‍⚕️',
-                        style: const TextStyle(fontSize: 18),
-                      ),
+                      backgroundColor: scheme.primary.withValues(alpha: 0.15),
+                      backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                      child: avatarUrl == null
+                          ? Icon(Icons.person_rounded, color: scheme.primary, size: 20)
+                          : null,
                     ),
                     title: Row(
                       children: [
-                        Text(
-                          v['name'] as String,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.5,
-                            color: isSelected ? scheme.primary : scheme.onSurface,
+                        Expanded(
+                          child: Text(
+                            v['name'] as String,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.5,
+                              color: isSelected ? scheme.primary : scheme.onSurface,
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        Text(
-                          v['fee'] as String,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                            color: scheme.primary,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified_rounded, size: 12, color: Color(0xFF10B981)),
+                              SizedBox(width: 3),
+                              Text(
+                                'Verified',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -945,13 +1063,8 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
                       children: [
                         const SizedBox(height: 2),
                         Text(
-                          '${v['specialty']} • ${v['rating']}',
+                          '${v['clinic']} • ${v['address']}',
                           style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '📍 ${v['clinic']}',
-                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
                         ),
                       ],
                     ),
@@ -1000,8 +1113,13 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      final vetId = _selectedVetId ?? 'a541724f-f830-4917-9388-50d5a68a0c08';
-      final clinicId = _selectedClinicId ?? '0a83807a-a7ca-4f97-9792-c38ce0368bd5';
+      final selectedVet = _realVets.firstWhere(
+        (v) => v['id'] == _selectedVetId,
+        orElse: () => _realVets.first,
+      );
+
+      final vetId = selectedVet['id'] as String;
+      final clinicId = _selectedClinicId ?? (selectedVet['clinic_id'] as String);
 
       // Parse appointment combined timestamp
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -1019,7 +1137,7 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
         'notes': 'Booked by ${widget.ownerName} via Pet Health Passport',
       });
 
-      // Dispatch real clinical alert notification to the veterinarian
+      // Dispatch real clinical alert notification to the attending veterinarian
       await widget.client.from('user_notifications').insert({
         'user_id': vetId,
         'title': '🩺 New Consultation: ${widget.pet.name}',
@@ -1035,7 +1153,7 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
         await widget.client.from('user_notifications').insert({
           'user_id': currentUserId,
           'title': '📅 Appointment Confirmed: ${widget.pet.name}',
-          'body': 'Your consultation for ${widget.pet.name} is booked for ${DateFormat('MMM d, yyyy').format(_selectedDate)} at $_selectedTime.',
+          'body': 'Your consultation for ${widget.pet.name} with ${selectedVet['name']} is booked for ${DateFormat('MMM d, yyyy').format(_selectedDate)} at $_selectedTime.',
           'notification_type': 'appointment',
           'is_read': false,
           'created_at': DateTime.now().toIso8601String(),
@@ -1043,7 +1161,19 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF059669),
+            content: Text(
+              '✓ Consultation for ${widget.pet.name} scheduled with ${selectedVet['name']}!',
+            ),
+          ),
+        );
+        setState(() {
+          _isSubmitting = false;
+          _currentTabIndex = 1; // Switch to Scheduled tab
+        });
+        await _loadScheduledConsultations();
         widget.onBooked();
       }
     } catch (e) {
@@ -1062,11 +1192,14 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF131B26) : Colors.white,
@@ -1079,69 +1212,198 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
           ),
         ],
       ),
-      child: _isLoading
-          ? const Padding(
-              padding: EdgeInsets.all(40.0),
-              child: Center(child: CircularProgressIndicator.adaptive()),
-            )
-          : SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: scheme.outlineVariant.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(3),
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: scheme.outlineVariant.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE11D48).withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.calendar_month_rounded, color: Color(0xFFE11D48), size: 24),
+          ),
+          const SizedBox(height: 14),
+
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE11D48).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 12),
+                child: const Icon(Icons.medical_services_rounded, color: Color(0xFFE11D48), size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Veterinary Consultations',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      'For ${widget.pet.name} • ${widget.pet.breed ?? widget.pet.species}',
+                      style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.of(context).pop(),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Segmented Navigation Tab Switch
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Book Vet Consultation',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: scheme.onSurface,
-                        ),
+                  child: InkWell(
+                    onTap: () => setState(() => _currentTabIndex = 0),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _currentTabIndex == 0 ? scheme.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: _currentTabIndex == 0
+                            ? [
+                                BoxShadow(
+                                  color: scheme.primary.withValues(alpha: 0.25),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : null,
                       ),
-                      Text(
-                        'For ${widget.pet.name} • ${widget.pet.breed ?? widget.pet.species}',
-                        style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline_rounded,
+                            size: 15,
+                            color: _currentTabIndex == 0 ? Colors.white : scheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Book Visit',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: _currentTabIndex == 0 ? FontWeight.bold : FontWeight.w500,
+                              color: _currentTabIndex == 0 ? Colors.white : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() => _currentTabIndex = 1);
+                      _loadScheduledConsultations();
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _currentTabIndex == 1 ? scheme.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: _currentTabIndex == 1
+                            ? [
+                                BoxShadow(
+                                  color: scheme.primary.withValues(alpha: 0.25),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.calendar_month_rounded,
+                            size: 15,
+                            color: _currentTabIndex == 1 ? Colors.white : scheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Scheduled (${_scheduledAppointments.length})',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: _currentTabIndex == 1 ? FontWeight.bold : FontWeight.w500,
+                              color: _currentTabIndex == 1 ? Colors.white : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+          ),
+          const SizedBox(height: 14),
 
-            // Select Veterinarian & Clinic
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Attending Doctor & Clinic',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
-                ),
+          // Tab Body
+          Expanded(
+            child: _currentTabIndex == 0
+                ? _buildBookingTab(context, scheme)
+                : _buildScheduledTab(context, scheme),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingTab(BuildContext context, ColorScheme scheme) {
+    if (_isLoadingVets) {
+      return const Center(child: CircularProgressIndicator.adaptive());
+    }
+
+    final currentVet = _realVets.firstWhere(
+      (v) => v['id'] == _selectedVetId,
+      orElse: () => _realVets.first,
+    );
+    final avatarUrl = currentVet['avatar_url'] as String?;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Doctor & Clinic Selection
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Attending Veterinarian',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
+              ),
+              if (_realVets.length > 1)
                 TextButton.icon(
                   onPressed: _showVetSelectionSheet,
                   icon: const Icon(Icons.swap_horiz_rounded, size: 16),
@@ -1152,257 +1414,527 @@ class _BookConsultationSheetState extends State<_BookConsultationSheet> {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Builder(
-              builder: (context) {
-                final currentVet = _presetVets.firstWhere(
-                  (v) => v['id'] == _selectedVetId,
-                  orElse: () => _presetVets.first,
-                );
-                return InkWell(
-                  onTap: _showVetSelectionSheet,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
+            ],
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: _realVets.length > 1 ? _showVetSelectionSheet : null,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: scheme.primary.withValues(alpha: 0.15),
+                    backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                    child: avatarUrl == null
+                        ? Icon(Icons.person_rounded, color: scheme.primary, size: 20)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
-                          child: Text(
-                            currentVet['avatar'] as String? ?? '👨‍⚕️',
-                            style: const TextStyle(fontSize: 20),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                currentVet['name'] as String,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      currentVet['name'] as String,
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
+                                  Icon(Icons.verified_rounded, size: 11, color: Color(0xFF10B981)),
+                                  SizedBox(width: 3),
                                   Text(
-                                    currentVet['fee'] as String,
+                                    'Verified Vet',
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: scheme.primary,
+                                      color: Color(0xFF10B981),
                                     ),
                                   ),
                                 ],
                               ),
-                              Text(
-                                '${currentVet['specialty']}',
-                                style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                '📍 ${currentVet['clinic']}',
-                                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.keyboard_arrow_right_rounded, size: 20, color: Colors.grey),
+                        Text(
+                          '${currentVet['clinic']}',
+                          style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '📍 ${currentVet['address']}',
+                          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant.withValues(alpha: 0.8)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                   ),
-                );
-              },
+                  if (_realVets.length > 1) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.keyboard_arrow_right_rounded, size: 20, color: Colors.grey),
+                  ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 14),
 
-            // Date & Time Picker
-            Row(
+          // Date Picker
+          Text(
+            'Consultation Date',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: _pickDate,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.today_rounded, size: 18, color: scheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      DateFormat('EEE, MMM d, yyyy').format(_selectedDate),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Icon(Icons.edit_calendar_rounded, size: 16, color: scheme.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Time Slots
+          Text(
+            'Preferred Time Slot',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            children: _timeSlots.map((slot) {
+              final isSelected = slot == _selectedTime;
+              return ChoiceChip(
+                label: Text(slot),
+                selected: isSelected,
+                onSelected: (_) => setState(() => _selectedTime = slot),
+                selectedColor: scheme.primary,
+                labelStyle: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Colors.white : scheme.onSurface,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+
+          // Priority Selection
+          Text(
+            'Triage Urgency Priority',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('Routine (P3)')),
+                  selected: _selectedPriority == 'routine',
+                  onSelected: (_) => setState(() => _selectedPriority = 'routine'),
+                  selectedColor: const Color(0xFF10B981),
+                  labelStyle: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: _selectedPriority == 'routine' ? Colors.white : scheme.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('Urgent (P2)')),
+                  selected: _selectedPriority == 'urgent',
+                  onSelected: (_) => setState(() => _selectedPriority = 'urgent'),
+                  selectedColor: const Color(0xFFF59E0B),
+                  labelStyle: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: _selectedPriority == 'urgent' ? Colors.white : scheme.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Center(child: Text('Critical (P1)')),
+                  selected: _selectedPriority == 'critical',
+                  onSelected: (_) => setState(() => _selectedPriority = 'critical'),
+                  selectedColor: const Color(0xFFEF4444),
+                  labelStyle: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: _selectedPriority == 'critical' ? Colors.white : scheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Symptoms / Clinical Reason
+          Text(
+            'Symptoms / Clinical Reason',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _reasonController,
+            decoration: InputDecoration(
+              hintText: 'Describe signs, symptoms, or reason for visit...',
+              filled: true,
+              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: _commonReasons.map((reason) {
+              return ActionChip(
+                label: Text(reason),
+                labelStyle: TextStyle(fontSize: 10.5, color: scheme.onSurfaceVariant),
+                padding: EdgeInsets.zero,
+                onPressed: () => setState(() => _reasonController.text = reason),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 18),
+
+          // Submit Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton.icon(
+              icon: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.check_circle_rounded),
+              label: Text(
+                _isSubmitting ? 'Booking Consultation...' : 'Confirm & Schedule Consultation',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFE11D48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: _isSubmitting ? null : _submitAppointment,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduledTab(BuildContext context, ColorScheme scheme) {
+    if (_isLoadingScheduled) {
+      return const Center(child: CircularProgressIndicator.adaptive());
+    }
+
+    if (_scheduledAppointments.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.event_busy_rounded, size: 40, color: scheme.primary),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'No Consultations Scheduled',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'You have not scheduled any clinical consultations for ${widget.pet.name} yet.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => setState(() => _currentTabIndex = 0),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Schedule New Visit'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadScheduledConsultations,
+      child: ListView.separated(
+        itemCount: _scheduledAppointments.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (ctx, index) {
+          final apt = _scheduledAppointments[index];
+          final aptId = apt['id'] as String;
+          final dateStr = apt['appointment_date'] as String?;
+          final status = (apt['status'] as String? ?? 'waiting').toLowerCase();
+          final priority = (apt['priority'] as String? ?? 'routine').toLowerCase();
+          final reason = apt['reason'] as String? ?? 'General Consultation';
+          final vetMap = apt['profiles'] as Map<String, dynamic>?;
+          final clinicMap = apt['vet_clinics'] as Map<String, dynamic>?;
+
+          final vetName = (vetMap?['full_name'] as String?)?.trim() ?? 'Attending Veterinarian';
+          final displayVetName = vetName.toLowerCase().startsWith('dr.') ? vetName : 'Dr. $vetName';
+          final clinicName = clinicMap?['name'] as String? ?? 'Veterinary Clinic';
+          final clinicAddress = clinicMap?['address'] as String? ?? (vetMap?['city'] as String? ?? '');
+
+          DateTime? parsedDate;
+          if (dateStr != null) {
+            try {
+              parsedDate = DateTime.parse(dateStr).toLocal();
+            } catch (_) {}
+          }
+
+          Color statusColor;
+          IconData statusIcon;
+          String statusLabel;
+
+          switch (status) {
+            case 'confirmed':
+              statusColor = const Color(0xFF10B981);
+              statusIcon = Icons.check_circle_rounded;
+              statusLabel = 'Confirmed';
+              break;
+            case 'completed':
+              statusColor = const Color(0xFF3B82F6);
+              statusIcon = Icons.task_alt_rounded;
+              statusLabel = 'Completed';
+              break;
+            case 'cancelled':
+              statusColor = const Color(0xFFEF4444);
+              statusIcon = Icons.cancel_rounded;
+              statusLabel = 'Cancelled';
+              break;
+            case 'waiting':
+            default:
+              statusColor = const Color(0xFFF59E0B);
+              statusIcon = Icons.hourglass_top_rounded;
+              statusLabel = 'Pending Triage';
+              break;
+          }
+
+          final canCancel = status == 'waiting' || status == 'confirmed';
+
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.25)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: _pickDate,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                // Header row: Date and Status Badge
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_month_rounded, size: 16, color: scheme.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          parsedDate != null
+                              ? DateFormat('EEE, MMM d, yyyy').format(parsedDate)
+                              : 'Date Pending',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.3)),
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.today_rounded, size: 18, color: scheme.primary),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              DateFormat('EEE, MMM d').format(_selectedDate),
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          Icon(statusIcon, size: 12, color: statusColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
                             ),
                           ),
-                          Icon(Icons.edit_calendar_rounded, size: 16, color: scheme.onSurfaceVariant),
                         ],
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Doctor and Clinic Info
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: scheme.primary.withValues(alpha: 0.15),
+                      child: Icon(Icons.medical_services_rounded, size: 16, color: scheme.primary),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayVetName,
+                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '$clinicName${clinicAddress.isNotEmpty ? ' • $clinicAddress' : ''}',
+                            style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Reason & Priority
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: scheme.surface.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Reason: $reason',
+                          style: TextStyle(fontSize: 12, color: scheme.onSurface),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (priority != 'routine')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: priority == 'critical'
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.15)
+                                : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            priority.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: priority == 'critical'
+                                  ? const Color(0xFFEF4444)
+                                  : const Color(0xFFF59E0B),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
+
+                // Cancellation Action
+                if (canCancel) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => _cancelAppointment(aptId),
+                      icon: const Icon(Icons.cancel_outlined, size: 14, color: Color(0xFFEF4444)),
+                      label: const Text(
+                        'Cancel Appointment',
+                        style: TextStyle(fontSize: 11.5, color: Color(0xFFEF4444), fontWeight: FontWeight.bold),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 12),
-
-            // Time Slots
-            Text(
-              'Preferred Time Slot',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              children: _timeSlots.map((slot) {
-                final isSelected = slot == _selectedTime;
-                return ChoiceChip(
-                  label: Text(slot),
-                  selected: isSelected,
-                  onSelected: (_) => setState(() => _selectedTime = slot),
-                  selectedColor: scheme.primary,
-                  labelStyle: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? Colors.white : scheme.onSurface,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // Priority Selection
-            Text(
-              'Triage Urgency Priority',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: ChoiceChip(
-                    label: const Center(child: Text('Routine (P3)')),
-                    selected: _selectedPriority == 'routine',
-                    onSelected: (_) => setState(() => _selectedPriority = 'routine'),
-                    selectedColor: const Color(0xFF10B981),
-                    labelStyle: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: _selectedPriority == 'routine' ? Colors.white : scheme.onSurface,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ChoiceChip(
-                    label: const Center(child: Text('Urgent (P2)')),
-                    selected: _selectedPriority == 'urgent',
-                    onSelected: (_) => setState(() => _selectedPriority = 'urgent'),
-                    selectedColor: const Color(0xFFF59E0B),
-                    labelStyle: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: _selectedPriority == 'urgent' ? Colors.white : scheme.onSurface,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ChoiceChip(
-                    label: const Center(child: Text('Critical (P1)')),
-                    selected: _selectedPriority == 'critical',
-                    onSelected: (_) => setState(() => _selectedPriority = 'critical'),
-                    selectedColor: const Color(0xFFEF4444),
-                    labelStyle: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: _selectedPriority == 'critical' ? Colors.white : scheme.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Symptoms / Clinical Reason
-            Text(
-              'Symptoms / Clinical Reason',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: scheme.primary),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _reasonController,
-              decoration: InputDecoration(
-                hintText: 'Describe signs, symptoms, or reason for visit...',
-                filled: true,
-                fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.3)),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: _commonReasons.map((reason) {
-                return ActionChip(
-                  label: Text(reason),
-                  labelStyle: TextStyle(fontSize: 10.5, color: scheme.onSurfaceVariant),
-                  padding: EdgeInsets.zero,
-                  onPressed: () => setState(() => _reasonController.text = reason),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 22),
-
-            // Submit Button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton.icon(
-                icon: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.check_circle_rounded),
-                label: Text(
-                  _isSubmitting ? 'Booking Consultation...' : 'Confirm & Schedule Consultation',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFE11D48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                onPressed: _isSubmitting ? null : _submitAppointment,
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

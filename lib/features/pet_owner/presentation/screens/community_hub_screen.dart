@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_icon_sizes.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
@@ -143,7 +144,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: margin.copyWith(
               top: topPad,
-              bottom: AppSpacing.xxl * 2,
+              bottom: AppSpacing.bottomNavScrollInset(context),
             ),
             child: Align(
               alignment: Alignment.topCenter,
@@ -200,6 +201,7 @@ class _CommunityHubScreenState extends ConsumerState<CommunityHubScreen> {
             child: Text(
               _portalTitle,
               maxLines: 1,
+              softWrap: false,
               style: context.textTheme.titleMedium?.copyWith(
                 color: portalAccent,
                 fontWeight: AppTypography.bold,
@@ -1072,7 +1074,11 @@ class _PostCardState extends ConsumerState<_PostCard>
                         child: Hero(
                           tag: 'post-photo-${_post.id}',
                           child: _PostMediaImage(
-                              imageUrl: _post.imageUrl!, height: 230),
+                            imageUrl: _post.imageUrl!,
+                            height: AppBreakpoints.isMobile(context.screenWidth)
+                                ? 190
+                                : 250,
+                          ),
                         ),
                       ),
 

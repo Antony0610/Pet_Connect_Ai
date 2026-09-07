@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
+
 /// Spacing scale for the **PetConnect AI Core** design system.
 ///
 /// Verbatim from the frozen Stitch `DESIGN.md` `spacing` tokens. The scale
@@ -70,4 +72,14 @@ abstract final class AppSpacing {
   static const SizedBox hGapSm = SizedBox(width: sm);
   static const SizedBox hGapMd = SizedBox(width: md);
   static const SizedBox hGapLg = SizedBox(width: lg);
+
+  /// Standard bottom clearance for scrollable pages hosted above the floating
+  /// navigation bar and system gesture insets.
+  static double bottomNavScrollInset(BuildContext context) {
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.sizeOf(context).width);
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    return isMobile
+        ? bottomInset + 88 + lg
+        : bottomInset + 72 + md;
+  }
 }

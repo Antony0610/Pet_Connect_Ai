@@ -78,14 +78,17 @@ class OwnerBottomNavBar extends StatelessWidget {
     final scheme = context.colorScheme;
     final isDark = context.theme.brightness == Brightness.dark;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.md,
-      ),
-      child: DecoratedBox(
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          0,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        child: DecoratedBox(
         decoration: const BoxDecoration(
           borderRadius: AppRadius.brPill,
           boxShadow: [
@@ -125,8 +128,9 @@ class OwnerBottomNavBar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _OwnerNavItem extends StatelessWidget {

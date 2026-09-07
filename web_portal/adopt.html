@@ -719,12 +719,90 @@
     let currentGuardianPhone = '+91 98765 43210';
     let currentOwnerId = null;
 
+    const fallbackCatalog = {
+      'e2831d10-8b43-4f9e-a89c-567e89ab1001': {
+        name: 'Bella',
+        breed: 'Golden Retriever',
+        age: '2.5 Years',
+        gender: 'Female',
+        fee: 'Free / Loving Home',
+        location: 'Kochi Rescue Network',
+        phone: '+91 94471 23456',
+        img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80',
+        bio: 'Bella is a spirited, affectionate Golden Retriever who loves morning walks, ball fetching, and cuddling. Fully vaccinated, microchipped, and crate trained. Gets along great with kids and other dogs.'
+      }
+    };
+
+    function applyAdoptionData(petData) {
+      const fb = fallbackCatalog[candidateId] || fallbackCatalog['e2831d10-8b43-4f9e-a89c-567e89ab1001'];
+      const name = petData?.name || params.get('name') || fb.name;
+      const breed = petData?.breed || params.get('breed') || fb.breed;
+      const age = petData?.age || params.get('age') || fb.age;
+      const gender = petData?.gender || params.get('gender') || fb.gender;
+      const fee = petData?.adoption_fee ? (petData.adoption_fee.startsWith('₹') ? petData.adoption_fee : `₹${petData.adoption_fee}`) : (params.get('fee') || fb.fee);
+      const location = petData?.location || petData?.shelter || petData?.city || params.get('location') || fb.location;
+      const phone = petData?.contact_phone || petData?.phone || params.get('phone') || fb.phone;
+      const img = petData?.image_url || (petData?.images && petData.images[0]) || params.get('img') || fb.img;
+      const bio = petData?.description || petData?.notes || petData?.bio || params.get('bio') || fb.bio;
+
+      currentListingId = petData?.id || candidateId;
+      currentPetName = name;
+      currentGuardianPhone = phone;
+      currentOwnerId = petData?.owner_id || null;
+
+      document.title = `🐾 Adopt ${name} | PetConnect AI`;
+      document.getElementById('petName').textContent = name;
+      document.getElementById('modalPetName').textContent = name;
+      document.getElementById('storyPetName').textContent = name;
+      document.getElementById('petFee').textContent = fee;
+      document.getElementById('petLocation').textContent = `📍 ${location}`;
+      document.getElementById('petBreedLine').textContent = `${breed} • ${age}`;
+
+      document.getElementById('vBreed').textContent = breed;
+      document.getElementById('vAge').textContent = age;
+      document.getElementById('vGender').textContent = gender;
+      document.getElementById('petBio').textContent = bio;
+      document.getElementById('navDossierBadge').textContent = `ADOPT-${name.toUpperCase()}`;
+
+      if (img) {
+        const petImgEl = document.getElementById('petImg');
+        petImgEl.onerror = () => {
+          petImgEl.src = 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80';
+        };
+        petImgEl.src = img;
+      }
+
+      if (phone) {
+        document.getElementById('callBtn').href = `tel:${phone.replace(/\s+/g, '')}`;
+        const waClean = phone.replace(/[^0-9]/g, '');
+        const waMsg = encodeURIComponent(`Hi! I am inquiring about adopting ${name} from PetConnect AI: ${window.location.href}`);
+        document.getElementById('waBtn').href = `https://wa.me/${waClean}?text=${waMsg}`;
+      }
+
+      const traits = (petData?.temperament && Array.isArray(petData.temperament) && petData.temperament.length > 0)
+        ? petData.temperament
+        : (Array.isArray(petData?.personality_traits) && petData.personality_traits.length > 0)
+          ? petData.personality_traits
+          : (Array.isArray(petData?.personality) && petData.personality.length > 0)
+            ? petData.personality
+            : ['Affectionate', 'Playful', 'Kid-Friendly', 'Leash-Trained', 'Health Screened'];
+
+      document.getElementById('checklistGrid').innerHTML = traits.map(t =>
+        `<span class="trait-pill">✓ ${t}</span>`
+      ).join('');
+    }
+
+    // 1. Instant preliminary render from URL parameters
+    applyAdoptionData(null);
+
+    // 2. Fetch live adoption details from Supabase database
     async function fetchRealAdoptionDetails() {
       try {
         let petData = null;
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId);
 
         if (isUUID) {
+          // A. Query adoption_listings by primary ID
           const resp = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?id=eq.${candidateId}&limit=1&select=*`, {
             headers: {
               'apikey': SUPABASE_ANON_KEY,
@@ -737,77 +815,60 @@
               petData = list[0];
             }
           }
-        }
 
-        const fallbackCatalog = {
-          'e2831d10-8b43-4f9e-a89c-567e89ab1001': {
-            name: 'Bella',
-            breed: 'Golden Retriever',
-            age: '2.5 Years',
-            gender: 'Female',
-            fee: 'Free / Loving Home',
-            location: 'Kochi Rescue Network',
-            phone: '+91 94471 23456',
-            img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80',
-            bio: 'Bella is a spirited, affectionate Golden Retriever who loves morning walks, ball fetching, and cuddling. Fully vaccinated, microchipped, and crate trained. Gets along great with kids and other dogs.'
+          // B. Query adoption_listings by pet_id
+          if (!petData) {
+            const pResp = await fetch(`${SUPABASE_URL}/rest/v1/adoption_listings?pet_id=eq.${candidateId}&limit=1&select=*`, {
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+              }
+            });
+            if (pResp.ok) {
+              const pList = await pResp.json();
+              if (Array.isArray(pList) && pList.length > 0) {
+                petData = pList[0];
+              }
+            }
           }
-        };
 
-        const fb = fallbackCatalog[candidateId] || fallbackCatalog['e2831d10-8b43-4f9e-a89c-567e89ab1001'];
-        const name = petData?.name || params.get('name') || fb.name;
-        const breed = petData?.breed || params.get('breed') || fb.breed;
-        const age = petData?.age || params.get('age') || fb.age;
-        const gender = petData?.gender || params.get('gender') || fb.gender;
-        const fee = petData?.adoption_fee ? `₹${petData.adoption_fee}` : (params.get('fee') || fb.fee);
-        const location = petData?.location || params.get('location') || fb.location;
-        const phone = petData?.contact_phone || params.get('phone') || fb.phone;
-        const img = petData?.image_url || (petData?.images && petData.images[0]) || params.get('img') || fb.img;
-        const bio = petData?.description || params.get('bio') || fb.bio;
-
-        currentListingId = petData?.id || candidateId;
-        currentPetName = name;
-        currentGuardianPhone = phone;
-        currentOwnerId = petData?.owner_id || null;
-
-        document.title = `🐾 Adopt ${name} | PetConnect AI`;
-        document.getElementById('petName').textContent = name;
-        document.getElementById('modalPetName').textContent = name;
-        document.getElementById('storyPetName').textContent = name;
-        document.getElementById('petFee').textContent = fee;
-        document.getElementById('petLocation').textContent = `📍 ${location}`;
-        document.getElementById('petBreedLine').textContent = `${breed} • ${age}`;
-
-        document.getElementById('vBreed').textContent = breed;
-        document.getElementById('vAge').textContent = age;
-        document.getElementById('vGender').textContent = gender;
-        document.getElementById('petBio').textContent = bio;
-        document.getElementById('navDossierBadge').textContent = `ADOPT-${name.toUpperCase()}`;
-
-        if (img) {
-          const petImgEl = document.getElementById('petImg');
-          petImgEl.onerror = () => {
-            petImgEl.src = 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80';
-          };
-          petImgEl.src = img;
+          // C. Query pets table with joined owner profile
+          if (!petData) {
+            const petTableResp = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${candidateId}&limit=1&select=*,profiles:owner_id(full_name,city,phone)`, {
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+              }
+            });
+            if (petTableResp.ok) {
+              const pRows = await petTableResp.json();
+              if (Array.isArray(pRows) && pRows.length > 0) {
+                const p = pRows[0];
+                const ageCalc = p.date_of_birth
+                  ? `${Math.max(1, Math.round((new Date() - new Date(p.date_of_birth)) / (1000 * 60 * 60 * 24 * 365)))} Years`
+                  : (params.get('age') || 'Adult');
+                petData = {
+                  id: candidateId,
+                  name: p.name,
+                  species: p.species,
+                  breed: p.breed,
+                  age: ageCalc,
+                  gender: p.gender ? (p.gender.charAt(0).toUpperCase() + p.gender.slice(1)) : 'Unknown',
+                  image_url: p.image_url,
+                  location: p.profiles?.city || 'Verified Caregiver',
+                  contact_phone: p.profiles?.phone || params.get('phone'),
+                  owner_id: p.owner_id,
+                  description: p.notes || `Meet ${p.name}! A wonderful companion looking for a loving home.`,
+                  adoption_fee: 'Free / Loving Home'
+                };
+              }
+            }
+          }
         }
 
-        if (phone) {
-          document.getElementById('callBtn').href = `tel:${phone.replace(/\s+/g, '')}`;
-          const waClean = phone.replace(/[^0-9]/g, '');
-          const waMsg = encodeURIComponent(`Hi! I am inquiring about adopting ${name} from PetConnect AI: ${window.location.href}`);
-          document.getElementById('waBtn').href = `https://wa.me/${waClean}?text=${waMsg}`;
+        if (petData) {
+          applyAdoptionData(petData);
         }
-
-        const traits = (petData?.temperament && Array.isArray(petData.temperament) && petData.temperament.length > 0)
-          ? petData.temperament
-          : (Array.isArray(petData?.personality_traits) && petData.personality_traits.length > 0)
-            ? petData.personality_traits
-            : ['Affectionate', 'Playful', 'Kid-Friendly', 'Leash-Trained', 'Health Screened'];
-
-        document.getElementById('checklistGrid').innerHTML = traits.map(t =>
-          `<span class="trait-pill">✓ ${t}</span>`
-        ).join('');
-
       } catch (err) {
         console.error('Error fetching adoption details:', err);
       }

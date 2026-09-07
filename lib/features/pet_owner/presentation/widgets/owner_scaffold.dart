@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_ai_fab.dart';
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_bottom_nav_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
@@ -54,6 +55,7 @@ class OwnerScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = AppBreakpoints.isMobile(MediaQuery.sizeOf(context).width);
     final fab =
         floatingActionButton ??
         (showAiFab
@@ -72,7 +74,7 @@ class OwnerScaffold extends StatelessWidget {
           ? null
           : Padding(
               // Lift the FAB comfortably above the floating bottom nav bar.
-              padding: const EdgeInsets.only(bottom: 40, right: 2),
+              padding: EdgeInsets.only(bottom: isMobile ? 24 : 36, right: 2),
               child: fab,
             ),
       bottomNavigationBar: OwnerBottomNavBar(

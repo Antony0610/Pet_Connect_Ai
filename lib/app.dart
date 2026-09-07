@@ -25,6 +25,10 @@ class App extends ConsumerWidget {
       liveUserNotificationsStreamProvider,
       (previous, next) {
         next.whenData((notif) {
+          final currentUserId = ref.read(supabaseClientProvider).auth.currentUser?.id;
+          if (currentUserId == null || currentUserId.isEmpty || notif.userId != currentUserId) {
+            return;
+          }
           ref.read(userNotificationsProvider.notifier).addLiveNotification(notif);
           final id = DateTime.now().millisecondsSinceEpoch.remainder(100000);
           final type = notif.notificationType.toUpperCase();
@@ -58,6 +62,18 @@ class App extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: mediaQuery.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.15,
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

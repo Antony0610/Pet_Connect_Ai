@@ -91,8 +91,7 @@ class _HomeDashboardScreenState
     );
 
     final topPad = context.viewPadding.top + appBar.preferredSize.height;
-    final bottomPad =
-        context.viewPadding.bottom + AppSpacing.xxl * 2 + AppSpacing.md;
+    final bottomPad = AppSpacing.bottomNavScrollInset(context);
 
     final petsAsync = ref.watch(petsProvider);
 
@@ -296,8 +295,13 @@ class _HeroPetCard extends ConsumerWidget {
             ? 'Collar: Active'
             : 'Collar: Offline';
 
+    final isMobile = AppBreakpoints.isMobile(context.screenWidth);
+    final cardPadding = isMobile ? AppSpacing.cardPadding : AppSpacing.cardPaddingPremium;
+    final avatarSize = isMobile ? 74.0 : 100.0;
+    final hGap = isMobile ? AppSpacing.hGapMd : AppSpacing.hGapLg;
+
     return GlassCard(
-      padding: AppSpacing.cardPaddingPremium,
+      padding: cardPadding,
       borderRadius: AppRadius.brSection,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -318,8 +322,8 @@ class _HeroPetCard extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _HeroPetImage(imageUrl: pet.imageUrl, size: 100),
-                AppSpacing.hGapLg,
+                _HeroPetImage(imageUrl: pet.imageUrl, size: avatarSize),
+                hGap,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,7 +333,10 @@ class _HeroPetCard extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               pet.name,
-                              style: context.textTheme.headlineMedium?.copyWith(
+                              style: (isMobile
+                                      ? context.textTheme.titleLarge
+                                      : context.textTheme.headlineMedium)
+                                  ?.copyWith(
                                 fontWeight: AppTypography.bold,
                                 color: context.colorScheme.onSurface,
                               ),
@@ -620,11 +627,15 @@ class _StatusPill extends StatelessWidget {
         children: [
           Icon(icon, size: AppIconSizes.xs, color: onContainer),
           AppSpacing.hGapXs,
-          Text(
-            label,
-            style: context.textTheme.labelLarge?.copyWith(
-              color: onContainer,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.textTheme.labelMedium?.copyWith(
+                color: onContainer,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -679,8 +690,9 @@ class _TodaySummary extends ConsumerWidget {
         ? _formatSteps(todayActivity.stepCount)
         : null;
 
-    final bool isRow =
-        context.screenWidth >= AppBreakpoints.mobile;
+    final bool isMobile = AppBreakpoints.isMobile(context.screenWidth);
+    final bool isRow = context.screenWidth >= 340;
+    final gap = isMobile ? AppSpacing.hGapSm : AppSpacing.hGapMd;
 
     final Widget activity = _StatCard(
       icon: Icons.directions_run,
@@ -715,9 +727,9 @@ class _TodaySummary extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(child: activity),
-            AppSpacing.hGapMd,
+            gap,
             Expanded(child: collarCard),
-            AppSpacing.hGapMd,
+            gap,
             Expanded(child: apptCard),
           ],
         ),
@@ -772,6 +784,12 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final isDark = context.theme.brightness == Brightness.dark;
+    final isMobile = AppBreakpoints.isMobile(context.screenWidth);
+    final cardPadding = isMobile
+        ? const EdgeInsets.symmetric(horizontal: 10, vertical: 10)
+        : AppSpacing.cardPadding;
+    final hGap = isMobile ? AppSpacing.hGapXs : AppSpacing.hGapSm;
+    final vGap = isMobile ? AppSpacing.vGapXs : AppSpacing.vGapSm;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -816,37 +834,53 @@ class _StatCard extends StatelessWidget {
             splashColor: accent.withValues(alpha: 0.12),
             highlightColor: accent.withValues(alpha: 0.06),
             child: Padding(
-              padding: AppSpacing.cardPadding,
+              padding: cardPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
                           color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(icon, color: accent, size: 16),
+                        child: Icon(icon, color: accent, size: 15),
                       ),
-                      AppSpacing.hGapSm,
-                      Text(
-                        label,
-                        style: context.textTheme.labelMedium
-                            ?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                      hGap,
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            style: context.textTheme.labelMedium
+                                ?.copyWith(color: accent, fontWeight: FontWeight.w600),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  AppSpacing.vGapSm,
-                  Text(
-                    value,
-                    style: context.textTheme.headlineMedium
-                        ?.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w700),
+                  vGap,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: (isMobile
+                              ? context.textTheme.titleLarge
+                              : context.textTheme.headlineMedium)
+                          ?.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w700),
+                    ),
                   ),
                   AppSpacing.vGapXs,
                   Text(
                     sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: context.textTheme.labelSmall
                         ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
@@ -963,10 +997,10 @@ class _QuickActionsGrid extends StatelessWidget {
           items: activeSpecs,
           crossAxisCount: 3,
           tabletCrossAxisCount: 6,
-          containerSize: 72,
-          iconSize: 34,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 12,
+          containerSize: AppBreakpoints.isMobile(context.screenWidth) ? 54 : 72,
+          iconSize: AppBreakpoints.isMobile(context.screenWidth) ? 26 : 34,
+          mainAxisSpacing: AppBreakpoints.isMobile(context.screenWidth) ? 10 : 14,
+          crossAxisSpacing: AppBreakpoints.isMobile(context.screenWidth) ? 10 : 12,
         ),
       ],
     );

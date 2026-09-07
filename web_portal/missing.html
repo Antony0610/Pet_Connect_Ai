@@ -744,17 +744,22 @@
       const fallbackName = urlParams.get('name') || (isDemo ? 'Buddy' : 'Companion');
       const fallbackSpecies = urlParams.get('species') || 'Dog';
       const fallbackBreed = urlParams.get('breed') || (isDemo ? 'Golden Retriever' : 'Companion Breed');
-      const fallbackLocation = urlParams.get('location') || (isDemo ? 'Central Park, Zone 4' : 'Local Vicinity');
-      const fallbackPhone = urlParams.get('phone') || '5550192834';
+      const fallbackLocation = urlParams.get('location') || urlParams.get('loc') || (isDemo ? 'Central Park, Zone 4' : 'Meladoor, Kerala');
+      const fallbackPhone = urlParams.get('phone') || '8921998733';
       const fallbackReward = urlParams.get('reward') || (isDemo ? '5000' : '');
+      const fallbackOwner = urlParams.get('owner') || urlParams.get('guardian') || (isDemo ? 'Sample Guardian (Prototype)' : 'Antony');
+      const fallbackDate = urlParams.get('date') || urlParams.get('time') || '';
       const fallbackNotes = urlParams.get('notes') || 'Active emergency missing pet poster. Scanning this QR code enables passersby to instantly alert the caregiver with live sighting coordinates.';
       const fallbackImg = urlParams.get('img') || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&auto=format&fit=crop&q=80';
 
       document.getElementById('petName').textContent = fallbackName;
       document.getElementById('petSubtitle').textContent = `${fallbackSpecies.toUpperCase()} • ${fallbackBreed}`;
       document.getElementById('lastSeen').textContent = fallbackLocation;
-      document.getElementById('ownerName').textContent = urlParams.get('owner') || (isDemo ? 'Sample Guardian (Prototype)' : 'Verified Caregiver');
+      document.getElementById('ownerName').textContent = fallbackOwner;
       document.getElementById('petDescription').textContent = fallbackNotes;
+      if (fallbackDate) {
+        document.getElementById('missingDate').textContent = fallbackDate;
+      }
 
       const tagCode = isDemo ? 'ALERT: DEMO-01' : `ALERT: ${alertId.substring(0, 8).toUpperCase()}`;
       document.getElementById('navAlertId').textContent = tagCode;
@@ -802,7 +807,7 @@
         }
 
         // Dual lookup: matches alert id OR pet_id
-        const rowResp = await fetch(`${SUPABASE_URL}/rest/v1/lost_pet_alerts?or=(id.eq.${alertId},pet_id.eq.${alertId})&limit=1&select=*,pets(*)`, {
+        const rowResp = await fetch(`${SUPABASE_URL}/rest/v1/lost_pet_alerts?or=(id.eq.${alertId},pet_id.eq.${alertId})&limit=1&select=*,pets(*,profiles:owner_id(full_name,city,phone))`, {
           headers: {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -816,14 +821,15 @@
             currentOwnerUserId = aRow.owner_id || aRow.pets?.owner_id || null;
             applyAlertData({
               alert_id: aRow.id,
-              pet_name: aRow.pets?.name,
-              pet_species: aRow.pets?.species,
-              pet_breed: aRow.pets?.breed,
+              pet_name: aRow.pets?.name || fallbackName,
+              pet_species: aRow.pets?.species || fallbackSpecies,
+              pet_breed: aRow.pets?.breed || fallbackBreed,
               pet_image_url: aRow.pets?.image_url,
-              last_seen_location: aRow.last_seen_location,
-              contact_phone: aRow.contact_phone,
-              reward_amount: aRow.reward_amount,
-              description: aRow.description,
+              last_seen_location: aRow.last_seen_location || aRow.pets?.profiles?.city || fallbackLocation,
+              contact_phone: aRow.contact_phone || aRow.pets?.profiles?.phone || fallbackPhone,
+              owner_name: aRow.pets?.profiles?.full_name || fallbackOwner,
+              reward_amount: aRow.reward_amount || fallbackReward,
+              description: aRow.description || fallbackNotes,
               last_seen_time: aRow.last_seen_time,
               owner_user_id: currentOwnerUserId
             });
@@ -831,8 +837,8 @@
           }
         }
 
-        // Fallback directly to pets table
-        const petResp = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${alertId}&limit=1&select=*`, {
+        // Fallback directly to pets table with profile join
+        const petResp = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${alertId}&limit=1&select=*,profiles:owner_id(full_name,city,phone)`, {
           headers: {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -850,8 +856,9 @@
               pet_species: p.species,
               pet_breed: p.breed,
               pet_image_url: p.image_url,
-              last_seen_location: p.owner_city || fallbackLocation,
-              contact_phone: p.owner_phone || fallbackPhone,
+              last_seen_location: p.profiles?.city || fallbackLocation,
+              contact_phone: p.profiles?.phone || fallbackPhone,
+              owner_name: p.profiles?.full_name || fallbackOwner,
               description: p.notes || fallbackNotes,
               owner_user_id: currentOwnerUserId
             });

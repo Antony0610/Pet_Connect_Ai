@@ -71,14 +71,17 @@ class VetBottomNavBar extends StatelessWidget {
     final scheme = context.colorScheme;
     final isDark = context.theme.brightness == Brightness.dark;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        0,
-        AppSpacing.md,
-        AppSpacing.md,
-      ),
-      child: DecoratedBox(
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          0,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        child: DecoratedBox(
         decoration: const BoxDecoration(
           borderRadius: AppRadius.brPill,
           boxShadow: [
@@ -126,8 +129,9 @@ class VetBottomNavBar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _VetNavItem extends StatelessWidget {
@@ -180,13 +184,17 @@ class _VetNavItem extends StatelessWidget {
                   size: AppIconSizes.md,
                 ),
               const SizedBox(height: AppSpacing.base),
-              Text(
-                tab.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  tab.label,
+                  maxLines: 1,
+                  style: context.textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontSize: 10.5,
+                    letterSpacing: -0.2,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],
