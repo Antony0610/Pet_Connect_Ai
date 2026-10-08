@@ -48,15 +48,36 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
   final SupabaseClient _client;
 
   static final HttpClient _httpClient = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 8)
+    ..connectionTimeout = const Duration(seconds: 4)
     ..idleTimeout = const Duration(minutes: 5);
 
   static const List<String> _geminiModels = [
-    'gemini-3.8-flash',
-    'gemini-3.5-flash-lite',
     'gemini-3.7-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
     'gemini-3.6-flash',
   ];
+
+  static final Map<String, DateTime> _circuitBreakerBlacklist = {};
+
+  static bool _isModelAvailable(String model) {
+    final expiry = _circuitBreakerBlacklist[model];
+    if (expiry == null) return true;
+    if (DateTime.now().isAfter(expiry)) {
+      _circuitBreakerBlacklist.remove(model);
+      return true;
+    }
+    return false;
+  }
+
+  static void _reportModelFailure(String model, {int durationMinutes = 5}) {
+    _circuitBreakerBlacklist[model] =
+        DateTime.now().add(Duration(minutes: durationMinutes));
+  }
+
+  static void _reportModelSuccess(String model) {
+    _circuitBreakerBlacklist.remove(model);
+  }
 
   @override
   Future<List<AiConversationModel>> getConversations(String userId) async {
@@ -311,24 +332,31 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     }
     userTurnParts.add({'text': prompt});
 
-    final modelsToTry = <String>[];
+    final candidateModels = <String>[];
     if (preferredModel != null && preferredModel.isNotEmpty) {
-      modelsToTry.add(preferredModel);
+      candidateModels.add(preferredModel);
     }
     for (final m in _geminiModels) {
-      if (!modelsToTry.contains(m)) {
-        modelsToTry.add(m);
+      if (!candidateModels.contains(m)) {
+        candidateModels.add(m);
       }
     }
 
+    // Filter using Circuit Breaker (try available models first)
+    final modelsToTry = candidateModels.where(_isModelAvailable).toList();
+    if (modelsToTry.isEmpty) {
+      // If all are temporarily blacklisted, fallback to trying all candidates
+      modelsToTry.addAll(candidateModels);
+    }
+
     final isImage = imageBase64 != null && imageBase64.isNotEmpty;
+    // Ultra-low latency timeouts: 3.2s for text, 8s for images
+    final timeoutDuration = isImage
+        ? const Duration(seconds: 8)
+        : const Duration(milliseconds: 3200);
 
     for (final model in modelsToTry) {
       try {
-        final timeoutDuration = isImage
-            ? const Duration(seconds: 20)
-            : const Duration(seconds: 14);
-
         final result = await _executeGeminiRequest(
           client: _httpClient,
           model: model,
@@ -340,10 +368,14 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         ).timeout(timeoutDuration);
 
         if (result != null && result.isNotEmpty) {
+          _reportModelSuccess(model);
           return (result, model);
+        } else {
+          _reportModelFailure(model);
         }
       } catch (_) {
-        // High latency or 503 error on active model: cascade immediately to next model
+        // High latency, network error or 503: blacklist model and cascade immediately
+        _reportModelFailure(model);
       }
     }
     return (null, 'offline');

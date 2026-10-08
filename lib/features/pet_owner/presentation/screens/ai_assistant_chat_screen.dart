@@ -119,24 +119,32 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   ];
 
   String? _activeConversationId;
-  String _selectedModelKey = 'gemini-3.8-flash';
-  String _activeModelLabel = '⚡ Flash 3.8';
+  String _selectedModelKey = 'gemini-3.7-flash';
+  String _activeModelLabel = '⚡ Flash 3.7';
   bool _showScrollToBottom = false;
 
   static const List<_AiModelOption> _topGeminiModels = [
     _AiModelOption(
-      key: 'gemini-3.8-flash',
-      label: 'Gemini 3.8 Flash',
-      subtitle: 'Flagship next-gen multimodal model with deep clinical reasoning',
-      tag: 'Flagship',
+      key: 'gemini-3.7-flash',
+      label: 'Gemini 3.7 Flash',
+      subtitle: 'High-performance multimodal clinical reasoning & instant answers',
+      tag: 'Recommended',
       color: Color(0xFF6366F1),
       icon: Icons.auto_awesome_rounded,
     ),
     _AiModelOption(
-      key: 'gemini-3.7-flash',
-      label: 'Gemini 3.7 Flash',
-      subtitle: 'High-performance multimodal clinical reasoning & diagnostic triage',
-      tag: 'Advanced',
+      key: 'gemini-3.1-flash-lite',
+      label: 'Gemini 3.1 Flash-Lite',
+      subtitle: 'Sub-second ultra-low latency response engine',
+      tag: 'Ultra-Fast',
+      color: Color(0xFF10B981),
+      icon: Icons.bolt_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-3.8-flash',
+      label: 'Gemini 3.8 Flash',
+      subtitle: 'Flagship deep reasoning multimodal model',
+      tag: 'Deep Reasoning',
       color: Color(0xFF8B5CF6),
       icon: Icons.psychology_rounded,
     ),
@@ -147,14 +155,6 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       tag: 'Balanced',
       color: Color(0xFF06B6D4),
       icon: Icons.flare_rounded,
-    ),
-    _AiModelOption(
-      key: 'gemini-3.5-flash-lite',
-      label: 'Gemini 3.5 Flash-Lite',
-      subtitle: 'Sub-second ~1s latency for instant response & rapid triage',
-      tag: 'Ultra-Fast',
-      color: Color(0xFF10B981),
-      icon: Icons.bolt_rounded,
     ),
   ];
 
@@ -749,13 +749,13 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
             symptomDescription: visualPrompt,
             petId: selectedPet?.id,
             imageBase64: imageBase64,
-            preferredModel: 'gemini-3.5-flash-lite',
+            preferredModel: 'gemini-3.1-flash-lite',
           );
           if (fallbackResult.isRight()) {
             final scan = fallbackResult.getOrElse(() => throw Exception());
             await _streamAiResponse(
               scan.analysisSummary,
-              sources: const ['Gemini 3.5 Multimodal Vision'],
+              sources: const ['Gemini Multimodal Vision (Ultra-Fast)'],
               urgencyLevel: scan.urgencyLevel,
               recommendations: scan.recommendations.map((e) => e.toString()).toList(),
             );
@@ -780,21 +780,26 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
           },
         );
       } else {
-        if (_activeConversationId == null) {
-          try {
-            final convResult = await repo.createConversation(
-              petId: selectedPet?.id,
-              title: userText.length > 25 ? '${userText.substring(0, 25)}...' : userText,
-            ).timeout(const Duration(seconds: 3));
-            convResult.fold((_) {}, (conv) {
-              _activeConversationId = conv.id;
-              ref.invalidate(aiConversationsProvider);
-            });
-          } catch (_) {}
-        }
-
-        final convId = _activeConversationId ??
+        final isNewSession = _activeConversationId == null;
+        final convId = _activeConversationId ??=
             'session-${DateTime.now().millisecondsSinceEpoch}';
+
+        // Create conversation asynchronously in background (ZERO BLOCKING LATENCY)
+        if (isNewSession) {
+          unawaited(
+            repo.createConversation(
+              petId: selectedPet?.id,
+              title: userText.length > 25
+                  ? '${userText.substring(0, 25)}...'
+                  : userText,
+            ).then((convResult) {
+              convResult.fold((_) {}, (conv) {
+                _activeConversationId = conv.id;
+                ref.invalidate(aiConversationsProvider);
+              });
+            }).catchError((_) => null),
+          );
+        }
 
         final ragContext = _buildAppRagContext();
 
