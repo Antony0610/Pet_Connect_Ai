@@ -749,9 +749,9 @@
         console.warn('Direct RPC query note:', err);
       }
 
-      // Robust fallback to pets table
+      // Robust fallback to sanitized public emergency view (zero PII exposure)
       try {
-        const tblResp = await fetch(`${SUPABASE_URL}/rest/v1/pets?id=eq.${petId}&select=*,profiles:owner_id(full_name,city,phone)&limit=1`, {
+        const tblResp = await fetch(`${SUPABASE_URL}/rest/v1/vw_public_emergency_pet?id=eq.${petId}&limit=1`, {
           headers: {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
@@ -764,7 +764,7 @@
           }
         }
       } catch (err) {
-        console.warn('Direct table query note:', err);
+        console.warn('Direct view query note:', err);
       }
     }
 
