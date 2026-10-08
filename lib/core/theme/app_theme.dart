@@ -42,9 +42,15 @@ abstract final class AppTheme {
 
   /// Dynamic Dark theme with custom accent color palette.
   static ThemeData darkWithAccent(Color primary, Color container) {
+    final darkDerived = ColorScheme.fromSeed(
+      seedColor: primary,
+      brightness: Brightness.dark,
+    );
     final customScheme = AppColorScheme.dark.copyWith(
-      primary: primary,
-      primaryContainer: container.withValues(alpha: 0.35),
+      primary: darkDerived.primary,
+      onPrimary: darkDerived.onPrimary,
+      primaryContainer: darkDerived.primaryContainer,
+      onPrimaryContainer: darkDerived.onPrimaryContainer,
     );
     return _buildTheme(colorScheme: customScheme, brightness: Brightness.dark);
   }

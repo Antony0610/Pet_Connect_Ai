@@ -28,7 +28,10 @@ class AiHubDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final width = context.screenWidth;
+    final isMobile = AppBreakpoints.isMobile(width);
     final margin = _horizontalMargin(width);
+    final bottomPad = context.viewPadding.bottom + AppSpacing.xl;
+    final sectionGap = isMobile ? AppSpacing.vGapMd : AppSpacing.vGapLg;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -44,18 +47,18 @@ class AiHubDashboardScreen extends StatelessWidget {
                 margin,
                 AppSpacing.md,
                 margin,
-                AppSpacing.bottomNavScrollInset(context),
+                bottomPad,
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _Greeting(),
-                  AppSpacing.vGapLg,
-                  _AssistantHero(),
-                  AppSpacing.vGapLg,
-                  _QuickActions(),
-                  AppSpacing.vGapLg,
-                  _RecentActivity(),
+                  const _Greeting(),
+                  sectionGap,
+                  const _AssistantHero(),
+                  sectionGap,
+                  const _QuickActions(),
+                  sectionGap,
+                  const _RecentActivity(),
                 ],
               ),
             ),
@@ -117,6 +120,8 @@ class _AssistantHero extends ConsumerWidget {
     final activePet = ref.watch(selectedPetProvider);
     final petName = activePet?.name ?? 'your companion';
 
+    final isMobile = AppBreakpoints.isMobile(context.screenWidth);
+
     return AiGradientBorderCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,8 +180,9 @@ class _AssistantHero extends ConsumerWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: AppButton(
-                    label: 'Start Conversation',
+                    label: isMobile ? 'Start Chat' : 'Start Conversation',
                     icon: Icons.smart_toy_rounded,
+                    size: isMobile ? AppButtonSize.small : AppButtonSize.medium,
                     borderRadius: AppRadius.brPill,
                     backgroundColor: const Color(0xFF0F766E),
                     textColor: Colors.white,

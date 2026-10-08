@@ -56,6 +56,7 @@ class PetEmergencyQrModal extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final profileAsync = ref.watch(currentUserProfileProvider);
     final ownerName = profileAsync.valueOrNull?.fullName ?? 'Pet Owner';
     final ownerEmail = profileAsync.valueOrNull?.email ?? 'emergency@petconnect.ai';
@@ -258,6 +259,7 @@ class PetEmergencyQrModal extends ConsumerWidget {
                 child: AppButton.outlined(
                   label: 'Share QR Link',
                   icon: Icons.share,
+                  textColor: isDark ? Colors.white : scheme.primary,
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     ExternalActions.shareText(
@@ -274,6 +276,8 @@ class PetEmergencyQrModal extends ConsumerWidget {
                       ? 'Call Guardian'
                       : 'Call Emergency',
                   icon: Icons.phone,
+                  backgroundColor: const Color(0xFF0F766E),
+                  textColor: Colors.white,
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     if (ownerPhone != null && ownerPhone.isNotEmpty) {
@@ -293,8 +297,12 @@ class PetEmergencyQrModal extends ConsumerWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                foregroundColor: scheme.primary,
-                side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
+                foregroundColor: isDark ? const Color(0xFF2DD4BF) : scheme.primary,
+                side: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF2DD4BF).withValues(alpha: 0.6)
+                      : scheme.primary.withValues(alpha: 0.4),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),

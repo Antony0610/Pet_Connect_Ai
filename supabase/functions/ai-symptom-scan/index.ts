@@ -70,10 +70,11 @@ Symptom Description: ${symptom_description || "Visual inspection and clinical sy
       }
 
       const modelsToTry = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-        "gemini-2.0-flash-exp",
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
       ];
 
       for (const model of modelsToTry) {

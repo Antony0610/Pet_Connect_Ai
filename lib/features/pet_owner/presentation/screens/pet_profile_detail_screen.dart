@@ -57,66 +57,172 @@ class PetProfileDetailScreen extends ConsumerWidget {
           letterSpacing: -0.25,
         ),
       ),
-      actions: [
-        if (pet != null)
-          IconButton(
-            icon: const Icon(Icons.qr_code_2_rounded),
-            tooltip: 'Emergency QR Pass',
-            onPressed: () => PetEmergencyQrModal.show(context, pet),
-          ),
-        if (pet != null)
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Export Health Passport',
-            onPressed: () async {
-              final owner = ref.read(currentUserProfileProvider).valueOrNull;
-              final vaccinations = ref.read(vaccinationsProvider(pet.id)).valueOrNull ?? [];
-              final healthRecords = ref.read(healthRecordsProvider(pet.id)).valueOrNull ?? [];
-              final weightLogs = ref.read(petWeightLogsProvider(pet.id)).valueOrNull ?? [];
+      actions: isWide
+          ? [
+              if (pet != null)
+                IconButton(
+                  icon: const Icon(Icons.qr_code_2_rounded),
+                  tooltip: 'Emergency QR Pass',
+                  onPressed: () => PetEmergencyQrModal.show(context, pet),
+                ),
+              if (pet != null)
+                IconButton(
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  tooltip: 'Export Health Passport',
+                  onPressed: () async {
+                    final owner =
+                        ref.read(currentUserProfileProvider).valueOrNull;
+                    final vaccinations =
+                        ref.read(vaccinationsProvider(pet.id)).valueOrNull ?? [];
+                    final healthRecords =
+                        ref.read(healthRecordsProvider(pet.id)).valueOrNull ?? [];
+                    final weightLogs =
+                        ref.read(petWeightLogsProvider(pet.id)).valueOrNull ?? [];
 
-              await HealthPassportExporter.exportAndShare(
-                context: context,
-                pet: pet,
-                owner: owner,
-                vaccinations: vaccinations,
-                healthRecords: healthRecords,
-                weightLogs: weightLogs,
-              );
-            },
-          ),
-        if (pet != null)
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            tooltip: 'Share Pet Profile',
-            onPressed: () => ExternalActions.shareText(
-              '🐾 Meet ${pet.name} on PetConnect AI!\nSpecies: ${pet.species} • Breed: ${pet.breed}\nHealth Status: ${pet.healthStatus}\nWeight: ${pet.weightKg != null ? "${pet.weightKg} kg" : "—"}',
-              subject: '${pet.name}\'s Pet Profile',
-            ),
-          ),
-        if (pet != null)
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Edit Profile',
-            onPressed: () => context.goNamed(
-              RouteNames.ownerPetEdit,
-              pathParameters: {'petId': pet.id},
-            ),
-          ),
-        if (pet != null)
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Pet Settings',
-            onPressed: () => context.goNamed(
-              RouteNames.ownerPetSettings,
-              pathParameters: {'petId': pet.id},
-            ),
-          ),
-        OwnerAppBarAction(
-          icon: Icons.smart_toy,
-          tooltip: 'AI Assistant',
-          onPressed: () => context.goNamed(RouteNames.ownerAiAssistant),
-        ),
-      ],
+                    await HealthPassportExporter.exportAndShare(
+                      context: context,
+                      pet: pet,
+                      owner: owner,
+                      vaccinations: vaccinations,
+                      healthRecords: healthRecords,
+                      weightLogs: weightLogs,
+                    );
+                  },
+                ),
+              if (pet != null)
+                IconButton(
+                  icon: const Icon(Icons.share_outlined),
+                  tooltip: 'Share Pet Profile',
+                  onPressed: () => ExternalActions.shareText(
+                    '🐾 Meet ${pet.name} on PetConnect AI!\nSpecies: ${pet.species} • Breed: ${pet.breed}\nHealth Status: ${pet.healthStatus}\nWeight: ${pet.weightKg != null ? "${pet.weightKg} kg" : "—"}',
+                    subject: '${pet.name}\'s Pet Profile',
+                  ),
+                ),
+              if (pet != null)
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Edit Profile',
+                  onPressed: () => context.goNamed(
+                    RouteNames.ownerPetEdit,
+                    pathParameters: {'petId': pet.id},
+                  ),
+                ),
+              if (pet != null)
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: 'Pet Settings',
+                  onPressed: () => context.goNamed(
+                    RouteNames.ownerPetSettings,
+                    pathParameters: {'petId': pet.id},
+                  ),
+                ),
+              OwnerAppBarAction(
+                icon: Icons.smart_toy,
+                tooltip: 'AI Assistant',
+                onPressed: () => context.goNamed(RouteNames.ownerAiAssistant),
+              ),
+            ]
+          : [
+              if (pet != null)
+                IconButton(
+                  icon: const Icon(Icons.qr_code_2_rounded),
+                  tooltip: 'Emergency QR Pass',
+                  onPressed: () => PetEmergencyQrModal.show(context, pet),
+                ),
+              OwnerAppBarAction(
+                icon: Icons.smart_toy,
+                tooltip: 'AI Assistant',
+                onPressed: () => context.goNamed(RouteNames.ownerAiAssistant),
+              ),
+              if (pet != null)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  tooltip: 'More options',
+                  onSelected: (value) async {
+                    switch (value) {
+                      case 'edit':
+                        context.goNamed(
+                          RouteNames.ownerPetEdit,
+                          pathParameters: {'petId': pet.id},
+                        );
+                        break;
+                      case 'share':
+                        await ExternalActions.shareText(
+                          '🐾 Meet ${pet.name} on PetConnect AI!\nSpecies: ${pet.species} • Breed: ${pet.breed}\nHealth Status: ${pet.healthStatus}\nWeight: ${pet.weightKg != null ? "${pet.weightKg} kg" : "—"}',
+                          subject: '${pet.name}\'s Pet Profile',
+                        );
+                        break;
+                      case 'export':
+                        final owner =
+                            ref.read(currentUserProfileProvider).valueOrNull;
+                        final vaccinations =
+                            ref.read(vaccinationsProvider(pet.id)).valueOrNull ?? [];
+                        final healthRecords =
+                            ref.read(healthRecordsProvider(pet.id)).valueOrNull ?? [];
+                        final weightLogs =
+                            ref.read(petWeightLogsProvider(pet.id)).valueOrNull ?? [];
+
+                        await HealthPassportExporter.exportAndShare(
+                          context: context,
+                          pet: pet,
+                          owner: owner,
+                          vaccinations: vaccinations,
+                          healthRecords: healthRecords,
+                          weightLogs: weightLogs,
+                        );
+                        break;
+                      case 'settings':
+                        context.goNamed(
+                          RouteNames.ownerPetSettings,
+                          pathParameters: {'petId': pet.id},
+                        );
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Edit Profile'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'share',
+                      child: Row(
+                        children: [
+                          Icon(Icons.share_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Share Profile'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'export',
+                      child: Row(
+                        children: [
+                          Icon(Icons.picture_as_pdf_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Export Health Passport'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'settings',
+                      child: Row(
+                        children: [
+                          Icon(Icons.settings_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Pet Settings'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+            ],
     );
 
     final bottomPad = context.viewPadding.bottom + AppSpacing.xxl;
@@ -142,40 +248,50 @@ class PetProfileDetailScreen extends ConsumerWidget {
                     margin,
                     0,
                   ),
-                  child: ClipRRect(
-                    borderRadius: AppRadius.brCard,
-                    child: Stack(
-                      children: [
-                        AspectRatio(
-                          aspectRatio: isWide ? 21 / 9 : 4 / 3,
-                          child: pet?.imageUrl != null &&
-                                  pet!.imageUrl!.isNotEmpty
-                              ? Image.network(
-                                  pet.imageUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _HeroFallback(wide: isWide),
-                                )
-                              : _HeroFallback(wide: isWide),
-                        ),
-                        if (!isWide)
-                          Positioned.fill(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    context.colorScheme.surface.withValues(
-                                      alpha: 0,
-                                    ),
-                                    context.colorScheme.surface,
-                                  ],
+                  child: GestureDetector(
+                    onTap: () {
+                      if (pet != null) {
+                        context.pushNamed(
+                          RouteNames.ownerPetGallery,
+                          pathParameters: {'petId': pet.id},
+                        );
+                      }
+                    },
+                    child: ClipRRect(
+                      borderRadius: AppRadius.brCard,
+                      child: Stack(
+                        children: [
+                          AspectRatio(
+                            aspectRatio: isWide ? 21 / 9 : 16 / 10,
+                            child: pet?.imageUrl != null &&
+                                    pet!.imageUrl!.isNotEmpty
+                                ? Image.network(
+                                    pet.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _HeroFallback(wide: isWide),
+                                  )
+                                : _HeroFallback(wide: isWide),
+                          ),
+                          if (!isWide)
+                            Positioned.fill(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      context.colorScheme.surface.withValues(
+                                        alpha: 0,
+                                      ),
+                                      context.colorScheme.surface,
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -189,13 +305,11 @@ class PetProfileDetailScreen extends ConsumerWidget {
                     child: _PetInfoCard(palette: palette, pet: pet),
                   ),
                 ),
-                if (!isWide)
-                  const SizedBox(height: AppSpacing.xl - AppSpacing.sm),
                 // ── Quick Actions ───────────────────────────────────────
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     margin,
-                    isWide ? AppSpacing.xl : AppSpacing.sm,
+                    isWide ? AppSpacing.xl : 0,
                     margin,
                     0,
                   ),
@@ -433,8 +547,8 @@ class _QuickActionsGrid extends ConsumerWidget {
       items: actions,
       crossAxisCount: 3,
       tabletCrossAxisCount: 6,
-      containerSize: 52,
-      iconSize: 26,
+      containerSize: wide ? 52.0 : 46.0,
+      iconSize: wide ? 26.0 : 22.0,
     );
   }
 }
@@ -550,7 +664,9 @@ class _PersonalityCardState extends ConsumerState<_PersonalityCard> {
             AppSpacing.lg,
             AppSpacing.lg,
             AppSpacing.lg,
-            MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.xl,
+            MediaQuery.of(ctx).viewInsets.bottom +
+                MediaQuery.of(ctx).viewPadding.bottom +
+                AppSpacing.xl,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -881,14 +997,18 @@ class _ActivityLevelCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                collar == null && steps == 0
-                    ? 'No collar connected • Tap + to log exercise'
-                    : '$steps steps • ${activeMinutes}m active today',
-                style: context.textTheme.bodySmall?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+              Expanded(
+                child: Text(
+                  collar == null && steps == 0
+                      ? 'No collar • Tap + to log'
+                      : '$steps steps • ${activeMinutes}m active today',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colorScheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              AppSpacing.hGapSm,
               Text(
                 '${(progress * 100).toInt()}% of goal',
                 style: context.textTheme.labelSmall?.copyWith(

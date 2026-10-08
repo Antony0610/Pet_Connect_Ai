@@ -26,7 +26,7 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY") || "AQ.Ab8RN6K347yFw3yaRdHZgUvfMFio9bTSCgsQssAe9TSr83gFgg";
+    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY");
 
     // 1. Fetch pet profile context if available
     let petContext = rag_context || "";
@@ -78,11 +78,11 @@ CORE CAPABILITIES & INSTRUCTIONS:
     // Try Gemini API if key is configured
     if (geminiApiKey) {
       const modelsToTry = [
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
         "gemini-3.6-flash",
         "gemini-3.5-flash",
         "gemini-3.1-flash-lite",
-        "gemini-3-flash-preview",
-        "gemma-4-26b-a4b-it",
       ];
 
       const conversationContents = [];

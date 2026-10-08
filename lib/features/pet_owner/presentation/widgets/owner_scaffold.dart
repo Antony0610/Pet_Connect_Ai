@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:go_router/go_router.dart';
 
 import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
@@ -16,7 +17,7 @@ import 'package:petconnect_ai/router/route_paths.dart';
 /// Screens supply their own [OwnerGlassAppBar] as [appBar] so each can tailor
 /// its header; the scaffold sets `extendBodyBehindAppBar`/`extendBody` so the
 /// glass surfaces blur the content beneath them.
-class OwnerScaffold extends StatelessWidget {
+class OwnerScaffold extends StatefulWidget {
   const OwnerScaffold({
     required this.currentTab,
     required this.body,
@@ -44,8 +45,15 @@ class OwnerScaffold extends StatelessWidget {
   /// lifted above the floating nav bar just like the AI FAB.
   final Widget? floatingActionButton;
 
+  @override
+  State<OwnerScaffold> createState() => _OwnerScaffoldState();
+}
+
+class _OwnerScaffoldState extends State<OwnerScaffold> {
+  bool _isFabVisible = true;
+
   void _onTabSelected(BuildContext context, OwnerTab tab) {
-    if (tab == currentTab) return;
+    if (tab == widget.currentTab) return;
     context.goNamed(tab.routeName);
   }
 
@@ -56,30 +64,55 @@ class OwnerScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = AppBreakpoints.isMobile(MediaQuery.sizeOf(context).width);
-    final fab =
-        floatingActionButton ??
-        (showAiFab
+    final fab = widget.floatingActionButton ??
+        (widget.showAiFab
             ? RepaintBoundary(
                 child: OwnerAiFab(onPressed: () => _openAiAssistant(context)),
               )
             : null);
 
-    return Scaffold(
-      extendBody: true,
-      extendBodyBehindAppBar: true,
-      appBar: appBar,
-      body: body,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: fab == null
-          ? null
-          : Padding(
-              // Lift the FAB comfortably above the floating bottom nav bar.
-              padding: EdgeInsets.only(bottom: isMobile ? 24 : 36, right: 2),
-              child: fab,
-            ),
-      bottomNavigationBar: OwnerBottomNavBar(
-        currentTab: currentTab,
-        onTabSelected: (tab) => _onTabSelected(context, tab),
+    return NotificationListener<UserScrollNotification>(
+      onNotification: (notification) {
+        if (notification.direction == ScrollDirection.reverse) {
+          if (_isFabVisible) {
+            setState(() => _isFabVisible = false);
+          }
+        } else if (notification.direction == ScrollDirection.forward) {
+          if (!_isFabVisible) {
+            setState(() => _isFabVisible = true);
+          }
+        }
+        return false;
+      },
+      child: Scaffold(
+        extendBody: true,
+        extendBodyBehindAppBar: true,
+        appBar: widget.appBar,
+        body: widget.body,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        floatingActionButton: fab == null
+            ? null
+            : Padding(
+                // Lift the FAB comfortably above the floating bottom nav bar.
+                padding: EdgeInsets.only(
+                  bottom: isMobile ? 20 : 36,
+                  right: isMobile ? 4 : 8,
+                ),
+                child: AnimatedSlide(
+                  offset: _isFabVisible ? Offset.zero : const Offset(0, 1.8),
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeInOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: _isFabVisible ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: fab,
+                  ),
+                ),
+              ),
+        bottomNavigationBar: OwnerBottomNavBar(
+          currentTab: widget.currentTab,
+          onTabSelected: (tab) => _onTabSelected(context, tab),
+        ),
       ),
     );
   }

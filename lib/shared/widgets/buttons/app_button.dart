@@ -202,7 +202,13 @@ class AppButton extends StatelessWidget {
     }
 
     final effectiveLabel = _getEffectiveLabel();
-    final labelWidget = child ?? Text(effectiveLabel, overflow: TextOverflow.ellipsis);
+    final labelWidget = child ??
+        Text(
+          effectiveLabel,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          softWrap: false,
+        );
 
     if (icon == null) {
       return labelWidget;
@@ -212,8 +218,8 @@ class AppButton extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: iconAlignment == IconAlignment.start
-          ? [iconWidget, const SizedBox(width: 8), labelWidget]
-          : [labelWidget, const SizedBox(width: 8), iconWidget],
+          ? [iconWidget, const SizedBox(width: 8), Flexible(child: labelWidget)]
+          : [Flexible(child: labelWidget), const SizedBox(width: 8), iconWidget],
     );
   }
 }

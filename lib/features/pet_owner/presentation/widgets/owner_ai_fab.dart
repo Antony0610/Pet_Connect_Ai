@@ -194,11 +194,11 @@ class _OwnerAiFabState extends State<OwnerAiFab> with TickerProviderStateMixin {
     final glowColor = _selectedMascot.glowColor;
     final currentEmote = _digitalEmotes[_emoteCycleIndex];
     final isMobile = AppBreakpoints.isMobile(MediaQuery.sizeOf(context).width);
-    final botSize = isMobile ? 50.0 : 68.0;
-    final pulseSize = isMobile ? 54.0 : 78.0;
-    final shadowWidth = isMobile ? 38.0 : 52.0;
-    final bubbleMaxWidth = isMobile ? 140.0 : 200.0;
-    final bubbleBottom = isMobile ? 58.0 : 86.0;
+    final botSize = isMobile ? 40.0 : 68.0;
+    final pulseSize = isMobile ? 44.0 : 78.0;
+    final shadowWidth = isMobile ? 30.0 : 52.0;
+    final bubbleMaxWidth = isMobile ? 130.0 : 200.0;
+    final bubbleBottom = isMobile ? 48.0 : 86.0;
 
     return RepaintBoundary(
       child: Stack(

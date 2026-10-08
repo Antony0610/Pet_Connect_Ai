@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:petconnect_ai/core/theme/portal_theme.dart';
+import 'package:petconnect_ai/core/theme/tokens/app_breakpoints.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/usecase/usecase.dart';
@@ -110,6 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _onRoleChanged(AppPortal portal) {
+    HapticFeedback.selectionClick();
     setState(() => _selectedPortal = portal);
     ref.read(selectedPortalProvider.notifier).state = portal;
   }
@@ -231,7 +234,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             AppSpacing.xl,
             AppSpacing.xl,
             AppSpacing.xl,
-            AppSpacing.xl + MediaQuery.of(ctx).viewInsets.bottom,
+            AppSpacing.xl +
+                MediaQuery.of(ctx).viewInsets.bottom +
+                MediaQuery.of(ctx).viewPadding.bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -328,6 +333,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final isMobile = AppBreakpoints.isMobile(context.screenWidth);
     final activeOption = _roleOptions.firstWhere(
       (o) => o.portal == _selectedPortal,
       orElse: () => _roleOptions.first,
@@ -400,16 +406,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           crossAxisSpacing: AppSpacing.sm,
                           mainAxisSpacing: AppSpacing.sm,
-                          childAspectRatio: 2.1,
+                          childAspectRatio: isMobile ? 1.75 : 2.1,
                           children: _roleOptions.map((opt) {
                             final isSelected = opt.portal == _selectedPortal;
                             return InkWell(
                               onTap: () => _onRoleChanged(opt.portal),
                               borderRadius: AppRadius.brCard,
-                              child: Container(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.sm,
-                                  vertical: AppSpacing.xs,
+                                  horizontal: 10,
+                                  vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
@@ -437,28 +444,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         size: 16,
                                       ),
                                     ),
-                                    AppSpacing.hGapSm,
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            opt.title,
-                                            style: TextStyle(
-                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                              color: isSelected ? opt.color : scheme.onSurface,
-                                              fontSize: 12,
+                                          FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              opt.title,
+                                              style: TextStyle(
+                                                fontWeight: isSelected
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w600,
+                                                color: isSelected
+                                                    ? opt.color
+                                                    : scheme.onSurface,
+                                                fontSize: 12,
+                                              ),
                                             ),
-                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          Text(
-                                            opt.subtitle,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: scheme.onSurfaceVariant,
+                                          FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              opt.subtitle,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: scheme.onSurfaceVariant,
+                                              ),
                                             ),
-                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
                                       ),
@@ -479,7 +496,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         children: [
                           AppTextField(
                             controller: _emailController,
-                            labelText: '${activeOption.title} Email Address',
+                            labelText: isMobile
+                                ? '${activeOption.title} Email'
+                                : '${activeOption.title} Email Address',
+                            hintText: 'name@example.com',
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             prefixIcon: Icons.mail_outline,

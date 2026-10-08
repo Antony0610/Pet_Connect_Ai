@@ -961,16 +961,19 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
             const Hero(
               tag: 'ai-mascot-avatar-hero',
               child: AiMascotCompanion(
-                size: 34,
+                size: 32,
                 isAppBarMode: true,
                 showSpeechBubble: false,
                 showSwitcherBadge: false,
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              'PetConnect AI',
-              style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            Flexible(
+              child: Text(
+                'PetConnect AI',
+                style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const SizedBox(width: 6),
             InkWell(
@@ -1263,96 +1266,105 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                   ),
                 ),
 
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.add_photo_alternate_outlined),
-                      tooltip: 'Attach Photos for Multimodal Inspection',
-                      onPressed: _pickImage,
-                    ),
-                    IconButton(
-                      icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
-                      color: _isListening ? Colors.red : null,
-                      tooltip: _dictationLocale.startsWith('ml') ? 'ശബ്ദ ഇൻപുട്ട് (മലയാളം)' : 'Voice Input (English)',
-                      onPressed: _toggleDictation,
-                    ),
-                    InkWell(
-                      onTap: () async {
-                        await HapticFeedback.selectionClick();
-                        final nextLocale = _dictationLocale == 'en_IN'
-                            ? 'ml_IN'
-                            : (_dictationLocale == 'ml_IN' ? 'auto' : 'en_IN');
-                        setState(() {
-                          _dictationLocale = nextLocale;
-                        });
-                        await ref.read(sharedPreferencesProvider).setString(
-                              'app_voice_dictation_locale',
-                              nextLocale,
+              SafeArea(
+                top: false,
+                bottom: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                        tooltip: 'Attach Photos for Multimodal Inspection',
+                        onPressed: _pickImage,
+                      ),
+                      IconButton(
+                        icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                        color: _isListening ? Colors.red : null,
+                        tooltip: _dictationLocale.startsWith('ml') ? 'ശബ്ദ ഇൻപുട്ട് (മലയാളം)' : 'Voice Input (English)',
+                        onPressed: _toggleDictation,
+                      ),
+                      InkWell(
+                        onTap: () async {
+                          await HapticFeedback.selectionClick();
+                          final nextLocale = _dictationLocale == 'en_IN'
+                              ? 'ml_IN'
+                              : (_dictationLocale == 'ml_IN' ? 'auto' : 'en_IN');
+                          setState(() {
+                            _dictationLocale = nextLocale;
+                          });
+                          await ref.read(sharedPreferencesProvider).setString(
+                                'app_voice_dictation_locale',
+                                nextLocale,
+                              );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(nextLocale == 'ml_IN'
+                                    ? '✓ Voice dictation: Malayalam (മലയാളം)'
+                                    : (nextLocale == 'auto'
+                                        ? '✓ Voice dictation: Auto Detect Language'
+                                        : '✓ Voice dictation: English (Default)')),
+                                duration: const Duration(seconds: 2),
+                              ),
                             );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(nextLocale == 'ml_IN'
-                                  ? '✓ Voice dictation: Malayalam (മലയാളം)'
-                                  : (nextLocale == 'auto'
-                                      ? '✓ Voice dictation: Auto Detect Language'
-                                      : '✓ Voice dictation: English (Default)')),
-                              duration: const Duration(seconds: 2),
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+                          ),
+                          child: Text(
+                            _dictationLocale == 'ml_IN'
+                                ? 'മലയാളം'
+                                : (_dictationLocale == 'auto' ? 'AUTO' : 'EN'),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: scheme.primary,
                             ),
-                          );
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                        margin: const EdgeInsets.only(right: 6),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
-                        ),
-                        child: Text(
-                          _dictationLocale == 'ml_IN'
-                              ? 'മലയാളം'
-                              : (_dictationLocale == 'auto' ? 'AUTO' : 'EN'),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: scheme.primary,
                           ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _composer,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: _sendPrompt,
-                        decoration: InputDecoration(
-                          hintText: _pendingImages.isNotEmpty
-                              ? 'Add notes to symptom photos...'
-                              : 'Ask anything — health, symptoms, nutrition, behavior...',
-                          border: const OutlineInputBorder(
-                            borderRadius: AppRadius.brPill,
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: scheme.surfaceContainerHighest,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                            vertical: AppSpacing.sm,
+                      Expanded(
+                        child: TextField(
+                          controller: _composer,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: _sendPrompt,
+                          decoration: InputDecoration(
+                            hintText: _pendingImages.isNotEmpty
+                                ? 'Add notes to symptom photos...'
+                                : (context.screenWidth < 400
+                                    ? 'Ask anything...'
+                                    : 'Ask anything — symptoms, diet, health...'),
+                            border: const OutlineInputBorder(
+                              borderRadius: AppRadius.brPill,
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: scheme.surfaceContainerHighest,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.sm,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    AppSpacing.hGapSm,
-                    IconButton.filled(
-                      icon: const Icon(Icons.send_rounded),
-                      onPressed: () => _sendPrompt(_composer.text),
-                    ),
-                  ],
+                      AppSpacing.hGapSm,
+                      IconButton.filled(
+                        icon: const Icon(Icons.send_rounded),
+                        onPressed: () => _sendPrompt(_composer.text),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
