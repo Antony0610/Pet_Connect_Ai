@@ -27,6 +27,7 @@ analyzer:
     - "**/*.config.dart"
     - "lib/l10n/**"
     - "build/**"
+    - "web_portal/**"
 
 linter:
   rules:

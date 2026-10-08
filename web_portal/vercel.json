@@ -1,18 +1,9 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/verify/vaccine/(.*)", "destination": "/verify.html" },
-    { "source": "/verify/report(.*)", "destination": "/verify.html" },
-    { "source": "/verify/(.*)", "destination": "/verify.html" },
-    { "source": "/verify", "destination": "/verify.html" },
-    { "source": "/emergency/(.*)", "destination": "/emergency.html" },
-    { "source": "/emergency", "destination": "/emergency.html" },
-    { "source": "/adopt/(.*)", "destination": "/adopt.html" },
-    { "source": "/adopt", "destination": "/adopt.html" },
-    { "source": "/missing/(.*)", "destination": "/missing.html" },
-    { "source": "/missing", "destination": "/missing.html" },
-    { "source": "/passport/(.*)", "destination": "/emergency.html" },
-    { "source": "/passport", "destination": "/emergency.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
