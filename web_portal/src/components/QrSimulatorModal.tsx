@@ -162,28 +162,28 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
           </button>
         </div>
 
-        {/* Tag Switcher Tabs */}
-        <div style={{ padding: '14px 20px 0', display: 'flex', gap: '6px' }}>
-          {pets.map((pet, idx) => (
-            <button
-              key={pet.id}
-              onClick={() => setSelectedPet(pet)}
-              style={{
-                flex: 1,
-                padding: '7px 8px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.76rem',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: selectedPet.id === pet.id ? 700 : 500,
-                backgroundColor: selectedPet.id === pet.id ? 'var(--btn-primary-bg)' : 'var(--bg-inset)',
-                color: selectedPet.id === pet.id ? 'var(--btn-primary-text)' : 'var(--text-secondary)',
-                border: '1px solid var(--border-subtle)',
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              TAG #{idx + 1} ({pet.species.toUpperCase()})
-            </button>
-          ))}
+        {/* Prototype Tag Status Header (Single Prototype Tag Only) */}
+        <div 
+          style={{ 
+            padding: '12px 20px', 
+            backgroundColor: 'var(--bg-inset)', 
+            borderBottom: '1px solid var(--border-subtle)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="pill-badge success" style={{ fontSize: '0.7rem' }}>PROTOTYPE TAG ACTIVE</span>
+            <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>
+              #TAG-DEMO-01
+            </span>
+          </div>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            ZERO-PII ENCRYPTED
+          </span>
         </div>
 
         {/* Body: Physical Tag Minimalist Graphic */}

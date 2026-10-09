@@ -17,6 +17,7 @@ import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_prov
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Clinical AI Diagnostic Center & Veterinary Triage Engine.
 /// Provides live multi-symptom triage, percentage differential probabilities,
@@ -112,6 +113,21 @@ class _AiDiagnosticCenterScreenState
     final apiKey = Env.geminiApiKey;
     if (apiKey.isNotEmpty) {
       replyText = await _queryGeminiTriage(apiKey: apiKey, prompt: prompt);
+    }
+
+    if (replyText == null || replyText.isEmpty) {
+      try {
+        final res = await Supabase.instance.client.functions.invoke(
+          'ai-assistant',
+          body: {
+            'prompt': prompt,
+            'pet_id': pet.id,
+            'rag_context': 'Species: ${pet.species}, Breed: ${pet.breed}, Weight: ${pet.weightKg ?? 15}kg',
+          },
+        ).timeout(const Duration(seconds: 8));
+        final data = res.data as Map<String, dynamic>?;
+        replyText = data?['reply'] as String?;
+      } catch (_) {}
     }
 
     if (!mounted) return;

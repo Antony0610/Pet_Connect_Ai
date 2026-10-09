@@ -65,7 +65,7 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate, onOpenQrSimulator 
       <section style={{ maxWidth: '860px', marginBottom: '70px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
           <span className="pill-badge">
-            PetConnect Ecosystem // Production Release v1.0.2
+            PetConnect Ecosystem // Production Release v1.0.3
           </span>
         </div>
 
@@ -97,14 +97,14 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate, onOpenQrSimulator 
         {/* Action Controls - Flat Minimalist */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
           <a
-            href="https://github.com/Antony0610/Pet_Connect_Ai/releases/download/v1.0.2/PetConnectAI-v1.0.2.apk"
+            href="https://github.com/Antony0610/Pet_Connect_Ai/releases/download/v1.0.3/PetConnectAI-v1.0.3.apk"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary"
             style={{ padding: '12px 24px', fontSize: '0.94rem' }}
           >
             <Download size={16} />
-            <span>Download Android App (v1.0.2 APK)</span>
+            <span>Download Android App (v1.0.3 APK)</span>
           </a>
 
           <button
