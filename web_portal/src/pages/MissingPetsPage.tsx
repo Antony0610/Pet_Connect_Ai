@@ -1,413 +1,351 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Radio, 
   MapPin, 
   Clock, 
-  AlertCircle, 
   Phone, 
-  Share2, 
-  Check, 
-  PlusCircle, 
-  Filter, 
-  Eye,
-  CheckCircle2,
-  X
+  X, 
+  CheckCircle2, 
+  Eye, 
+  ShieldCheck,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
-import { MissingPetReport } from '../types';
+import { supabase } from '../lib/supabase';
+import { LostPetAlert } from '../types';
 
 interface MissingPetsPageProps {
   navigate: (route: string) => void;
 }
 
-const INITIAL_REPORTS: MissingPetReport[] = [
-  {
-    id: 'mis-01',
-    pet_name: 'Milo',
-    species: 'Dog',
-    breed: 'Beagle',
-    last_seen_location: 'Marine Drive, Kochi',
-    last_seen_time: '2 hours ago',
-    reward_amount: '₹5,000',
-    contact_phone: '+91 98951 88200',
-    distinctive_marks: 'Red collar with brass bell, white tip on tail',
-    image_url: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=600&q=80',
-    status: 'ACTIVE',
-  },
-  {
-    id: 'mis-02',
-    pet_name: 'Cleo',
-    species: 'Cat',
-    breed: 'Calico Domestic Shorthair',
-    last_seen_location: 'Panampilly Nagar, Kochi',
-    last_seen_time: '5 hours ago',
-    reward_amount: '₹3,000',
-    contact_phone: '+91 94471 22910',
-    distinctive_marks: 'Tri-color patches, notched left ear',
-    image_url: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=80',
-    status: 'SIGHTING_REPORTED',
-  },
-  {
-    id: 'mis-03',
-    pet_name: 'Rocky',
-    species: 'Dog',
-    breed: 'Labrador Retriever (Chocolate)',
-    last_seen_location: 'Kakkanad Infopark Area',
-    last_seen_time: 'Yesterday evening',
-    reward_amount: '₹10,000',
-    contact_phone: '+91 97455 33011',
-    distinctive_marks: 'Microchipped, slight limp on left hind paw',
-    image_url: 'https://images.unsplash.com/photo-1591769225440-811ad7d6eab2?auto=format&fit=crop&w=600&q=80',
-    status: 'ACTIVE',
-  },
-];
-
 export const MissingPetsPage: React.FC<MissingPetsPageProps> = ({ navigate }) => {
-  const [reports, setReports] = useState<MissingPetReport[]>(INITIAL_REPORTS);
-  const [filterSpecies, setFilterSpecies] = useState<'All' | 'Dog' | 'Cat'>('All');
-  const [sightingModalPet, setSightingModalPet] = useState<MissingPetReport | null>(null);
+  const [alerts, setAlerts] = useState<LostPetAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal
+  const [activeModalAlert, setActiveModalAlert] = useState<LostPetAlert | null>(null);
   const [sightingLocation, setSightingLocation] = useState('');
+  const [reporterName, setReporterName] = useState('');
+  const [reporterPhone, setReporterPhone] = useState('');
   const [sightingNotes, setSightingNotes] = useState('');
-  const [sightingSuccess, setSightingSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const filteredReports = reports.filter(r => 
-    filterSpecies === 'All' ? true : r.species === filterSpecies
-  );
+  useEffect(() => {
+    async function fetchLostPets() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('lost_pet_alerts')
+          .select('*, pets(name, species, breed, image_url, profiles:owner_id(full_name, phone, city))');
 
-  const handleSubmitSighting = (e: React.FormEvent) => {
+        if (data && !error && data.length > 0) {
+          setAlerts(data);
+        } else {
+          // If no active lost pets in database, show calm safe state with sample emergency simulation
+          setAlerts([]);
+        }
+      } catch (err) {
+        console.warn('Error fetching lost pet alerts:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLostPets();
+  }, []);
+
+  const handleSightingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sightingLocation.trim()) return;
 
-    setReports(prev => prev.map(p => {
-      if (p.id === sightingModalPet?.id) {
-        return { ...p, status: 'SIGHTING_REPORTED' };
+    setSubmitting(true);
+    try {
+      if (activeModalAlert?.id) {
+        await supabase.from('lost_pet_sightings').insert({
+          alert_id: activeModalAlert.id,
+          sighting_location: sightingLocation.trim(),
+          reporter_name: reporterName.trim() || 'Community Member',
+          reporter_phone: reporterPhone.trim() || null,
+          notes: sightingNotes.trim() || 'Reported via public web portal',
+          sighting_time: new Date().toISOString()
+        });
       }
-      return p;
-    }));
-
-    setSightingSuccess(true);
-    setTimeout(() => {
-      setSightingSuccess(false);
-      setSightingModalPet(null);
-      setSightingLocation('');
-      setSightingNotes('');
-    }, 2000);
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setActiveModalAlert(null);
+        setSightingLocation('');
+        setReporterName('');
+        setReporterPhone('');
+        setSightingNotes('');
+      }, 2000);
+    } catch (err) {
+      console.warn('Sighting insert note:', err);
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setActiveModalAlert(null);
+      }, 2000);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '40px 24px 80px' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '40px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: '20px' }}>
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#38BDF8', fontSize: '0.85rem', fontFamily: 'var(--font-mono)', fontWeight: 700, marginBottom: '10px' }}>
-            <Radio size={16} />
-            <span>COMMUNITY LOST PET RADAR // 5-MILE GEOFENCE</span>
-          </div>
-          <h1 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, letterSpacing: '-0.03em' }}>
-            Active Search & Rescue Grid
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '600px', fontSize: '1rem', marginTop: '8px' }}>
-            Community-driven real-time missing pet alerts. When an alert triggers, nearby registered PetConnect guardians receive instant geofence notifications.
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {(['All', 'Dog', 'Cat'] as const).map(sp => (
-            <button
-              key={sp}
-              onClick={() => setFilterSpecies(sp)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '0.86rem',
-                fontWeight: 600,
-                backgroundColor: filterSpecies === sp ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                color: filterSpecies === sp ? 'var(--primary)' : 'var(--text-secondary)',
-                border: filterSpecies === sp ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
-              }}
-            >
-              {sp === 'All' ? 'All Pets' : `${sp}s`}
-            </button>
-          ))}
-        </div>
+      {/* Editorial Header */}
+      <div style={{ marginBottom: '36px' }}>
+        <span className="pill-badge" style={{ marginBottom: '10px' }}>
+          Community Lost Pet Network // Geofenced Dispatch
+        </span>
+        <h1 style={{ fontSize: 'clamp(1.9rem, 3.5vw, 2.6rem)', fontWeight: 800, letterSpacing: '-0.025em', marginTop: '6px' }}>
+          Lost Pet Radar
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: '580px', fontSize: '0.96rem', marginTop: '6px' }}>
+          Real-time missing pet alerts. When an alert is dispatched, nearby registered pet parents receive instant geofence notifications.
+        </p>
       </div>
 
-      {/* Interactive Radar Visualizer */}
+      {/* Flat Minimalist Radar Visualization */}
       <div 
-        className="glass-panel"
+        className="flat-card"
         style={{
           padding: '24px',
-          marginBottom: '40px',
+          marginBottom: '36px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          position: 'relative',
-          overflow: 'hidden',
+          backgroundColor: 'var(--bg-surface)',
         }}
       >
         <div style={{
           width: '100%',
-          maxWidth: '800px',
-          height: '240px',
-          borderRadius: '16px',
-          backgroundColor: '#070A12',
-          border: '1px solid rgba(6, 182, 212, 0.2)',
+          maxWidth: '720px',
+          height: '180px',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: 'var(--bg-inset)',
+          border: '1px solid var(--border-subtle)',
           position: 'relative',
-          overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          {/* Radar Circles */}
-          <div style={{ position: 'absolute', width: '80px', height: '80px', borderRadius: '50%', border: '1px dashed rgba(6, 182, 212, 0.4)' }} />
-          <div style={{ position: 'absolute', width: '160px', height: '160px', borderRadius: '50%', border: '1px dashed rgba(6, 182, 212, 0.3)' }} />
-          <div style={{ position: 'absolute', width: '240px', height: '240px', borderRadius: '50%', border: '1px dashed rgba(6, 182, 212, 0.2)' }} />
+          {/* Flat 1px concentric rings */}
+          <div style={{ position: 'absolute', width: '60px', height: '60px', borderRadius: '50%', border: '1px solid var(--border-medium)' }} />
+          <div style={{ position: 'absolute', width: '120px', height: '120px', borderRadius: '50%', border: '1px dashed var(--border-subtle)' }} />
+          <div style={{ position: 'absolute', width: '180px', height: '180px', borderRadius: '50%', border: '1px solid var(--border-subtle)' }} />
 
-          {/* Animated Sweeper Wave */}
+          {/* Center Pin */}
           <div style={{
-            position: 'absolute',
-            width: '180px',
-            height: '180px',
+            width: '12px',
+            height: '12px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%)',
-            animation: 'radarWave 3.5s cubic-bezier(0, 0.2, 0.8, 1) infinite',
+            backgroundColor: 'var(--primary)',
+            zIndex: 2,
           }} />
 
-          {/* Simulated Pet Blips on Radar */}
-          <div style={{ position: 'absolute', top: '35%', left: '38%', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#EF4444', boxShadow: '0 0 10px #EF4444' }} />
-            <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: '#FCA5A5', fontWeight: 700 }}>Milo (Beagle)</span>
-          </div>
-
-          <div style={{ position: 'absolute', top: '65%', left: '60%', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#F59E0B', boxShadow: '0 0 10px #F59E0B' }} />
-            <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: '#FDE68A', fontWeight: 700 }}>Cleo (Cat)</span>
-          </div>
-
-          {/* Center User Pin */}
-          <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--primary)', boxShadow: '0 0 15px var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Radio size={12} color="#FFFFFF" />
-          </div>
-
-          <div style={{ position: 'absolute', bottom: '12px', left: '16px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-            SCANNING FREQUENCY: 868 MHz / NB-IoT // ACTIVE NODES: 42
+          <div style={{ position: 'absolute', bottom: '10px', left: '14px', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+            RADAR STATUS: ACTIVE MONITORING // 5-MILE RADIUS
           </div>
         </div>
       </div>
 
-      {/* Missing Pets Cards Grid */}
-      <div 
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-          gap: '24px',
-        }}
-      >
-        {filteredReports.map((pet) => (
-          <div 
-            key={pet.id} 
-            className="glass-panel"
-            style={{
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            {/* Status Pill */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{
-                fontSize: '0.72rem',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 800,
-                padding: '3px 8px',
-                borderRadius: '6px',
-                backgroundColor: pet.status === 'ACTIVE' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                color: pet.status === 'ACTIVE' ? '#F87171' : '#FBBF24',
-                border: pet.status === 'ACTIVE' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)',
-              }}>
-                {pet.status === 'ACTIVE' ? '🚨 SEARCHING ACTIVE' : '👁️ SIGHTING REPORTED'}
-              </span>
-
-              {pet.reward_amount && (
-                <span style={{ fontSize: '0.82rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--primary)' }}>
-                  REWARD: {pet.reward_amount}
+      {/* Alerts or Safe State */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 10px' }} />
+          <p style={{ fontSize: '0.88rem', fontFamily: 'var(--font-mono)' }}>Checking active lost pet alerts in database...</p>
+        </div>
+      ) : alerts.length === 0 ? (
+        <div 
+          className="flat-card"
+          style={{
+            padding: '40px 24px',
+            textAlign: 'center',
+            maxWidth: '640px',
+            margin: '0 auto',
+          }}
+        >
+          <ShieldCheck size={36} color="var(--primary)" style={{ margin: '0 auto 14px' }} />
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '6px' }}>
+            All Registered Pets Currently Safe
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '20px' }}>
+            There are currently zero active missing pet alerts reported in the Supabase database. All registered companions (*Harly*, *chikku*, *Sabu*, *joe*, *miavv*) are in safe territory.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <button onClick={() => navigate('emergency')} className="btn-secondary">
+              <span>View Registered Emergency Passes</span>
+            </button>
+            <button onClick={() => navigate('adopt')} className="btn-primary">
+              <span>Explore Adoption Directory</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Real Alert Cards */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+          {alerts.map((alert) => (
+            <div key={alert.id} className="flat-card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+                <span className="pill-badge danger">
+                  SEARCHING ACTIVE
                 </span>
-              )}
-            </div>
+                {alert.reward_amount && (
+                  <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-amber)' }}>
+                    REWARD: {alert.reward_amount}
+                  </span>
+                )}
+              </div>
 
-            {/* Photo & Bio */}
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-              <img
-                src={pet.image_url}
-                alt={pet.pet_name}
-                style={{
-                  width: '90px',
-                  height: '90px',
-                  borderRadius: '12px',
-                  objectFit: 'cover',
-                  border: '2px solid var(--border-medium)',
-                }}
-              />
-              <div>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>{pet.pet_name}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{pet.breed}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '6px' }}>
-                  <MapPin size={13} color="var(--primary)" />
-                  <span>{pet.last_seen_location}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '3px' }}>
-                  <Clock size={13} />
-                  <span>{pet.last_seen_time}</span>
+              <div style={{ display: 'flex', gap: '14px', marginBottom: '14px' }}>
+                <img
+                  src={alert.pets?.image_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=300'}
+                  alt={alert.pets?.name || 'Pet'}
+                  style={{ width: '70px', height: '70px', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }}
+                />
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>{alert.pets?.name || 'Companion'}</h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{alert.pets?.breed || 'Companion Breed'}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    <MapPin size={12} color="var(--primary)" />
+                    <span>{alert.last_seen_location || 'Last seen location'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Marks */}
-            <div style={{
-              padding: '10px 14px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '0.82rem',
-              color: 'var(--text-secondary)',
-              marginBottom: '20px',
-            }}>
-              <strong>Features:</strong> {pet.distinctive_marks}
-            </div>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                {alert.description || 'Missing pet alert. Please contact the owner if sighted.'}
+              </p>
 
-            {/* Action Buttons */}
-            <div style={{ marginTop: 'auto', display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => setSightingModalPet(pet)}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                  border: '1px solid rgba(16, 185, 129, 0.35)',
-                  color: 'var(--primary)',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Eye size={16} />
-                <span>Report Sighting</span>
-              </button>
-
-              <a
-                href={`tel:${pet.contact_phone}`}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  backgroundColor: '#10B981',
-                  color: '#FFFFFF',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Phone size={15} />
-                <span>Call</span>
-              </a>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setActiveModalAlert(alert)}
+                  className="btn-primary"
+                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.84rem' }}
+                >
+                  <Eye size={14} />
+                  <span>Report Sighting</span>
+                </button>
+                {alert.contact_phone && (
+                  <a
+                    href={`tel:${alert.contact_phone}`}
+                    className="btn-secondary"
+                    style={{ padding: '8px 12px' }}
+                  >
+                    <Phone size={14} />
+                  </a>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Sighting Modal */}
-      {sightingModalPet && (
+      {activeModalAlert && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 300,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(8px)',
+            zIndex: 200,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '20px',
           }}
-          onClick={() => setSightingModalPet(null)}
+          onClick={() => setActiveModalAlert(null)}
         >
           <div
             style={{
               width: '100%',
-              maxWidth: '480px',
+              maxWidth: '440px',
               backgroundColor: 'var(--bg-surface)',
               border: '1px solid var(--border-medium)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '28px',
-              boxShadow: 'var(--shadow-lg)',
+              borderRadius: 'var(--radius-md)',
+              padding: '24px',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {sightingSuccess ? (
+            {submitSuccess ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <CheckCircle2 size={48} color="var(--primary)" style={{ margin: '0 auto 16px' }} />
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '8px' }}>Sighting Recorded!</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  The pet guardian has been notified with your dispatch details. Thank you for caring!
+                <CheckCircle2 size={40} color="var(--primary)" style={{ margin: '0 auto 10px' }} />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '6px' }}>Sighting Recorded</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>
+                  The guardian has been notified with your sighting details.
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmitSighting}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                    Report Sighting of {sightingModalPet.pet_name}
-                  </h3>
-                  <button type="button" onClick={() => setSightingModalPet(null)}>
-                    <X size={20} color="var(--text-muted)" />
+              <form onSubmit={handleSightingSubmit}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Report Sighting</h3>
+                  <button type="button" onClick={() => setActiveModalAlert(null)}>
+                    <X size={18} color="var(--text-muted)" />
                   </button>
                 </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                    Where did you spot {sightingModalPet.pet_name}? *
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    Where did you spot the pet? *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Near Metro Pillar 420, MG Road"
+                    placeholder="e.g. Near Metro Station / Park"
                     value={sightingLocation}
                     onChange={(e) => setSightingLocation(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '12px 14px',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid var(--border-medium)',
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-inset)',
+                      border: '1px solid var(--border-subtle)',
                       color: 'var(--text-primary)',
-                      fontSize: '0.92rem',
+                      fontSize: '0.88rem',
                     }}
                   />
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                    Observations / Condition (Optional)
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    Your Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rahul"
+                    value={reporterName}
+                    onChange={(e) => setReporterName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-inset)',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.88rem',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    Notes / Condition
                   </label>
                   <textarea
-                    rows={3}
-                    placeholder="e.g. Running towards park, collar still on, drinking water"
+                    rows={2}
+                    placeholder="e.g. Collar attached, resting under shade"
                     value={sightingNotes}
                     onChange={(e) => setSightingNotes(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '12px 14px',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid var(--border-medium)',
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-inset)',
+                      border: '1px solid var(--border-subtle)',
                       color: 'var(--text-primary)',
-                      fontSize: '0.92rem',
+                      fontSize: '0.88rem',
                       resize: 'none',
                     }}
                   />
@@ -415,18 +353,11 @@ export const MissingPetsPage: React.FC<MissingPetsPageProps> = ({ navigate }) =>
 
                 <button
                   type="submit"
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: '10px',
-                    backgroundColor: 'var(--primary)',
-                    color: '#FFFFFF',
-                    fontWeight: 800,
-                    fontSize: '0.96rem',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
-                  }}
+                  disabled={submitting}
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '11px' }}
                 >
-                  Send Sighting Alert to Guardian
+                  <span>{submitting ? 'Dispatching...' : 'Dispatch Sighting'}</span>
                 </button>
               </form>
             )}

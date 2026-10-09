@@ -10,8 +10,7 @@ import {
   Menu, 
   X, 
   QrCode,
-  Activity,
-  Sparkles
+  Activity
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -23,19 +22,12 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenQrSimulator }) => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('petconnect_theme') as 'dark' | 'light' | null;
     const initial = saved || 'dark';
     setTheme(initial);
     document.documentElement.setAttribute('data-theme', initial);
-
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const toggleTheme = () => {
@@ -46,11 +38,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenQr
   };
 
   const navLinks = [
-    { label: 'Platform', route: 'home', icon: Sparkles },
-    { label: 'Emergency Pass', route: 'emergency', icon: ShieldAlert, badge: 'LIVE' },
-    { label: 'Lost Pet Radar', route: 'missing', icon: Radio, badge: 'RADAR' },
-    { label: 'Adoptions', route: 'adopt', icon: HeartHandshake },
-    { label: 'Verify Records', route: 'verify', icon: FileCheck },
+    { label: 'Overview', route: 'home' },
+    { label: 'Emergency Pass', route: 'emergency' },
+    { label: 'Lost Pet Radar', route: 'missing' },
+    { label: 'Adoptions', route: 'adopt' },
+    { label: 'Vaccine Registry', route: 'verify' },
   ];
 
   return (
@@ -60,13 +52,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenQr
         top: 0,
         zIndex: 100,
         width: '100%',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        backgroundColor: scrolled 
-          ? (theme === 'dark' ? 'rgba(8, 10, 16, 0.92)' : 'rgba(248, 250, 249, 0.92)')
-          : (theme === 'dark' ? 'rgba(8, 10, 16, 0.75)' : 'rgba(248, 250, 249, 0.75)'),
-        borderBottom: `1px solid ${scrolled ? 'var(--border-medium)' : 'var(--border-subtle)'}`,
-        transition: 'all var(--transition-smooth)',
+        backgroundColor: 'var(--bg-canvas)',
+        borderBottom: '1px solid var(--border-subtle)',
+        transition: 'background-color var(--transition-fast)',
       }}
     >
       <div 
@@ -74,157 +62,111 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenQr
           maxWidth: '1280px',
           margin: '0 auto',
           padding: '0 24px',
-          height: '72px',
+          height: '64px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        {/* Brand Logo */}
+        {/* Brand Logo - Minimalist Monochrome */}
         <div 
           onClick={() => navigate('home')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
             userSelect: 'none',
           }}
         >
           <div 
             style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #10B981 0%, #06B6D4 100%)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              backgroundColor: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-medium)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+              color: 'var(--text-primary)',
             }}
           >
-            <Activity size={22} color="#FFFFFF" strokeWidth={2.6} />
+            <Activity size={18} strokeWidth={2.5} />
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ 
-                fontFamily: 'var(--font-display)', 
-                fontSize: '1.25rem', 
-                fontWeight: 800, 
-                letterSpacing: '-0.03em',
-                color: 'var(--text-primary)'
-              }}>
-                PetConnect<span style={{ color: 'var(--primary)' }}>AI</span>
-              </span>
-              <span style={{
-                fontSize: '0.65rem',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                padding: '2px 6px',
-                borderRadius: '6px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: 'var(--primary)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-              }}>
-                v1.0.2
-              </span>
-            </div>
-            <div style={{ 
-              fontSize: '0.72rem', 
-              color: 'var(--text-muted)', 
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ 
+              fontFamily: 'var(--font-display)', 
+              fontSize: '1.15rem', 
+              fontWeight: 800, 
+              letterSpacing: '-0.02em',
+              color: 'var(--text-primary)'
             }}>
-              Autonomous Pet Care OS
-            </div>
+              PetConnect
+            </span>
+            <span style={{
+              fontSize: '0.68rem',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              padding: '2px 5px',
+              borderRadius: '4px',
+              backgroundColor: 'var(--bg-surface-elevated)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border-subtle)',
+            }}>
+              v1.0.2
+            </span>
           </div>
         </div>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation Links */}
         <nav 
           style={{
             display: 'none',
             alignItems: 'center',
-            gap: '8px',
+            gap: '4px',
           }}
           className="desktop-nav"
         >
           {navLinks.map((item) => {
             const isActive = currentRoute === item.route;
-            const Icon = item.icon;
             return (
               <button
                 key={item.route}
                 onClick={() => navigate(item.route)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
                   padding: '8px 14px',
-                  borderRadius: '10px',
+                  borderRadius: 'var(--radius-sm)',
                   fontSize: '0.88rem',
-                  fontWeight: 600,
-                  color: isActive ? 'var(--text-highlight)' : 'var(--text-secondary)',
-                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                  border: isActive ? '1px solid var(--border-medium)' : '1px solid transparent',
-                  transition: 'all var(--transition-fast)',
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  backgroundColor: isActive ? 'var(--bg-surface-elevated)' : 'transparent',
+                  border: isActive ? '1px solid var(--border-subtle)' : '1px solid transparent',
+                  transition: 'color var(--transition-fast)',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
-                  }
+                  if (!isActive) e.currentTarget.style.color = 'var(--text-primary)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
+                  if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
               >
-                <Icon size={16} color={isActive ? 'var(--primary)' : 'currentColor'} />
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span style={{
-                    fontSize: '0.62rem',
-                    fontFamily: 'var(--font-mono)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                    background: item.badge === 'LIVE' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(6, 182, 212, 0.2)',
-                    color: item.badge === 'LIVE' ? '#F87171' : '#38BDF8',
-                    border: item.badge === 'LIVE' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(6, 182, 212, 0.4)',
-                  }}>
-                    {item.badge}
-                  </span>
-                )}
+                {item.label}
               </button>
             );
           })}
         </nav>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* QR Simulator Trigger */}
+        {/* Action Controls - Flat Minimalist */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Simulator Modal Trigger */}
           <button
             onClick={onOpenQrSimulator}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              background: 'rgba(16, 185, 129, 0.12)',
-              color: 'var(--primary)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              transition: 'all var(--transition-fast)',
-            }}
-            title="Interactive Collar Tag Simulator"
+            className="btn-secondary hide-mobile"
+            style={{ padding: '8px 14px', fontSize: '0.84rem' }}
           >
-            <QrCode size={16} />
-            <span className="hide-mobile">Test Collar QR</span>
+            <QrCode size={15} />
+            <span>Collar Tag</span>
           </button>
 
           {/* Download APK Link */}
@@ -232,70 +174,50 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenQr
             href="https://github.com/Antony0610/Pet_Connect_Ai/releases/download/v1.0.2/PetConnectAI-v1.0.2.apk"
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, var(--primary) 0%, #059669 100%)',
-              color: '#FFFFFF',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-              transition: 'all var(--transition-fast)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.45)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0px)';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.3)';
-            }}
+            className="btn-primary"
+            style={{ padding: '8px 16px', fontSize: '0.84rem' }}
           >
             <Download size={15} />
-            <span>Get App (APK)</span>
+            <span>App (APK)</span>
           </a>
 
           {/* Theme Switcher */}
           <button
             onClick={toggleTheme}
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-sm)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              backgroundColor: 'var(--bg-surface)',
               border: '1px solid var(--border-subtle)',
               color: 'var(--text-secondary)',
-              transition: 'all var(--transition-fast)',
             }}
-            aria-label="Toggle visual theme"
+            aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
 
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-sm)',
               display: 'none',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              backgroundColor: 'var(--bg-surface)',
               border: '1px solid var(--border-subtle)',
               color: 'var(--text-primary)',
             }}
             className="mobile-toggle"
-            aria-label="Open mobile menu"
+            aria-label="Toggle mobile navigation"
           >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </div>
@@ -304,16 +226,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenQr
       {isMobileMenuOpen && (
         <div 
           style={{
-            padding: '16px 24px 24px',
-            backgroundColor: theme === 'dark' ? 'rgba(11, 14, 23, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            padding: '16px 20px 20px',
+            backgroundColor: 'var(--bg-surface)',
             borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
+            gap: '6px',
           }}
         >
           {navLinks.map((item) => {
-            const Icon = item.icon;
             const isActive = currentRoute === item.route;
             return (
               <button
@@ -326,37 +247,32 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenQr
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  borderRadius: '10px',
-                  background: isActive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                  color: isActive ? 'var(--primary)' : 'var(--text-primary)',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: isActive ? 'var(--bg-surface-elevated)' : 'transparent',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: '0.92rem',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span style={{
-                    fontSize: '0.65rem',
-                    fontFamily: 'var(--font-mono)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    background: item.badge === 'LIVE' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(6, 182, 212, 0.2)',
-                    color: item.badge === 'LIVE' ? '#F87171' : '#38BDF8',
-                  }}>
-                    {item.badge}
-                  </span>
-                )}
+                <span>{item.label}</span>
               </button>
             );
           })}
+          <button
+            onClick={() => {
+              onOpenQrSimulator();
+              setIsMobileMenuOpen(false);
+            }}
+            className="btn-secondary"
+            style={{ width: '100%', marginTop: '8px', padding: '10px' }}
+          >
+            <QrCode size={16} />
+            <span>Collar Tag Simulator</span>
+          </button>
         </div>
       )}
 
-      {/* Media query styling for responsive navbar */}
       <style>{`
         @media (min-width: 860px) {
           .desktop-nav {

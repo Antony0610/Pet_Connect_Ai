@@ -1,16 +1,18 @@
-export interface Pet {
+export interface AdoptionListing {
   id: string;
+  pet_id?: string | null;
   name: string;
+  breed: string;
   species: string;
-  breed?: string;
+  age?: string;
   gender?: string;
-  date_of_birth?: string;
-  weight_kg?: number;
-  microchip_id?: string;
-  health_status?: string;
-  allergies?: string[];
-  chronic_conditions?: string[];
+  adoption_fee?: string;
+  location?: string;
+  contact_phone?: string;
+  status: string;
   image_url?: string;
+  images?: string[] | null;
+  description?: string;
   created_at?: string;
 }
 
@@ -20,7 +22,7 @@ export interface EmergencyPetDossier {
   species: string;
   breed: string;
   gender: string;
-  weight_kg?: number;
+  weight_kg?: number | string | null;
   microchip_id: string;
   health_status: string;
   allergies: string[];
@@ -31,33 +33,49 @@ export interface EmergencyPetDossier {
   owner_city: string;
 }
 
-export interface MissingPetReport {
+export interface VaccinationRecord {
   id: string;
-  pet_name: string;
-  species: string;
-  breed: string;
-  last_seen_location: string;
-  last_seen_time: string;
-  reward_amount?: string;
-  contact_phone: string;
-  distinctive_marks?: string;
-  image_url?: string;
-  status: 'ACTIVE' | 'REUNITED' | 'SIGHTING_REPORTED';
+  pet_id: string;
+  pet_name?: string;
+  vaccine_name: string;
+  batch_number?: string | null;
+  administered_date?: string;
+  next_due_date?: string;
+  administered_by?: string | null;
+  certificate_url?: string | null;
+  notes?: string | null;
+  pets?: {
+    name?: string;
+    species?: string;
+    breed?: string;
+    image_url?: string;
+    profiles?: {
+      full_name?: string;
+      city?: string;
+    };
+  };
 }
 
-export interface AdoptionProfile {
+export interface LostPetAlert {
   id: string;
-  name: string;
-  species: 'Dog' | 'Cat' | 'Other';
-  breed: string;
-  age: string;
-  gender: 'Male' | 'Female';
-  shelter_name: string;
-  location: string;
-  image_url: string;
-  personality: string[];
-  vaccinated: boolean;
-  neutered: boolean;
-  microchipped: boolean;
-  story: string;
+  pet_id?: string;
+  owner_id?: string;
+  last_seen_location?: string;
+  last_seen_time?: string;
+  reward_amount?: string;
+  description?: string;
+  alert_status?: string;
+  contact_phone?: string;
+  created_at?: string;
+  pets?: {
+    name?: string;
+    species?: string;
+    breed?: string;
+    image_url?: string;
+    profiles?: {
+      full_name?: string;
+      phone?: string;
+      city?: string;
+    };
+  };
 }

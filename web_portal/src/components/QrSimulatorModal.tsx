@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { X, QrCode, ExternalLink, Copy, Check, Sparkles, ShieldAlert, Cpu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, QrCode, ExternalLink, Copy, Check, Cpu } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { EmergencyPetDossier } from '../types';
 
 interface QrSimulatorModalProps {
   isOpen: boolean;
@@ -7,37 +9,52 @@ interface QrSimulatorModalProps {
   onNavigateEmergency: (petId: string) => void;
 }
 
-const SAMPLE_PETS = [
+const FALLBACK_PETS: EmergencyPetDossier[] = [
   {
-    id: 'demo-buddy',
-    name: 'Buddy',
-    species: 'Dog',
-    breed: 'Golden Retriever',
-    chip: 'PC-98210-IND',
-    color: '#F59E0B',
-    avatar: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80',
-    allergies: 'Severe Penicillin Allergy (NKDA)',
+    id: 'c590ba41-c8ab-4bc5-985b-e15f817e0b3c',
+    name: 'Harly',
+    species: 'dog',
+    breed: 'German Shepard',
+    gender: 'male',
+    weight_kg: 35.0,
+    microchip_id: 'Registered on PetConnect',
+    health_status: 'optimal',
+    allergies: [],
+    chronic_conditions: [],
+    emergency_contact_name: 'Antony',
+    emergency_contact_phone: '8921998733',
+    owner_city: 'Meladoor, Kerala'
   },
   {
-    id: 'demo-luna',
-    name: 'Luna',
-    species: 'Cat',
-    breed: 'Bengal Cross',
-    chip: 'PC-44109-IND',
-    color: '#06B6D4',
-    avatar: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80',
-    allergies: 'Asthma Inhaler Required (Fluticasone)',
+    id: 'ca970bed-278a-45c3-99cd-1133bf0c23cc',
+    name: 'chikku',
+    species: 'cat',
+    breed: 'Persian',
+    gender: 'male',
+    weight_kg: 4.0,
+    microchip_id: 'Registered on PetConnect',
+    health_status: 'optimal',
+    allergies: [],
+    chronic_conditions: [],
+    emergency_contact_name: 'Antony Thomson',
+    emergency_contact_phone: '8921998733',
+    owner_city: 'Annamanada, Kerala'
   },
   {
-    id: 'demo-max',
-    name: 'Max',
-    species: 'Dog',
-    breed: 'German Shepherd',
-    chip: 'PC-77321-IND',
-    color: '#10B981',
-    avatar: 'https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?auto=format&fit=crop&w=400&q=80',
-    allergies: 'Dietary Celiac Sensitivity (Grain-Free)',
-  },
+    id: 'f652e1dc-d87c-469b-814b-f19a97aebfa2',
+    name: 'Sabu',
+    species: 'dog',
+    breed: 'Labrador',
+    gender: 'female',
+    weight_kg: 18.0,
+    microchip_id: 'Registered on PetConnect',
+    health_status: 'optimal',
+    allergies: [],
+    chronic_conditions: [],
+    emergency_contact_name: 'Joe John',
+    emergency_contact_phone: '8089807003',
+    owner_city: 'Thrissur'
+  }
 ];
 
 export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
@@ -45,12 +62,35 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
   onClose,
   onNavigateEmergency,
 }) => {
-  const [selectedPet, setSelectedPet] = useState(SAMPLE_PETS[0]);
+  const [pets, setPets] = useState<EmergencyPetDossier[]>(FALLBACK_PETS);
+  const [selectedPet, setSelectedPet] = useState<EmergencyPetDossier>(FALLBACK_PETS[0]);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    async function loadPets() {
+      try {
+        const { data } = await supabase
+          .from('vw_public_emergency_pet')
+          .select('*')
+          .limit(5);
+
+        if (data && data.length > 0) {
+          setPets(data);
+          setSelectedPet(data[0]);
+        }
+      } catch (_e) {
+        // Fallback already set
+      }
+    }
+
+    if (isOpen) {
+      loadPets();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const emergencyUrl = `${window.location.origin}/emergency?id=${selectedPet.id}&name=${encodeURIComponent(selectedPet.name)}&species=${encodeURIComponent(selectedPet.species)}&breed=${encodeURIComponent(selectedPet.breed)}&chip=${encodeURIComponent(selectedPet.chip)}&demo=true`;
+  const emergencyUrl = `${window.location.origin}/emergency?id=${selectedPet.id}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(emergencyUrl);
@@ -69,9 +109,7 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        backgroundColor: 'rgba(0, 0, 0, 0.78)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -82,64 +120,39 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
       <div
         style={{
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: '500px',
           backgroundColor: 'var(--bg-surface)',
           border: '1px solid var(--border-medium)',
-          borderRadius: 'var(--radius-lg)',
+          borderRadius: 'var(--radius-md)',
           boxShadow: 'var(--shadow-lg)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          animation: 'pulseGlow 0.4s ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header - Flat Minimalist */}
         <div
           style={{
-            padding: '20px 24px',
+            padding: '16px 20px',
             borderBottom: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'rgba(255, 255, 255, 0.02)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--primary)',
-              }}
-            >
-              <Cpu size={18} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                Interactive Collar Tag Simulator
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Experience how a Good Samaritan or Vet resolves an emergency pass
-              </p>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Cpu size={16} color="var(--primary)" />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>
+              Physical Collar Tag Simulator
+            </h3>
           </div>
           <button
             onClick={onClose}
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              padding: '4px',
+              borderRadius: '4px',
               color: 'var(--text-secondary)',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
             }}
           >
             <X size={18} />
@@ -147,21 +160,21 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
         </div>
 
         {/* Pet Switcher Tabs */}
-        <div style={{ padding: '16px 24px 0', display: 'flex', gap: '8px' }}>
-          {SAMPLE_PETS.map((pet) => (
+        <div style={{ padding: '14px 20px 0', display: 'flex', gap: '6px' }}>
+          {pets.map((pet) => (
             <button
               key={pet.id}
               onClick={() => setSelectedPet(pet)}
               style={{
                 flex: 1,
-                padding: '8px 12px',
-                borderRadius: '8px',
-                fontSize: '0.84rem',
-                fontWeight: 600,
-                background: selectedPet.id === pet.id ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 255, 255, 0.04)',
-                color: selectedPet.id === pet.id ? 'var(--primary)' : 'var(--text-secondary)',
-                border: selectedPet.id === pet.id ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
-                transition: 'all var(--transition-fast)',
+                padding: '7px 10px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.8rem',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: selectedPet.id === pet.id ? 700 : 500,
+                backgroundColor: selectedPet.id === pet.id ? 'var(--btn-primary-bg)' : 'var(--bg-inset)',
+                color: selectedPet.id === pet.id ? 'var(--btn-primary-text)' : 'var(--text-secondary)',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               {pet.name} ({pet.species})
@@ -169,17 +182,17 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
           ))}
         </div>
 
-        {/* Body: Collar Tag Mockup */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* Simulated Physical Tag */}
+        {/* Body: Physical Tag Minimalist Graphic */}
+        <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {/* Simulated Solid Physical Tag */}
           <div
             style={{
-              width: '240px',
-              height: '240px',
+              width: '180px',
+              height: '180px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle at 35% 35%, #1F293D 0%, #0F1320 80%)',
-              border: '6px solid rgba(255, 255, 255, 0.14)',
-              boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.25)',
+              backgroundColor: 'var(--bg-inset)',
+              border: '3px solid var(--border-medium)',
+              boxShadow: 'var(--shadow-md)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -188,43 +201,26 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
               marginBottom: '20px',
             }}
           >
-            {/* Top Collar Ring Mount */}
+            {/* Top Ring Mount */}
             <div
               style={{
                 position: 'absolute',
-                top: '-18px',
-                width: '26px',
-                height: '26px',
+                top: '-12px',
+                width: '18px',
+                height: '18px',
                 borderRadius: '50%',
-                border: '4px solid rgba(255, 255, 255, 0.4)',
-                boxShadow: '0 4px 8px rgba(0,0,0,0.5)',
-              }}
-            />
-
-            {/* Glowing Active LED */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '20px',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--primary)',
-                boxShadow: '0 0 10px var(--primary)',
-                animation: 'pulseGlow 2s infinite',
+                border: '3px solid var(--border-medium)',
               }}
             />
 
             {/* QR Centerpiece */}
             <div
               style={{
-                width: '120px',
-                height: '120px',
+                width: '90px',
+                height: '90px',
                 backgroundColor: '#FFFFFF',
-                borderRadius: '12px',
-                padding: '8px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-                position: 'relative',
+                borderRadius: '8px',
+                padding: '6px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -233,129 +229,82 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
               {/* QR Code SVG */}
               <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none">
                 <rect width="100" height="100" fill="#FFFFFF" />
-                {/* QR Position Squares */}
-                <rect x="8" y="8" width="28" height="28" fill="#090B10" rx="3" />
-                <rect x="14" y="14" width="16" height="16" fill="#FFFFFF" rx="2" />
-                <rect x="18" y="18" width="8" height="8" fill="#10B981" rx="1" />
+                <rect x="8" y="8" width="28" height="28" fill="#121316" rx="2" />
+                <rect x="14" y="14" width="16" height="16" fill="#FFFFFF" rx="1" />
+                <rect x="18" y="18" width="8" height="8" fill="#121316" />
 
-                <rect x="64" y="8" width="28" height="28" fill="#090B10" rx="3" />
-                <rect x="70" y="14" width="16" height="16" fill="#FFFFFF" rx="2" />
-                <rect x="74" y="18" width="8" height="8" fill="#10B981" rx="1" />
+                <rect x="64" y="8" width="28" height="28" fill="#121316" rx="2" />
+                <rect x="70" y="14" width="16" height="16" fill="#FFFFFF" rx="1" />
+                <rect x="74" y="18" width="8" height="8" fill="#121316" />
 
-                <rect x="8" y="64" width="28" height="28" fill="#090B10" rx="3" />
-                <rect x="14" y="70" width="16" height="16" fill="#FFFFFF" rx="2" />
-                <rect x="18" y="74" width="8" height="8" fill="#10B981" rx="1" />
+                <rect x="8" y="64" width="28" height="28" fill="#121316" rx="2" />
+                <rect x="14" y="70" width="16" height="16" fill="#FFFFFF" rx="1" />
+                <rect x="18" y="74" width="8" height="8" fill="#121316" />
 
-                {/* Data dots */}
-                <rect x="42" y="10" width="6" height="6" fill="#090B10" />
-                <rect x="52" y="10" width="6" height="6" fill="#090B10" />
-                <rect x="42" y="24" width="6" height="6" fill="#090B10" />
-                <rect x="52" y="24" width="6" height="6" fill="#10B981" />
-                <rect x="10" y="44" width="6" height="6" fill="#090B10" />
-                <rect x="24" y="44" width="6" height="6" fill="#090B10" />
-                <rect x="44" y="44" width="12" height="12" fill="#090B10" rx="2" />
-                <rect x="64" y="44" width="6" height="6" fill="#090B10" />
-                <rect x="76" y="44" width="6" height="6" fill="#090B10" />
-                <rect x="44" y="64" width="6" height="6" fill="#090B10" />
-                <rect x="54" y="64" width="6" height="6" fill="#10B981" />
-                <rect x="44" y="76" width="6" height="6" fill="#090B10" />
-                <rect x="64" y="76" width="10" height="6" fill="#090B10" />
-                <rect x="80" y="64" width="8" height="8" fill="#090B10" />
+                <rect x="42" y="10" width="6" height="6" fill="#121316" />
+                <rect x="52" y="10" width="6" height="6" fill="#121316" />
+                <rect x="42" y="24" width="6" height="6" fill="#121316" />
+                <rect x="52" y="24" width="6" height="6" fill="#121316" />
+                <rect x="44" y="44" width="12" height="12" fill="#121316" />
+                <rect x="64" y="44" width="6" height="6" fill="#121316" />
+                <rect x="76" y="44" width="6" height="6" fill="#121316" />
+                <rect x="44" y="64" width="6" height="6" fill="#121316" />
+                <rect x="54" y="64" width="6" height="6" fill="#121316" />
+                <rect x="44" y="76" width="6" height="6" fill="#121316" />
+                <rect x="64" y="76" width="10" height="6" fill="#121316" />
               </svg>
-
-              {/* Scanning Laser Beam Effect */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  height: '2px',
-                  backgroundColor: 'rgba(16, 185, 129, 0.9)',
-                  boxShadow: '0 0 8px #10B981',
-                  animation: 'scanLaser 2.2s ease-in-out infinite',
-                }}
-              />
             </div>
 
-            {/* Tag Engraving Info */}
-            <div style={{ marginTop: '12px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.04em' }}>
+            <div style={{ marginTop: '10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
                 {selectedPet.name.toUpperCase()}
               </div>
               <div style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                {selectedPet.chip}
+                {selectedPet.owner_city || 'Kerala'}
               </div>
             </div>
           </div>
 
-          {/* Details Card */}
+          {/* Details Summary */}
           <div
             style={{
               width: '100%',
-              padding: '14px 18px',
-              borderRadius: '12px',
-              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              padding: '12px 14px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--bg-inset)',
               border: '1px solid var(--border-subtle)',
-              marginBottom: '20px',
-              fontSize: '0.85rem',
+              marginBottom: '18px',
+              fontSize: '0.82rem',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Species & Breed:</span>
-              <span style={{ fontWeight: 600 }}>{selectedPet.species} • {selectedPet.breed}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Clinical Alert:</span>
-              <span style={{ color: '#F87171', fontWeight: 600 }}>{selectedPet.allergies}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Companion:</span>
+              <span style={{ fontWeight: 600 }}>{selectedPet.name} • {selectedPet.breed || 'Companion'}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Cloud Pass ID:</span>
-              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--primary)' }}>{selectedPet.id}</span>
+              <span style={{ color: 'var(--text-muted)' }}>Guardian Contact:</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{selectedPet.emergency_contact_phone || '8921998733'}</span>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div style={{ width: '100%', display: 'flex', gap: '10px' }}>
+          {/* Actions */}
+          <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
             <button
               onClick={handleSimulateScan}
-              style={{
-                flex: 1,
-                padding: '12px',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, var(--primary) 0%, #059669 100%)',
-                color: '#FFFFFF',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-                transition: 'all var(--transition-fast)',
-              }}
+              className="btn-primary"
+              style={{ flex: 1, padding: '10px', fontSize: '0.86rem' }}
             >
-              <ExternalLink size={16} />
+              <ExternalLink size={15} />
               <span>Simulate Good Samaritan Scan</span>
             </button>
 
             <button
               onClick={handleCopyLink}
-              style={{
-                padding: '12px 18px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-primary)',
-                fontWeight: 600,
-                fontSize: '0.88rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-              title="Copy URL"
+              className="btn-secondary"
+              style={{ padding: '10px 14px', fontSize: '0.86rem' }}
             >
-              {copied ? <Check size={16} color="var(--primary)" /> : <Copy size={16} />}
-              <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+              {copied ? <Check size={14} color="var(--primary)" /> : <Copy size={14} />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
         </div>
