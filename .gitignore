@@ -54,6 +54,11 @@ GoogleService-Info.plist
 ios/Runner/GoogleService-Info.plist
 android/app/google-services.json
 
+# Release artifacts & binaries (NEVER commit compiled binaries which package assets)
+release/
+*.apk
+*.aab
+
 # Android
 android/**/gradle-wrapper.jar
 android/.gradle
