@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+
 import 'package:petconnect_ai/core/config/env.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_radius.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
@@ -15,7 +17,6 @@ import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_prov
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The **AI Optical Biometric HUD & Vision Scanner**.
 /// Provides 3 distinct operational modes:
@@ -160,7 +161,7 @@ class _AiScanIdentifyScreenState extends ConsumerState<AiScanIdentifyScreen>
       );
     } else {
       try {
-        final res = await Supabase.instance.client.functions.invoke(
+        final res = await ref.read(supabaseClientProvider).functions.invoke(
           'ai-symptom-scan',
           body: {
             'symptom_description': promptText,

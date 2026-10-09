@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:petconnect_ai/core/config/env.dart';
+import 'package:petconnect_ai/core/providers/core_providers.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_spacing.dart';
 import 'package:petconnect_ai/core/theme/tokens/app_typography.dart';
 import 'package:petconnect_ai/core/utils/extensions/context_extensions.dart';
@@ -17,7 +19,6 @@ import 'package:petconnect_ai/features/pet_owner/presentation/providers/pet_prov
 import 'package:petconnect_ai/features/pet_owner/presentation/widgets/owner_app_bar.dart';
 import 'package:petconnect_ai/router/route_paths.dart';
 import 'package:petconnect_ai/shared/widgets/widgets.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Clinical AI Diagnostic Center & Veterinary Triage Engine.
 /// Provides live multi-symptom triage, percentage differential probabilities,
@@ -117,7 +118,7 @@ class _AiDiagnosticCenterScreenState
 
     if (replyText == null || replyText.isEmpty) {
       try {
-        final res = await Supabase.instance.client.functions.invoke(
+        final res = await ref.read(supabaseClientProvider).functions.invoke(
           'ai-assistant',
           body: {
             'prompt': prompt,
