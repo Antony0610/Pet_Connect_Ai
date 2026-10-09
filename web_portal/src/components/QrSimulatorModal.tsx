@@ -110,6 +110,8 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
         inset: 0,
         zIndex: 200,
         backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -118,6 +120,7 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
       onClick={onClose}
     >
       <div
+        className="animate-slide-up"
         style={{
           width: '100%',
           maxWidth: '500px',
@@ -159,25 +162,26 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
           </button>
         </div>
 
-        {/* Pet Switcher Tabs */}
+        {/* Tag Switcher Tabs */}
         <div style={{ padding: '14px 20px 0', display: 'flex', gap: '6px' }}>
-          {pets.map((pet) => (
+          {pets.map((pet, idx) => (
             <button
               key={pet.id}
               onClick={() => setSelectedPet(pet)}
               style={{
                 flex: 1,
-                padding: '7px 10px',
+                padding: '7px 8px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: '0.8rem',
+                fontSize: '0.76rem',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: selectedPet.id === pet.id ? 700 : 500,
                 backgroundColor: selectedPet.id === pet.id ? 'var(--btn-primary-bg)' : 'var(--bg-inset)',
                 color: selectedPet.id === pet.id ? 'var(--btn-primary-text)' : 'var(--text-secondary)',
                 border: '1px solid var(--border-subtle)',
+                transition: 'all var(--transition-fast)',
               }}
             >
-              {pet.name} ({pet.species})
+              TAG #{idx + 1} ({pet.species.toUpperCase()})
             </button>
           ))}
         </div>
@@ -186,6 +190,7 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
         <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {/* Simulated Solid Physical Tag */}
           <div
+            className="animate-float"
             style={{
               width: '180px',
               height: '180px',
@@ -256,11 +261,11 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
             </div>
 
             <div style={{ marginTop: '10px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
-                {selectedPet.name.toUpperCase()}
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.06em' }}>
+                PETCONNECT SECURE TAG
               </div>
-              <div style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                {selectedPet.owner_city || 'Kerala'}
+              <div style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginTop: '2px' }}>
+                TAG #{selectedPet.id.slice(0, 8).toUpperCase()} • {selectedPet.species.toUpperCase()}
               </div>
             </div>
           </div>
@@ -277,13 +282,23 @@ export const QrSimulatorModal: React.FC<QrSimulatorModalProps> = ({
               fontSize: '0.82rem',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Companion:</span>
-              <span style={{ fontWeight: 600 }}>{selectedPet.name} • {selectedPet.breed || 'Companion'}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Tag Serial ID:</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>
+                #TAG-{selectedPet.id.slice(0, 8).toUpperCase()}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Category / Breed:</span>
+              <span style={{ fontWeight: 600 }}>
+                {selectedPet.species.toUpperCase()} • {selectedPet.breed || 'Registered Breed'}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-muted)' }}>Guardian Contact:</span>
-              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{selectedPet.emergency_contact_phone || '8921998733'}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                {selectedPet.emergency_contact_phone || '8921998733'}
+              </span>
             </div>
           </div>
 

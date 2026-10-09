@@ -217,8 +217,8 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate, onOpenQrSimulator 
         </section>
       )}
 
-      {/* Hardware & Platform Pillars - Clean 3-Grid (Zero Clutter) */}
-      <section style={{ marginBottom: '70px' }}>
+      {/* Platform Pillars - Clean 3-Grid */}
+      <section style={{ marginBottom: '70px' }} className="animate-fade-in">
         <div style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Core System Architecture</h2>
         </div>
@@ -242,11 +242,14 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate, onOpenQrSimulator 
             <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-medium)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
               <Activity size={16} color="var(--primary)" />
             </div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '8px' }}>
-              Smart Collar Biosensing
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>
+                Companion Telemetry Pipeline
+              </h3>
+              <span className="pill-badge amber" style={{ fontSize: '0.65rem' }}>R&D</span>
+            </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.6' }}>
-              IP68 waterproof hardware node tracking heart rate trends, subcutaneous body temperature, and GPS geofence breaches with 14-day battery life.
+              Telemetry engine designed for companion health analytics, tracking activity patterns, rest intervals, and preparing for future BLE wearable integration.
             </p>
           </div>
 
@@ -265,35 +268,38 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate, onOpenQrSimulator 
         </div>
       </section>
 
-      {/* Hardware Telemetry Specs Table */}
-      <section>
+      {/* IoT Architecture & Hardware Prototype Roadmap Table */}
+      <section className="animate-fade-in">
         <div className="flat-card" style={{ padding: '28px' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '6px' }}>
-            Smart Collar Hardware Specifications
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '6px' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
+              Smart Collar Architecture & IoT Roadmap
+            </h3>
+            <span className="pill-badge amber">PROTOTYPE R&D ROADMAP</span>
+          </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginBottom: '20px' }}>
-            Physical hardware specifications of the PetConnect Smart Collar wearable.
+            Physical collar hardware is in active research & development (R&D). Below is our engineering roadmap and planned telemetry specifications.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', fontSize: '0.86rem' }}>
             <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>WATERPROOF RATING</div>
-              <div style={{ fontWeight: 700, marginTop: '2px' }}>IP68 (Up to 1.5m submersed)</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>DEVELOPMENT PHASE</div>
+              <div style={{ fontWeight: 700, marginTop: '2px', color: 'var(--accent-amber)' }}>Hardware in R&D / Prototype</div>
             </div>
 
             <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>BATTERY PERFORMANCE</div>
-              <div style={{ fontWeight: 700, marginTop: '2px' }}>14 Days Active / Magnetic USB</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>SOFTWARE PIPELINE</div>
+              <div style={{ fontWeight: 700, marginTop: '2px' }}>BLE 5.3 & Cloud Telemetry Ingestion</div>
             </div>
 
             <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>CELLULAR & RADIO</div>
-              <div style={{ fontWeight: 700, marginTop: '2px' }}>LTE-M, NB-IoT & BLE 5.3</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>PLANNED SENSING TARGET</div>
+              <div style={{ fontWeight: 700, marginTop: '2px' }}>Motion, Subcutaneous Temp & Rest</div>
             </div>
 
             <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>SENSORS INTEGRATED</div>
-              <div style={{ fontWeight: 700, marginTop: '2px' }}>Skin Temp, 6-Axis Motion, GPS</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>MOBILE INTEGRATION</div>
+              <div style={{ fontWeight: 700, marginTop: '2px' }}>PetConnect Companion App Sync</div>
             </div>
           </div>
         </div>
