@@ -70,23 +70,25 @@ petconnect_ai/
 
 ## 4. Serverless AI Suite & Model Cascade
 
-AI inference is isolated server-side inside Supabase Edge Functions:
-1. **`gemini-3.7-flash`**: Flagship veterinary multimodal reasoning engine.
-2. **`gemini-3.1-flash-lite`**: Sub-second low-latency instant fallback.
-3. **`gemini-3.8-flash`**: High-throughput reasoning.
-4. **`gemini-3.6-flash`**: Rapid conversational triage.
+AI inference is isolated server-side inside Supabase Edge Functions with a client-side circuit breaker:
+1. **`gemini-3.1-flash-lite`**: Sub-second low-latency clinical triage default (15 RPM / 250,000 TPM).
+2. **`gemini-3.8-flash`**: High-throughput multimodal clinical reasoning (5 RPM / 250,000 TPM).
+3. **`gemini-2.5-flash`**: Resilient secondary fallback.
+4. **`gemini-2.0-flash`**: Cloud baseline fallback.
 
 ### Edge Functions
-- **`ai-assistant`**: General & veterinary consultation, RAG pet profile injection, conversation history bounding (-15 turns), Malayalam (`ml_IN`) & English support, prompt injection defense.
+- **`ai-assistant`**: General & veterinary consultation, RAG pet profile injection, conversation history bounding (-15 turns), Malayalam (`ml_IN`) & English support, prompt injection defense, 20s timeout window.
 - **`ai-symptom-scan`**: Dermatological computer vision, base64 image parsing (~8MB limit), SSRF URL validation (`isSafeUrl`), structured JSON triage (`analysis_summary`, `urgency_level`: `ROUTINE`/`URGENT`/`EMERGENCY`, `recommendations`).
-- **`ai-report-generator`**: Automated health score (0-100), key preventative milestones, dietary guidelines.
+- **`ai-report-generator`**: Automated health score (85-98), key preventative milestones, dietary guidelines.
 
 ---
 
-## 5. IoT Smart Collar & Prototype Simulation
+## 5. IoT Smart Collar & Frozen Hardware Specification
 
-- **Framing**: ESP32 smart collar hardware is specified as an active **R&D prototype**.
-- **Prototype Tag Simulator**: Demonstrations and testing leverage the single authoritative tag **`TAG-PROTOTYPE-001`**.
+- **Phase Separation**:
+  - **Phase 1 (Software Platform — Completed)**: Production mobile OpenStreetMap tracking, radial geofencing (50m–1,000m), real-time Supabase telemetry ingestion, and the authoritative `TAG-PROTOTYPE-001` test simulator. Simulated data is never presented as physical hardware data.
+  - **Phase 2 (Physical Hardware Spec — Planned)**: Frozen Bill of Materials targeting the **Seeed Studio XIAO ESP32-C6**, **ADIY EC200U GNSS/LTE Cat 1 cellular board**, **LIS2DU12 3-axis accelerometer**, **MAX17048 I²C fuel gauge**, **1S Li-Po protection board (5A class)**, **active-LOW SOS button**, and **NPN-driven piezo buzzer**. Detailed in `docs/HARDWARE_SPECIFICATION.md`.
+- **Prototype Tag Simulator**: Demonstrations and automated testing leverage the single authoritative tag **`TAG-PROTOTYPE-001`**.
 - **Interactive QR Simulator Modal**: `web_portal/src/components/QrSimulatorModal.tsx` simulates scanning the collar tag and navigates instantly to live emergency profiles.
 - **OpenStreetMap Integration**: Uses `flutter_map` with OpenStreetMap tile layers and Nominatim reverse geocoding.
 

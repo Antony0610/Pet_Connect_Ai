@@ -66,8 +66,7 @@ When guides ask *"Why did you choose this technology instead of X?"*, use the ju
 | **React 19 + Vite + TypeScript** | Standalone public emergency web portal (`web_portal/`). | **vs. Static HTML / Next.js:** React 19 combined with Vite compiles in milliseconds, produces a lightweight single-page application (SPA), and handles client routing seamlessly via Vercel universal rewrites (`vercel.json`) without requiring a server running Node.js. |
 | **Editorial CSS Design Tokens** | Clean, warm-monochrome visual styling (`tokens.css`). | Eliminates artificial "AI-slop" gradients and generic templates, providing an authentic, premium editorial look suited for medical dossiers. |
 | **OpenStreetMap & `flutter_map`** | Interactive mobile GPS mapping and trail rendering. | **vs. Google Maps SDK:** Google Maps requires billing setup, credit cards, and strict API key restrictions that frequently fail during academic demonstrations. OpenStreetMap with `flutter_map` is completely open, reliable, free, and lightweight. |
-| **Nominatim API** | Reverse geocoding of raw GPS coordinates to street addresses. | Translates raw latitude and longitude into human-readable city, neighborhood, and street names. |
-| **ESP32 BLE 5.3 & Prototype Tag Simulator (`TAG-PROTOTYPE-001`)** | IoT collar specification and digital hardware simulation. | Defines the exact BLE GATT service and characteristic UUIDs for hardware while providing a fully working digital simulation model on mobile and web. |
+| **Seeed Studio XIAO ESP32-C6 + ADIY EC200U & Simulator (`TAG-PROTOTYPE-001`)** | Phase 2 frozen IoT collar specification & Phase 1 digital hardware simulation. | Defines the exact hardware architecture (XIAO ESP32-C6, ADIY EC200U GNSS/LTE Cat 1, LIS2DU12, MAX17048, SOS, NPN buzzer) and Schema v1 telemetry while providing a fully working digital simulation model on mobile and web. |
 
 ---
 
@@ -108,13 +107,14 @@ Phase 10: Defensive Hardening, Testing & Release
    - Developed the 52 Pet Owner screens: Home Dashboard, Digital Health Passport, Vaccination Milestones, Document Vault, and Appointment Booking.
 4. **Phase 4: AI Engine & Edge Function Microservices**
    - Deployed Deno Edge Functions on Supabase (`ai-assistant`, `ai-symptom-scan`, `ai-report-generator`).
-   - Integrated the Google Gemini 3.x cascade (`gemini-3.7-flash` → `gemini-3.1-flash-lite` → `gemini-3.8-flash` → `gemini-3.6-flash`).
-   - Implemented client-side circuit breaking and persistent `HttpClient` connection pooling.
-5. **Phase 5: IoT Smart Collar & Telemetry Integration**
-   - Authored the ESP32 BLE 5.3 GATT specification.
+   - Integrated the active Google Gemini cascade (`gemini-3.1-flash-lite` → `gemini-3.8-flash` → `gemini-2.5-flash` → `gemini-2.0-flash`).
+   - Implemented client-side circuit breaking, extended 20s timeouts, and persistent `HttpClient` connection pooling.
+5. **Phase 5: IoT Smart Collar Architecture & Telemetry Integration**
+   - Authored the Phase 2 frozen hardware specification (Seeed Studio XIAO ESP32-C6, ADIY EC200U GNSS & LTE Cat 1, LIS2DU12 accelerometer, MAX17048 fuel gauge, 1S Li-Po with 5A protection, active-LOW SOS, NPN buzzer driver) and locked GPIO pinouts.
+   - Formulated the Schema Version 1 JSON telemetry contract.
    - Integrated OpenStreetMap with dynamic trail polylines and Nominatim reverse geocoding.
    - Developed the radial geofencing algorithm (50m–1,000m) with perimeter breach alerts.
-   - Built the `TAG-PROTOTYPE-001` test simulator.
+   - Built the `TAG-PROTOTYPE-001` test simulator for Phase 1 digital twin verification.
 6. **Phase 6: Veterinarian Clinical Portal**
    - Constructed the 14 clinical screens: practitioner queue, SOAP consultation workspace, pharmacy inventory, and automated digital prescription PDF generation.
 7. **Phase 7: Volunteer & Rescue Dispatch Portal**
@@ -173,13 +173,15 @@ Phase 10: Defensive Hardening, Testing & Release
 ### 4.3 IoT Smart Collar Tracking & Lost Mode Protocol
 - **User Action**: An owner opens the Smart Collar tab or triggers "Lost Mode".
 - **Under the Hood**:
-  1. The ESP32 collar sends GPS coordinates (`lat`, `lng`), temperature, and battery telemetry to Supabase over HTTPS every 30 seconds (or every 5 seconds in Lost Mode).
-  2. Supabase inserts the telemetry row into `collar_telemetry`.
-  3. The Flutter client subscribes via `supabase.from('collar_telemetry').stream(...)`.
-  4. When new data arrives, `flutter_map` updates the pet marker on OpenStreetMap and draws an animated polyline trail showing movement over the last 24 hours.
-  5. The app calculates distance from the home coordinate. If the pet crosses the geofence boundary (e.g. 200m), an audible alert is sounded.
-  6. **When Lost Mode is activated**:
+  1. The collar firmware (running on Seeed Studio XIAO ESP32-C6) samples GNSS position (`latitude`, `longitude`, `accuracy_m`), 3-axis motion (`accel_x, accel_y, accel_z` from LIS2DU12), and battery State of Charge (% and voltage from MAX17048), transmitting via ADIY EC200U LTE Cat 1 cellular uplink every 30 seconds (or every 5 seconds in Lost Mode).
+  2. The payload is pushed to Supabase Edge Function `collar-ingest` adhering to Schema Version 1.
+  3. Supabase validates device authentication and inserts the telemetry row into `collar_telemetry`.
+  4. The Flutter client subscribes via `supabase.from('collar_telemetry').stream(...)`.
+  5. When new data arrives, `flutter_map` updates the pet marker on OpenStreetMap and draws an animated polyline trail showing movement over the last 24 hours.
+  6. The app calculates distance from the home coordinate. If the pet crosses the geofence boundary (e.g. 200m), an audible alert is sounded.
+  7. **When Lost Mode is activated**:
      - The app flags `pets.is_lost = true`.
+     - A high-frequency GNSS uplink and buzzer beaconing command is queued for the collar.
      - A Supabase Realtime broadcast alerts nearby registered volunteers.
      - The public emergency URL (`/emergency/TAG-PROTOTYPE-001`) updates with an active `LOST PET` warning banner.
 
@@ -244,7 +246,7 @@ All incoming user prompts are sanitized:
 > **Answer:** For a small single-purpose app, it might be. But PetConnect AI contains 96 screens across 4 distinct user personas. Without Clean Architecture, UI code would be tightly coupled with Supabase SDKs and API calls. By separating Presentation, Domain, and Data, our core business logic and entities are written in pure Dart with zero framework dependencies. This allows us to unit-test business use cases in milliseconds without needing an emulator or network connection, and shields our code from breaking SDK changes.
 
 #### Q3: Why did you implement a multi-model AI cascade instead of just calling one model?
-> **Answer:** Relying on a single AI model creates a single point of failure. If `gemini-3.7-flash` experiences transient network timeouts, cold starts, or quota rate-limiting, a standard app fails and displays an error to the user. Our cascade immediately fails over: `gemini-3.7-flash` (flagship reasoning) → `gemini-3.1-flash-lite` (sub-second fallback) → `gemini-3.8-flash` (high throughput) → `gemini-3.6-flash`. Combined with our client-side circuit breaker, this guarantees high availability and sub-second response times.
+> **Answer:** Relying on a single AI model creates a single point of failure. If an AI endpoint experiences transient network timeouts, cold starts, or quota rate-limiting, a standard app fails and displays an error to the user. Our cascade immediately fails over across active, high-throughput models: `gemini-3.1-flash-lite` (sub-second clinical triage default) → `gemini-3.8-flash` (high-throughput reasoning) → `gemini-2.5-flash` → `gemini-2.0-flash`. Combined with our client-side circuit breaker, 20-second connection timeouts, and Supabase Edge Function serverless fallbacks, this guarantees high availability and sub-second response times.
 
 #### Q4: How do you protect user privacy and sensitive medical records?
 > **Answer:** We enforce security at multiple layers:
@@ -253,7 +255,7 @@ All incoming user prompts are sanitized:
 > 3. Medical certificates and lab reports are stored in private Supabase Storage buckets accessible only via signed, time-limited cryptographic URLs.
 
 #### Q5: How does the Smart Collar communication work if physical hardware is still an R&D prototype?
-> **Answer:** We designed the complete hardware specification based on an ESP32 microcontroller with BLE 5.3 GATT service characteristics for local pairing and WiFi/HTTPS for telemetry uplink. To enable rigorous testing and realistic demonstration without requiring physical hardware in the room, we built the authoritative `TAG-PROTOTYPE-001` test simulator. The mobile app renders live OpenStreetMap tracking and radial geofencing, while our React 19 web portal features an interactive QR simulation modal that models the exact finder workflow.
+> **Answer:** We established a clear architectural boundary between Phase 1 (Software Platform) and Phase 2 (Physical Hardware). In Phase 1, we implemented the complete telemetry ingestion pipeline, OpenStreetMap dynamic trail HUD, radial geofencing (50m–1,000m), and the authoritative `TAG-PROTOTYPE-001` test simulator. The Phase 2 physical hardware specification is completely frozen: Seeed Studio XIAO ESP32-C6 microcontroller, ADIY EC200U GNSS/LTE Cat 1 cellular breakout, LIS2DU12 3-axis accelerometer, MAX17048 fuel gauge over I²C, 1S 3.7V Li-Po with 5A protection, active-LOW SOS button, and an NPN-driven piezo buzzer with locked GPIO mappings. Simulated data in Phase 1 is never conflated with physical sensor readings.
 
 #### Q6: Why did you build the public portal in React 19 instead of Flutter Web?
 > **Answer:** Flutter Web renders using CanvasKit or HTML Canvas, which results in larger initial bundle downloads (~3–5 MB) and longer initial load times on mobile browsers. A Good Samaritan scanning a lost pet tag on a street corner needs instant access within 1 second. React 19 with Vite produces an ultra-lightweight, high-speed single-page application with immediate DOM rendering, responsive mobile typography, and minimal bandwidth usage.

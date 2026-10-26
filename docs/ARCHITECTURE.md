@@ -49,11 +49,13 @@ This document describes the end-to-end multi-platform architecture that keeps th
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                   EXTERNAL AI & IOT PROTOCOL INTEGRATIONS                        │
 ├────────────────────────────────────────────────┬─────────────────────────────────┤
-│           Google Gemini 3.x AI Engine          │   IoT Smart Collar / Prototype  │
-│  - gemini-3.7-flash (Multimodal Clinical)      │  - ESP32 BLE 5.3 Provisioning   │
-│  - gemini-3.1-flash-lite (Sub-Second Latency)  │  - WiFi / HTTPS Telemetry Push  │
-│  - gemini-3.8-flash (High-Throughput)          │  - TAG-PROTOTYPE-001 Simulator  │
-│  - gemini-3.6-flash (Conversational Triage)    │  - Remote Buzzer / LED Strobe   │
+│           Google Gemini AI Engine              │  IoT Smart Collar (Phase 2 Spec)│
+│  - gemini-3.1-flash-lite (Ultra-Low Latency)   │  - Seeed Studio XIAO ESP32-C6   │
+│  - gemini-3.8-flash (High-Throughput Reasoning)│  - ADIY EC200U GNSS & LTE Cat 1 │
+│  - gemini-2.5-flash / gemini-2.0-flash Fallback│  - LIS2DU12 3-Axis Accelerometer│
+│  - Resilient Model Cascade & Circuit Breaker   │  - MAX17048 I²C Fuel Gauge      │
+│  - Clinical Prompt Hardening & SSRF Defense    │  - Active-LOW SOS & NPN Buzzer  │
+│  - Sub-second Triage & Symptom Evaluation      │  - TAG-PROTOTYPE-001 Simulator  │
 └────────────────────────────────────────────────┴─────────────────────────────────┘
 ```
 
@@ -159,10 +161,20 @@ The AI tier connects Flutter and Web clients to Google Gemini 3.x models via Sup
 
 ## 6. IoT Smart Collar & Telemetry Architecture
 
-- **Hardware Framing**: ESP32 BLE 5.3 + WiFi multi-sensor collar (framed as an active R&D Prototype).
-- **Pairing Flow**: Initial BLE handshake transfers WiFi credentials and device security token.
-- **Telemetry Pipeline**: Device pushes battery status, BLE signal, GPS coordinates, and temperature to Supabase via HTTPS.
-- **Mobile HUD & Lost Mode**: Real-time OpenStreetMap rendering, geofencing boundary alerts (50m–1,000m), and one-tap lost mode broadcast to community volunteers.
+- **Phase Separation**:
+  - **Phase 1 (Software Platform)**: Production mobile OpenStreetMap tracking, radial geofencing (50m–1,000m), real-time Supabase telemetry ingestion, and the authoritative `TAG-PROTOTYPE-001` test simulator.
+  - **Phase 2 (Physical Hardware Integration)**: Physical collar prototype implementation targeting the frozen specification below.
+- **Frozen Hardware Specification**:
+  - **Main Controller**: Seeed Studio XIAO ESP32-C6 (compact RISC-V controller).
+  - **GNSS & Cellular**: ADIY EC200U development board (Quectel EC200U LTE Cat 1 + GNSS all-in-one).
+  - **Motion Sensing**: LIS2DU12 3-axis accelerometer over shared I²C bus. *(Reconciled against older LIS3DH notes).*
+  - **Battery Monitoring**: MAX17048 fuel gauge IC via dedicated `BAT/CELL` connection to Li-Po positive terminal.
+  - **Battery & Protection**: 1S 3.7V nominal Li-Po with 5A class protection PCB. *(Capacity pending BOM confirmation: 700 mAh vs 1000 mAh; protection is NOT charging).*
+  - **Emergency Input**: Momentary active-LOW SOS button on D2 / GPIO2 with internal pull-up.
+  - **Audible Alert**: Piezo buzzer driven by NPN transistor (2N2222) on D3 / GPIO21 with ~1kΩ base resistor.
+  - **Modem Power Control**: SPST slide switch on EC200U high-current power path.
+- **Explicit Exclusions**: No heart-rate, no SpO₂, no body temperature sensor, no camera/mic, no RGB LED, and no medical diagnostic claims.
+- **Full Specification**: Detailed in [docs/HARDWARE_SPECIFICATION.md](file:///d:/Downloads/Pet_Connect_Ai/petconnect_ai/docs/HARDWARE_SPECIFICATION.md).
 
 ---
 

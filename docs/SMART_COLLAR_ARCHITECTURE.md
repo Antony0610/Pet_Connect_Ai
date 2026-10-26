@@ -1,79 +1,152 @@
 # Smart Collar & Telemetry Architecture
 
-## 1. Overview & R&D Prototype Framing
+## 1. Overview & Project Phase Separation
 
-PetConnect integrates IoT telemetry, GPS tracking, geofencing, and emergency recovery mechanisms through an **ESP32-based Smart Collar Architecture**.
+PetConnect AI integrates IoT telemetry, GNSS location tracking, radial geofencing, and emergency recovery mechanisms through an engineered **Smart Collar Architecture**.
 
-> [!NOTE]
-> **R&D Prototype Status:** The physical collar hardware is architected as an active **Research & Development (R&D) prototype specification**. The platform provides full end-to-end hardware simulation, live mobile HUD tracking, and an interactive **Single Prototype Tag Simulator (`TAG-PROTOTYPE-001`)** across both mobile and web surfaces.
+> [!IMPORTANT]
+> **Phase Separation & Prototype Status:**
+> - **Phase 1 (Software Platform — Completed):** Mobile and web tracking dashboard, OpenStreetMap HUD, radial geofence alerts, Supabase realtime telemetry pipeline, and the authoritative **Single Prototype Tag Simulator (`TAG-PROTOTYPE-001`)**.
+> - **Phase 2 (Physical Collar Prototyping — Planned):** Physical manufacturing, PCB assembly, and live firmware integration targeting the frozen hardware bill of materials below.
+> - **Integrity Rule:** Simulated readings in Phase 1 software must never be presented as physical sensor data. Location and activity tracking are safety and wellness markers, **NOT** medical diagnostics.
 
 ---
 
-## 2. System Architecture & Data Flow
+## 2. Frozen Hardware Specification (Phase 2 Prototype)
+
+The hardware specification is frozen to prevent scope creep, excessive power consumption, and unverified component substitutions:
+
+| Subsystem | Frozen Component Selection | Specification & Role |
+| :--- | :--- | :--- |
+| **Main Microcontroller** | **Seeed Studio XIAO ESP32-C6** | Ultra-compact RISC-V controller. Coordinates I²C sensors, monitors active-LOW SOS button, switches buzzer via NPN transistor, and interfaces with cellular modem via UART. |
+| **GNSS & Cellular Modem** | **ADIY EC200U Development Board** | Unified Quectel EC200U module providing both GNSS location (GPS/GLONASS) and LTE Cat 1 cellular connectivity. Eliminates separate GPS receivers. |
+| **Motion & Activity Sensing** | **LIS2DU12 Accelerometer Breakout** | 3-axis ultra-low-power accelerometer over shared I²C bus. *(Reconciled from older notes referencing LIS3DH; latest wiring guide artwork specifies LIS2DU12).* |
+| **Battery Monitoring** | **MAX17048 Fuel Gauge Breakout** | Accurate State of Charge (SOC %) and voltage monitoring via dedicated `BAT/CELL` connection to the Li-Po battery positive terminal over I²C. |
+| **Battery & Power** | **1S 3.7 V Nominal Li-Po Cell** | Single-cell Li-Po. *(Saved drawings specify both 700 mAh and 1000 mAh examples; exact capacity remains a pending BOM confirmation based on enclosure size).* |
+| **Battery Protection** | **1S Li-Po Protection Board (5A class)** | Protects cell against over-discharge (<2.8V) and over-current (>5A). *(Protection is NOT a charger; requires separate 1S CC/CV 4.2V charging circuit).* |
+| **SOS Emergency Input** | **Momentary Pushbutton (Active-LOW)** | User-triggered physical emergency input connected to GPIO with internal pull-up. Released = HIGH, Pressed = LOW. |
+| **Audible Alert** | **Piezo Buzzer + NPN Transistor Driver** | 2N2222 / PN2222A transistor driver with ~1 kΩ base resistor. **Never** driven directly from GPIO pin. |
+| **Modem Power Control** | **SPST Slide Switch** | Dedicated switch on the EC200U high-current power path to prevent drain during storage or bench testing. |
+
+### Explicit Exclusions (Not in Frozen Specification)
+- ❌ **No Heart-Rate Sensor** (PPG).
+- ❌ **No SpO₂ Pulse Oximeter**.
+- ❌ **No Core-Body-Temperature Sensor**.
+- ❌ **No Camera or Microphone**.
+- ❌ **No RGB Status LED** (not included in the frozen wiring guide).
+- ❌ **No Secondary GPS Module** (GNSS is handled entirely by the ADIY EC200U).
+- ❌ **No Diagnostic Claims** (telemetry monitors activity and position, never diagnoses medical illness).
+
+---
+
+## 3. System Architecture & Data Flow
 
 ```
-┌────────────────────────────────────────────────────────┐
-│              ESP32 Smart Collar (Prototype)            │
-│  - ESP32-WROOM-32 / ESP32-C3 Microcontroller           │
-│  - GNSS/GPS Receiver (NEO-6M / u-blox SAM-M8Q)         │
-│  - BLE 5.3 (GATT Server for Provisioning & Pairing)    │
-│  - 2.4 GHz 802.11b/g/n WiFi / LTE-M Telemetry Uplink   │
-│  - Buzzer & Strobe LED Actuators                       │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-             ┌─────────────┴─────────────┐
-             │                           │
-        BLE 5.3 Handshake           HTTPS Telemetry
-      (Setup & Safe Zones)        (30s GPS / 5m Health)
-             │                           │
-             ▼                           ▼
-┌─────────────────────────┐  ┌───────────────────────────┐
-│  Flutter Mobile App     │  │   Supabase Cloud Platform │
-│  - Live OSM Map Tracking│  │  - PostgreSQL collar_logs │
-│  - Safe Zone Geofencing │  │  - Realtime Telemetry Hub │
-│  - Remote Buzzer/Strobe │  │  - Emergency Broadcast SOS│
-└────────────┬────────────┘  └─────────────┬─────────────┘
-             │                             │
-             └──────────────┬──────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│           Emergency Recovery & Public Web Portal       │
-│  - Physical QR Code Collar Medal / Tag                 │
-│  - Single Prototype Tag Simulator (TAG-PROTOTYPE-001)  │
-│  - Zero-App Web Dossier (/emergency, /missing)         │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│             PetConnect AI Smart Collar (Phase 2 Hardware)              │
+│                                                                        │
+│  LIS2DU12 Accelerometer ─── I²C (SDA D4/GPIO22, SCL D5/GPIO23) ─────┐  │
+│  MAX17048 Fuel Gauge   ─── I²C (SDA D4/GPIO22, SCL D5/GPIO23) ─────┤  │
+│  SOS Pushbutton        ─── Active-LOW (D2/GPIO2 with pull-up) ─────┤  │
+│  Piezo Buzzer Driver   ─── Active-HIGH NPN (D3/GPIO21 + 1kΩ) ──────┤  │
+│                                                                     │  │
+│                     Seeed Studio XIAO ESP32-C6                      │  │
+│                                 │                                   │  │
+│               UART (D6/GPIO16 TX ──▶ EC200U RX)                     │  │
+│               UART (D7/GPIO17 RX ◀── EC200U TX)                     │  │
+│                                 ▼                                   │  │
+│             ADIY EC200U Cellular & GNSS Breakout Board              │  │
+│             (Quectel EC200U LTE Cat 1 + Embedded GNSS)              │  │
+└─────────────────────────────────┬──────────────────────────────────────┘
+                                  │
+                                  │ LTE Cat 1 Cellular Uplink
+                                  │ (JSON Telemetry over HTTPS / MQTT)
+                                  ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Supabase Cloud Platform                         │
+│  - Edge Function: collar-ingest (Validates Schema v1 & Device Token)   │
+│  - PostgreSQL: collar_telemetry table with Row Level Security (RLS)    │
+│  - Realtime: Broadcasts location updates to authorized pet owner       │
+└─────────────────────────────────┬──────────────────────────────────────┘
+                                  │
+                                  ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   PetConnect AI Mobile & Web Surfaces                  │
+│  - Flutter Mobile App: Live OpenStreetMap HUD, Radial Geofencing       │
+│  - Finder Web Portal: /emergency/:tagId instant medical dossier        │
+│  - Simulator: TAG-PROTOTYPE-001 digital twin for bench testing         │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Connectivity Protocols
+## 4. Frozen GPIO and Bus Mapping
 
-### 3.1 Bluetooth Low Energy (BLE 5.3) — Pairing & Local Control
-- **Purpose**: Initial collar commissioning, WiFi credential transfer, safe zone local cache sync, and direct proximity buzzing.
-- **Protocol**: Custom BLE GATT Service.
-- **Advertised Service UUID**: `0000FFF0-0000-1000-8000-00805F9B34FB`
+Baseline pinout defined for the **Seeed Studio XIAO ESP32-C6**:
 
-| Characteristic | UUID | Type | Description |
-| :--- | :--- | :--- | :--- |
-| **WiFi SSID** | `0000FFF1-...` | Write | Target 2.4 GHz access point SSID |
-| **WiFi Password** | `0000FFF2-...` | Write | Encrypted network passphrase |
-| **Device Token** | `0000FFF3-...` | Write | Signed collar auth bearer token |
-| **Telemetry Notify** | `0000FFF4-...` | Read/Notify | Real-time sensor stream (vitals, GPS) |
-| **Actuator Command** | `0000FFF5-...` | Write | `0x01` (Buzzer ON), `0x02` (LED Strobe) |
+| XIAO Pin | MCU GPIO | Direction | Assigned Function | Electrical & Firmware Notes |
+| :---: | :---: | :---: | :--- | :--- |
+| **D2** | **GPIO2** | Input | **SOS Pushbutton** | Active LOW. Pushbutton connects GPIO2 to GND when pressed. Internal pull-up enabled in firmware. Debounced. |
+| **D3** | **GPIO21** | Output | **Buzzer Driver** | Active HIGH. Controls NPN transistor base through ~1 kΩ series resistor. |
+| **D4** | **GPIO22** | I/O | **I²C SDA** | Shared I²C data line for both **LIS2DU12** and **MAX17048**. |
+| **D5** | **GPIO23** | Output | **I²C SCL** | Shared I²C clock line for both **LIS2DU12** and **MAX17048**. |
+| **D6** | **GPIO16** | Output | **UART TX (XIAO → EC200U)** | Connects to EC200U UART RX. Verify 3.3V logic level compatibility before connecting. |
+| **D7** | **GPIO17** | Input | **UART RX (XIAO ← EC200U)** | Connects from EC200U UART TX. Common ground required. |
+| **D8** | **GPIO19** | — | **Reserved** | Reserved for future expansion. |
+| **D9** | **GPIO20** | — | **Reserved** | Reserved for future expansion. |
 
-### 3.2 WiFi / Cellular Uplink — Remote Cloud Telemetry
-- **Purpose**: Continuous telemetry streaming to cloud backend.
-- **Protocol**: HTTPS REST payloads pushed to Supabase Edge Functions / PostgreSQL.
-- **Intervals**:
-  - Standard Mode: GPS every 30 seconds, vitals every 5 minutes.
-  - Emergency Lost Mode: GPS every 5 seconds, high-intensity beaconing.
+### Critical Electrical Safety Warnings
+1. **EC200U Peak Current:** Cellular transmission bursts draw up to ~2.0 A. **NEVER** power the EC200U from the XIAO 3.3V pin. It must be powered directly from the battery rail.
+2. **MAX17048 BAT/CELL Node:** Must connect directly to the Li-Po battery positive terminal, **NEVER** to the regulated 3.3V rail.
+3. **Common Ground:** All modules must share a solid common ground.
+4. **Buzzer Protection:** Buzzer is driven by an NPN transistor, never directly from an ESP32 GPIO pin.
 
 ---
 
-## 4. Single Prototype Tag Simulator (`TAG-PROTOTYPE-001`)
+## 5. Telemetry Contract (Schema Version 1)
 
-To enable seamless testing and live demonstrations without physical hardware on hand, the platform specifies a single authoritative prototype tag:
+All telemetry payloads sent to the backend conform to this structured schema:
+
+```json
+{
+  "schema_version": 1,
+  "device_id": "COLLAR-PROTOTYPE-001",
+  "pet_id": "pet-registered-uuid",
+  "firmware_version": "0.1.0",
+  "recorded_at": "2026-10-26T16:45:00Z",
+  "location": {
+    "valid": true,
+    "latitude": 9.9816,
+    "longitude": 76.2999,
+    "fix_time": "2026-10-26T16:44:58Z",
+    "accuracy_m": 3.5
+  },
+  "motion": {
+    "valid": true,
+    "accel_x": 0.04,
+    "accel_y": 0.98,
+    "accel_z": 0.12,
+    "unit": "g"
+  },
+  "battery": {
+    "fuel_gauge_percent": 87.5,
+    "voltage_v": 4.02,
+    "valid": true
+  },
+  "device_status": {
+    "sos_pressed": false,
+    "modem_connected": true,
+    "gnss_fix_valid": true,
+    "sensor_fault": false
+  }
+}
+```
+
+---
+
+## 6. Single Prototype Tag Simulator (`TAG-PROTOTYPE-001`)
+
+To enable seamless testing, automated validation, and live presentations without physical hardware on hand, the platform specifies a single authoritative prototype tag:
 
 - **Tag Identifier**: `TAG-PROTOTYPE-001`
 - **Simulated Pet Profile**: Fully hydrated companion record with active vaccination status, emergency owner contacts, and known allergies.
@@ -82,40 +155,34 @@ To enable seamless testing and live demonstrations without physical hardware on 
   2. Resolves immediately to `/emergency/TAG-PROTOTYPE-001`.
   3. Displays live medical emergency profile, immediate one-tap owner calling, WhatsApp sighting dispatch, and emergency veterinary history.
 
-### Web QR Simulator Component (`web_portal/src/components/QrSimulatorModal.tsx`)
-The React 19 web portal includes a dedicated modal that:
-- Prominently showcases the collar hardware as an **R&D prototype**.
-- Generates live scannable QR matrix for phone camera testing.
-- Offers instant click-to-simulate buttons that transition to emergency and vaccination verification views without requiring app installation.
-
 ---
 
-## 5. Live Mobile HUD & OpenStreetMap Pipeline
+## 7. Live Mobile HUD & OpenStreetMap Pipeline
 
 The Pet Owner portal features a comprehensive tracking screen (`SmartCollarDashboardScreen`):
 
-### 5.1 OpenStreetMap & Flutter Map
-- **Map Renderer**: `flutter_map` leveraging OpenStreetMap vector tile layers (eliminates restrictive proprietary map key dependencies).
-- **Reverse Geocoding**: Integrated with OpenStreetMap's Nominatim service for real-time street, city, and neighborhood translation.
-- **Dynamic Trail Polylines**: Visualizes historical path over the past 24 hours with gradient trail decay.
+### 7.1 OpenStreetMap & Flutter Map
+- **Map Renderer**: `flutter_map` leveraging OpenStreetMap tile layers (eliminates proprietary map API keys).
+- **Reverse Geocoding**: Integrated with OpenStreetMap Nominatim service for real-time address translation.
+- **Dynamic Trail Polylines**: Visualizes historical path over the past 24 hours with gradient decay.
 
-### 5.2 Active Telemetry HUD
+### 7.2 Active Telemetry HUD
 Continuously monitors collar diagnostic sensors:
-- 🔋 **Battery Level**: Percentage, estimated time remaining, and power saving modes.
-- 📶 **Signal Quality**: BLE 5.3 RSSI indicator and LTE-M connection strength.
-- 🌡️ **Normothermic Temperature**: Real-time ambient and animal body temperature sensing (target: 38.6°C).
-- 🏃 **Activity Tracker**: Step count, rest duration, and vigorous exercise bursts.
+- 🔋 **Battery Level**: MAX17048 Fuel gauge percentage and cell voltage.
+- 📶 **Signal Quality**: LTE Cat 1 connection status and GNSS fix validity.
+- 🏃 **Activity Tracker**: LIS2DU12 3-axis motion samples categorized into rest, walking, and active movement.
+- 🚨 **Emergency SOS**: Immediate alert if the physical SOS pushbutton is triggered.
 
 ---
 
-## 6. Geofencing & Lost Pet Radar Protocol
+## 8. Geofencing & Lost Pet Radar Protocol
 
-### 6.1 Safe Zone Boundary Configuration
+### 8.1 Safe Zone Boundary Configuration
 - Configurable radius: **50m to 1,000m** around home or current location.
 - Boundary violation triggers immediate local push notification and high-priority collar alert.
 
-### 6.2 Emergency Lost Mode
+### 8.2 Emergency Lost Mode
 When the user taps **"Enable Lost Mode"**:
-1. **Collar Command**: Collar transitions to high-frequency GPS pinging (every 5 seconds) and activates low-power LED strobe for night visibility.
+1. **Collar Command**: Collar transitions to high-frequency GNSS pinging (every 5 seconds) and enables buzzer beaconing.
 2. **Community Radar Broadcast**: Pushes emergency lost pet notice to nearby registered volunteers, shelters, and pet owners within a 5km radius.
 3. **Public Dossier Activation**: Flips the pet's public emergency web page (`/missing/:id`) to `CRITICAL ALERT` status with live sighting submission form.

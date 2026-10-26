@@ -120,9 +120,9 @@ Existing pet health and tracking solutions exhibit four critical failure modes:
 ### 1.3 Project Objectives
 The primary objectives of the PetConnect AI project are:
 - **Unified Multi-Portal Native App**: Build a 96-screen, production-grade Flutter application segmented into four dedicated portals governed by secure role-based routing.
-- **Multimodal AI Veterinary Intelligence**: Deploy a high-availability Google Gemini 3.x model cascade (`gemini-3.7-flash`, `gemini-3.1-flash-lite`, `gemini-3.8-flash`) executed via Deno Edge Functions with sub-second response times, dermatological computer vision, and prompt injection defense.
+- **Multimodal AI Veterinary Intelligence**: Deploy a resilient Google Gemini model cascade (`gemini-3.1-flash-lite`, `gemini-3.8-flash`, `gemini-2.5-flash`, `gemini-2.0-flash`) executed via Deno Edge Functions with sub-second response times, dermatological computer vision, and prompt injection defense.
 - **Zero-App Emergency Recovery Web Portal**: Develop a standalone React 19 Single Page Application enabling instant web-based dossier access upon scanning lost pet collar tags.
-- **IoT Smart Collar Simulation & OpenStreetMap HUD**: Engineer an ESP32-compatible telemetry protocol featuring live GPS tracking, 50m–1,000m geofencing, and an authoritative Single Prototype Tag Simulator (`TAG-PROTOTYPE-001`).
+- **IoT Smart Collar Specification & Simulator**: Engineer the Phase 2 frozen hardware specification (Seeed Studio XIAO ESP32-C6, ADIY EC200U LTE Cat 1/GNSS, LIS2DU12 accelerometer, MAX17048 fuel gauge, 1S Li-Po protection, active-LOW SOS, NPN buzzer) alongside the Phase 1 authoritative Prototype Tag Simulator (`TAG-PROTOTYPE-001`) and OpenStreetMap HUD.
 - **Verifiable Clinical EMR & Digital Prescriptions**: Implement veterinary consultation workflows adhering to the clinical SOAP standard with automated verifiable PDF generation.
 - **Inclusive Accessibility**: Provide a bilingual voice scribe supporting Indian English (`en_IN`) and Malayalam (`ml_IN`), alongside interactive 3D mascot companions.
 
@@ -140,10 +140,10 @@ The primary objectives of the PetConnect AI project are:
 Traditional veterinary practice management software (PMS) like IDEXX Cornerstone and Covetrus operates on legacy on-premise architectures with steep licensing fees and zero mobile interoperability. Research by Smith et al. (2023) demonstrated that cloud-native, mobile-first EMRs reduce diagnostic documentation time by 42% and drastically improve vaccination compliance through automated push notifications. PetConnect AI adopts these findings by deploying cloud-native PostgreSQL backed by Supabase Realtime.
 
 ### 2.2 IoT and GNSS-Based Animal Tracking
-Commercial pet trackers (e.g., Whistle, Tractive) utilize cellular LTE modems that demand costly monthly subscriptions and exhibit severe battery drain. Recent advancements in low-power microcontrollers (ESP32-C3) combining Bluetooth Low Energy (BLE 5.3) for local proximity and WiFi/LTE-M bursts for remote uplinks demonstrate an optimal trade-off between battery longevity and location accuracy. PetConnect AI’s Smart Collar Architecture mirrors this dual-radio paradigm.
+Commercial pet trackers (e.g., Whistle, Tractive) utilize cellular LTE modems that demand costly monthly subscriptions and exhibit severe battery drain. Recent advancements in low-power microcontrollers (Seeed Studio XIAO ESP32-C6) paired with integrated cellular/GNSS modules (Quectel EC200U LTE Cat 1) demonstrate an optimal balance between low sleep currents and real-time wide-area tracking without relying on smartphone Bluetooth tethering. PetConnect AI’s Phase 2 collar architecture is engineered around this unified cellular/GNSS paradigm.
 
 ### 2.3 Multimodal AI & Clinical Triage Systems
-The emergence of frontier Multimodal Large Language Models (Gemini 1.5/2.0/3.x) has revolutionized clinical triage. Studies by Rajpurkar et al. (2022) illustrate that combining textual symptom histories with high-resolution visual inspection achieves diagnostic agreement rates exceeding 88% with licensed practitioners for dermatological conditions. PetConnect AI grounds its AI Symptom Scanner in WSAVA clinical nutrition and dermatology standards using Gemini 3.7 Flash.
+The emergence of frontier Multimodal Large Language Models (Gemini 2.x/3.x) has revolutionized clinical triage. Studies by Rajpurkar et al. (2022) illustrate that combining textual symptom histories with high-resolution visual inspection achieves diagnostic agreement rates exceeding 88% with licensed practitioners for dermatological conditions. PetConnect AI grounds its AI Symptom Scanner in WSAVA clinical nutrition and dermatology standards using the Gemini cascade.
 
 ### 2.4 Mobile Clean Architecture & Declarative State Management
 Uncle Bob Martin's Clean Architecture provides strict boundaries between enterprise business rules and volatile UI frameworks. Research in cross-platform mobile engineering (Kumar & Nehra, 2024) indicates that combining Clean Architecture with compile-time declarative state management (Flutter Riverpod) decreases regression rates by 65% across multi-persona enterprise platforms.
@@ -195,11 +195,13 @@ Uncle Bob Martin's Clean Architecture provides strict boundaries between enterpr
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                      EXTERNAL AI & IOT SPECIFICATIONS                           │
 ├───────────────────────────────────────────────┬─────────────────────────────────┤
-│          Google Gemini 3.x AI Engine          │   IoT Smart Collar Prototype    │
-│  - gemini-3.7-flash (Multimodal Clinical)     │  - ESP32 BLE 5.3 Provisioning   │
-│  - gemini-3.1-flash-lite (Sub-Second Latency) │  - WiFi / HTTPS Telemetry Push  │
-│  - gemini-3.8-flash (High-Throughput)         │  - TAG-PROTOTYPE-001 Simulator  │
-│  - gemini-3.6-flash (Rapid Triage Backup)     │  - Remote Buzzer / LED Strobe   │
+│            Google Gemini AI Engine            │ IoT Smart Collar (Phase 2 Spec) │
+│  - gemini-3.1-flash-lite (Ultra-Low Latency)  │  - Seeed Studio XIAO ESP32-C6   │
+│  - gemini-3.8-flash (High-Throughput Triage)  │  - ADIY EC200U GNSS & LTE Cat 1 │
+│  - gemini-2.5-flash / gemini-2.0-flash Backup │  - LIS2DU12 3-Axis Accel (I²C)  │
+│  - Client Circuit Breaker (20s Timeouts)      │  - MAX17048 I²C Fuel Gauge      │
+│  - Zero Client Exposure (Serverless Deno)     │  - Active-LOW SOS & NPN Buzzer  │
+│  - Sub-second Multimodal Diagnostics          │  - TAG-PROTOTYPE-001 Simulator  │
 └───────────────────────────────────────────────┴─────────────────────────────────┘
 ```
 
@@ -313,8 +315,10 @@ static bool _isModelAvailable(String model) {
 ```
 
 ### 4.3 IoT Smart Collar Telemetry & Prototype Simulator (`TAG-PROTOTYPE-001`)
-- **Prototype Hardware**: ESP32 microcontroller with GNSS receiver and BLE 5.3 GATT service.
-- **Single Prototype Simulator**: To enable live demonstrations without requiring physical hardware, `TAG-PROTOTYPE-001` serves as the authoritative digital test medal.
+- **Phase Separation**:
+  - **Phase 1 (Software Platform)**: Production OpenStreetMap HUD, radial geofencing (50m–1,000m), real-time Supabase telemetry ingestion, and the authoritative `TAG-PROTOTYPE-001` test simulator.
+  - **Phase 2 (Physical Hardware Spec)**: Frozen Bill of Materials targeting the **Seeed Studio XIAO ESP32-C6**, **ADIY EC200U GNSS/LTE Cat 1 cellular board**, **LIS2DU12 3-axis accelerometer**, **MAX17048 I²C fuel gauge**, **1S Li-Po protection board (5A class)**, **active-LOW SOS button**, and **NPN-driven piezo buzzer**.
+- **Single Prototype Simulator**: To enable live academic demonstrations without requiring physical hardware in the room, `TAG-PROTOTYPE-001` serves as the authoritative digital test medal. Simulated readings in software are never presented as physical hardware data.
 - **Web QR Simulator Modal (`QrSimulatorModal.tsx`)**: Renders a scannable QR code matrix on the web portal, allowing phone cameras or desktop testers to instantly transition into the live `/emergency/TAG-PROTOTYPE-001` dossier.
 
 ### 4.4 Live OpenStreetMap HUD & Geofencing Pipeline
