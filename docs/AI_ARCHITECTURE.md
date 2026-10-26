@@ -1,338 +1,214 @@
 # AI Architecture
 
-## Overview
+## 1. Overview
 
-PetConnect AI uses Google Gemini API combined with Retrieval-Augmented Generation (RAG) to provide intelligent, context-aware assistance for pet care. All AI inference runs server-side through Supabase Edge Functions to maintain security and protect API credentials.
+PetConnect AI leverages the **Google Gemini 3.x API suite** combined with **Retrieval-Augmented Generation (RAG)**, serverless **Supabase Edge Functions**, and a high-resilience **client-side circuit breaker** to deliver real-time, context-aware veterinary intelligence and companion care.
 
-## Core Pipeline
+All privileged AI inference runs server-side through Supabase Edge Functions to ensure absolute credential isolation, SSRF prevention, prompt injection mitigation, and sub-second response latency.
+
+---
+
+## 2. Core End-to-End Pipeline
 
 ```
-User Query
-    ↓
-Extract Intent & Context
-    ↓
-Generate Embedding (local)
-    ↓
-pgvector Similarity Search (Supabase)
-    ↓
-Retrieve Relevant Context (pet health records, knowledge base)
-    ↓
-Augment Prompt with Retrieved Data
-    ↓
-Edge Function → Gemini API Request
-    ↓
-Stream Response to Client
-    ↓
-Display in UI (gradient-border AI cards)
+┌─────────────────────────────────────────────────────────────┐
+│                 Flutter Client (Mobile App)                 │
+│  - User Query / Camera Image / Voice Input [EN | ML]        │
+│  - Persistent HttpClient Connection Pooling (4s timeout)    │
+│  - Client-Side Model Circuit Breaker & Health Blacklist     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                HTTPS POST (Signed JWT / Anon Key)
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│             Supabase Edge Functions (Deno Runtime)          │
+│  1. Strict CORS Whitelist (*.vercel.app, localhost)         │
+│  2. Input Bounds & Null-Byte Sanitization                   │
+│  3. SSRF-Safe Image Validator (Blocks RFC1918 / Metadata)   │
+│  4. Dynamic Pet Profile & Health Context RAG Injection      │
+│  5. Clinical System Prompt with Prompt-Injection Guardrails │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                 Sub-Second Cascaded REST API
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Google Gemini 3.x Model Cascade                │
+│  Primary:    gemini-3.7-flash (Multimodal Veterinary Brain) │
+│  Fallback 1: gemini-3.1-flash-lite (Sub-Second Latency)     │
+│  Fallback 2: gemini-3.8-flash (High-Throughput Reasoning)   │
+│  Fallback 3: gemini-3.6-flash (Rapid Triage Conversational) │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                 Structured JSON / Clean Markdown
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Flutter Presentation                     │
+│  - Gradient-Border AI Cards (Design System Authority)       │
+│  - Interactive Emote Visor Companions (4 Avatars)           │
+│  - Executable In-App Action Buttons (Book Vet, Lost Mode)   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Embeddings Strategy
+---
 
-### Embedding Sources
-PetConnect generates and stores embeddings for:
-- **Pet Health Records**: Vaccination history, medical diagnoses, treatment plans, vet notes
-- **Knowledge Base**: Curated pet care articles, breed information, common health conditions
-- **Community Content**: High-quality Q&A threads, expert advice, rescue protocols
-- **User Context**: Pet profiles, preferences, historical interactions
+## 3. Multi-Model Cascade & Resilience Strategy
 
-### Storage Schema
-```sql
-CREATE TABLE embeddings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  content TEXT NOT NULL,
-  embedding VECTOR(768),  -- Gemini embedding dimension
-  source_type TEXT NOT NULL,  -- 'health_record', 'knowledge_base', 'community'
-  source_id UUID NOT NULL,
-  metadata JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+To guarantee continuous availability and avoid vendor outages or quota exhaustion, PetConnect AI implements a multi-model cascade across both serverless Edge Functions and the mobile client datasource:
 
-CREATE INDEX ON embeddings USING ivfflat (embedding vector_cosine_ops);
-```
+| Model | Role | Characteristics |
+| :--- | :--- | :--- |
+| **`gemini-3.7-flash`** | **Primary Engine** | Flagship clinical reasoning, dermatological visual inspection, complex pharmacological calculations. |
+| **`gemini-3.1-flash-lite`** | **Speed Fallback** | Instantaneous sub-second conversational fallback when primary encounters rate-limits or cold-starts. |
+| **`gemini-3.8-flash`** | **High-Throughput** | Ultra-high throughput reasoning engine for complex health report generation and multi-pet trend synthesis. |
+| **`gemini-3.6-flash`** | **Rapid Triage** | Lightweight, responsive conversational backup. |
 
-### Embedding Generation
-Embeddings are generated server-side when:
-- New health records are created or updated
-- Knowledge base articles are published
-- Community content is marked as high-quality
-
-Edge Function handles batch embedding generation:
-```typescript
-// Supabase Edge Function: generate-embeddings
-const response = await fetch('https://generativelanguage.googleapis.com/v1/models/embedding-001:embedContent', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-goog-api-key': Deno.env.get('GEMINI_API_KEY')
-  },
-  body: JSON.stringify({ content: { parts: [{ text: content }] } })
-});
-```
-
-## Retrieval Process
-
-When a user submits a query:
-
-1. **Query Embedding**: Convert user query to embedding vector
-2. **Similarity Search**: Use pgvector to find top-k relevant contexts
-```sql
-SELECT content, metadata, 1 - (embedding <=> query_embedding) AS similarity
-FROM embeddings
-WHERE source_type = ANY($1)
-ORDER BY embedding <=> query_embedding
-LIMIT 5;
-```
-3. **Context Ranking**: Score results by relevance, recency, and source authority
-4. **Prompt Augmentation**: Insert retrieved context into Gemini prompt
-
-## Server-Side Inference
-
-**CRITICAL**: Gemini API keys are NEVER exposed to the Flutter app. All AI requests flow through Supabase Edge Functions.
-
-### Edge Function Architecture
-```
-petconnect_ai/
-└── supabase/
-    └── functions/
-        ├── ai-chat/
-        │   └── index.ts          # General AI assistant
-        ├── ai-health-analysis/
-        │   └── index.ts          # Analyze symptoms/photos
-        ├── ai-health-report/
-        │   └── index.ts          # Generate health reports
-        ├── ai-emergency/
-        │   └── index.ts          # Emergency triage
-        └── ai-recommendations/
-            └── index.ts          # Personalized insights
-```
-
-### Example Edge Function
-```typescript
-// supabase/functions/ai-chat/index.ts
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-serve(async (req) => {
-  const { query, petId, conversationHistory } = await req.json();
-  
-  // 1. Retrieve context via RAG
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
-  
-  const queryEmbedding = await generateEmbedding(query);
-  const { data: contexts } = await supabase.rpc('match_embeddings', {
-    query_embedding: queryEmbedding,
-    match_count: 5,
-    filter: { pet_id: petId }
-  });
-  
-  // 2. Build augmented prompt
-  const prompt = buildPrompt(query, contexts, conversationHistory);
-  
-  // 3. Call Gemini with streaming
-  const geminiResponse = await fetch(
-    'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:streamGenerateContent',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': Deno.env.get('GEMINI_API_KEY')!
-      },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        safetySettings: SAFETY_CONFIG,
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
-      })
-    }
-  );
-  
-  // 4. Stream response back to client
-  return new Response(geminiResponse.body, {
-    headers: { 'Content-Type': 'text/event-stream' }
-  });
-});
-```
-
-## App-Side Service Interface
-
-The Flutter app communicates only with Edge Functions, never directly with Gemini.
-
-### ai_service.dart Interface Sketch
+### Client-Side Circuit Breaker (`AiRemoteDataSourceImpl`)
+The client tracks model availability in-memory with automatic backoff:
 ```dart
-abstract class AIService {
-  /// Stream AI assistant responses
-  Stream<String> chatStream({
-    required String petId,
-    required String message,
-    List<ChatMessage>? history,
-  });
-  
-  /// Analyze health symptoms/photos
-  Future<HealthAnalysisResult> analyzeHealth({
-    required String petId,
-    required String symptoms,
-    List<String>? photoUrls,
-  });
-  
-  /// Generate comprehensive health report
-  Future<HealthReport> generateHealthReport({
-    required String petId,
-    required DateTimeRange period,
-  });
-  
-  /// Get personalized recommendations
-  Future<List<Recommendation>> getRecommendations({
-    required String petId,
-    required RecommendationType type,
-  });
-  
-  /// Emergency triage assistant
-  Future<EmergencyGuidance> getEmergencyGuidance({
-    required String petId,
-    required String situation,
-  });
-}
+static final Map<String, DateTime> _circuitBreakerBlacklist = {};
 
-class SupabaseAIService implements AIService {
-  final SupabaseClient _client;
-  
-  @override
-  Stream<String> chatStream({
-    required String petId,
-    required String message,
-    List<ChatMessage>? history,
-  }) async* {
-    final response = await _client.functions.invoke(
-      'ai-chat',
-      body: {
-        'query': message,
-        'petId': petId,
-        'conversationHistory': history?.map((m) => m.toJson()).toList(),
-      },
-    );
-    
-    // Parse SSE stream
-    yield* response.data.transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .where((line) => line.startsWith('data: '))
-        .map((line) => line.substring(6))
-        .map((json) => jsonDecode(json)['text'] as String);
+static bool _isModelAvailable(String model) {
+  final expiry = _circuitBreakerBlacklist[model];
+  if (expiry == null) return true;
+  if (DateTime.now().isAfter(expiry)) {
+    _circuitBreakerBlacklist.remove(model);
+    return true;
   }
-  
-  // ... other implementations
+  return false;
+}
+
+static void _reportModelFailure(String model, {int durationMinutes = 5}) {
+  _circuitBreakerBlacklist[model] = DateTime.now().add(Duration(minutes: durationMinutes));
 }
 ```
 
-## Streaming Responses
+---
 
-AI features use Server-Sent Events (SSE) for real-time streaming:
-- Edge Function receives Gemini streaming response
-- Parses chunks and forwards as SSE to client
-- Flutter app displays tokens incrementally for responsive UX
-- Gradient-border cards visually distinguish AI content
+## 4. Supabase Edge Functions Suite
 
-## Safety & Guardrails
+The production architecture deploys three dedicated, specialized Edge Functions located in `supabase/functions/`:
 
-### Content Safety
+### 4.1 `ai-assistant` (Universal Veterinary & Open-Domain Assistant)
+- **Path**: `supabase/functions/ai-assistant/index.ts`
+- **Responsibilities**:
+  - Contextual dialogue supporting both general open-domain reasoning and clinical veterinary triage (WSAVA nutrition guidelines, toxicity screening, behavioral training).
+  - Auto-fetches active pet profile from PostgreSQL (`name`, `species`, `breed`, `weight_kg`, `health_status`, `microchip_id`) and injects into prompt without user re-entry.
+  - Bounded conversational history window (last 15 turns) to prevent token starvation.
+  - Full bilingual natural language generation supporting **Malayalam (`ml_IN`)** and English.
+  - Zero-slop direct answers (avoids robotic meta-commentary).
+
+### 4.2 `ai-symptom-scan` (Multimodal Computer Vision Scanner)
+- **Path**: `supabase/functions/ai-symptom-scan/index.ts`
+- **Responsibilities**:
+  - Visual symptom inspection for dermatological lesions, coat texture, facial fold hygiene, wound urgency, and nutrition labels.
+  - Supports direct Base64 encoded images (up to ~8MB payload) and remote image URLs.
+  - Enforces strict JSON response schema:
+    ```json
+    {
+      "analysis_summary": "Clinical observation of erythema and localized alopecia.",
+      "urgency_level": "ROUTINE" | "URGENT" | "EMERGENCY",
+      "recommendations": ["Clean with chlorhexidine wipe", "Schedule physical vet consult"]
+    }
+    ```
+
+### 4.3 `ai-report-generator` (Automated Clinical Dossier)
+- **Path**: `supabase/functions/ai-report-generator/index.ts`
+- **Responsibilities**:
+  - Synthesizes historical health entries, vaccination records, growth curves, and activity trends.
+  - Computes deterministic `overall_health_score` (0–100).
+  - Generates itemized preventative care milestones and dietary recommendations for digital export.
+
+---
+
+## 5. Security & Defensive Guardrails
+
+### 5.1 SSRF (Server-Side Request Forgery) Prevention
+When image URLs are provided to `ai-symptom-scan`, they are validated against private network and loopback ranges:
 ```typescript
-const SAFETY_CONFIG = [
-  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-];
+function isSafeUrl(urlString: string): boolean {
+  try {
+    const parsed = new URL(urlString);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase();
+    if (
+      host === "localhost" ||
+      host.startsWith("127.") ||
+      host.startsWith("10.") ||
+      host.startsWith("192.168.") ||
+      host.startsWith("172.16.") ||
+      host.startsWith("169.254.") || // AWS/GCP Instance Metadata
+      host.endsWith(".local") ||
+      host.endsWith(".internal")
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 ```
 
-### Medical Disclaimer
-All AI health features include prominent disclaimers:
-> "AI-generated insights are for informational purposes only and do not replace professional veterinary advice. Always consult a licensed veterinarian for medical decisions."
+### 5.2 Strict CORS Origin Whitelist
+Rejects unauthorized external web origins while allowing localhost development, test environments, and the official Vercel web portal:
+```typescript
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") ?? "";
+  const isAllowed =
+    !origin ||
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:") ||
+    origin.endsWith(".vercel.app") ||
+    origin.includes("petconnect");
 
-### Rate Limiting
-Implemented at Edge Function level using Supabase RLS:
-- 100 requests/hour per user for chat
-- 20 requests/hour for health analysis
-- 5 requests/day for full health reports
-
-## Cost Controls
-
-### Token Management
-- **Max Input Tokens**: 2048 per request
-- **Max Output Tokens**: 1024 per response
-- Conversation history truncated to last 10 messages
-- Long documents summarized before embedding
-
-### Caching Strategy
-```sql
-CREATE TABLE ai_cache (
-  query_hash TEXT PRIMARY KEY,
-  response JSONB NOT NULL,
-  cached_at TIMESTAMPTZ DEFAULT NOW(),
-  hit_count INT DEFAULT 1
-);
-
-CREATE INDEX ON ai_cache (cached_at) WHERE hit_count > 3;
-```
-Cache common queries (e.g., "How often should I feed my puppy?") to reduce API calls.
-
-### Budget Monitoring
-Track usage in Supabase:
-```sql
-CREATE TABLE ai_usage_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
-  function_name TEXT NOT NULL,
-  input_tokens INT,
-  output_tokens INT,
-  cost_usd DECIMAL(10, 6),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? (origin || "*") : "null",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Max-Age": "86400",
+  };
+}
 ```
 
-## AI Feature Mapping
+### 5.3 Prompt Injection Defense & Input Bounds
+- **Character truncation**: Prompts bounded to 4,000 characters; symptoms bounded to 3,000 characters.
+- **Null-byte stripping**: Removes `\0` characters.
+- **System directive**: Explicit instruction treating user text strictly as clinical observational data, deflecting roleplay, jailbreak, and config extraction attempts.
 
-| UI Feature | Edge Function | Purpose |
-|------------|---------------|---------|
-| AI Assistant Chat | `ai-chat` | General Q&A, advice |
-| AI Health Analysis | `ai-health-analysis` | Symptom analysis, photo recognition |
-| AI Health Reports | `ai-health-report` | Comprehensive health summaries |
-| AI Insights/Recommendations | `ai-recommendations` | Personalized tips |
-| AI Emergency Assistant | `ai-emergency` | Triage & first aid |
-| AI Health Trends | `ai-chat` | Analyze historical health data |
-| AI Hub | Portal UI | Aggregates all AI features |
+---
 
-## Privacy & Data Security
+## 6. Client Features & Interactive Experience
 
-### Data Handling
-- **PII Redaction**: Strip owner PII before sending to Gemini
-- **Pet Data Anonymization**: Use internal IDs, not names, in logs
-- **Retention Policy**: AI conversation logs deleted after 90 days
-- **User Control**: Users can opt out of AI features entirely
+### 6.1 Animated 3D Mascot Companions
+The AI Hub features 4 selectable interactive companion avatars with spring physics, floating idle animations, and emotional visor states:
+- 🤖 **Classic Aero Bot**: Aerodynamic companion with glowing neon accents.
+- 🐱 **Cyber Neko**: Agile robotic feline with reactive ear motions.
+- 🐶 **Cyber Pup**: Canine companion with alert poses.
+- 🌌 **Astral Bot**: Holographic cosmic guardian.
+- **Emote Visor**: Real-time reactive expressions (`^ ‿ ^`, `★ ‿ ★`, `♥ ‿ ♥`, `• ‿ •`, `o ‿ o`) mapped to diagnostic urgency and conversation sentiment.
 
-### RLS Policies
-```sql
--- Only pet owner can access AI features for their pets
-CREATE POLICY "ai_feature_access" ON ai_usage_log
-  FOR ALL USING (
-    user_id = auth.uid() OR
-    EXISTS (
-      SELECT 1 FROM pets
-      WHERE pets.id = (ai_usage_log.metadata->>'petId')::UUID
-      AND pets.owner_id = auth.uid()
-    )
-  );
-```
+### 6.2 Executable In-App Action Protocol
+The assistant formats specific clinical triggers as actionable UI buttons:
+- **`ACTION:BOOK_VET`**: Opens Clinic appointment sheet pre-filled with triage urgency.
+- **`ACTION:LOST_MODE`**: Instantly engages Smart Collar Lost Mode and emergency radar broadcast.
+- **`ACTION:COLLAR_BUZZER`**: Sends remote sound alert to ESP32 collar.
+- **`ACTION:MED_REMINDER`**: Adds medication alert to Health Passport calendar.
 
-### Compliance
-- **GDPR**: Right to deletion includes all AI-generated content
-- **Data Localization**: Edge Functions deployed in user's region when possible
-- **Audit Trail**: All AI interactions logged for abuse detection
+### 6.3 Bilingual Voice Scribe `[EN | ML]`
+Built with `speech_to_text`:
+- Speech recognition in **Malayalam (`ml_IN`)** and **Indian English (`en_IN`)**.
+- Real-time soundwave amplitude visualizer with tactile haptic feedback.
 
-## Future Enhancements
+---
 
-- **Multi-modal Input**: Voice queries, video analysis
-- **Veterinarian AI Tools**: Draft medical notes, suggest diagnoses
-- **Predictive Health Alerts**: Proactive notifications based on trends
-- **Fine-tuned Models**: Custom Gemini fine-tuning on PetConnect data
-- **Federated Learning**: Privacy-preserving model improvements
+## 7. Design System Authority for AI Content
+
+As mandated by design authority guidelines:
+1. **Gradient-Border Cards (`AiGradientBorderCard`)**: All AI responses render in cards with custom gradient stroke borders.
+2. **Confidence Badges (`AiConfidenceBadge`)**: Visual confidence metric (`Optimal Confidence`, `Verified Clinical Model`).
+3. **Attribution Chips (`AiSourceChip`)**: Identifies data grounding sources (e.g., `Gemini 3.7 Flash`, `Registered Pet Passport`, `WSAVA Clinical Standard`).
+4. **Mandatory Disclaimer**:
+   > *"AI-generated insights are for informational purposes only and do not replace professional veterinary advice. Always consult a licensed veterinarian for medical decisions."*

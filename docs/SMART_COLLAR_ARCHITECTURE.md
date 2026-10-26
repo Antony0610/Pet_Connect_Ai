@@ -1,491 +1,121 @@
-# Smart Collar Architecture
+# Smart Collar & Telemetry Architecture
 
-## Overview
+## 1. Overview & R&D Prototype Framing
 
-PetConnect integrates with ESP32-based smart collars to provide real-time GPS tracking, activity monitoring, geofencing, and emergency features. The system uses WiFi as the primary data path with BLE for initial setup and pairing.
+PetConnect integrates IoT telemetry, GPS tracking, geofencing, and emergency recovery mechanisms through an **ESP32-based Smart Collar Architecture**.
 
-## Connectivity Model
+> [!NOTE]
+> **R&D Prototype Status:** The physical collar hardware is architected as an active **Research & Development (R&D) prototype specification**. The platform provides full end-to-end hardware simulation, live mobile HUD tracking, and an interactive **Single Prototype Tag Simulator (`TAG-PROTOTYPE-001`)** across both mobile and web surfaces.
 
-### WiFi (Primary Data Path)
-- **Purpose**: Continuous telemetry streaming to cloud
-- **Protocol**: HTTPS to Supabase Edge Functions
-- **Frequency**: Configurable (default: 30-second intervals for GPS, 5-minute intervals for activity)
-- **Advantages**: Higher bandwidth, longer range, lower collar battery impact than constant BLE
+---
 
-### Bluetooth Low Energy (Setup & Pairing)
-- **Purpose**: Initial provisioning, WiFi credential transfer, firmware updates
-- **Protocol**: BLE GATT services
-- **Flow**: App discovers collar → BLE pairing → Transfer WiFi credentials → Collar switches to WiFi
-- **Fallback**: Used when WiFi unavailable (e.g., pet indoors without network)
+## 2. System Architecture & Data Flow
 
-### Connectivity Diagram
 ```
-┌─────────────────┐
-│   ESP32 Collar  │
-│   - GPS Module  │
-│   - WiFi/BLE    │
-│   - Accel/Gyro  │
-└────────┬────────┘
-         │
-         ├─[BLE]──────────────┐
-         │                    │
-         ├─[WiFi]─────────────┼─────→ Internet
-         │                    │
-         ↓                    ↓
-    ┌────────────┐      ┌──────────┐
-    │ Flutter App│      │ Supabase │
-    │   (Direct  │      │   Edge   │
-    │   Pairing) │      │ Functions│
-    └────────────┘      └─────┬────┘
-                              │
-                              ↓
-                        ┌──────────────┐
-                        │   Postgres   │
-                        │  + Realtime  │
-                        └──────────────┘
-                              │
-                              ↓
-                        ┌──────────────┐
-                        │ Flutter App  │
-                        │ (Realtime    │
-                        │  Updates)    │
-                        └──────────────┘
+┌────────────────────────────────────────────────────────┐
+│              ESP32 Smart Collar (Prototype)            │
+│  - ESP32-WROOM-32 / ESP32-C3 Microcontroller           │
+│  - GNSS/GPS Receiver (NEO-6M / u-blox SAM-M8Q)         │
+│  - BLE 5.3 (GATT Server for Provisioning & Pairing)    │
+│  - 2.4 GHz 802.11b/g/n WiFi / LTE-M Telemetry Uplink   │
+│  - Buzzer & Strobe LED Actuators                       │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+        BLE 5.3 Handshake           HTTPS Telemetry
+      (Setup & Safe Zones)        (30s GPS / 5m Health)
+             │                           │
+             ▼                           ▼
+┌─────────────────────────┐  ┌───────────────────────────┐
+│  Flutter Mobile App     │  │   Supabase Cloud Platform │
+│  - Live OSM Map Tracking│  │  - PostgreSQL collar_logs │
+│  - Safe Zone Geofencing │  │  - Realtime Telemetry Hub │
+│  - Remote Buzzer/Strobe │  │  - Emergency Broadcast SOS│
+└────────────┬────────────┘  └─────────────┬─────────────┘
+             │                             │
+             └──────────────┬──────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│           Emergency Recovery & Public Web Portal       │
+│  - Physical QR Code Collar Medal / Tag                 │
+│  - Single Prototype Tag Simulator (TAG-PROTOTYPE-001)  │
+│  - Zero-App Web Dossier (/emergency, /missing)         │
+└────────────────────────────────────────────────────────┘
 ```
 
-## Pairing Flow
+---
 
-### Initial Setup
-1. **Discovery**: User taps "Add Smart Collar" in app
-2. **BLE Scan**: App scans for nearby collars advertising `PETCONNECT_COLLAR` service
-3. **Selection**: User selects collar from list (matched by serial number)
-4. **Pairing**: BLE pairing initiated with PIN shown on packaging
-5. **Provisioning**: App sends WiFi SSID/password + device auth token via BLE
-6. **Activation**: Collar connects to WiFi, registers with backend, switches to WiFi mode
-7. **Confirmation**: App receives confirmation via Supabase Realtime
+## 3. Connectivity Protocols
 
-### BLE GATT Services
-```
-Service UUID: 0000FFF0-0000-1000-8000-00805F9B34FB
+### 3.1 Bluetooth Low Energy (BLE 5.3) — Pairing & Local Control
+- **Purpose**: Initial collar commissioning, WiFi credential transfer, safe zone local cache sync, and direct proximity buzzing.
+- **Protocol**: Custom BLE GATT Service.
+- **Advertised Service UUID**: `0000FFF0-0000-1000-8000-00805F9B34FB`
 
-Characteristics:
-- WiFi SSID (Write): 0000FFF1-...
-- WiFi Password (Write): 0000FFF2-...
-- Device Token (Write): 0000FFF3-...
-- Status (Read/Notify): 0000FFF4-...
-- Battery Level (Read): 0000FFF5-...
-```
+| Characteristic | UUID | Type | Description |
+| :--- | :--- | :--- | :--- |
+| **WiFi SSID** | `0000FFF1-...` | Write | Target 2.4 GHz access point SSID |
+| **WiFi Password** | `0000FFF2-...` | Write | Encrypted network passphrase |
+| **Device Token** | `0000FFF3-...` | Write | Signed collar auth bearer token |
+| **Telemetry Notify** | `0000FFF4-...` | Read/Notify | Real-time sensor stream (vitals, GPS) |
+| **Actuator Command** | `0000FFF5-...` | Write | `0x01` (Buzzer ON), `0x02` (LED Strobe) |
 
-## Data Model
+### 3.2 WiFi / Cellular Uplink — Remote Cloud Telemetry
+- **Purpose**: Continuous telemetry streaming to cloud backend.
+- **Protocol**: HTTPS REST payloads pushed to Supabase Edge Functions / PostgreSQL.
+- **Intervals**:
+  - Standard Mode: GPS every 30 seconds, vitals every 5 minutes.
+  - Emergency Lost Mode: GPS every 5 seconds, high-intensity beaconing.
 
-### Telemetry Schema
-```dart
-class CollarTelemetry {
-  final String collarId;
-  final DateTime timestamp;
-  final GpsData gps;
-  final ActivityData activity;
-  final BatteryData battery;
-  final DeviceHealth deviceHealth;
-  
-  CollarTelemetry({
-    required this.collarId,
-    required this.timestamp,
-    required this.gps,
-    required this.activity,
-    required this.battery,
-    required this.deviceHealth,
-  });
-}
+---
 
-class GpsData {
-  final double latitude;
-  final double longitude;
-  final double altitude;
-  final double accuracy;  // meters
-  final double heading;   // degrees
-  final double speed;     // m/s
-}
+## 4. Single Prototype Tag Simulator (`TAG-PROTOTYPE-001`)
 
-class ActivityData {
-  final int steps;
-  final double distance;  // meters
-  final int activeMinutes;
-  final int restMinutes;
-  final ActivityLevel level;  // RESTING, WALKING, RUNNING, PLAYING
-}
+To enable seamless testing and live demonstrations without physical hardware on hand, the platform specifies a single authoritative prototype tag:
 
-class BatteryData {
-  final int percentage;
-  final bool isCharging;
-  final int estimatedHoursRemaining;
-}
+- **Tag Identifier**: `TAG-PROTOTYPE-001`
+- **Simulated Pet Profile**: Fully hydrated companion record with active vaccination status, emergency owner contacts, and known allergies.
+- **Verification Flow**:
+  1. Finder or tester taps the **Simulate QR Scan** button on the Web Portal or enters `TAG-PROTOTYPE-001`.
+  2. Resolves immediately to `/emergency/TAG-PROTOTYPE-001`.
+  3. Displays live medical emergency profile, immediate one-tap owner calling, WhatsApp sighting dispatch, and emergency veterinary history.
 
-class DeviceHealth {
-  final double temperature;  // Celsius
-  final int signalStrength;  // dBm
-  final String firmwareVersion;
-  final DateTime lastSync;
-}
-```
+### Web QR Simulator Component (`web_portal/src/components/QrSimulatorModal.tsx`)
+The React 19 web portal includes a dedicated modal that:
+- Prominently showcases the collar hardware as an **R&D prototype**.
+- Generates live scannable QR matrix for phone camera testing.
+- Offers instant click-to-simulate buttons that transition to emergency and vaccination verification views without requiring app installation.
 
-### Database Schema
-```sql
-CREATE TABLE collar_telemetry (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  collar_id UUID NOT NULL REFERENCES collars(id),
-  pet_id UUID NOT NULL REFERENCES pets(id),
-  timestamp TIMESTAMPTZ NOT NULL,
-  gps JSONB NOT NULL,
-  activity JSONB NOT NULL,
-  battery JSONB NOT NULL,
-  device_health JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+---
 
-CREATE INDEX ON collar_telemetry (collar_id, timestamp DESC);
-CREATE INDEX ON collar_telemetry USING GIST (
-  (gps->>'latitude')::FLOAT8,
-  (gps->>'longitude')::FLOAT8
-);
+## 5. Live Mobile HUD & OpenStreetMap Pipeline
 
--- Realtime publication
-ALTER PUBLICATION supabase_realtime ADD TABLE collar_telemetry;
-```
+The Pet Owner portal features a comprehensive tracking screen (`SmartCollarDashboardScreen`):
 
-## Data Transport
+### 5.1 OpenStreetMap & Flutter Map
+- **Map Renderer**: `flutter_map` leveraging OpenStreetMap vector tile layers (eliminates restrictive proprietary map key dependencies).
+- **Reverse Geocoding**: Integrated with OpenStreetMap's Nominatim service for real-time street, city, and neighborhood translation.
+- **Dynamic Trail Polylines**: Visualizes historical path over the past 24 hours with gradient trail decay.
 
-### Collar → Cloud (WiFi)
-ESP32 firmware sends HTTPS POST to Supabase Edge Function:
+### 5.2 Active Telemetry HUD
+Continuously monitors collar diagnostic sensors:
+- 🔋 **Battery Level**: Percentage, estimated time remaining, and power saving modes.
+- 📶 **Signal Quality**: BLE 5.3 RSSI indicator and LTE-M connection strength.
+- 🌡️ **Normothermic Temperature**: Real-time ambient and animal body temperature sensing (target: 38.6°C).
+- 🏃 **Activity Tracker**: Step count, rest duration, and vigorous exercise bursts.
 
-```typescript
-// supabase/functions/collar-ingest/index.ts
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+---
 
-serve(async (req) => {
-  // 1. Verify device auth token
-  const authToken = req.headers.get('X-Device-Token');
-  const { collarId } = await verifyDeviceToken(authToken);
-  
-  // 2. Parse telemetry payload
-  const telemetry = await req.json();
-  
-  // 3. Insert to Postgres (triggers Realtime broadcast)
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
-  
-  const { data, error } = await supabase
-    .from('collar_telemetry')
-    .insert({
-      collar_id: collarId,
-      pet_id: telemetry.petId,
-      timestamp: telemetry.timestamp,
-      gps: telemetry.gps,
-      activity: telemetry.activity,
-      battery: telemetry.battery,
-      device_health: telemetry.deviceHealth,
-    })
-    .select()
-    .single();
-  
-  // 4. Check geofence violations (async)
-  await checkGeofences(data);
-  
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { 'Content-Type': 'application/json' }
-  });
-});
-```
+## 6. Geofencing & Lost Pet Radar Protocol
 
-### Cloud → App (Realtime)
-Flutter app subscribes to collar_telemetry changes:
+### 6.1 Safe Zone Boundary Configuration
+- Configurable radius: **50m to 1,000m** around home or current location.
+- Boundary violation triggers immediate local push notification and high-priority collar alert.
 
-```dart
-class RealtimeCollarService {
-  final SupabaseClient _client;
-  
-  Stream<CollarTelemetry> watchCollar(String collarId) {
-    return _client
-        .from('collar_telemetry')
-        .stream(primaryKey: ['id'])
-        .eq('collar_id', collarId)
-        .map((records) => records.map(CollarTelemetry.fromJson).toList())
-        .expand((list) => list);
-  }
-}
-```
-
-## Geofence & Safe Zones
-
-### Zone Definition
-```dart
-class SafeZone {
-  final String id;
-  final String name;
-  final LatLng center;
-  final double radius;  // meters
-  final bool alertOnExit;
-  final bool alertOnEntry;
-  final List<String> notifyUsers;  // user IDs
-}
-```
-
-### Server-Side Evaluation
-Geofence checks happen in Edge Function to avoid client-side delays:
-
-```typescript
-async function checkGeofences(telemetry: CollarTelemetry) {
-  const { data: zones } = await supabase
-    .from('safe_zones')
-    .select('*')
-    .eq('pet_id', telemetry.pet_id)
-    .eq('active', true);
-  
-  for (const zone of zones) {
-    const distance = calculateDistance(
-      telemetry.gps.latitude,
-      telemetry.gps.longitude,
-      zone.center_lat,
-      zone.center_lng
-    );
-    
-    const isInside = distance <= zone.radius;
-    const wasInside = await checkPreviousState(telemetry.collar_id, zone.id);
-    
-    // Trigger alert on boundary crossing
-    if (zone.alert_on_exit && wasInside && !isInside) {
-      await sendGeofenceAlert('exit', telemetry, zone);
-    }
-    if (zone.alert_on_entry && !wasInside && isInside) {
-      await sendGeofenceAlert('entry', telemetry, zone);
-    }
-    
-    // Update state
-    await updateZoneState(telemetry.collar_id, zone.id, isInside);
-  }
-}
-```
-
-### Push Notifications
-On breach, n8n workflow triggers FCM push:
-- "⚠️ Max left the safe zone 'Backyard' at 2:45 PM"
-- Includes map snapshot and "Track Now" deep link
-
-## Lost Mode
-
-### Emergency Broadcast
-When owner activates Lost Mode:
-1. **Collar Settings Update**: Increased GPS frequency (every 10 seconds)
-2. **Community Alert**: Broadcast to nearby PetConnect users
-3. **Public Profile**: Temporary public page with contact info
-4. **Audible Alarm**: Collar emits sound if found (optional)
-
-### Community Sighting Flow
-```
-User A enables Lost Mode for "Max"
-    ↓
-Broadcast created in database
-    ↓
-Nearby users (within 10km) receive push notification
-    ↓
-User B spots Max, taps "Report Sighting"
-    ↓
-User B's location + photo sent to User A
-    ↓
-User A receives real-time notification with map
-```
-
-### Lost Mode Telemetry
-```sql
-CREATE TABLE lost_pet_broadcasts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  pet_id UUID NOT NULL REFERENCES pets(id),
-  activated_at TIMESTAMPTZ NOT NULL,
-  last_known_location GEOGRAPHY(POINT) NOT NULL,
-  contact_phone TEXT,
-  reward_amount DECIMAL(10, 2),
-  status TEXT DEFAULT 'active',  -- 'active', 'found', 'cancelled'
-  CONSTRAINT lost_pet_broadcasts_status_check CHECK (status IN ('active', 'found', 'cancelled'))
-);
-
-CREATE INDEX ON lost_pet_broadcasts USING GIST (last_known_location);
-```
-
-## Battery & Device Health
-
-### Battery Optimization
-- **Normal Mode**: GPS every 30s, WiFi sync every 5min → ~5 days battery
-- **Power Save Mode**: GPS every 5min, WiFi sync every 30min → ~14 days battery
-- **Lost Mode**: GPS every 10s, WiFi sync every 30s → ~12 hours battery
-
-### Low Battery Alerts
-```typescript
-if (telemetry.battery.percentage < 20 && !telemetry.battery.isCharging) {
-  await sendNotification(telemetry.pet.owner_id, {
-    title: 'Low Collar Battery',
-    body: `${telemetry.pet.name}'s collar battery is at ${telemetry.battery.percentage}%. Please charge soon.`,
-    data: { type: 'low_battery', collarId: telemetry.collar_id }
-  });
-}
-```
-
-### Health Monitoring
-Track collar issues:
-- **Temperature Anomalies**: Alert if >45°C (potential malfunction)
-- **GPS Signal Loss**: Alert if no fix for >30 minutes
-- **Offline Detection**: Alert if no data received for >2 hours
-- **Firmware Updates**: Notify users of available updates
-
-## Offline Buffering
-
-### Local Storage on ESP32
-When WiFi unavailable, collar buffers telemetry:
-```c
-#define MAX_BUFFER_SIZE 1000  // ~8 hours at 30s intervals
-
-struct TelemetryBuffer {
-  TelemetryRecord records[MAX_BUFFER_SIZE];
-  uint16_t write_index;
-  uint16_t read_index;
-  bool is_full;
-};
-```
-
-### Sync on Reconnect
-Upon WiFi reconnection:
-1. Collar uploads buffered records in batch (max 100 per request)
-2. Edge Function processes with `is_backfill=true` flag
-3. App UI shows "Syncing historical data..." during upload
-4. Gaps in timeline filled retrospectively
-
-## Security
-
-### Device Authentication
-Each collar has unique auth token generated during manufacturing:
-```sql
-CREATE TABLE collars (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  serial_number TEXT UNIQUE NOT NULL,
-  auth_token TEXT UNIQUE NOT NULL,  -- SHA-256 hashed
-  pet_id UUID REFERENCES pets(id),
-  owner_id UUID REFERENCES users(id),
-  registered_at TIMESTAMPTZ,
-  last_seen_at TIMESTAMPTZ
-);
-```
-
-### Secure Communication
-- **HTTPS Only**: All collar→cloud communication over TLS 1.3
-- **Token Rotation**: Auth tokens rotated every 90 days
-- **Rate Limiting**: Max 120 requests/hour per collar (prevents abuse)
-- **Replay Protection**: Timestamp validation (reject if >5 minutes old)
-
-### Firmware Security
-- **Signed Updates**: OTA updates verified with RSA-2048 signature
-- **Secure Boot**: ESP32 secure boot enabled to prevent firmware tampering
-- **Debug Disable**: JTAG disabled in production firmware
-
-## App-Side Service Interface
-
-### smart_collar_service.dart Sketch
-```dart
-abstract class SmartCollarService {
-  /// Scan for nearby collars via BLE
-  Stream<DiscoveredCollar> scanForCollars();
-  
-  /// Pair and provision a new collar
-  Future<Collar> pairCollar({
-    required String serialNumber,
-    required String wifiSsid,
-    required String wifiPassword,
-  });
-  
-  /// Watch real-time telemetry for a collar
-  Stream<CollarTelemetry> watchTelemetry(String collarId);
-  
-  /// Get historical telemetry
-  Future<List<CollarTelemetry>> getHistory({
-    required String collarId,
-    required DateTimeRange range,
-  });
-  
-  /// Manage safe zones
-  Future<SafeZone> createSafeZone({
-    required String petId,
-    required String name,
-    required LatLng center,
-    required double radius,
-  });
-  
-  /// Activate/deactivate lost mode
-  Future<void> setLostMode({
-    required String collarId,
-    required bool enabled,
-    String? contactPhone,
-    double? rewardAmount,
-  });
-  
-  /// Update collar settings
-  Future<void> updateSettings({
-    required String collarId,
-    required CollarSettings settings,
-  });
-  
-  /// Check firmware updates
-  Future<FirmwareUpdate?> checkForUpdates(String collarId);
-  
-  /// Initiate firmware update via BLE
-  Future<void> updateFirmware({
-    required String collarId,
-    required FirmwareUpdate update,
-  });
-}
-
-class SupabaseSmartCollarService implements SmartCollarService {
-  final SupabaseClient _client;
-  final FlutterBluePlus _bluetooth;
-  
-  @override
-  Stream<CollarTelemetry> watchTelemetry(String collarId) {
-    return _client
-        .from('collar_telemetry')
-        .stream(primaryKey: ['id'])
-        .eq('collar_id', collarId)
-        .order('timestamp', ascending: false)
-        .limit(1)
-        .map((records) => CollarTelemetry.fromJson(records.first));
-  }
-  
-  // ... other implementations
-}
-```
-
-## UI Integration
-
-### Live GPS Tracking Screen
-- **Map View**: Google Maps with pet location marker (updated every 30s via Realtime)
-- **Trail History**: Show last 24 hours of movement (polyline)
-- **Safe Zones**: Visualize geofences as colored circles
-- **Info Panel**: Current speed, heading, last update time
-
-### Geofence Alerts Screen
-- **Alert History**: List of all boundary crossings
-- **Map Visualization**: Tap alert to see location on map
-- **Notification Settings**: Configure which zones trigger alerts
-
-### Device Health Screen
-- **Battery Gauge**: Visual indicator with percentage
-- **Signal Strength**: WiFi/GPS signal quality
-- **Status Indicators**: Online/offline, charging, firmware version
-- **Settings**: Power mode, update frequency, lost mode toggle
-
-## Future Enhancements
-
-- **Multi-Pet Tracking**: Display multiple pets on single map
-- **Activity Analytics**: Compare pet activity to breed averages
-- **Health Correlations**: Link activity drops to health records
-- **Predictive Alerts**: "Max is usually more active at this time—check on him?"
-- **Voice Commands**: "Find Max" via smart speaker integration
-- **LoRa Backup**: Long-range fallback for areas without WiFi/cellular
+### 6.2 Emergency Lost Mode
+When the user taps **"Enable Lost Mode"**:
+1. **Collar Command**: Collar transitions to high-frequency GPS pinging (every 5 seconds) and activates low-power LED strobe for night visibility.
+2. **Community Radar Broadcast**: Pushes emergency lost pet notice to nearby registered volunteers, shelters, and pet owners within a 5km radius.
+3. **Public Dossier Activation**: Flips the pet's public emergency web page (`/missing/:id`) to `CRITICAL ALERT` status with live sighting submission form.

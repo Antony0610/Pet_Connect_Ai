@@ -1,52 +1,58 @@
-# 🚀 Free Vercel Deployment Guide for PetConnect AI Web Portal
+# 🚀 Vercel Deployment Guide for PetConnect AI Web Portal
 
-You do **NOT** need to buy any domain like `petconnect.ai`. You can deploy the web portal to **Vercel for 100% free** under `petconnect-ai.vercel.app` (or any free subdomain you choose) in under 2 minutes.
+You can deploy the PetConnect AI Web Portal to **Vercel for 100% free** under `petconnect-ai.vercel.app` (or any custom domain/subdomain) in under 2 minutes.
+
+The web portal is a modern, responsive Single Page Application (SPA) built with **React 19**, **Vite**, and **TypeScript**, using an editorial warm-monochrome design system and direct Supabase database bindings.
 
 ---
 
-## ⚡ Option A: Instant Command Line Deployment (1 Minute)
+## ⚡ Option A: Instant CLI Deployment (1 Minute)
 
-1. Open PowerShell or Terminal and navigate to the `web_portal` directory:
+1. Open PowerShell or Terminal and navigate to `web_portal`:
    ```bash
-   cd d:\Downloads\Pet_Connect_Ai\web_portal
+   cd petconnect_ai/web_portal
    ```
 
-2. Run Vercel CLI directly via npx (no global install needed):
+2. Run Vercel CLI via npx:
    ```bash
    npx vercel
    ```
 
-3. Follow the 4 simple prompts:
+3. Follow the guided prompts:
    - **Set up and deploy?**: `y`
-   - **Which scope?**: Press `Enter` (your personal free Vercel account)
+   - **Which scope?**: Press `Enter` (your personal Vercel account)
    - **Link to existing project?**: `N`
-   - **What's your project's name?**: `petconnect-ai`
-   - **In which directory is your code located?**: `./`
+   - **Project name?**: `petconnect-ai`
+   - **Directory?**: `./`
 
-4. For production deployment:
+4. For production release:
    ```bash
    npx vercel --prod
    ```
 
-Done! Your site is live immediately at:
+Your site is live immediately at:
 `https://petconnect-ai.vercel.app`
 
 ---
 
 ## 🌐 Option B: GitHub 1-Click Auto Deployment
 
-1. Push this repository to GitHub.
-2. Go to [https://vercel.com/new](https://vercel.com/new) and log in with your free account.
-3. Import your repository and set the **Root Directory** to `web_portal`.
-4. Click **Deploy**.
-
-Every time you scan a Missing Pet Poster or Emergency Pass QR code, it will instantly open the live webpage on any phone!
+1. Push your repository changes to GitHub.
+2. Visit [https://vercel.com/new](https://vercel.com/new) and log in.
+3. Import the `Pet_Connect_Ai` repository.
+4. Set **Root Directory** to `web_portal` (or `petconnect_ai/web_portal` depending on your repository root).
+5. Framework preset will automatically detect **Vite**.
+6. Set Environment Variables (optional, for live Supabase integration):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+7. Click **Deploy**.
 
 ---
 
 ## 📱 Features Included in the Web Portal
-- `/missing/:id` — Live Missing Pet Poster with GPS directions, Call Guardian button, WhatsApp sighting alert, and online sighting form.
-- `/emergency/:id` — First Responder / Vet Emergency Clinical Dossier.
-- `/adopt/:id` — Pet Adoption Listing with instant inquiry.
-- `/verify/vaccine/:id` — Digital vaccination authenticity certificate.
-- `index.html` — Platform overview landing page.
+
+- `/emergency/:id` — Live First Responder & Emergency Clinical Dossier (allergies, medical alerts, finder contact form, one-tap calling).
+- `/missing/:id` — Missing Pet Radar with instant sighting submission and WhatsApp dispatch.
+- `/adopt/:id` — Adoption Showcase with verified behavioral indicators and shelter inquiry.
+- `/verify/:id` — Digital Rabies & Vaccination Authenticity Certificate.
+- `TAG-PROTOTYPE-001` Simulator — Interactive QR code modal allowing immediate testing of the emergency response flow without physical collar hardware.
