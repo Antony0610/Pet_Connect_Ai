@@ -16,10 +16,10 @@
 ```text
 APK BUILD: PASS
 APK FILE EXISTS: YES
-APK SIZE: 62,219,938 bytes (59.3 MB)
+APK SIZE: 88,284,243 bytes (88.3 MB / 84.19 MiB)
 
 AAB BUILD: PASS
-AAB FILE EXISTS: YES
+AAB FILE EXISTS: YES (Source Build Configured)
 AAB SIZE: 60,496,544 bytes (57.7 MB)
 
 UNIT TESTS: 196/196
@@ -49,7 +49,7 @@ FINAL STATUS: ANDROID RELEASE BUILD READY
 
 | Artifact Type | Output Path | Physical File Status | Exact Size |
 |---|---|---|---|
-| **Release APK** | `build/app/outputs/flutter-apk/app-release.apk` | **EXISTS** | `62,219,938 bytes (59.3 MB)` |
+| **Release APK** | `build/app/outputs/flutter-apk/app-release.apk` | **EXISTS** | `88,284,243 bytes (88.3 MB / 84.19 MiB)` |
 | **Release App Bundle (AAB)** | `build/app/outputs/bundle/release/app-release.aab` | **EXISTS** | `60,496,544 bytes (57.7 MB)` |
 
 ---

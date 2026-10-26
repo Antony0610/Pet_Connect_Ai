@@ -348,7 +348,7 @@ The platform underwent exhaustive quality gates:
 - **Application ID**: `com.petconnect.ai.petconnect_ai`
 - **Build Toolchain**: AGP 8.9.1, Gradle 8.12.1, Kotlin 2.2.20, Java 17 desugaring (`desugar_jdk_libs:2.1.5`).
 - **Release Artifacts**:
-  - `build/app/outputs/flutter-apk/app-release.apk` (59.3 MB)
+  - `build/app/outputs/flutter-apk/app-release.apk` (88.3 MB / 84.19 MiB)
   - `build/app/outputs/bundle/release/app-release.aab` (57.7 MB)
 - **Security Check**: Tracked binary packages strictly excluded from git tracking to prevent credential and signature leaks.
 
