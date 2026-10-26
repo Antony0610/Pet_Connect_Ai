@@ -118,10 +118,10 @@ CORE CAPABILITIES & INSTRUCTIONS:
     // Try Gemini API if key is configured
     if (geminiApiKey) {
       const modelsToTry = [
-        "gemini-3.7-flash",
         "gemini-3.1-flash-lite",
-        "gemini-3.6-flash",
         "gemini-3.8-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
       ];
 
       const conversationContents = [];
@@ -156,6 +156,7 @@ CORE CAPABILITIES & INSTRUCTIONS:
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
+              signal: AbortSignal.timeout(8000),
               body: JSON.stringify({
                 system_instruction: {
                   parts: [{ text: clinicalSystemPrompt }],

@@ -1,0 +1,29 @@
+name: Supabase Free-Tier Keep-Alive
+
+on:
+  schedule:
+    # Runs every 3 days at midnight UTC to prevent the 7-day inactivity pause
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Allows manual trigger anytime from GitHub Actions tab
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Supabase REST API (Keep Database Active)
+        run: |
+          echo "Pinging Supabase REST API to prevent free-tier project pause..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs' }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaGdzbHlpa2pxZ2hyemhycXh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MTkwODUsImV4cCI6MjEwMjA5NTA4NX0.1o3QkCjopUh0HqUiQmeM_fopQLg9BxTYQcV-_4oeCNs' }}" \
+            "https://cghgslyikjqghrzhrqxz.supabase.co/rest/v1/pets?select=id&limit=1")
+          echo "REST API responded with HTTP $HTTP_STATUS"
+
+      - name: Ping Edge Functions (Keep Edge Runtimes Warm)
+        run: |
+          echo "Pinging Edge Functions..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS \
+            "https://cghgslyikjqghrzhrqxz.supabase.co/functions/v1/ai-assistant")
+          echo "Edge Function OPTIONS responded with HTTP $HTTP_STATUS"

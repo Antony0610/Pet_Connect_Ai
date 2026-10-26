@@ -139,10 +139,10 @@ Patient Symptom Description: ${symptom_description || "Visual inspection and cli
       }
 
       const modelsToTry = [
-        "gemini-3.7-flash",
         "gemini-3.1-flash-lite",
-        "gemini-3.6-flash",
         "gemini-3.8-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
       ];
 
       for (const model of modelsToTry) {
@@ -153,6 +153,7 @@ Patient Symptom Description: ${symptom_description || "Visual inspection and cli
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
+              signal: AbortSignal.timeout(9000),
               body: JSON.stringify({
                 contents: [{ role: "user", parts }],
                 generationConfig: {

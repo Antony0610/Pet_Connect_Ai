@@ -52,10 +52,10 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     ..idleTimeout = const Duration(minutes: 5);
 
   static const List<String> _geminiModels = [
-    'gemini-3.7-flash',
     'gemini-3.1-flash-lite',
     'gemini-3.8-flash',
-    'gemini-3.6-flash',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
   ];
 
   static final Map<String, DateTime> _circuitBreakerBlacklist = {};
@@ -71,8 +71,9 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
   }
 
   static void _reportModelFailure(String model, {int durationMinutes = 5}) {
-    _circuitBreakerBlacklist[model] =
-        DateTime.now().add(Duration(minutes: durationMinutes));
+    _circuitBreakerBlacklist[model] = DateTime.now().add(
+      Duration(minutes: durationMinutes),
+    );
   }
 
   static void _reportModelSuccess(String model) {
@@ -163,11 +164,14 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     try {
       // 1. Log user message asynchronously in background (ZERO BLOCKING)
       unawaited(
-        _client.from('ai_chat_messages').insert({
-          'conversation_id': conversationId,
-          'sender_role': 'user',
-          'message_text': prompt,
-        }).catchError((_) => null),
+        _client
+            .from('ai_chat_messages')
+            .insert({
+              'conversation_id': conversationId,
+              'sender_role': 'user',
+              'message_text': prompt,
+            })
+            .catchError((_) => null),
       );
 
       // 2. Universal Omni-Domain System Instructions (Open-domain intelligence like ChatGPT)
@@ -261,7 +265,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
                   'model': preferredModel,
                 },
               )
-              .timeout(const Duration(seconds: 6));
+              .timeout(const Duration(seconds: 20));
 
           final responseData = res.data as Map<String, dynamic>?;
           final edgeReply = (responseData?['reply'] as String?) ?? '';
@@ -285,12 +289,15 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
       // 6. Insert assistant response into DB asynchronously (ZERO BLOCKING)
       unawaited(
-        _client.from('ai_chat_messages').insert({
-          'conversation_id': conversationId,
-          'sender_role': 'assistant',
-          'message_text': replyText,
-          'metadata': responseMetadata,
-        }).catchError((_) => null),
+        _client
+            .from('ai_chat_messages')
+            .insert({
+              'conversation_id': conversationId,
+              'sender_role': 'assistant',
+              'message_text': replyText,
+              'metadata': responseMetadata,
+            })
+            .catchError((_) => null),
       );
 
       return AiChatMessageModel(
@@ -324,10 +331,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         mimeType = 'image/webp';
       }
       userTurnParts.add({
-        'inlineData': {
-          'mimeType': mimeType,
-          'data': imageBase64,
-        },
+        'inlineData': {'mimeType': mimeType, 'data': imageBase64},
       });
     }
     userTurnParts.add({'text': prompt});
@@ -350,10 +354,9 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     }
 
     final isImage = imageBase64 != null && imageBase64.isNotEmpty;
-    // Ultra-low latency timeouts: 3.2s for text, 8s for images
     final timeoutDuration = isImage
-        ? const Duration(seconds: 8)
-        : const Duration(milliseconds: 3200);
+        ? const Duration(seconds: 18)
+        : const Duration(seconds: 14);
 
     for (final model in modelsToTry) {
       try {
@@ -412,7 +415,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         'generationConfig': {
           'temperature': 0.25,
           'maxOutputTokens': 800,
-          if (model == 'gemini-3.7-flash' || model == 'gemini-3.8-flash')
+          if (model == 'gemini-3.8-flash')
             'thinkingConfig': {'thinkingBudget': 0},
         },
       });
