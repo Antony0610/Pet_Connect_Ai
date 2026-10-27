@@ -3,11 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/adopt.html", "destination": "/adopt.html" },
-    { "source": "/emergency.html", "destination": "/emergency.html" },
-    { "source": "/missing.html", "destination": "/missing.html" },
-    { "source": "/verify.html", "destination": "/verify.html" },
-    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
