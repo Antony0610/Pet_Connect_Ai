@@ -140,9 +140,11 @@ Patient Symptom Description: ${symptom_description || "Visual inspection and cli
 
       const modelsToTry = [
         "gemini-3.1-flash-lite",
+        "gemini-flash-lite-latest",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
+        "gemini-3.5-flash",
         "gemini-3.8-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
       ];
 
       for (const model of modelsToTry) {
@@ -159,7 +161,7 @@ Patient Symptom Description: ${symptom_description || "Visual inspection and cli
                 generationConfig: {
                   responseMimeType: "application/json",
                   temperature: 0.2,
-                  thinkingConfig: { thinkingBudget: 0 },
+                  ...(model === "gemini-3.8-flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
                 },
               }),
             }

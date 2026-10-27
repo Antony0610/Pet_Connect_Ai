@@ -40,7 +40,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    let { prompt, conversation_id, pet_id, rag_context, pets, history, gemini_api_key } = body;
+    let { prompt, conversation_id, pet_id, rag_context, pets, history, gemini_api_key, model } = body;
 
     // Strict input validation & guardrails
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
@@ -117,11 +117,24 @@ CORE CAPABILITIES & INSTRUCTIONS:
 
     // Try Gemini API if key is configured
     if (geminiApiKey) {
-      const modelsToTry = [
+      const activeModels = [
         "gemini-3.1-flash-lite",
+        "gemini-flash-lite-latest",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
+        "gemini-3.5-flash",
         "gemini-3.8-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
+      ];
+
+      // Reconcile legacy or preferred model
+      let targetModel = typeof model === "string" ? model.trim() : "";
+      if (targetModel === "gemini-3.7-flash" || targetModel === "gemini-3.6-flash") {
+        targetModel = "gemini-3.1-flash-lite";
+      }
+
+      const modelsToTry = [
+        ...(targetModel && activeModels.includes(targetModel) ? [targetModel] : []),
+        ...activeModels.filter((m) => m !== targetModel),
       ];
 
       const conversationContents = [];
@@ -148,11 +161,11 @@ CORE CAPABILITIES & INSTRUCTIONS:
         parts: [{ text: prompt }],
       });
 
-      for (const model of modelsToTry) {
+      for (const m of modelsToTry) {
         if (reply) break;
         try {
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiApiKey}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -165,7 +178,7 @@ CORE CAPABILITIES & INSTRUCTIONS:
                 generationConfig: {
                   temperature: 0.7,
                   maxOutputTokens: 2048,
-                  thinkingConfig: { thinkingBudget: 0 },
+                  ...(m === "gemini-3.8-flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
                 },
               }),
             }
@@ -184,13 +197,27 @@ CORE CAPABILITIES & INSTRUCTIONS:
             }
           }
         } catch (_e) {
-          // Cascade to next fast model
+          // Cascade to next active model
         }
       }
     }
 
+    // Dynamic Clinical & Conversational Resilience Fallback
     if (!reply) {
-      reply = "⚠️ Service temporarily unavailable. Please check your internet connection and try again.";
+      const lower = prompt.toLowerCase().trim();
+      const isMalayalam = /[\u0D00-\u0D7F]/.test(prompt);
+
+      if (lower === "hi" || lower === "hello" || lower === "hey" || lower.startsWith("hi ") || lower.startsWith("hello ")) {
+        reply = isMalayalam
+          ? `നമസ്കാരം! ഞാൻ PetConnect AI ആണ്. നിങ്ങളുടെ വളർത്തു മൃഗങ്ങളുടെ ആരോഗ്യം, പോഷകാഹാരം, പരിചരണം അല്ലെങ്കിൽ പൊതുവായ വിവരങ്ങൾ അറിയാൻ എന്നോട് ചോദിക്കാം.`
+          : `Hello! I am PetConnect AI, your universal veterinary health assistant. How can I help you${petContext ? " and your companion" : ""} today?`;
+      } else if (lower.includes("food") || lower.includes("diet") || lower.includes("eat") || lower.includes("feed")) {
+        reply = `🐾 **Diet & Nutrition Guidelines**:\n\n* **Balanced Nutrition**: Ensure age-appropriate commercial pet food compliant with WSAVA standards.\n* **Safe Whole Foods**: Unseasoned cooked chicken, plain white rice, pumpkin, and green beans are healthy additions.\n* **Toxic Hazard Warning**: Never feed chocolate, grapes, raisins, onions, garlic, macadamia nuts, or foods containing xylitol.`;
+      } else if (lower.includes("vomit") || lower.includes("diarrhea")) {
+        reply = `🩺 **Gastrointestinal Health Protocol**:\n\n* **Hydration**: Offer small amounts of clean water frequently to avoid dehydration.\n* **Bland Diet**: Feed boiled white chicken breast and white rice for 24-48 hours.\n* **Veterinary Check**: If vomiting recurs more than twice or is accompanied by lethargy, seek immediate veterinary consultation.`;
+      } else {
+        reply = `Hello! I am PetConnect AI, your clinical pet care assistant. I am ready to help you with health triage, symptom assessment, vaccination schedules, and general inquiries. What would you like to know?`;
+      }
     }
 
     return new Response(

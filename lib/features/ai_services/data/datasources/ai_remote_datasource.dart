@@ -53,9 +53,11 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
   static const List<String> _geminiModels = [
     'gemini-3.1-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.5-flash',
     'gemini-3.8-flash',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
   ];
 
   static final Map<String, DateTime> _circuitBreakerBlacklist = {};
@@ -253,6 +255,15 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       // 4. If direct query was not available, invoke Supabase Edge Function with short timeout
       if (replyText.isEmpty) {
         try {
+          // Map legacy model strings to active gemini-3.1-flash-lite
+          final normalizedModel =
+              (preferredModel == 'gemini-3.7-flash' ||
+                  preferredModel == 'gemini-3.6-flash' ||
+                  preferredModel == 'gemini-2.5-flash' ||
+                  preferredModel == 'gemini-2.0-flash')
+              ? 'gemini-3.1-flash-lite'
+              : preferredModel;
+
           final res = await _client.functions
               .invoke(
                 'ai-assistant',
@@ -262,7 +273,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
                   'pet_id': petId,
                   'rag_context': ragContext,
                   'gemini_api_key': Env.geminiApiKey,
-                  'model': preferredModel,
+                  'model': normalizedModel,
                 },
               )
               .timeout(const Duration(seconds: 20));
@@ -337,8 +348,15 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     userTurnParts.add({'text': prompt});
 
     final candidateModels = <String>[];
-    if (preferredModel != null && preferredModel.isNotEmpty) {
-      candidateModels.add(preferredModel);
+    String? resolvedModel = preferredModel;
+    if (resolvedModel == 'gemini-3.7-flash' ||
+        resolvedModel == 'gemini-3.6-flash' ||
+        resolvedModel == 'gemini-2.5-flash' ||
+        resolvedModel == 'gemini-2.0-flash') {
+      resolvedModel = 'gemini-3.1-flash-lite';
+    }
+    if (resolvedModel != null && resolvedModel.isNotEmpty) {
+      candidateModels.add(resolvedModel);
     }
     for (final m in _geminiModels) {
       if (!candidateModels.contains(m)) {

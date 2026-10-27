@@ -96,7 +96,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   bool _speechEnabled = false;
   final List<Uint8List> _pendingImages = [];
   String? _lastUserPrompt;
-  String _dictationLocale = 'en_IN'; // Default to English, toggleable to Malayalam 'ml_IN' or Auto
+  String _dictationLocale =
+      'en_IN'; // Default to English, toggleable to Malayalam 'ml_IN' or Auto
 
   final List<_ChatMessage> _messages = [
     _ChatMessage(
@@ -108,37 +109,82 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   ];
 
   static const List<Map<String, String>> _suggestionChips = [
-    {'icon': '🐾', 'label': 'Symptom Triage', 'prompt': 'Analyze skin rash, redness and itching causes in dogs'},
-    {'icon': '🥩', 'label': 'Food Safety', 'prompt': 'Can dogs safely eat peanut butter, apples, and blueberries?'},
-    {'icon': '⚖️', 'label': 'Calorie Math', 'prompt': 'Calculate daily RER and MER calories for a 12 kg moderately active dog'},
-    {'icon': '🔬', 'label': 'Science', 'prompt': 'Explain how quantum computing works in simple terms'},
-    {'icon': '💻', 'label': 'Python Code', 'prompt': 'Write a Python function to find the longest palindromic substring'},
-    {'icon': '🦜', 'label': 'Avian Care', 'prompt': 'What are the emergency signs of Teflon/PTFE toxicity in pet birds?'},
-    {'icon': '🏠', 'label': 'Puppy Biting', 'prompt': 'How do I stop puppy play biting and teach bite inhibition effectively?'},
-    {'icon': '🌐', 'label': 'Kerala Cats', 'prompt': 'Recommend the best cat breeds for Kerala climate and apartment living'},
+    {
+      'icon': '🐾',
+      'label': 'Symptom Triage',
+      'prompt': 'Analyze skin rash, redness and itching causes in dogs',
+    },
+    {
+      'icon': '🥩',
+      'label': 'Food Safety',
+      'prompt': 'Can dogs safely eat peanut butter, apples, and blueberries?',
+    },
+    {
+      'icon': '⚖️',
+      'label': 'Calorie Math',
+      'prompt':
+          'Calculate daily RER and MER calories for a 12 kg moderately active dog',
+    },
+    {
+      'icon': '🔬',
+      'label': 'Science',
+      'prompt': 'Explain how quantum computing works in simple terms',
+    },
+    {
+      'icon': '💻',
+      'label': 'Python Code',
+      'prompt':
+          'Write a Python function to find the longest palindromic substring',
+    },
+    {
+      'icon': '🦜',
+      'label': 'Avian Care',
+      'prompt':
+          'What are the emergency signs of Teflon/PTFE toxicity in pet birds?',
+    },
+    {
+      'icon': '🏠',
+      'label': 'Puppy Biting',
+      'prompt':
+          'How do I stop puppy play biting and teach bite inhibition effectively?',
+    },
+    {
+      'icon': '🌐',
+      'label': 'Kerala Cats',
+      'prompt':
+          'Recommend the best cat breeds for Kerala climate and apartment living',
+    },
   ];
 
   String? _activeConversationId;
-  String _selectedModelKey = 'gemini-3.7-flash';
-  String _activeModelLabel = '⚡ Flash 3.7';
+  String _selectedModelKey = 'gemini-3.1-flash-lite';
+  String _activeModelLabel = '⚡ Flash-Lite 3.1';
   bool _showScrollToBottom = false;
 
   static const List<_AiModelOption> _topGeminiModels = [
     _AiModelOption(
-      key: 'gemini-3.7-flash',
-      label: 'Gemini 3.7 Flash',
-      subtitle: 'High-performance multimodal clinical reasoning & instant answers',
-      tag: 'Recommended',
-      color: Color(0xFF6366F1),
-      icon: Icons.auto_awesome_rounded,
-    ),
-    _AiModelOption(
       key: 'gemini-3.1-flash-lite',
       label: 'Gemini 3.1 Flash-Lite',
       subtitle: 'Sub-second ultra-low latency response engine',
-      tag: 'Ultra-Fast',
+      tag: 'Recommended',
       color: Color(0xFF10B981),
       icon: Icons.bolt_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-flash-lite-latest',
+      label: 'Gemini Flash-Lite Latest',
+      subtitle: 'Active low-latency conversational engine',
+      tag: 'Ultra-Fast',
+      color: Color(0xFF06B6D4),
+      icon: Icons.speed_rounded,
+    ),
+    _AiModelOption(
+      key: 'gemini-3.5-flash-lite',
+      label: 'Gemini 3.5 Flash-Lite',
+      subtitle: 'Next-generation efficient multimodal model',
+      tag: 'Fast',
+      color: Color(0xFF6366F1),
+      icon: Icons.auto_awesome_rounded,
     ),
     _AiModelOption(
       key: 'gemini-3.8-flash',
@@ -149,11 +195,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       icon: Icons.psychology_rounded,
     ),
     _AiModelOption(
-      key: 'gemini-3.6-flash',
-      label: 'Gemini 3.6 Flash',
-      subtitle: 'Next-gen high-throughput multimodal intelligence',
+      key: 'gemini-flash-latest',
+      label: 'Gemini Flash Latest',
+      subtitle: 'Standard high-throughput multimodal model',
       tag: 'Balanced',
-      color: Color(0xFF06B6D4),
+      color: Color(0xFFF59E0B),
       icon: Icons.flare_rounded,
     ),
   ];
@@ -164,11 +210,13 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     _loadSavedModel();
     _initSpeech();
     _scroll.addListener(_handleScrollListener);
-    if (widget.initialConversationId != null && widget.initialConversationId!.isNotEmpty) {
+    if (widget.initialConversationId != null &&
+        widget.initialConversationId!.isNotEmpty) {
       _activeConversationId = widget.initialConversationId;
       _loadConversationHistory(widget.initialConversationId!);
     }
-    if (widget.initialPrompt != null && widget.initialPrompt!.trim().isNotEmpty) {
+    if (widget.initialPrompt != null &&
+        widget.initialPrompt!.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _sendPrompt(widget.initialPrompt!.trim());
@@ -187,9 +235,7 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       );
       setState(() {
         _selectedModelKey = match.key;
-        _activeModelLabel = match.tag == 'Ultra-Fast'
-            ? '⚡ Flash 3.5'
-            : '⚡ ${match.label.replaceAll('Gemini ', '')}';
+        _activeModelLabel = '⚡ ${match.label.replaceAll('Gemini ', '')}';
       });
     }
     final savedLocale = prefs.getString('app_voice_dictation_locale');
@@ -216,7 +262,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
             ),
             decoration: BoxDecoration(
               color: scheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.3),
@@ -240,7 +288,10 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       Container(
@@ -249,7 +300,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                           color: scheme.primary.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.tune_rounded, color: scheme.primary, size: 20),
+                        child: Icon(
+                          Icons.tune_rounded,
+                          color: scheme.primary,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -291,9 +346,12 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                           await HapticFeedback.mediumImpact();
                           setState(() {
                             _selectedModelKey = option.key;
-                            _activeModelLabel = '⚡ ${option.label.replaceAll('Gemini ', '')}';
+                            _activeModelLabel =
+                                '⚡ ${option.label.replaceAll('Gemini ', '')}';
                           });
-                          await ref.read(sharedPreferencesProvider).setString(
+                          await ref
+                              .read(sharedPreferencesProvider)
+                              .setString(
                                 'app_selected_gemini_model',
                                 option.key,
                               );
@@ -309,7 +367,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                             border: Border.all(
                               color: isSelected
                                   ? option.color
-                                  : scheme.outlineVariant.withValues(alpha: 0.4),
+                                  : scheme.outlineVariant.withValues(
+                                      alpha: 0.4,
+                                    ),
                               width: isSelected ? 2.0 : 1.0,
                             ),
                           ),
@@ -321,7 +381,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                                   color: option.color.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(option.icon, color: option.color, size: 20),
+                                child: Icon(
+                                  option.icon,
+                                  color: option.color,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -335,16 +399,24 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14.5,
-                                            color: isSelected ? option.color : scheme.onSurface,
+                                            color: isSelected
+                                                ? option.color
+                                                : scheme.onSurface,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 7, vertical: 2),
+                                            horizontal: 7,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: option.color.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: option.color.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: Text(
                                             option.tag,
@@ -370,7 +442,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                                 ),
                               ),
                               if (isSelected)
-                                Icon(Icons.check_circle_rounded, color: option.color, size: 22),
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: option.color,
+                                  size: 22,
+                                ),
                             ],
                           ),
                         ),
@@ -388,7 +464,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
   void _handleScrollListener() {
     if (!_scroll.hasClients) return;
-    final isScrolledUp = (_scroll.position.maxScrollExtent - _scroll.offset) > 160;
+    final isScrolledUp =
+        (_scroll.position.maxScrollExtent - _scroll.offset) > 160;
     if (isScrolledUp != _showScrollToBottom && mounted) {
       setState(() => _showScrollToBottom = isScrolledUp);
     }
@@ -426,7 +503,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               _ChatMessage(
                 m.senderRole == 'user' ? _Role.user : _Role.ai,
                 m.messageText,
-                sources: m.senderRole == 'user' ? const [] : const ['Gemini Omni-Intelligence'],
+                sources: m.senderRole == 'user'
+                    ? const []
+                    : const ['Gemini Omni-Intelligence'],
               ),
             );
           }
@@ -447,7 +526,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   Future<void> _pickImage() async {
     if (_pendingImages.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 3 symptom photos can be attached simultaneously.')),
+        const SnackBar(
+          content: Text(
+            'Maximum 3 symptom photos can be attached simultaneously.',
+          ),
+        ),
       );
       return;
     }
@@ -493,9 +576,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load image: $e')));
       }
     }
   }
@@ -515,7 +598,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Microphone access is needed for voice input. Please enable it in Settings.'),
+              content: const Text(
+                'Microphone access is needed for voice input. Please enable it in Settings.',
+              ),
               action: SnackBarAction(
                 label: 'Settings',
                 onPressed: () => openAppSettings(),
@@ -528,7 +613,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       if (!micStatus.isGranted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Microphone permission is required for voice dictation.')),
+            const SnackBar(
+              content: Text(
+                'Microphone permission is required for voice dictation.',
+              ),
+            ),
           );
         }
         return;
@@ -571,7 +660,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speech recognition is not supported or available on this device.')),
+          const SnackBar(
+            content: Text(
+              'Speech recognition is not supported or available on this device.',
+            ),
+          ),
         );
       }
     }
@@ -583,7 +676,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       final authUser = ref.read(supabaseClientProvider).auth.currentUser;
       final profile = ref.read(currentUserProfileProvider).valueOrNull;
 
-      final userName = profile?.fullName ??
+      final userName =
+          profile?.fullName ??
           authUser?.userMetadata?['full_name'] as String? ??
           authUser?.email?.split('@').first ??
           'Pet Parent';
@@ -598,15 +692,21 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       buffer.writeln('- Email: ${authUser?.email ?? "Not specified"}');
       buffer.writeln('- Home City / Region: $userCity');
       buffer.writeln('- Exact GPS Coordinates: $lat° N, $lng° E');
-      buffer.writeln('- Current Date & Local Time: ${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}');
-      buffer.writeln('- INSTRUCTION FOR WEATHER & OUTDOOR QUERIES: When the user asks about the weather, climate, current temperature, rain forecast, or safe pet walking times, ALWAYS use this exact location ($userCity, Coordinates: $lat, $lng) to provide accurate real-time weather assessments, temperature, humidity, walking recommendations (avoiding hot pavement during peak hours), and rain/heat warnings.');
+      buffer.writeln(
+        '- Current Date & Local Time: ${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+      );
+      buffer.writeln(
+        '- INSTRUCTION FOR WEATHER & OUTDOOR QUERIES: When the user asks about the weather, climate, current temperature, rain forecast, or safe pet walking times, ALWAYS use this exact location ($userCity, Coordinates: $lat, $lng) to provide accurate real-time weather assessments, temperature, humidity, walking recommendations (avoiding hot pavement during peak hours), and rain/heat warnings.',
+      );
     } catch (_) {}
 
     try {
       final allPets = ref.read(petsProvider).valueOrNull ?? [];
       final selectedPet = ref.read(selectedPetProvider);
 
-      buffer.writeln('\nREGISTERED PETS IN OWNER HOUSEHOLD (${allPets.length}):');
+      buffer.writeln(
+        '\nREGISTERED PETS IN OWNER HOUSEHOLD (${allPets.length}):',
+      );
       if (allPets.isEmpty && selectedPet != null) {
         buffer.writeln(
           '- Active Selected Pet: ${selectedPet.name} (Species: ${selectedPet.species}, Breed: ${selectedPet.breed ?? "Not specified"}, Gender: ${selectedPet.gender}, Age/DOB: ${selectedPet.dateOfBirth ?? "Unknown"}, Weight: ${selectedPet.weightKg != null ? "${selectedPet.weightKg} kg" : "N/A"}, Health Status: ${selectedPet.healthStatus})',
@@ -683,7 +783,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
     final words = cleanResponse.split(' ');
     final buffer = StringBuffer();
-    const batchSize = 3; // Multi-word batched streaming for instantaneous fluid rendering
+    const batchSize =
+        3; // Multi-word batched streaming for instantaneous fluid rendering
 
     for (int i = 0; i < words.length; i += batchSize) {
       if (!mounted) return;
@@ -707,7 +808,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
   Future<void> _sendPrompt(String prompt) async {
     final hasImages = _pendingImages.isNotEmpty;
-    final userText = prompt.trim().isEmpty && hasImages ? 'Photo symptom analysis' : prompt.trim();
+    final userText = prompt.trim().isEmpty && hasImages
+        ? 'Photo symptom analysis'
+        : prompt.trim();
     if (userText.isEmpty && !hasImages) return;
     if (_isSending) return;
 
@@ -728,7 +831,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
       if (hasImages && attachedImages.isNotEmpty) {
         final imageBase64 = base64Encode(attachedImages.first);
-        final visualPrompt = userText == 'Photo symptom analysis' || userText.trim().isEmpty
+        final visualPrompt =
+            userText == 'Photo symptom analysis' || userText.trim().isEmpty
             ? 'Please thoroughly examine this pet photo. Identify the species and breed, inspect facial features, eyes, coat condition, and posture, and provide detailed veterinary visual observations and care recommendations.'
             : userText;
 
@@ -757,7 +861,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               scan.analysisSummary,
               sources: const ['Gemini Multimodal Vision (Ultra-Fast)'],
               urgencyLevel: scan.urgencyLevel,
-              recommendations: scan.recommendations.map((e) => e.toString()).toList(),
+              recommendations: scan.recommendations
+                  .map((e) => e.toString())
+                  .toList(),
             );
             return;
           }
@@ -775,7 +881,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               scan.analysisSummary,
               sources: const ['Gemini Multimodal Vision'],
               urgencyLevel: scan.urgencyLevel,
-              recommendations: scan.recommendations.map((e) => e.toString()).toList(),
+              recommendations: scan.recommendations
+                  .map((e) => e.toString())
+                  .toList(),
             );
           },
         );
@@ -787,29 +895,34 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
         // Create conversation asynchronously in background (ZERO BLOCKING LATENCY)
         if (isNewSession) {
           unawaited(
-            repo.createConversation(
-              petId: selectedPet?.id,
-              title: userText.length > 25
-                  ? '${userText.substring(0, 25)}...'
-                  : userText,
-            ).then((convResult) {
-              convResult.fold((_) {}, (conv) {
-                _activeConversationId = conv.id;
-                ref.invalidate(aiConversationsProvider);
-              });
-            }).catchError((_) => null),
+            repo
+                .createConversation(
+                  petId: selectedPet?.id,
+                  title: userText.length > 25
+                      ? '${userText.substring(0, 25)}...'
+                      : userText,
+                )
+                .then((convResult) {
+                  convResult.fold((_) {}, (conv) {
+                    _activeConversationId = conv.id;
+                    ref.invalidate(aiConversationsProvider);
+                  });
+                })
+                .catchError((_) => null),
           );
         }
 
         final ragContext = _buildAppRagContext();
 
-        final result = await repo.sendChatMessage(
-          conversationId: convId,
-          prompt: userText,
-          petId: selectedPet?.id,
-          ragContext: ragContext,
-          preferredModel: _selectedModelKey,
-        ).timeout(const Duration(seconds: 30));
+        final result = await repo
+            .sendChatMessage(
+              conversationId: convId,
+              prompt: userText,
+              petId: selectedPet?.id,
+              ragContext: ragContext,
+              preferredModel: _selectedModelKey,
+            )
+            .timeout(const Duration(seconds: 30));
 
         if (mounted) {
           setState(() => _isSending = false);
@@ -919,8 +1032,10 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               const Divider(height: 1),
               Expanded(
                 child: conversationsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const Center(child: Text('No previous chats found')),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, __) =>
+                      const Center(child: Text('No previous chats found')),
                   data: (conversations) {
                     if (conversations.isEmpty) {
                       return const Center(
@@ -938,12 +1053,18 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                         final isSelected = c.id == _activeConversationId;
                         return ListTile(
                           selected: isSelected,
-                          leading: const Icon(Icons.chat_bubble_outline, size: 18),
+                          leading: const Icon(
+                            Icons.chat_bubble_outline,
+                            size: 18,
+                          ),
                           title: Text(
                             c.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           onTap: () {
                             Navigator.pop(context);
@@ -976,7 +1097,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
             Flexible(
               child: Text(
                 'PetConnect AI',
-                style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -989,12 +1112,18 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF10B981)),
+                    const Icon(
+                      Icons.bolt_rounded,
+                      size: 12,
+                      color: Color(0xFF10B981),
+                    ),
                     const SizedBox(width: 2),
                     Text(
                       _activeModelLabel,
@@ -1005,7 +1134,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                       ),
                     ),
                     const SizedBox(width: 2),
-                    const Icon(Icons.keyboard_arrow_down_rounded, size: 13, color: Color(0xFF10B981)),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 13,
+                      color: Color(0xFF10B981),
+                    ),
                   ],
                 ),
               ),
@@ -1023,7 +1156,10 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                       value: p.id,
                       child: Text(
                         '• ${p.name}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -1095,7 +1231,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                                         if (mounted) setState(() {});
                                       }
                                     : null,
-                                onRegenerate: _lastUserPrompt != null && i == _messages.length - 1
+                                onRegenerate:
+                                    _lastUserPrompt != null &&
+                                        i == _messages.length - 1
                                     ? () => _sendPrompt(_lastUserPrompt!)
                                     : null,
                               );
@@ -1122,10 +1260,13 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                               width: 42,
                               height: 42,
                               decoration: BoxDecoration(
-                                color: scheme.surfaceContainerHighest.withValues(alpha: 0.92),
+                                color: scheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.92),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: scheme.outlineVariant.withValues(alpha: 0.6),
+                                  color: scheme.outlineVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
                                   width: 1.2,
                                 ),
                                 boxShadow: [
@@ -1176,14 +1317,19 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                 SizedBox(
                   height: 44,
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                    ),
                     scrollDirection: Axis.horizontal,
                     itemCount: _suggestionChips.length,
                     separatorBuilder: (_, __) => AppSpacing.hGapSm,
                     itemBuilder: (ctx, i) {
                       final item = _suggestionChips[i];
                       return ActionChip(
-                        avatar: Text(item['icon']!, style: const TextStyle(fontSize: 14)),
+                        avatar: Text(
+                          item['icon']!,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                         label: Text(
                           item['label']!,
                           style: TextStyle(
@@ -1208,7 +1354,10 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
               if (_pendingImages.isNotEmpty)
                 Container(
                   height: 70,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: 4,
+                  ),
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _pendingImages.length,
@@ -1232,7 +1381,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                               icon: const CircleAvatar(
                                 radius: 10,
                                 backgroundColor: Colors.black54,
-                                child: Icon(Icons.close, size: 12, color: Colors.white),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
                               ),
                               onPressed: () {
                                 setState(() {
@@ -1249,7 +1402,10 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
 
               if (_isListening)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: 6,
+                  ),
                   color: scheme.primaryContainer.withValues(alpha: 0.3),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1260,12 +1416,22 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                         _dictationLocale.startsWith('ml')
                             ? 'കേൾക്കുന്നു... (മലയാളത്തിൽ സംസാരിക്കുക)'
                             : 'Listening for voice input... (Speak in English)',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       AppSpacing.hGapSm,
                       GestureDetector(
                         onTap: _toggleDictation,
-                        child: const Text('Stop', style: TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Stop',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1289,7 +1455,9 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                       IconButton(
                         icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
                         color: _isListening ? Colors.red : null,
-                        tooltip: _dictationLocale.startsWith('ml') ? 'ശബ്ദ ഇൻപുട്ട് (മലയാളം)' : 'Voice Input (English)',
+                        tooltip: _dictationLocale.startsWith('ml')
+                            ? 'ശബ്ദ ഇൻപുട്ട് (മലയാളം)'
+                            : 'Voice Input (English)',
                         onPressed: _toggleDictation,
                       ),
                       InkWell(
@@ -1297,22 +1465,28 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                           await HapticFeedback.selectionClick();
                           final nextLocale = _dictationLocale == 'en_IN'
                               ? 'ml_IN'
-                              : (_dictationLocale == 'ml_IN' ? 'auto' : 'en_IN');
+                              : (_dictationLocale == 'ml_IN'
+                                    ? 'auto'
+                                    : 'en_IN');
                           setState(() {
                             _dictationLocale = nextLocale;
                           });
-                          await ref.read(sharedPreferencesProvider).setString(
+                          await ref
+                              .read(sharedPreferencesProvider)
+                              .setString(
                                 'app_voice_dictation_locale',
                                 nextLocale,
                               );
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(nextLocale == 'ml_IN'
-                                    ? '✓ Voice dictation: Malayalam (മലയാളം)'
-                                    : (nextLocale == 'auto'
-                                        ? '✓ Voice dictation: Auto Detect Language'
-                                        : '✓ Voice dictation: English (Default)')),
+                                content: Text(
+                                  nextLocale == 'ml_IN'
+                                      ? '✓ Voice dictation: Malayalam (മലയാളം)'
+                                      : (nextLocale == 'auto'
+                                            ? '✓ Voice dictation: Auto Detect Language'
+                                            : '✓ Voice dictation: English (Default)'),
+                                ),
                                 duration: const Duration(seconds: 2),
                               ),
                             );
@@ -1320,12 +1494,19 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
                           margin: const EdgeInsets.only(right: 6),
                           decoration: BoxDecoration(
                             color: scheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+                            border: Border.all(
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.6,
+                              ),
+                            ),
                           ),
                           child: Text(
                             _dictationLocale == 'ml_IN'
@@ -1348,8 +1529,8 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
                             hintText: _pendingImages.isNotEmpty
                                 ? 'Add notes to symptom photos...'
                                 : (context.screenWidth < 400
-                                    ? 'Ask anything...'
-                                    : 'Ask anything — symptoms, diet, health...'),
+                                      ? 'Ask anything...'
+                                      : 'Ask anything — symptoms, diet, health...'),
                             border: const OutlineInputBorder(
                               borderRadius: AppRadius.brPill,
                               borderSide: BorderSide.none,
@@ -1415,7 +1596,12 @@ class _UserBubble extends StatelessWidget {
                   children: images.map((img) {
                     return ClipRRect(
                       borderRadius: AppRadius.brMd,
-                      child: Image.memory(img, width: 80, height: 80, fit: BoxFit.cover),
+                      child: Image.memory(
+                        img,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
                     );
                   }).toList(),
                 ),
@@ -1475,7 +1661,9 @@ class _AiCard extends StatelessWidget {
               bottomLeft: AppRadius.rSm,
               bottomRight: Radius.circular(AppRadius.lg),
             ),
-            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.5),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1500,7 +1688,11 @@ class _AiCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           color: scheme.primaryContainer,
-                          child: Icon(Icons.auto_awesome, size: 12, color: scheme.primary),
+                          child: Icon(
+                            Icons.auto_awesome,
+                            size: 12,
+                            color: scheme.primary,
+                          ),
                         ),
                       ),
                     ),
@@ -1520,7 +1712,9 @@ class _AiCard extends StatelessWidget {
                       tooltip: 'Copy to Clipboard',
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: text));
-                        context.showSnackbar('✓ Copied AI response to clipboard');
+                        context.showSnackbar(
+                          '✓ Copied AI response to clipboard',
+                        );
                       },
                     ),
                     IconButton(
@@ -1560,10 +1754,7 @@ class _AiCard extends StatelessWidget {
               ),
               if (action != null && !isStreaming) ...[
                 AppSpacing.vGapSm,
-                _AiActionCard(
-                  action: action!,
-                  onExecute: onExecuteAction,
-                ),
+                _AiActionCard(action: action!, onExecute: onExecuteAction),
               ],
             ],
           ),
@@ -1574,10 +1765,7 @@ class _AiCard extends StatelessWidget {
 }
 
 class _AiActionCard extends StatelessWidget {
-  const _AiActionCard({
-    required this.action,
-    this.onExecute,
-  });
+  const _AiActionCard({required this.action, this.onExecute});
 
   final AppAction action;
   final VoidCallback? onExecute;
@@ -1593,10 +1781,7 @@ class _AiActionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.35),
-          width: 1.2,
-        ),
+        border: Border.all(color: accent.withValues(alpha: 0.35), width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1644,11 +1829,17 @@ class _AiActionCard extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: accent.withValues(alpha: 0.2),
                     foregroundColor: accent,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
                     visualDensity: VisualDensity.compact,
                   ),
                   icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                  label: const Text('Execute Action', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  label: const Text(
+                    'Execute Action',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
                   onPressed: onExecute,
                 ),
               ] else if (action.status == ActionExecutionStatus.executing) ...[
@@ -1660,18 +1851,33 @@ class _AiActionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Text('Executing...', style: TextStyle(fontSize: 12)),
               ] else if (action.status == ActionExecutionStatus.completed) ...[
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF10B981),
+                  size: 16,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   action.statusMessage ?? 'Action completed',
-                  style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: Color(0xFF10B981),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ] else if (action.status == ActionExecutionStatus.failed) ...[
-                const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 16),
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 16,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   action.statusMessage ?? 'Execution failed',
-                  style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFFEF4444),
+                    fontSize: 12,
+                  ),
                 ),
                 TextButton(
                   onPressed: onExecute,
@@ -1718,7 +1924,9 @@ class _RichMarkdownView extends StatelessWidget {
             codeLanguage = '';
           } else {
             inCodeBlock = true;
-            codeLanguage = line.trim().length > 3 ? line.trim().substring(3).trim() : '';
+            codeLanguage = line.trim().length > 3
+                ? line.trim().substring(3).trim()
+                : '';
           }
           continue;
         }
@@ -1736,7 +1944,8 @@ class _RichMarkdownView extends StatelessWidget {
 
         // Headings (#, ##, ###, ####, #####)
         if (RegExp(r'^#{1,6}\s+').hasMatch(trimmed)) {
-          final level = RegExp(r'^(#+)').firstMatch(trimmed)?.group(1)?.length ?? 1;
+          final level =
+              RegExp(r'^(#+)').firstMatch(trimmed)?.group(1)?.length ?? 1;
           final title = trimmed.replaceFirst(RegExp(r'^#+\s*'), '');
           widgets.add(
             _buildSectionHeader(
@@ -1747,14 +1956,14 @@ class _RichMarkdownView extends StatelessWidget {
           );
         }
         // Standalone bold line acting as a title (e.g., **Key Symptoms:** or **Daily Care Plan**)
-        else if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length >= 4 && trimmed.length < 90 && !trimmed.substring(2, trimmed.length - 2).contains('**')) {
+        else if (trimmed.startsWith('**') &&
+            trimmed.endsWith('**') &&
+            trimmed.length >= 4 &&
+            trimmed.length < 90 &&
+            !trimmed.substring(2, trimmed.length - 2).contains('**')) {
           final title = trimmed.substring(2, trimmed.length - 2);
           widgets.add(
-            _buildSectionHeader(
-              context: context,
-              title: title,
-              isMajor: true,
-            ),
+            _buildSectionHeader(context: context, title: title, isMajor: true),
           );
         }
         // Numbered heading or list item (e.g., 1) **Heading:** or 1. **Heading** or 1. Detail text)
@@ -1762,9 +1971,12 @@ class _RichMarkdownView extends StatelessWidget {
           final match = RegExp(r'^(\d+[\.\)])\s+(.*)$').firstMatch(trimmed);
           final numPrefix = match?.group(1) ?? '1.';
           final itemText = match?.group(2) ?? trimmed;
-          
-          final isShortTitle = (itemText.startsWith('**') && itemText.contains('**') && itemText.length < 70) ||
-                               (itemText.endsWith(':') && itemText.length < 50);
+
+          final isShortTitle =
+              (itemText.startsWith('**') &&
+                  itemText.contains('**') &&
+                  itemText.length < 70) ||
+              (itemText.endsWith(':') && itemText.length < 50);
           if (isShortTitle) {
             widgets.add(
               _buildSectionHeader(
@@ -1783,7 +1995,10 @@ class _RichMarkdownView extends StatelessWidget {
                   children: [
                     Container(
                       margin: const EdgeInsets.only(right: 8, top: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: scheme.primaryContainer.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(5),
@@ -1797,9 +2012,7 @@ class _RichMarkdownView extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: _buildFormattedSpans(itemText, context),
-                    ),
+                    Expanded(child: _buildFormattedSpans(itemText, context)),
                   ],
                 ),
               ),
@@ -1807,7 +2020,9 @@ class _RichMarkdownView extends StatelessWidget {
           }
         }
         // Bullet list items (•, *, -)
-        else if (trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+        else if (trimmed.startsWith('• ') ||
+            trimmed.startsWith('* ') ||
+            trimmed.startsWith('- ')) {
           final itemText = trimmed.length > 2 ? trimmed.substring(2) : trimmed;
           widgets.add(
             Padding(
@@ -1824,9 +2039,7 @@ class _RichMarkdownView extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                   ),
-                  Expanded(
-                    child: _buildFormattedSpans(itemText, context),
-                  ),
+                  Expanded(child: _buildFormattedSpans(itemText, context)),
                 ],
               ),
             ),
@@ -1845,7 +2058,13 @@ class _RichMarkdownView extends StatelessWidget {
 
       // Unclosed code block
       if (inCodeBlock && codeBuffer.isNotEmpty) {
-        widgets.add(_buildCodeBlock(codeBuffer.toString().trimRight(), codeLanguage, context));
+        widgets.add(
+          _buildCodeBlock(
+            codeBuffer.toString().trimRight(),
+            codeLanguage,
+            context,
+          ),
+        );
       }
 
       return Column(
@@ -1874,10 +2093,7 @@ class _RichMarkdownView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final cleanTitle = title.replaceAll('**', '').trim();
     return Padding(
-      padding: EdgeInsets.only(
-        top: isMajor ? 12 : 8,
-        bottom: 5,
-      ),
+      padding: EdgeInsets.only(top: isMajor ? 12 : 8, bottom: 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -1948,7 +2164,9 @@ class _RichMarkdownView extends StatelessWidget {
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: code));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('✓ Code copied to clipboard')),
+                      const SnackBar(
+                        content: Text('✓ Code copied to clipboard'),
+                      ),
                     );
                   },
                   child: const Row(
@@ -1957,7 +2175,10 @@ class _RichMarkdownView extends StatelessWidget {
                       SizedBox(width: 4),
                       Text(
                         'Copy',
-                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -1993,18 +2214,28 @@ class _RichMarkdownView extends StatelessWidget {
 
       for (final match in pattern.allMatches(rawText)) {
         if (match.start > lastIndex) {
-          final slice = rawText.substring(lastIndex, match.start).replaceAll('**', '');
+          final slice = rawText
+              .substring(lastIndex, match.start)
+              .replaceAll('**', '');
           spans.add(
             TextSpan(
               text: slice,
-              style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 14.5,
+                height: 1.5,
+              ),
             ),
           );
         }
 
         final matchedText = match.group(0)!;
-        if (matchedText.startsWith('**') && matchedText.endsWith('**') && matchedText.length >= 4) {
-          final content = matchedText.substring(2, matchedText.length - 2).replaceAll('**', '');
+        if (matchedText.startsWith('**') &&
+            matchedText.endsWith('**') &&
+            matchedText.length >= 4) {
+          final content = matchedText
+              .substring(2, matchedText.length - 2)
+              .replaceAll('**', '');
           spans.add(
             TextSpan(
               text: content,
@@ -2016,7 +2247,9 @@ class _RichMarkdownView extends StatelessWidget {
               ),
             ),
           );
-        } else if (matchedText.startsWith('`') && matchedText.endsWith('`') && matchedText.length >= 2) {
+        } else if (matchedText.startsWith('`') &&
+            matchedText.endsWith('`') &&
+            matchedText.length >= 2) {
           final content = matchedText.substring(1, matchedText.length - 1);
           spans.add(
             WidgetSpan(
@@ -2040,7 +2273,9 @@ class _RichMarkdownView extends StatelessWidget {
               ),
             ),
           );
-        } else if (matchedText.startsWith('*') && matchedText.endsWith('*') && matchedText.length >= 2) {
+        } else if (matchedText.startsWith('*') &&
+            matchedText.endsWith('*') &&
+            matchedText.length >= 2) {
           final content = matchedText.substring(1, matchedText.length - 1);
           spans.add(
             TextSpan(
@@ -2062,7 +2297,11 @@ class _RichMarkdownView extends StatelessWidget {
         spans.add(
           TextSpan(
             text: slice,
-            style: TextStyle(color: scheme.onSurface, fontSize: 14.5, height: 1.5),
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 14.5,
+              height: 1.5,
+            ),
           ),
         );
       }
