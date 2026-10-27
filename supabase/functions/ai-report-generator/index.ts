@@ -1,4 +1,7 @@
+// @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+declare const Deno: any;
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";
