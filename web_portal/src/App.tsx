@@ -10,14 +10,27 @@ import { VerifyPage } from './pages/VerifyPage';
 
 export function App() {
   const [currentRoute, setCurrentRoute] = useState<string>('home');
+  const [routeId, setRouteId] = useState<string>('');
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   // Initialize route from URL pathname / hash / search
   useEffect(() => {
     const handleLocationChange = () => {
-      const path = window.location.pathname.toLowerCase();
+      const rawPath = window.location.pathname;
+      const path = rawPath.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      const search = window.location.search;
+      const searchParams = new URLSearchParams(window.location.search);
+
+      // Extract parameter ID from query ?id=... or from path segment /section/:id
+      let id = searchParams.get('id') || '';
+      const segments = rawPath.split('/').filter(Boolean);
+      if (!id && segments.length > 1) {
+        const last = segments[segments.length - 1];
+        if (!['emergency', 'missing', 'adopt', 'verify', 'vaccine', 'report', 'passport'].includes(last)) {
+          id = last;
+        }
+      }
+      setRouteId(id);
 
       if (path.includes('/emergency') || path.includes('/passport') || hash.includes('emergency')) {
         setCurrentRoute('emergency');
@@ -39,6 +52,7 @@ export function App() {
 
   const navigate = (route: string) => {
     setCurrentRoute(route);
+    setRouteId('');
     let targetPath = '/';
     if (route === 'emergency') targetPath = '/emergency';
     else if (route === 'missing') targetPath = '/missing';
@@ -51,6 +65,7 @@ export function App() {
 
   const handleNavigateEmergency = (petId: string) => {
     setCurrentRoute('emergency');
+    setRouteId(petId);
     window.history.pushState({}, '', `/emergency?id=${petId}&demo=true`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -71,16 +86,16 @@ export function App() {
           />
         )}
         {currentRoute === 'emergency' && (
-          <EmergencyPage navigate={navigate} />
+          <EmergencyPage navigate={navigate} routeId={routeId} />
         )}
         {currentRoute === 'missing' && (
-          <MissingPetsPage navigate={navigate} />
+          <MissingPetsPage navigate={navigate} routeId={routeId} />
         )}
         {currentRoute === 'adopt' && (
-          <AdoptionPage navigate={navigate} />
+          <AdoptionPage navigate={navigate} routeId={routeId} />
         )}
         {currentRoute === 'verify' && (
-          <VerifyPage navigate={navigate} />
+          <VerifyPage navigate={navigate} routeId={routeId} />
         )}
       </main>
 
