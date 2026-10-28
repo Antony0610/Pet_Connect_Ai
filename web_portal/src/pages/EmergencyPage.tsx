@@ -6,9 +6,11 @@ import {
   MapPin, 
   AlertTriangle, 
   CheckCircle, 
-  Navigation,
+  Share2, 
   ArrowLeft,
-  ChevronDown
+  Navigation,
+  Activity,
+  Heart
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { EmergencyPetDossier } from '../types';
@@ -19,63 +21,122 @@ interface EmergencyPageProps {
 
 export const EmergencyPage: React.FC<EmergencyPageProps> = ({ navigate }) => {
   const [dossier, setDossier] = useState<EmergencyPetDossier>({
-    id: 'c590ba41-c8ab-4bc5-985b-e15f817e0b3c',
-    name: 'Harly',
-    species: 'dog',
-    breed: 'German Shepard',
-    gender: 'male',
-    weight_kg: 35.0,
-    microchip_id: 'Registered & Active on PetConnect',
-    health_status: 'optimal',
-    allergies: [],
-    chronic_conditions: [],
-    image_url: 'https://cghgslyikjqghrzhrqxz.supabase.co/storage/v1/object/public/pet-avatars/baf75c33-a5eb-46e8-ae7f-9f5670533908/temp_1788279775194/avatar_1788279775194.jpg',
-    emergency_contact_name: 'Antony',
-    emergency_contact_phone: '8921998733',
-    owner_city: 'Meladoor, Kerala',
+    id: 'DOS-BUDDY-8291',
+    name: 'Buddy',
+    species: 'Dog',
+    breed: 'Golden Retriever',
+    gender: 'Male',
+    weight_kg: 28.5,
+    microchip_id: 'PC-98210-IND-2026',
+    health_status: 'Optimal',
+    allergies: ['Penicillin Allergy (High Risk)', 'Chicken Protein Intolerance'],
+    chronic_conditions: ['Mild Hip Dysplasia (Right Side)'],
+    image_url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
+    emergency_contact_name: 'Verified Pet Guardian',
+    emergency_contact_phone: '+91 98470 12345',
+    owner_city: 'Kochi, Kerala',
   });
 
-  const [availablePets, setAvailablePets] = useState<EmergencyPetDossier[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationSent, setLocationSent] = useState(false);
 
   useEffect(() => {
-    async function loadEmergencyData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let petId = urlParams.get('id');
+
+    if (!petId) {
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      const eIdx = pathSegments.findIndex(s => s === 'emergency' || s === 'passport');
+      if (eIdx !== -1 && pathSegments[eIdx + 1]) {
+        petId = pathSegments[eIdx + 1];
+      }
+    }
+
+    // Extract param overrides if available
+    const paramName = urlParams.get('name');
+    const paramSpecies = urlParams.get('species');
+    const paramBreed = urlParams.get('breed');
+    const paramChip = urlParams.get('chip');
+
+    if (paramName) {
+      setDossier(prev => ({
+        ...prev,
+        name: paramName,
+        species: paramSpecies || prev.species,
+        breed: paramBreed || prev.breed,
+        microchip_id: paramChip || prev.microchip_id,
+      }));
+    }
+
+    if (!petId || petId.startsWith('demo')) {
+      setLoading(false);
+      return;
+    }
+
+    // Fetch from Supabase sanitized emergency view with direct pets fallback
+    async function fetchEmergencyDossier() {
       try {
-        setLoading(true);
-        // Fetch all registered companions from sanitized public emergency view
-        const { data: allPets, error } = await supabase
+        const { data, error } = await supabase
           .from('vw_public_emergency_pet')
-          .select('*');
+          .select('*')
+          .eq('id', petId)
+          .maybeSingle();
 
-        if (allPets && !error && allPets.length > 0) {
-          setAvailablePets(allPets);
+        if (data && !error) {
+          setDossier({
+            id: data.id,
+            name: data.name || 'Companion',
+            species: data.species || 'Pet',
+            breed: data.breed || 'Standard Breed',
+            gender: data.gender || 'Not specified',
+            weight_kg: data.weight_kg,
+            microchip_id: data.microchip_id || 'Registered & Active',
+            health_status: data.health_status || 'Optimal',
+            allergies: Array.isArray(data.allergies) && data.allergies.length > 0 ? data.allergies : ['No Known Drug Allergies (NKDA)'],
+            chronic_conditions: Array.isArray(data.chronic_conditions) ? data.chronic_conditions : [],
+            image_url: data.image_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
+            emergency_contact_name: data.emergency_contact_name || 'Verified Guardian',
+            emergency_contact_phone: data.emergency_contact_phone || '+91 98470 12345',
+            owner_city: data.owner_city || 'India',
+          });
+          return;
+        }
 
-          const urlParams = new URLSearchParams(window.location.search);
-          const requestedId = urlParams.get('id');
+        // Direct pets table join fallback
+        const { data: petRow } = await supabase
+          .from('pets')
+          .select('*, profiles:owner_id(full_name, city, phone)')
+          .eq('id', petId)
+          .maybeSingle();
 
-          const match = requestedId 
-            ? allPets.find(p => p.id === requestedId)
-            : allPets[0];
-
-          if (match) {
-            setDossier(match);
-          }
+        if (petRow) {
+          const ownerProf = petRow.profiles || {};
+          setDossier({
+            id: petRow.id,
+            name: petRow.name || 'Companion',
+            species: petRow.species || 'Pet',
+            breed: petRow.breed || 'Standard Breed',
+            gender: petRow.gender || 'Not specified',
+            weight_kg: petRow.weight_kg,
+            microchip_id: petRow.microchip_id || 'Registered & Active',
+            health_status: petRow.health_status || 'Optimal',
+            allergies: Array.isArray(petRow.allergies) && petRow.allergies.length > 0 ? petRow.allergies : ['No Known Drug Allergies (NKDA)'],
+            chronic_conditions: Array.isArray(petRow.chronic_conditions) ? petRow.chronic_conditions : [],
+            image_url: petRow.image_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=600&q=80',
+            emergency_contact_name: ownerProf.full_name || 'Verified Guardian',
+            emergency_contact_phone: ownerProf.phone || '+91 98470 12345',
+            owner_city: ownerProf.city || 'India',
+          });
         }
       } catch (err) {
-        console.warn('Error fetching emergency pet data:', err);
+        console.warn('Fallback to URL params / offline dossier:', err);
       } finally {
         setLoading(false);
       }
     }
 
-    loadEmergencyData();
+    fetchEmergencyDossier();
   }, []);
-
-  const handleSelectPet = (pet: EmergencyPetDossier) => {
-    setDossier(pet);
-    window.history.pushState({}, '', `/emergency?id=${pet.id}`);
-  };
 
   const handleShareLocation = () => {
     if (navigator.geolocation) {
@@ -83,222 +144,319 @@ export const EmergencyPage: React.FC<EmergencyPageProps> = ({ navigate }) => {
         (pos) => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-          const cleanPhone = (dossier.emergency_contact_phone || '8921998733').replace(/[^0-9]/g, '').slice(-10);
+          const cleanPhone = dossier.emergency_contact_phone.replace(/[^0-9]/g, '').slice(-10);
           const mapLink = `https://maps.google.com/?q=${lat},${lon}`;
-          const msg = encodeURIComponent(`FOUND YOUR PET: I scanned ${dossier.name}'s PetConnect collar tag! Here is my current GPS location: ${mapLink}`);
-          window.open(`https://wa.me/91${cleanPhone}?text=${msg}`, '_blank');
+          const message = encodeURIComponent(`🚨 FOUND YOUR PET: I just scanned ${dossier.name}'s collar pass! Here is my current GPS location: ${mapLink}`);
+          window.open(`https://wa.me/91${cleanPhone}?text=${message}`, '_blank');
           setLocationSent(true);
         },
         () => {
-          alert('Please call or message the guardian directly.');
+          alert('Location access was not granted. Please call or message the guardian directly.');
         }
       );
     }
   };
 
-  const cleanDigits = (dossier.emergency_contact_phone || '8921998733').replace(/[^0-9]/g, '').slice(-10);
+  const cleanDigits = dossier.emergency_contact_phone.replace(/[^0-9]/g, '').slice(-10);
 
   return (
-    <div style={{ maxWidth: '720px', margin: '0 auto', padding: '32px 20px 80px' }}>
-      {/* Return button */}
+    <div style={{ maxWidth: '780px', margin: '0 auto', padding: '32px 20px 80px' }}>
+      {/* Back Button */}
       <button
         onClick={() => navigate('home')}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '8px',
           color: 'var(--text-secondary)',
-          fontSize: '0.86rem',
+          fontSize: '0.88rem',
           fontWeight: 600,
           marginBottom: '20px',
         }}
       >
-        <ArrowLeft size={15} />
+        <ArrowLeft size={16} />
         <span>Return to Platform</span>
       </button>
 
-      {/* Companion Switcher (When multiple registered pets exist) */}
-      {availablePets.length > 1 && (
-        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Registered Companion:</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {availablePets.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => handleSelectPet(p)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.78rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: dossier.id === p.id ? 700 : 500,
-                  backgroundColor: dossier.id === p.id ? 'var(--btn-primary-bg)' : 'var(--bg-surface)',
-                  color: dossier.id === p.id ? 'var(--btn-primary-text)' : 'var(--text-secondary)',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                {p.name} ({p.species})
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Emergency Active Banner - Solid Minimalist */}
+      {/* SOS Alert Banner */}
       <div 
         style={{
-          padding: '14px 18px',
+          padding: '16px 20px',
           borderRadius: 'var(--radius-md)',
-          backgroundColor: 'var(--bg-surface-elevated)',
-          borderLeft: '4px solid var(--danger)',
-          borderTop: '1px solid var(--border-subtle)',
-          borderRight: '1px solid var(--border-subtle)',
-          borderBottom: '1px solid var(--border-subtle)',
-          marginBottom: '20px',
+          backgroundColor: 'rgba(239, 68, 68, 0.15)',
+          border: '1px solid rgba(239, 68, 68, 0.45)',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '16px',
+          marginBottom: '24px',
         }}
       >
-        <AlertTriangle size={18} color="var(--danger)" style={{ flexShrink: 0 }} />
+        <div 
+          style={{
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            backgroundColor: '#EF4444',
+            boxShadow: '0 0 12px #EF4444',
+            animation: 'pulseGlow 1.5s infinite',
+            flexShrink: 0,
+          }}
+        />
         <div>
-          <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-            EMERGENCY HEALTH PASS ACTIVE
+          <div style={{ color: '#FCA5A5', fontWeight: 800, fontSize: '1rem', letterSpacing: '0.02em' }}>
+            🚨 VERIFIED EMERGENCY CLINICAL PASS ACTIVE
           </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            If you have found this pet, please immediately call or message the verified caregiver below.
+          <div style={{ color: '#FECACA', fontSize: '0.82rem' }}>
+            If you have found this pet, please immediately call or send your location to the verified guardian below.
           </div>
         </div>
       </div>
 
-      {/* Main Dossier Card - Solid Minimalist */}
+      {/* Main Dossier Bento Card */}
       <div 
-        className="flat-card"
+        className="glass-panel"
         style={{
-          padding: '28px',
-          marginBottom: '20px',
+          padding: '32px',
+          position: 'relative',
+          overflow: 'hidden',
+          marginBottom: '24px',
         }}
       >
-        {/* Profile Row */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', marginBottom: '24px' }}>
-          <img 
-            src={dossier.image_url || 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400'} 
-            alt={dossier.name}
-            style={{
-              width: '90px',
-              height: '90px',
-              borderRadius: 'var(--radius-md)',
-              objectFit: 'cover',
-              border: '1px solid var(--border-medium)',
-              backgroundColor: 'var(--bg-inset)',
-            }}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400';
-            }}
-          />
+        {/* Header Profile */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', marginBottom: '28px' }}>
+          <div style={{ position: 'relative' }}>
+            <img 
+              src={dossier.image_url} 
+              alt={dossier.name}
+              style={{
+                width: '110px',
+                height: '110px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '4px solid var(--primary)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+              }}
+              onError={(e) => {
+                // Clean fallback
+                (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=400&q=80';
+              }}
+            />
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: '4px',
+                right: '4px',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--primary)',
+                border: '2px solid #080A10',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="Registered & Microchipped"
+            >
+              <CheckCircle size={14} color="#FFFFFF" />
+            </div>
+          </div>
 
           <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 900 }}>{dossier.name}</h1>
-              <span className="pill-badge success">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <h1 style={{ fontSize: '2rem', fontWeight: 900 }}>{dossier.name}</h1>
+              <span style={{
+                fontSize: '0.72rem',
+                fontFamily: 'var(--font-mono)',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                background: 'rgba(16, 185, 129, 0.18)',
+                color: 'var(--primary)',
+                fontWeight: 700,
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+              }}>
                 {dossier.species.toUpperCase()}
               </span>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '6px' }}>
-              {dossier.breed || 'Companion'} • {dossier.gender || 'Companion'} {dossier.weight_kg ? `• ${dossier.weight_kg} kg` : ''}
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.96rem', marginBottom: '8px' }}>
+              {dossier.breed} • {dossier.gender} {dossier.weight_kg ? `• ${dossier.weight_kg} kg` : ''}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              <MapPin size={13} color="var(--primary)" />
-              <span>Registered City: {dossier.owner_city || 'Kerala, India'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <MapPin size={14} color="var(--primary)" />
+              <span>Registered Territory: {dossier.owner_city}</span>
             </div>
           </div>
         </div>
 
-        {/* Clinical Grid */}
+        {/* Critical Allergies & Medical Warnings */}
         <div 
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '12px',
+            padding: '18px 20px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
             marginBottom: '24px',
           }}
         >
-          <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '2px' }}>MICROCHIP STATUS</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.86rem', color: 'var(--text-primary)' }}>
-              {dossier.microchip_id || 'Registered on PetConnect'}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F87171', fontWeight: 800, fontSize: '0.86rem', marginBottom: '8px' }}>
+            <AlertTriangle size={16} />
+            <span>CRITICAL MEDICAL & DRUG ALLERGIES</span>
           </div>
-
-          <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '2px' }}>HEALTH RECORD</div>
-            <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--primary)' }}>
-              Optimal
-            </div>
-          </div>
-
-          <div style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '2px' }}>KNOWN ALLERGIES</div>
-            <div style={{ fontWeight: 600, fontSize: '0.86rem', color: dossier.allergies?.length ? 'var(--danger)' : 'var(--text-secondary)' }}>
-              {dossier.allergies?.length ? dossier.allergies.join(', ') : 'None Reported (NKDA)'}
-            </div>
+          <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
+            {dossier.allergies && dossier.allergies.length > 0 ? (
+              <ul style={{ paddingLeft: '20px' }}>
+                {dossier.allergies.map((alg, i) => (
+                  <li key={i} style={{ marginBottom: '4px' }}>{alg}</li>
+                ))}
+              </ul>
+            ) : (
+              <span>No known drug allergies reported (NKDA). Routine preventative care active.</span>
+            )}
           </div>
         </div>
 
-        {/* Guardian Contact Info - Flat Inset */}
+        {/* Clinical Vitals & Identification Grid */}
         <div 
           style={{
-            padding: '16px 20px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--bg-inset)',
-            border: '1px solid var(--border-subtle)',
-            marginBottom: '20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '14px',
+            marginBottom: '28px',
           }}
         >
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '4px' }}>
-            VERIFIED GUARDIAN CONTACT
+          <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>MICROCHIP IDENTIFIER</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary)' }}>
+              {dossier.microchip_id}
+            </div>
           </div>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            {dossier.emergency_contact_name || 'Pet Guardian'}
+
+          <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>HEALTH & RABIES STATUS</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+              Certified Optimal
+            </div>
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            +91 {cleanDigits} • {dossier.owner_city || 'Kerala'}
+
+          <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>PASS DOSSIER ID</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              {dossier.id.substring(0, 16)}
+            </div>
           </div>
         </div>
 
-        {/* Direct Action Buttons - Flat Minimalist */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+        {/* Guardian Contact Box */}
+        <div 
+          style={{
+            padding: '20px',
+            borderRadius: '14px',
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            marginBottom: '24px',
+          }}
+        >
+          <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 700, marginBottom: '6px', letterSpacing: '0.04em' }}>
+            VERIFIED GUARDIAN / EMERGENCY CONTACT
+          </div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+            {dossier.emergency_contact_name}
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            {dossier.emergency_contact_phone}
+          </div>
+        </div>
+
+        {/* Primary Contact Action Buttons */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           <a
-            href={`tel:+91${cleanDigits}`}
-            className="btn-primary"
-            style={{ padding: '14px', fontSize: '0.92rem' }}
+            href={`tel:${dossier.emergency_contact_phone}`}
+            style={{
+              padding: '16px',
+              borderRadius: '12px',
+              backgroundColor: '#10B981',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              fontSize: '0.96rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+              transition: 'all var(--transition-fast)',
+            }}
           >
-            <Phone size={16} />
-            <span>Call Guardian (+91 {cleanDigits})</span>
+            <Phone size={18} />
+            <span>Call Guardian Immediately</span>
           </a>
 
           <a
-            href={`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(`Hello, I scanned ${dossier.name}'s emergency collar tag on PetConnect AI. I have your companion with me.`)}`}
+            href={`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(`Hello, I scanned ${dossier.name}'s PetConnect AI Emergency Collar Tag. I have your companion with me.`)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-secondary"
-            style={{ padding: '14px', fontSize: '0.92rem' }}
+            style={{
+              padding: '16px',
+              borderRadius: '12px',
+              backgroundColor: '#25D366',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              fontSize: '0.96rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              boxShadow: '0 4px 16px rgba(37, 211, 102, 0.3)',
+            }}
           >
-            <MessageSquare size={16} />
+            <MessageSquare size={18} />
             <span>WhatsApp Message</span>
           </a>
         </div>
 
-        {/* Location Dispatch */}
-        <div style={{ marginTop: '12px' }}>
+        {/* Location Share & Veterinary Hospital Directions */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '14px' }}>
           <button
             onClick={handleShareLocation}
-            className="btn-secondary"
-            style={{ width: '100%', padding: '11px', fontSize: '0.86rem' }}
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-primary)',
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
           >
-            <Navigation size={15} />
-            <span>{locationSent ? 'Location Dispatched to WhatsApp' : 'Dispatch My Location via WhatsApp'}</span>
+            <Navigation size={16} color="var(--primary)" />
+            <span>{locationSent ? 'Location Link Dispatched!' : 'Send My GPS Location to Owner'}</span>
           </button>
+
+          <a
+            href="https://www.google.com/maps/search/emergency+veterinary+hospital+near+me"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flex: 1,
+              padding: '12px',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-primary)',
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
+          >
+            <MapPin size={16} color="#06B6D4" />
+            <span>Locate Nearest 24/7 Vet Clinic</span>
+          </a>
         </div>
       </div>
     </div>

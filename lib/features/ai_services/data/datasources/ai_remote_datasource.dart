@@ -52,12 +52,10 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
     ..idleTimeout = const Duration(minutes: 5);
 
   static const List<String> _geminiModels = [
-    'gemini-3.1-flash-lite',
-    'gemini-flash-lite-latest',
     'gemini-3.5-flash-lite',
-    'gemini-flash-latest',
-    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
     'gemini-3.8-flash',
+    'gemini-3.7-flash',
   ];
 
   static final Map<String, DateTime> _circuitBreakerBlacklist = {};
@@ -255,14 +253,13 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
       // 4. If direct query was not available, invoke Supabase Edge Function with short timeout
       if (replyText.isEmpty) {
         try {
-          // Map legacy model strings to active gemini-3.1-flash-lite
+          // Map deprecated 2.x models to active gemini-3.5-flash-lite
           final normalizedModel =
-              (preferredModel == 'gemini-3.7-flash' ||
-                  preferredModel == 'gemini-3.6-flash' ||
-                  preferredModel == 'gemini-2.5-flash' ||
-                  preferredModel == 'gemini-2.0-flash')
-              ? 'gemini-3.1-flash-lite'
-              : preferredModel;
+              (preferredModel == 'gemini-2.5-flash' ||
+                  preferredModel == 'gemini-2.0-flash' ||
+                  preferredModel == 'gemini-1.5-flash')
+              ? 'gemini-3.5-flash-lite'
+              : (preferredModel ?? 'gemini-3.5-flash-lite');
 
           final res = await _client.functions
               .invoke(
@@ -349,11 +346,10 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
 
     final candidateModels = <String>[];
     String? resolvedModel = preferredModel;
-    if (resolvedModel == 'gemini-3.7-flash' ||
-        resolvedModel == 'gemini-3.6-flash' ||
-        resolvedModel == 'gemini-2.5-flash' ||
-        resolvedModel == 'gemini-2.0-flash') {
-      resolvedModel = 'gemini-3.1-flash-lite';
+    if (resolvedModel == 'gemini-2.5-flash' ||
+        resolvedModel == 'gemini-2.0-flash' ||
+        resolvedModel == 'gemini-1.5-flash') {
+      resolvedModel = 'gemini-3.5-flash-lite';
     }
     if (resolvedModel != null && resolvedModel.isNotEmpty) {
       candidateModels.add(resolvedModel);
@@ -433,7 +429,7 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
         'generationConfig': {
           'temperature': 0.25,
           'maxOutputTokens': 800,
-          if (model == 'gemini-3.8-flash')
+          if (model == 'gemini-3.8-flash' || model == 'gemini-3.7-flash')
             'thinkingConfig': {'thinkingBudget': 0},
         },
       });

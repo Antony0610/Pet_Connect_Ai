@@ -46,19 +46,17 @@ Deno.serve(async (req: Request) => {
     pet_species = typeof pet_species === "string" ? pet_species.slice(0, 50).replace(/\0/g, "").trim() : "dog";
     pet_breed = typeof pet_breed === "string" ? pet_breed.slice(0, 100).replace(/\0/g, "").trim() : "mixed breed";
 
-    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY");
+    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY") || "";
     let overall_health_score = 92;
     let key_insights: string[] = [];
     let dietary_recommendations = "";
 
     if (geminiApiKey) {
       const modelsToTry = [
-        "gemini-3.1-flash-lite",
-        "gemini-flash-lite-latest",
         "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
         "gemini-3.8-flash",
+        "gemini-3.7-flash",
       ];
 
       for (const model of modelsToTry) {
@@ -92,7 +90,7 @@ Respond ONLY in JSON with this structure:
                 generationConfig: {
                   responseMimeType: "application/json",
                   temperature: 0.3,
-                  ...(model === "gemini-3.8-flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+                  ...((model === "gemini-3.8-flash" || model === "gemini-3.7-flash") ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
                 },
               }),
             }

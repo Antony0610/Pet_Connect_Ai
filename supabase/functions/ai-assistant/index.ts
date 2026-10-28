@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY");
+    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY") || "";
 
     // 1. Fetch pet profile context if available
     let petContext = (typeof rag_context === "string" ? rag_context.slice(0, 1000) : "") || "";
@@ -118,18 +118,16 @@ CORE CAPABILITIES & INSTRUCTIONS:
     // Try Gemini API if key is configured
     if (geminiApiKey) {
       const activeModels = [
-        "gemini-3.1-flash-lite",
-        "gemini-flash-lite-latest",
         "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
         "gemini-3.8-flash",
+        "gemini-3.7-flash",
       ];
 
-      // Reconcile legacy or preferred model
+      // Reconcile legacy models
       let targetModel = typeof model === "string" ? model.trim() : "";
-      if (targetModel === "gemini-3.7-flash" || targetModel === "gemini-3.6-flash") {
-        targetModel = "gemini-3.1-flash-lite";
+      if (targetModel === "gemini-2.5-flash" || targetModel === "gemini-2.0-flash" || targetModel === "gemini-1.5-flash") {
+        targetModel = "gemini-3.5-flash-lite";
       }
 
       const modelsToTry = [
@@ -178,7 +176,7 @@ CORE CAPABILITIES & INSTRUCTIONS:
                 generationConfig: {
                   temperature: 0.7,
                   maxOutputTokens: 2048,
-                  ...(m === "gemini-3.8-flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+                  ...(m === "gemini-3.8-flash" || m === "gemini-3.7-flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
                 },
               }),
             }

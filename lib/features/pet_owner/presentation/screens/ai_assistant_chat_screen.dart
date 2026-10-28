@@ -157,34 +157,26 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
   ];
 
   String? _activeConversationId;
-  String _selectedModelKey = 'gemini-3.1-flash-lite';
-  String _activeModelLabel = '⚡ Flash-Lite 3.1';
+  String _selectedModelKey = 'gemini-3.5-flash-lite';
+  String _activeModelLabel = '⚡ Flash-Lite 3.5';
   bool _showScrollToBottom = false;
 
   static const List<_AiModelOption> _topGeminiModels = [
     _AiModelOption(
+      key: 'gemini-3.5-flash-lite',
+      label: 'Gemini 3.5 Flash-Lite',
+      subtitle: 'Next-gen efficient multimodal intelligence (Default)',
+      tag: 'Recommended',
+      color: Color(0xFF10B981),
+      icon: Icons.auto_awesome_rounded,
+    ),
+    _AiModelOption(
       key: 'gemini-3.1-flash-lite',
       label: 'Gemini 3.1 Flash-Lite',
       subtitle: 'Sub-second ultra-low latency response engine',
-      tag: 'Recommended',
-      color: Color(0xFF10B981),
-      icon: Icons.bolt_rounded,
-    ),
-    _AiModelOption(
-      key: 'gemini-flash-lite-latest',
-      label: 'Gemini Flash-Lite Latest',
-      subtitle: 'Active low-latency conversational engine',
       tag: 'Ultra-Fast',
       color: Color(0xFF06B6D4),
-      icon: Icons.speed_rounded,
-    ),
-    _AiModelOption(
-      key: 'gemini-3.5-flash-lite',
-      label: 'Gemini 3.5 Flash-Lite',
-      subtitle: 'Next-generation efficient multimodal model',
-      tag: 'Fast',
-      color: Color(0xFF6366F1),
-      icon: Icons.auto_awesome_rounded,
+      icon: Icons.bolt_rounded,
     ),
     _AiModelOption(
       key: 'gemini-3.8-flash',
@@ -195,11 +187,11 @@ class _AiAssistantChatScreenState extends ConsumerState<AiAssistantChatScreen>
       icon: Icons.psychology_rounded,
     ),
     _AiModelOption(
-      key: 'gemini-flash-latest',
-      label: 'Gemini Flash Latest',
-      subtitle: 'Standard high-throughput multimodal model',
-      tag: 'Balanced',
-      color: Color(0xFFF59E0B),
+      key: 'gemini-3.7-flash',
+      label: 'Gemini 3.7 Flash',
+      subtitle: 'High-performance multimodal clinical reasoning',
+      tag: 'High-Performance',
+      color: Color(0xFF6366F1),
       icon: Icons.flare_rounded,
     ),
   ];

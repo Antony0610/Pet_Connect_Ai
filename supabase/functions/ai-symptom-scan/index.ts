@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY");
+    const geminiApiKey = gemini_api_key || Deno.env.get("GEMINI_API_KEY") || "";
     let analysis_summary = "";
     let urgency_level = "ROUTINE";
     let recommendations: string[] = [];
@@ -142,12 +142,10 @@ Patient Symptom Description: ${symptom_description || "Visual inspection and cli
       }
 
       const modelsToTry = [
-        "gemini-3.1-flash-lite",
-        "gemini-flash-lite-latest",
         "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        "gemini-3.5-flash",
+        "gemini-3.1-flash-lite",
         "gemini-3.8-flash",
+        "gemini-3.7-flash",
       ];
 
       for (const model of modelsToTry) {
@@ -164,7 +162,7 @@ Patient Symptom Description: ${symptom_description || "Visual inspection and cli
                 generationConfig: {
                   responseMimeType: "application/json",
                   temperature: 0.2,
-                  ...(model === "gemini-3.8-flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+                  ...(model === "gemini-3.8-flash" || model === "gemini-3.7-flash" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
                 },
               }),
             }
