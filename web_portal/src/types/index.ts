@@ -94,3 +94,22 @@ export interface MissingPetReport {
   status: 'ACTIVE' | 'REUNITED' | 'SIGHTING_REPORTED';
 }
 
+export interface AdoptionProfile {
+  id: string;
+  name: string;
+  species: string;
+  breed: string;
+  age: string;
+  gender: string;
+  shelter_name: string;
+  location: string;
+  image_url: string;
+  personality: string[];
+  vaccinated: boolean;
+  neutered: boolean;
+  microchipped: boolean;
+  story: string;
+  contact_phone?: string;
+  adoption_fee?: string;
+}
+

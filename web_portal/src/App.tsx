@@ -7,6 +7,7 @@ import { EmergencyPage } from './pages/EmergencyPage';
 import { MissingPetsPage } from './pages/MissingPetsPage';
 import { AdoptionPage } from './pages/AdoptionPage';
 import { VerifyPage } from './pages/VerifyPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 export function App() {
   const [currentRoute, setCurrentRoute] = useState<string>('home');
@@ -17,7 +18,7 @@ export function App() {
     const handleLocationChange = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      const search = window.location.search;
+      const search = window.location.search.toLowerCase();
 
       if (path.includes('/emergency') || path.includes('/passport') || hash.includes('emergency')) {
         setCurrentRoute('emergency');
@@ -27,6 +28,14 @@ export function App() {
         setCurrentRoute('adopt');
       } else if (path.includes('/verify') || hash.includes('verify')) {
         setCurrentRoute('verify');
+      } else if (
+        path.includes('/reset-password') || 
+        hash.includes('recovery') || 
+        hash.includes('type=recovery') || 
+        search.includes('type=recovery') ||
+        hash.includes('access_token')
+      ) {
+        setCurrentRoute('reset-password');
       } else {
         setCurrentRoute('home');
       }
@@ -44,6 +53,7 @@ export function App() {
     else if (route === 'missing') targetPath = '/missing';
     else if (route === 'adopt') targetPath = '/adopt';
     else if (route === 'verify') targetPath = '/verify';
+    else if (route === 'reset-password') targetPath = '/reset-password';
 
     window.history.pushState({}, '', targetPath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -81,6 +91,9 @@ export function App() {
         )}
         {currentRoute === 'verify' && (
           <VerifyPage navigate={navigate} />
+        )}
+        {currentRoute === 'reset-password' && (
+          <ResetPasswordPage navigate={navigate} />
         )}
       </main>
 
