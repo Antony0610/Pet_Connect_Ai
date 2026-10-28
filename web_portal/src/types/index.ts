@@ -79,3 +79,18 @@ export interface LostPetAlert {
     };
   };
 }
+
+export interface MissingPetReport {
+  id: string;
+  pet_name: string;
+  species: string;
+  breed: string;
+  last_seen_location: string;
+  last_seen_time: string;
+  reward_amount?: string;
+  contact_phone: string;
+  distinctive_marks?: string;
+  image_url?: string;
+  status: 'ACTIVE' | 'REUNITED' | 'SIGHTING_REPORTED';
+}
+
